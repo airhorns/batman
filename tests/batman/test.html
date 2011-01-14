@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batman Test Suite</title>
+    
+    <link rel="stylesheet" href="../lib/qunit.css" type="text/css" media="screen" />
+    
+    <script type="text/javascript" src="../lib/jquery.js"></script>
+    <script type="text/javascript" src="../lib/qunit.js"></script>
+    
+    <script type="text/javascript" src="../../lib/batman.js"></script>
+    
+    <!-- We do it this way instead of using a global Batman.onready and Batman.require in order to ensure test result order -->
+    <script type="text/javascript" src="utilities.js"></script>
+    <script type="text/javascript" src="mixins.js"></script>
+    <script type="text/javascript" src="bindings.js"></script>
+    <script type="text/javascript" src="events.js"></script>
+    <script type="text/javascript" src="controller.js"></script>
+    <script type="text/javascript" src="model.js"></script>
+    <script type="text/javascript" src="view.js"></script>
+</head>
+
+<body>
+    <h1 id="qunit-header">Batman Test Suite</h1>
+    <h2 id="qunit-banner"></h2>
+    <h2 id="qunit-userAgent"></h2>
+    <ol id="qunit-tests"></ol>
+</body>
+</html>

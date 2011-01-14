@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Click Counter Example</title>
+    <script type="text/javascript" src="../../lib/batman.js"></script>
+</head>
+
+<body>
+    
+    <div id="container">
+        <h1>You've clicked <span data-value="clickCount"></span> times</h1>
+        <button data-events="click: click" data-visible="canClick">Click Me!</button>
+        
+        <div data-visible="!canClick()">
+            <h3>You've clicked the maximum number of times. <a href="#" data-events="click: reset">Reset</a></h3>
+            Max Clicks: <input type="text" data-value="maxClicks" />
+        </div>
+    </div>
+    
+    <script type="text/javascript">
+        Batman.onready(function(){
+            
+            view = Batman.View({
+                node: 'container',
+                
+                clickCount: $binding(0),
+                maxClicks: $binding(3),
+                
+                click: function() {
+                    this.clickCount(this.clickCount() + 1);
+                },
+                
+                canClick: $binding(function() {
+                    return this.clickCount() < this.maxClicks();
+                }),
+                
+                reset: function() {
+                    this.clickCount(0);
+                }
+            });
+            
+        });
+    </script>
+    
+</body>
+</html>

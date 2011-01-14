@@ -1,0 +1,117 @@
+Batman.onready(function() {
+    
+    module('Utilities');
+    
+    test('Array.isArray', function() {
+        equal(Array.isArray([]), true, 'returns true for an array');
+        equal(Array.isArray(new Array()), true, 'returns true for array constructor');
+        equal(Array.isArray({}), false, 'returns false for an object');
+    });
+    
+    test('Array.toArray', function() {
+        deepEqual(Array.toArray([1,2,3]), [1,2,3], 'returns copy of array for a regular array');
+        
+        equal(Array.isArray(Array.toArray(arguments)), true, 'returns an array for arguments');
+        equal(Array.toArray(arguments).length, arguments.length, 'arguments array is same length as arguments');
+    });
+    
+    test('Array.indexOf', function() {
+        equal(Array.indexOf(['a', 'b', 'c'], 'b'), 1, 'returns correct index for primitives');
+        
+        var obj1 = {foo: 'bar'},
+            obj2 = {bar: 'baz'};
+        
+        equal(Array.indexOf([obj1, obj2], obj2), 1, 'returns correct index for objects');
+    });
+    
+    test('Function.prototype.bind', function() {
+        var context = {foo: 'bar'}, args = ['foo', 'bar', 'baz'],
+            func = function() { return {context: this, args: Array.toArray(arguments)}; }.bind(context);
+        
+        strictEqual(func().context, context, 'this inside function is bound context');
+        strictEqual(func.call(window).context, context, 'this inside function is still bound context when using .call()');
+        
+        deepEqual(func.apply(context, args).args, args, 'arguments passed to anonymous function get passed to bound function');
+    });
+    
+    test('Function.prototype.curry', function() {
+        var context = {foo: 'bar'},
+            func = function() { return Array.toArray(arguments); }.curry('foo', 'bar', 'baz');
+        
+        deepEqual(func(1,2,3), ['foo', 'bar', 'baz'], 'arguments passed to .curry() will be passed to curried function, regardless of arguments passed to anonymous function');
+    });
+    
+    test('Batman.execute', function() {
+        expect(5);
+        
+        Batman.execute(function() { strictEqual(this, Batman, 'context is Batman by default'); });
+        Batman.execute(function(foo) { equal(foo, 'bar', 'arguments passed to execute are passed to function'); }, 'bar')
+        
+        var context = {foo: 'bar'};
+        Batman.execute.call(context, function() { strictEqual(this, context, 'context is context of execute'); });
+        
+        Batman.execute([function(foo) { equal(foo, 'bar', 'function 1 has arguments'); }, function(foo) { equal(foo, 'bar', 'function 2 has arguments'); }], 'bar');
+    });
+    
+    test('Batman.msg', function() {
+        var obj = {
+            definedMethod: function(foo) {
+                return foo;
+            },
+            
+            _privateMethod: function(bar) {
+                return bar;
+            },
+            
+            methodMissing: function(name, whateverYouWant) {
+                equal(name, 'undefinedMethod', 'message name passed to methodMissing');
+                return this._privateMethod(whateverYouWant);
+            }
+        };
+        
+        equal($msg(obj, 'definedMethod', 'foo'), 'foo', 'defined message returns result');
+        equal($msg(obj, 'undefinedMethod', 'bar'), 'bar', 'undefined method returns result');
+    });
+    
+    test('Batman.get', function() {
+        var object = Batman({foo: 'foo', bar: $binding('bar')});
+        equal($get(object, 'foo'), 'foo', 'returns value of non binding');
+        equal($get(object, 'bar'), 'bar', 'returns value of binding');
+        equal($get(object, 'undefined'), null, 'no result for undefined value');
+    });
+    
+    module('Batman.require');
+    
+    asyncTest('lib files', 1, function() {
+        // loaded from Batman lib directory
+        Batman.require('batman.dom.js', function() {
+            ok(Batman.DOM, 'callback executed');
+            start();
+        });
+    });
+    
+    asyncTest('source files', 1, function() {
+        // loaded from local directory
+        Batman.require('stubs/require_test', function() {
+            ok(true, 'callback executed');
+            start();
+        });
+    });
+    
+    asyncTest('multiple files', 2, function() {
+        Batman.require(['stubs/require_test_1', 'stubs/require_test_2'], function() {
+            ok(REQUIRE_TEST_1, 'test 1 included');
+            ok(REQUIRE_TEST_2, 'test 2 included');
+            start();
+        })
+    });
+    
+    test('no callback', function() {
+        try {
+            Batman.require('stubs/require_test');
+        } catch (e) {
+            ok(false, 'raised error');
+        }
+    });
+    
+});

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello Batman!</title>
+    <script type="text/javascript" src="../../lib/batman.js"></script>
+</head>
+
+<body>
+    
+    <div id="container">
+        <h1 data-visible="!person.hasName()" data-mixin="animation">Please enter your name</h1>
+        
+        <div>
+            <p>First name: <input data-value="person.firstName" /></p>
+            <p>Last name: <input data-value="person.lastName" /></p>
+        </div>
+        
+        <h3 data-visible="person.hasName" data-mixin="animation">Hello, <span data-value="person.fullName"></span></h3>
+        
+        <button data-bind-disabled="!person.hasName()" data-events="click: reset">Reset</button>
+    </div>
+    
+    <script type="text/javascript">
+        Batman.onready(function() {
+            
+            person = Batman({
+                firstName: $binding(''),
+                lastName: $binding(''),
+                
+                fullName: $binding(function() {
+                    return this.firstName() + ' ' + this.lastName();
+                }),
+                
+                hasName: $binding(function() {
+                    return this.fullName().length > 1;
+                })
+            });
+            
+            Batman.View({
+                node: 'container',
+                
+                reset: function() {
+                    person.firstName('');
+                    person.lastName('');
+                }
+            })
+            
+        });
+    </script>
+</body>
+</html>
