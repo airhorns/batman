@@ -31,16 +31,6 @@ Batman.onready(function(){
         var binding = $binding('bar');
         $mixin(object, {name: binding});
         strictEqual(object.name, binding, 'mixing in a value that is a binding replaces the original binding');
-    })
-    
-    test('msg', 3, function() {
-        var object = Batman({name: $binding('foo')});
-        equal(typeof object.msg, 'function', 'object.message is defined');
-        equal(object.msg('name'), 'foo', 'msg sends message');
-        
-        Batman.mixin(object.name);
-        object.name.msg('observe', function(){ok(true), 'observer fired'});
-        object.msg('name', 'bar');
     });
     
     module('Batman.Mixin');

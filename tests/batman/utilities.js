@@ -53,33 +53,6 @@ Batman.onready(function() {
         Batman.execute([function(foo) { equal(foo, 'bar', 'function 1 has arguments'); }, function(foo) { equal(foo, 'bar', 'function 2 has arguments'); }], 'bar');
     });
     
-    test('Batman.msg', function() {
-        var obj = {
-            definedMethod: function(foo) {
-                return foo;
-            },
-            
-            _privateMethod: function(bar) {
-                return bar;
-            },
-            
-            methodMissing: function(name, whateverYouWant) {
-                equal(name, 'undefinedMethod', 'message name passed to methodMissing');
-                return this._privateMethod(whateverYouWant);
-            }
-        };
-        
-        equal($msg(obj, 'definedMethod', 'foo'), 'foo', 'defined message returns result');
-        equal($msg(obj, 'undefinedMethod', 'bar'), 'bar', 'undefined method returns result');
-    });
-    
-    test('Batman.get', function() {
-        var object = Batman({foo: 'foo', bar: $binding('bar')});
-        equal($get(object, 'foo'), 'foo', 'returns value of non binding');
-        equal($get(object, 'bar'), 'bar', 'returns value of binding');
-        equal($get(object, 'undefined'), null, 'no result for undefined value');
-    });
-    
     module('Batman.require');
     
     asyncTest('lib files', 1, function() {
