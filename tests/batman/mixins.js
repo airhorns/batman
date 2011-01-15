@@ -89,6 +89,29 @@ Batman.onready(function(){
         
         var obj2 = Batman(mixin, {foo: 'baz'});
         equal(obj2.foobar(), 'bazbar', 'bindings are copied to every object');
-    })
+    });
+    
+    asyncTest('use', 3, function() {
+        var mixin = Batman.Mixin({
+            detectedProperty: null,
+            propertyNeedingRequire: null
+        }).use({
+            detectedProperty: function(value) {
+                equal(value, 'foo');
+            },
+            
+            propertyNeedingRequire: {require: 'stubs/use_test', callback: function(value) {
+                strictEqual(this, object);
+                equal(value, 'bar');
+                start();
+            }},
+            
+            dontDetectThis: function(value) {
+                ok(false, 'uh oh, detected!');
+            }
+        });
+        
+        var object = mixin({detectedProperty: 'foo', propertyNeedingRequire: 'bar'});
+    });
     
 });
