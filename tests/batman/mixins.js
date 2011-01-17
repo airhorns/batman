@@ -114,4 +114,9 @@ Batman.onready(function(){
         var object = mixin({detectedProperty: 'foo', propertyNeedingRequire: 'bar'});
     });
     
+    test('use duplication bug', function() {
+        var mixin = Batman.Mixin().use({});
+        equal(typeof mixin._uses.detectedProperty, 'undefined', 'uses from last test is not defined');
+    });
+    
 });
