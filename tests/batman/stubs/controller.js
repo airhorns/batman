@@ -1,0 +1,1 @@
+TestController = Batman.Controller();
