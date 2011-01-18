@@ -124,4 +124,24 @@ Batman.onready(function() {
         equal(binding.count(), 1, 'count binding is correct')
     });
     
+    test('prevent and allow', function() {
+        var binding = $binding().observe(function(){ ok(shouldFire, 'observer fired'); }),
+            shouldFire = false;
+        
+        binding.prevent();
+        binding.fire();
+        equal(binding.isAllowed(), false, 'binding is prevented');
+        
+        binding.prevent();
+        binding.fire();
+        
+        binding.allow();
+        binding.fire();
+        
+        shouldFire = true;
+        binding.allow();
+        binding.fire();
+        equal(binding.isAllowed(), true, 'binding is allowed');
+    });
+    
 });
