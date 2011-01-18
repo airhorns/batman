@@ -87,4 +87,8 @@ Batman.onready(function() {
         }
     });
     
+    module('String Parsing');
+    
+    // FIXME
+    
 });
