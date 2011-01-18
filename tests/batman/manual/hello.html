@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Hello Batman!</title>
-    <script type="text/javascript" src="../../lib/batman.js"></script>
+    <script type="text/javascript" src="../../../lib/batman.js"></script>
 </head>
 
 <body>
@@ -11,11 +11,11 @@
         <h1 data-visible="!person.hasName()" data-mixin="animation">Please enter your name</h1>
         
         <div>
-            <p>First name: <input data-value="person.firstName" /></p>
-            <p>Last name: <input data-value="person.lastName" /></p>
+            <p>First name: <input data-bind="person.firstName" /></p>
+            <p>Last name: <input data-bind="person.lastName" /></p>
         </div>
         
-        <h3 data-visible="person.hasName" data-mixin="animation">Hello, <span data-value="person.fullName"></span></h3>
+        <h3 data-visible="person.hasName" data-mixin="animation">Hello, <span data-bind="person.fullName"></span></h3>
         
         <button data-bind-disabled="!person.hasName()" data-events="click: reset">Reset</button>
     </div>
@@ -38,10 +38,11 @@
             
             Batman.View({
                 node: 'container',
+                context: person,
                 
                 reset: function() {
-                    person.firstName('');
-                    person.lastName('');
+                    this.context.firstName('');
+                    this.context.lastName('');
                 }
             })
             
