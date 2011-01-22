@@ -16,7 +16,6 @@
         <input class="new-item" placeholder="add a todo item" data-events="submit: Alfred.TodosController.add" />
         
         <ul id="items">
-            <li> <span data-bind='Alfred.Todo.all().length'></span> <span data-mixin-pluralizer="value: Alfred.Todo.all().length, key: ">item</span></li>
             <li data-each-todo="Alfred.Todo.all" data-mixin="animation">
                 <input type="checkbox" data-bind="todo.isDone" />
                 <label data-bind="todo.body" data-classes="done: todo.isDone" data-mixin="editor"></label>
