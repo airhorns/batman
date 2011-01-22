@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Alfred: Batman's Todos</title>
+    
+    <link href='http://fonts.googleapis.com/css?family=Lobster' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="resources/alfred.css" type="text/css">
+    
+    <script type="text/javascript" src="../lib/batman.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <h1>Alfred</h1>
+        
+        <input class="new-item" placeholder="add a todo item" data-events="submit: Alfred.TodosController.add" />
+        
+        <ul id="items">
+            <li> <span data-bind='Alfred.Todo.all().length'></span> <span data-mixin-pluralizer="value: Alfred.Todo.all().length, key: ">item</span></li>
+            <li data-each-todo="Alfred.Todo.all" data-mixin="animation">
+                <input type="checkbox" data-bind="todo.isDone" />
+                <label data-bind="todo.body" data-classes="done: todo.isDone" data-mixin="editor"></label>
+                <a data-route="todo.destroy">delete</a>
+            </li>
+        </ul>
+    </div>
+    
+    <script>
+    Batman.onready(function() {
+        
+        Alfred = Batman.App();
+        
+        Alfred.Todo = Batman.Model({
+            body: $binding().validator(function(value) {
+                return value || 'emtpy todo...';
+            }),
+            
+            isDone: $binding(false)
+        });
+        
+        Alfred.TodosController = Batman.Controller({
+            add: function(text, node) {
+                Alfred.Todo({body: text});
+                
+                node.value = '';
+                node.blur();
+            }
+        });
+        
+        Alfred.Todo({body: 'riddler sent riemann hypothesis'});
+        Alfred.Todo({body: 'bane wants to meet, not worried'});
+        Alfred.Todo({body: 'joker escaped arkham again'});
+        Alfred.run();
+        
+    });
+    </script>
+</body>
+</html>

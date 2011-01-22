@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello Batman</title>
+    
+    <link rel="stylesheet" href="resources/reset.css" type="text/css">
+    <link rel="stylesheet" href="resources/hello.css" type="text/css">
+    
+    <script src="../lib/batman.js"></script>
+</head>
+
+<body>
+    
+    <div id="container">
+        
+        <h1 data-visible="!person.hasName()" data-mixin="animation">Please enter your name</h1>
+        
+        <form class="span-12">
+            <fieldset>
+            <p>
+                <label>First Name</label><br />
+                <input class="title" data-bind="person.firstName" />
+            </p>
+            
+            <p>
+                <label>Last Name</label><br />
+                <input class="title" data-bind="person.lastName" />
+            </p>
+            </fieldset>
+        </form>
+        
+        <h2 data-visible="person.hasName" data-mixin="animation">Hello, <span data-bind="person.fullName"></span></h2>
+        
+        <button data-bind-disabled="!person.hasName()" data-events="click: reset">Reset</button>
+    </div>
+    
+    <script>
+    Batman.onready(function() {
+        
+        person = Batman({
+            firstName: $binding(''),
+            lastName: $binding(''),
+            
+            fullName: $binding(function() {
+                return this.firstName() + ' ' + this.lastName();
+            }),
+            
+            hasName: $binding(function() {
+                return this.fullName().length > 1;
+            })
+        });
+        
+        Batman.View({
+            node: 'container',
+            
+            reset: function() {
+                person.firstName('');
+                person.lastName('');
+            }
+        });
+        
+    });
+    </script>
+    
+</body>
+</html>
