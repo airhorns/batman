@@ -130,7 +130,7 @@ Batman.onready(function() {
         
         binding.prevent();
         binding.fire();
-        equal(binding.isAllowed(), false, 'binding is prevented');
+        equal(binding.allowed(), false, 'binding is prevented');
         
         binding.prevent();
         binding.fire();
@@ -141,7 +141,7 @@ Batman.onready(function() {
         shouldFire = true;
         binding.allow();
         binding.fire();
-        equal(binding.isAllowed(), true, 'binding is allowed');
+        equal(binding.allowed(), true, 'binding is allowed');
     });
     
 });
