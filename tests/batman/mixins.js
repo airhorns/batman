@@ -17,8 +17,8 @@ Batman.onready(function(){
     });
     
     test('Mixin arguments', function() {
-        var object = Batman(Batman.Controller);
-        equal(object.isController, true, 'mixin has been applied to object');
+        var object = Batman(Batman.Request);
+        equal(object.isRequest, true, 'mixin has been applied to object');
     });
     
     test('bindings', function() {
@@ -89,34 +89,6 @@ Batman.onready(function(){
         
         var obj2 = Batman(mixin, {foo: 'baz'});
         equal(obj2.foobar(), 'bazbar', 'bindings are copied to every object');
-    });
-    
-    asyncTest('use', 3, function() {
-        var mixin = Batman.Mixin({
-            detectedProperty: null,
-            propertyNeedingRequire: null
-        }).use({
-            detectedProperty: function(value) {
-                equal(value, 'foo');
-            },
-            
-            propertyNeedingRequire: {require: 'stubs/use_test', callback: function(value) {
-                strictEqual(this, object);
-                equal(value, 'bar');
-                start();
-            }},
-            
-            dontDetectThis: function(value) {
-                ok(false, 'uh oh, detected!');
-            }
-        });
-        
-        var object = mixin({detectedProperty: 'foo', propertyNeedingRequire: 'bar'});
-    });
-    
-    test('use duplication bug', function() {
-        var mixin = Batman.Mixin().use({});
-        equal(typeof mixin._uses.detectedProperty, 'undefined', 'uses from last test is not defined');
     });
     
 });
