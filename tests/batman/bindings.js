@@ -144,4 +144,18 @@ Batman.onready(function() {
         equal(binding.allowed(), true, 'binding is allowed');
     });
     
+    test('validations', function() {
+        var validator = function(newValue, oldValue) {
+            ok(newValue == 'foo' || newValue == 'bar', 'new value is correct: ' + newValue);
+            ok(!oldValue || oldValue == 'foo', 'old value is correct: ' + oldValue);
+            return 'bar';
+        };
+        
+        var binding = $binding('foo').validate(validator, true);
+        equal(binding(), 'bar', 'return from validator sets binding');
+        
+        binding.forgetValidator(validator);
+        equal(binding('foo'), 'foo', 'validator is removed');
+    });
+    
 });
