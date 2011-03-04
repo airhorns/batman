@@ -1,4 +1,4 @@
-Batman.onready(function() {
+Batman.ready(function() {
     
     module('Batman.App');
     
@@ -7,7 +7,7 @@ Batman.onready(function() {
         equal(app.isApp, true, 'app isApp');
     });
     
-    asyncTest('requires', 3, function() {
+    asyncTest('requires', function() {
         var app = Batman.App({
             controllers: 'controller',
             controllersPath: 'stubs',
@@ -19,14 +19,14 @@ Batman.onready(function() {
             viewsPath: 'stubs'
         });
         
-        app.onrun(function() {
+        app.ready(function() {
             ok(TestController, 'controller loaded');
             ok(TestModel, 'model loaded');
             ok(TestView, 'view loaded');
             start();
         });
         
-        app.run();
+        expect(3);
     });
     
 });

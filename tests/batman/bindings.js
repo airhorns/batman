@@ -1,4 +1,4 @@
-Batman.onready(function() {
+Batman.ready(function() {
     
     module('$binding');
     

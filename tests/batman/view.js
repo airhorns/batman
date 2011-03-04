@@ -1,4 +1,4 @@
-Batman.onready(function() {
+Batman.ready(function() {
     
     module('Batman.View', {
         setup: function() {
@@ -11,7 +11,7 @@ Batman.onready(function() {
     });
     
     asyncTest('detecting DOM', 1, function() {
-        Batman.View({node: this.node}).onready(function() {
+        Batman.View({node: this.node}).ready(function() {
             ok(Batman.DOM, 'loaded Batman.DOM');
             start();
         });

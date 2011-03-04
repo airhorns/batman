@@ -25,12 +25,12 @@
     </div>
     
     <script>
-    Batman.onready(function() {
+    Batman.ready(function() {
         
         Alfred = Batman.App();
         
         Alfred.Todo = Batman.Model({
-            body: $binding().validator(function(value) {
+            body: $binding().validate(function(value) {
                 return value || 'emtpy todo...';
             }),
             
