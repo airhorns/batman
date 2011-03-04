@@ -20,6 +20,25 @@ Batman.ready(function() {
         strictEqual(model.last(), record2, 'model.last is second record');
     });
     
+    test('create multiple', function() {
+        var model = Batman.Model({
+            name: $binding()
+        });
+        
+        var users = [
+            {name: 'nick'},
+            {name: 'tobi'},
+            {name: 'chris'}
+        ];
+        
+        var records = model(users);
+        equal(records.length, users.length, 'same number of records and users returned');
+        deepEqual(records, model.all(), 'records matches model.all');
+        
+        equal(records[0].name(), 'nick');
+        equal(records[2].name(), 'chris');
+    });
+    
     test('serialization', 3, function() {
         var model = Batman.Model({
             name: $binding('foo'),
