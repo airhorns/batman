@@ -11,7 +11,7 @@ Batman.onready(function() {
         
         var record = model({name: 'bar'});
         equal(record.isRecord, true, 'record isRecord');
-        equal(record.name, 'bar', 'bindings were set');
+        equal(record.name(), 'bar', 'bindings were set');
         
         var record2 = model();
         equal(model.all.count(), 2, 'model.all count increased');

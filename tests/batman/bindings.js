@@ -110,7 +110,7 @@ Batman.onready(function() {
     
     test('logging', function() {
         var binding = $binding('foo');
-        equal(binding.toString(), 'foo', 'toString() returns value');
+        equal(binding.toString(), 'binding: foo', 'toString() returns value with debug info');
         equal(binding.toObject().value, 'foo', 'toObject() returns an object version of the binding');
     });
     
