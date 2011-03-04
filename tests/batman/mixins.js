@@ -27,7 +27,6 @@ Batman.ready(function(){
         
         $mixin(object, {name: 'foo'});
         equal(object.name(), 'foo', 'mixing in a value to a binding sets the binding');
-        
         var binding = $binding('bar');
         $mixin(object, {name: binding});
         strictEqual(object.name, binding, 'mixing in a value that is a binding replaces the original binding');
@@ -40,6 +39,18 @@ Batman.ready(function(){
         equal(typeof mixin, 'function', 'returns a constructor function');
         ok(mixin.isMixin, 'function isMixin');
     });
+    
+    test('constructor allows enhancing with other mixins', function() {
+        var mixin1 = Batman.Mixin({
+            foo: 'bar'
+        });
+        
+        var mixin2 = Batman.Mixin({
+            isMixin2: true
+        }, mixin1);
+        
+        equal(mixin2().foo, 'bar', 'created object has properties of both mixins');
+    })
     
     test('mixin identifier', function() {
         var mixin = Batman.Mixin('test');
@@ -89,6 +100,21 @@ Batman.ready(function(){
         
         var obj2 = Batman(mixin, {foo: 'baz'});
         equal(obj2.foobar(), 'bazbar', 'bindings are copied to every object');
+    });
+    
+    test('inherit', function() {
+        var mixin1 = Batman.Mixin({
+            foo: function() {
+                ok(true, 'inherited function called')
+            }
+        });
+        
+        var mixin2 = Batman.Mixin({
+            foo: 'bar'
+        }, mixin1.inherit('foo'));
+        
+        expect(1);
+        mixin2().foo();
     });
     
 });
