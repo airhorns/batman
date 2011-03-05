@@ -1,3 +1,4 @@
+FIXME
 # Batman
 
 Batman is a full-stack Javascript framework that helps you build rich, single-page, Javascript applications. It (will) include:
@@ -59,16 +60,20 @@ You can think of a Mixin as a predefined bucket of properties, or almost as a cl
 * **mixin**: Mixin properties to the mixin object itself
 		
 		MyMixin.mixin({foo: 'bar'}) => MyMixin.foo == 'bar'
-
+* **inherit**: Returns a hash of functions proxied to this Mixin's prototype
+		
+		MyMixin.enhance({foo: function() { console.log(this) }})
+		AnotherMixin = Batman.Mixin({isAnotherMixin: true}, MyMixin.inherit('foo'))
+		AnotherMixin().foo() => logs {isAnotherMixin: true, foo: function}
 Batman includes a number of predefined Mixins, and indeed uses these instead of classes. You'll see how this helps you write powerful code more simply.
 
-**Dependency Injection**: You can use inline observers as a basic system of dependency injection. A future update may make this more automatic.
+**Dependency Injection**: You can use inline permanent observers as a basic system of dependency injection. A future update may make this more automatic.
 
 	Batman.View = Batman.Mixin({
 		isView: true,
-		node: $binding().observe(function(node) {
+		node: $binding().observeForever(function(node) {
 			if (node)
-				Batman.require('batman.dom').then(function() {
+				Batman.require('batman.dom', function() {
 					Batman.DOM.applyToNode(node)
 				})
 		})
@@ -133,6 +138,14 @@ Bindings let you register any arbitrary key on any arbitrary object as observabl
 		obj2.bar('qux')
 		obj2.bar() => 'qux'
 		obj.foo() => 'foobar'
+* **observeForever**: Registers an observer that persists through copies
+		
+		Batman.Request = Batman.Mixin({
+			url: $binding('').observeForever(function(url) {
+				if (url)
+					this.send()
+			})
+		})
 * **validate**: Functionality may change
 
 **Array bindings**: Any binding with an array value will inherit the methods from the Array prototype, but toll-free bridge them to the binding.
@@ -197,7 +210,42 @@ Bindings let you register any arbitrary key on any arbitrary object as observabl
 	
 	// when you receive a mouse event...
 	button.click() => logs 'pressed'
+	// equivalent to button.click.dispatch()
+	// if you need to pass a function as an argument, use .dispatch
+	
 	button.title() => 'Clicked!'
+
+**One Shot Events**: Can only fire a single time, any observers added after that will simply be called immediately
+
+	Batman.ready = $event(function() { /* do something */ }, true)
+	Batman.ready.isEvent => true
+	Batman.ready.isOneShot => true
+	Batman.ready.hasFired => false
+	
+	Batman.ready()
+	Batman.ready.hasFired => true
+	
+	Batman.ready(function() { console.log('ready') }) => logs 'ready' immediately
+
+**Ajax Requests**: XHR built on bindings
+
+	var request = Batman.Request('foo.json')
+		.success(function(request) {
+			// do something
+		})
+		.error(function(error) {
+			// handle error
+		})
+		// other events: .send, .complete, .done, .fail, .then
+	
+	request.method() => 'get'
+	
+	request.body({foo: 'bar'})
+	request.method() => 'post'
+	request.contentType() => 'application/json'
+	
+	// request will be sent automatically, a short time after the url changes
+	// use request.cancel() to stop this behavior or request.send() to send immediately
 
 ### MVC
 
