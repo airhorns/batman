@@ -32,4 +32,16 @@ Batman.ready(function() {
         expect(1);
     });
     
+    asyncTest('file:/// to http://', function() {
+        if (window.location.protocol !== 'file:')
+            return;
+        
+        Batman.Request('http://google.com').success(function() {
+            ok(true, 'request was successful');
+            start();
+        });
+        
+        expect(1);
+    });
+    
 });
