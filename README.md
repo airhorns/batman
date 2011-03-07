@@ -1,4 +1,3 @@
-FIXME
 # Batman
 
 Batman is a full-stack Javascript framework that helps you build rich, single-page, Javascript applications. It (will) include:
@@ -8,6 +7,25 @@ Batman is a full-stack Javascript framework that helps you build rich, single-pa
 * Tools to bootstrap your Javascript development
 * Tools to tightly integrate your front-end and back-end
 * A robust toolchain for working with your Javascript app
+
+# Installation
+
+(This well get better quickly)
+
+1. Install [Node.js](http://nodejs.org)
+
+2. Install Batman
+		
+		git clone git://github.com/Shopify/batman
+		export PATH="batman/tools:$PATH"
+3. Start your app
+		
+		batman gen app MyApp
+		cd MyApp
+		
+		batman server
+
+# Documentation
 
 ## Javascript Framework
 
