@@ -1,4 +1,3 @@
-FIXME
 # Batman
 
 Batman is a full-stack Javascript framework that helps you build rich, single-page, Javascript applications. It (will) include:
