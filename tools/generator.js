@@ -67,11 +67,17 @@ var f = (function() {
 				File.writeFileSync(Path.join(dest, path, resultName), reader, 'binary')
 			} else {
 				var reader = File.readFileSync(Path.join(sourcePath, file), 'utf8')
-				File.writeFileSync(Path.join(dest, path, resultName), replaceVars(reader))
+				var writePath = Path.join(dest, path, resultName)
+				
+				console.log('creating ' + writePath)
+				File.writeFileSync(writePath, replaceVars(reader))
 			}
 		})
 	}
 	
 	walk()
+	
+	process.chdir(dest)
+	require('./framework.js')
 	
 })()
