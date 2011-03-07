@@ -48,6 +48,12 @@ task('gen', 'generate an app or files inside an app', function() {
 
 alias('g', 'gen')
 
+task('framework', 'generate batman.js framework files', function() {
+	require('./framework.js')
+})
+
+alias('js', 'framework')
+
 task('-T', function() {
 	for (var key in tasks) {
 		if (key.substr(0,1) === '-')
