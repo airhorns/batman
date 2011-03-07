@@ -32,6 +32,14 @@ Batman.ready(function(){
         strictEqual(object.name, binding, 'mixing in a value that is a binding replaces the original binding');
     });
     
+    test('unmixin', function() {
+        var object = Batman({foo: 'bar', name: $binding('nick')});
+        Batman.unmixin(object, {foo: null}, {name: null});
+        
+        equal(typeof object.foo, 'undefined', 'simple value is deleted');
+        equal(typeof object.name, 'undefined', 'binding is deleted');
+    });
+    
     module('Batman.Mixin');
     
     test('constructor', function() {
@@ -71,6 +79,13 @@ Batman.ready(function(){
         
         ok(mixin.isMixin, 'returns mixin');
         equal(object.foo, 'bar', 'mixin properties are present on object');
+    });
+    
+    test('removeFrom()', function() {
+        var object = {},
+            mixin = Batman.Mixin({foo: 'bar'}).applyTo(object).removeFrom(object);
+        
+        equal(typeof object.foo, 'undefined', 'value is deleted');
     });
     
     test('enhance()', function() {
