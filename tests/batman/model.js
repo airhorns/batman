@@ -47,15 +47,9 @@ Batman.ready(function() {
         var record = model({name: 'bar'}),
             transaction = record.transaction({name: 'baz'});
         
-        var serializeShouldFire = false;
-        record.serialized.observe(function() {
-            ok(serializeShouldFire, 'serialized fired');
-        });
-        
         equal(record.name(), 'bar', 'record name is not overwritten');
-        equal(transaction.name(), 'baz', 'transaction name is set without affecting the record');
+        equal(transaction.name, 'baz', 'transaction name is set without affecting the record');
         
-        serializeShouldFire = true;
         transaction.commit();
         equal(record.name(), 'baz', 'record name is overwritten when transaction is committed');
     });
