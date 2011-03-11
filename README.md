@@ -8,6 +8,25 @@ Batman is a full-stack Javascript framework that helps you build rich, single-pa
 * Tools to tightly integrate your front-end and back-end
 * A robust toolchain for working with your Javascript app
 
+# Installation
+
+(This well get better quickly)
+
+1. Install [Node.js](http://nodejs.org)
+
+2. Install Batman
+		
+		git clone git://github.com/Shopify/batman
+		export PATH="batman/tools:$PATH"
+3. Start your app
+		
+		batman gen app MyApp
+		cd MyApp
+		
+		batman server
+
+# Documentation
+
 ## Javascript Framework
 
 The core of the framework clocks in at <9kb when compressed. It takes a powerful alternative to classical inheritance and a robust system of data bindings, and builds a thin MVC layer on top that favors convention over configuration. This allows you to quickly write apps without having to worry about browser and framework quirks. Let's look at the two key concepts.

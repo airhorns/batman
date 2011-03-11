@@ -57,7 +57,7 @@ Batman.ready(function() {
     
     asyncTest('lib files', 1, function() {
         // loaded from Batman lib directory
-        Batman.require('batman.dom.js', function() {
+        Batman.require(Batman.LIB_PATH + 'batman.dom.js', function() {
             ok(Batman.DOM, 'callback executed');
             start();
         });
@@ -65,14 +65,14 @@ Batman.ready(function() {
     
     asyncTest('source files', 1, function() {
         // loaded from local directory
-        Batman.require('stubs/require_test', function() {
+        Batman.require('stubs/require_test.js', function() {
             ok(true, 'callback executed');
             start();
         });
     });
     
     asyncTest('multiple files', 2, function() {
-        Batman.require(['stubs/require_test_1', 'stubs/require_test_2'], function() {
+        Batman.require(['stubs/require_test_1.js', 'stubs/require_test_2.js'], function() {
             ok(REQUIRE_TEST_1, 'test 1 included');
             ok(REQUIRE_TEST_2, 'test 2 included');
             start();
@@ -81,7 +81,7 @@ Batman.ready(function() {
     
     test('no callback', function() {
         try {
-            Batman.require('stubs/require_test');
+            Batman.require('stubs/require_test.js');
         } catch (e) {
             ok(false, 'raised error');
         }
