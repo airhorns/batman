@@ -33,7 +33,16 @@ Batman.ready(function() {
         equal(this.obj.foo(), 'foo', 'binding value is applied');
         equal(this.obj.newValue, 'pew pew', 'simple value is applied');
     });
-
+    
+    asyncTest('change', 1, function() {
+        Batman.change(this.obj, {foo: 'foo'});
+        
+        setTimeout(function() {
+            equal(this.obj.foo(), 'foo', 'commit is applied later');
+            start();
+        }.bind(this), 100);
+    });
+    
     test('transactionable', function() {
         Batman.Transactionable.applyTo(this.obj);
         equal(typeof this.obj.transaction, 'function', 'transaction method added');
@@ -45,10 +54,8 @@ Batman.ready(function() {
         t.commit();
         
         equal(this.obj.foo(), 'foo', 'binding value is set');
-    });
-    
-    test('change', function() {
         
+        equal(typeof this.obj.change, 'function', 'has change function');
     });
     
 });
