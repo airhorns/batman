@@ -13,10 +13,9 @@ Batman.ready(function() {
             controllersPath: 'stubs',
             
             models: 'model',
-            modelsPath: 'stubs',
-            
             views: 'view',
-            viewsPath: 'stubs'
+            
+            requirePath: 'stubs'
         });
         
         app.ready(function() {
