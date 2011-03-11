@@ -39,26 +39,6 @@ Batman.ready(function() {
         equal(records[2].name(), 'chris');
     });
     
-    test('serialization', 3, function() {
-        var model = Batman.Model({
-            name: $binding('foo'),
-            gender: $binding('male').serialize(false),
-            age: $binding(0)
-        });
-        
-        var record = model(),
-            data = record.serialized();
-        
-        equal(data.name, 'foo', 'serialized data is correct');
-        equal(typeof data.gender, 'undefined', 'serialize(false) prevents objects from being serialized');
-        
-        record.serialized.observe(function() {
-            ok(true, 'serialized fired');
-        });
-        
-        record.name('bar');
-    });
-    
     test('transactions', function() {
         var model = Batman.Model({
             name: $binding('foo')
