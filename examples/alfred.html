@@ -46,6 +46,16 @@
             }
         });
         
+        Alfred.Settings = Batman.Model.Singleton({
+            fontSize: $binding(20).observeForever(function(size) {
+                var labels = document.getElementsByTagName('label'),
+                    i = labels.length;
+                
+                while (i--)
+                    labels[i].style.fontSize = size + 'pt';
+            })
+        });
+        
         Alfred.Todo({body: 'riddler sent riemann hypothesis'});
         Alfred.Todo({body: 'bane wants to meet, not worried'});
         Alfred.Todo({body: 'joker escaped arkham again'});
