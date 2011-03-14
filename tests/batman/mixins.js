@@ -133,7 +133,7 @@ Batman.ready(function(){
     });
     
     test('abstract mixins', function() {
-        var mixin = Batman.Mixin.abstract({
+        var mixin = Batman.Mixin.Abstract({
             foo: 'bar'
         });
         
