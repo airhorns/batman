@@ -33,8 +33,11 @@ Batman.ready(function() {
     });
     
     asyncTest('file:/// to http://', function() {
-        if (window.location.protocol !== 'file:')
+        if (window.location.protocol !== 'file:') {
+            ok(true, 'not running from file:///');
+            start();
             return;
+        }
         
         Batman.Request('http://google.com').success(function() {
             ok(true, 'request was successful');
