@@ -66,6 +66,22 @@ Batman.ready(function(){
         strictEqual(Batman.mixins.test, mixin, 'mixin is stored in built-in list');
     });
     
+    test('copy()', function() {
+        var mixin = Batman.Mixin({
+            protoProperty: 'foo'
+        }).mixin({
+            mixinProperty: 'bar'
+        });
+        
+        var mixin2 = mixin.copy({
+            newProperty: 'baz'
+        });
+        
+        equal(mixin2().protoProperty, 'foo', 'prototype property');
+        equal(mixin2.mixinProperty, 'bar', 'mixin property');
+        equal(mixin2().newProperty, 'baz', 'new prototype property');
+    });
+    
     test('create()', function() {
         var mixin = Batman.Mixin({foo: 'bar'});
         equal(mixin.create().foo, 'bar', 'mixin properties are present on object');
