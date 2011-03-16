@@ -269,15 +269,16 @@ Bindings let you register any arbitrary key on any arbitrary object as observabl
 
 The Javascript framework also includes a very thin layer of MVC. More documentation coming. Short version is everything is a Mixin and aliased to moneyhat functions.
 
-	User = Batman.Model({
+	User = Batman.Model('user', {
 		name: $binding('')
-	}, $M.timestamps())
+	}, $M.timestamps(), Batman.LocalStorage)
 	
 	User.isModel => true
 	User.name => undefined
 	
 	var me = User({name: 'bruce wayne'})
 	me.name() => 'bruce wayne'
+	me.save() => user is stored in HTML5 localStorage
 
 ### DOM
 
