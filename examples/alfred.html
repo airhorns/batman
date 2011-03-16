@@ -29,13 +29,13 @@
         
         Alfred = Batman.App();
         
-        Alfred.Todo = Batman.Model({
+        Alfred.Todo = Batman.Model('todos', {
             body: $binding().validate(function(value) {
                 return value || 'emtpy todo...';
             }),
             
             isDone: $binding(false)
-        });
+        }, Batman.LocalStorage);
         
         Alfred.TodosController = Batman.Controller({
             add: function(text, node) {
@@ -56,9 +56,12 @@
             })
         });
         
-        Alfred.Todo({body: 'riddler sent riemann hypothesis'});
-        Alfred.Todo({body: 'bane wants to meet, not worried'});
-        Alfred.Todo({body: 'joker escaped arkham again'});
+        if (!Alfred.Todo.all().length) {
+            Alfred.Todo({body: 'riddler sent riemann hypothesis'}).save();
+            Alfred.Todo({body: 'bane wants to meet, not worried'}).save();
+            Alfred.Todo({body: 'joker escaped arkham again'}).save();
+        }
+        
         Alfred.run();
         
     });
