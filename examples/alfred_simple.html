@@ -39,7 +39,7 @@
         
         Alfred.TodosController = Batman.Controller({
             add: function(text, node) {
-                Alfred.Todo({body: text});
+                Alfred.Todo({body: text}).save();
                 
                 node.value = '';
                 node.blur();
@@ -56,11 +56,13 @@
             })
         });
         
-        if (!Alfred.Todo.all().length) {
-            Alfred.Todo({body: 'riddler sent riemann hypothesis'}).save();
-            Alfred.Todo({body: 'bane wants to meet, not worried'}).save();
-            Alfred.Todo({body: 'joker escaped arkham again'}).save();
-        }
+        Alfred.Todo.load(function() {
+            if (!Alfred.Todo.all().length) {
+                Alfred.Todo({body: 'riddler sent riemann hypothesis'}).save();
+                Alfred.Todo({body: 'bane wants to meet, not worried'}).save();
+                Alfred.Todo({body: 'joker escaped arkham again'}).save();
+            }
+        });
         
         Alfred.run();
         
