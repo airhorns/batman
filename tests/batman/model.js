@@ -88,8 +88,9 @@ Batman.ready(function() {
         
         strictEqual(model.find(1), a);
         strictEqual(model.find("1"), a);
-        equal(model.find(2), null);
-        equal(model.find("dsaksfa"), null);
+        
+        equal(model.find(2).id(), 2);
+        equal(model.find("dsaksfa").id(), "dsaksfa");
         equal(model.find(), null);
     });
     
