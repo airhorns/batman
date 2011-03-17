@@ -1,0 +1,27 @@
+<h1>Alfred</h1>
+
+<input class="new-item" placeholder="add a todo item" data-events="submit: TodosController.add" />
+
+<ul id="items">
+    <li data-each-todo="Todo.all" data-mixin="animation">
+        <input type="checkbox" data-bind="todo.isDone" />
+        <label data-bind="todo.body" data-classes="done: todo.isDone" data-mixin="editor"></label>
+        <a data-route="todo.destroy">delete</a>
+    </li>
+</ul>
+</div>
+
+<script>
+Batman.ready(function() {
+
+Alfred = Batman.App({
+    controllers: ['todos'],
+    models: ['todo'],
+    
+    requirePath: '/alfred'
+});
+
+Alfred.run();
+
+});
+</script>
