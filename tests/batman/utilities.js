@@ -26,19 +26,12 @@ Batman.ready(function() {
     
     test('Function.prototype.bind', function() {
         var context = {foo: 'bar'}, args = ['foo', 'bar', 'baz'],
-            func = function() { return {context: this, args: Array.toArray(arguments)}; }.bind(context);
+            func = function() { return {context: this, args: Array.toArray(arguments)}; }.bind(context, 'qux');
         
         strictEqual(func().context, context, 'this inside function is bound context');
         strictEqual(func.call(window).context, context, 'this inside function is still bound context when using .call()');
         
-        deepEqual(func.apply(context, args).args, args, 'arguments passed to anonymous function get passed to bound function');
-    });
-    
-    test('Function.prototype.curry', function() {
-        var context = {foo: 'bar'},
-            func = function() { return Array.toArray(arguments); }.curry('foo', 'bar', 'baz');
-        
-        deepEqual(func(1,2,3), ['foo', 'bar', 'baz'], 'arguments passed to .curry() will be passed to curried function, regardless of arguments passed to anonymous function');
+        deepEqual(func.apply(context, args).args, ['qux'].concat(args), 'arguments passed to anonymous function get passed to bound function');
     });
     
     test('Batman.execute', function() {
