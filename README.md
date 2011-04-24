@@ -202,15 +202,6 @@ Bindings let you register any arbitrary key on any arbitrary object as observabl
 	
 	person.firstName('thomas') => logs 'thomas wayne', from the observer on fullName
 
-**Transactions**: If you are going to set a number of bindings on the same object, you can coalesce them into one transaction.
-
-	var t = Batman.transaction(person)
-	t.isTransaction => true
-	
-	t.firstName = 'alfred'
-	t.lastName = 'pennyworth'
-	t.commit() => logs 'alfred pennyworth' a single time, from the observer on fullName
-
 **Events**: Batman builds its event system on top of bindings.
 
 	var button = Batman({

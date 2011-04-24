@@ -148,14 +148,4 @@ Batman.ready(function(){
         mixin2().foo();
     });
     
-    test('abstract mixins', function() {
-        var mixin = Batman.Mixin.Abstract({
-            foo: 'bar'
-        });
-        
-        notEqual(typeof mixin, 'function', 'mixin is not a function');
-        ok(!mixin.create, 'mixin.create is not a function');
-        equal(Batman(mixin).foo, 'bar', 'applyTo still works');
-    });
-    
 });

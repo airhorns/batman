@@ -38,22 +38,7 @@ Batman.ready(function() {
         equal(records[0].name(), 'nick');
         equal(records[2].name(), 'chris');
     });
-    
-    test('transactions', function() {
-        var model = Batman.Model({
-            name: $binding('foo')
-        });
         
-        var record = model({name: 'bar'}),
-            transaction = record.transaction({name: 'baz'});
-        
-        equal(record.name(), 'bar', 'record name is not overwritten');
-        equal(transaction.name, 'baz', 'transaction name is set without affecting the record');
-        
-        transaction.commit();
-        equal(record.name(), 'baz', 'record name is overwritten when transaction is committed');
-    });
-    
     test('destroy', function() {
         var model = Batman.Model(),
             record = model();
