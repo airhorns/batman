@@ -239,13 +239,13 @@ class Batman.DataStore extends Batman.Object
     
     @_data[key]
 
-# route matching courtesy of Backbone
-namedParam = /:([\w\d]+)/g
-splatParam = /\*([\w\d]+)/g
-namedOrSplat = /[:|\*]([\w\d]+)/g
-escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
-
 class Batman.App extends Batman.Object
+  # route matching courtesy of Backbone
+  namedParam = /:([\w\d]+)/g
+  splatParam = /\*([\w\d]+)/g
+  namedOrSplat = /[:|\*]([\w\d]+)/g
+  escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
+  
   @match: (url, action) ->
     routes = @::_routes ||= []
     match = url.replace(escapeRegExp, '\\$&')
@@ -267,18 +267,23 @@ class Batman.App extends Batman.Object
     instance = new @
     @sharedApp = instance
     
-    global.BATMAN_APP = instance
+    global.App = instance
+  
+  @run: ->
+    global.App.run()
   
   constructor: ->
     super
     @dataStore = new Batman.DataStore
+  
+  run: ->
+    new Batman.View context: global, node: document.body
     
-    @startRouting() if @_routes?.length
-    
-    layout = =>
-      new Batman.View context: global, node: document.body
-    
-    setTimeout layout, 0
+    if @_routes?.length
+      # for className, controller of @constructor
+        # if controller instanceof Batman.Controller
+      
+      @startRouting()
   
   startRouting: ->
     return if typeof window is 'undefined'
@@ -330,7 +335,18 @@ class Batman.App extends Batman.Object
       actionName = helpers.camelize(components[1], true)
       
       controller = @controller controllerName
-      controller[actionName](params)
+    else if typeof action is 'object'
+      controller = @controller action.controller?.name || action.controller
+      actionName = action.action
+    
+    controller._actedDuringAction = no
+    controller._currentAction = actionName
+    
+    controller[actionName](params)
+    controller.render() if not controller._actedDuringAction
+    
+    delete controller._actedDuringAction
+    delete controller._currentAction
   
   _matchRoute: (url) ->
     routes = @_routes
@@ -360,17 +376,31 @@ class Batman.App extends Batman.Object
     controller
 
 Batman.redirect = (url) ->
-  BATMAN_APP.redirect url
+  App.redirect url
 
 class Batman.Controller extends Batman.Object
   @match: (url, action) ->
-    BATMAN_APP.match url, helpers.camelize(@name.replace('Controller', ''), true) + '.' + action
+    App.match url, controller: @, action: action
   
   @beforeFilter: (action, options) ->
     # FIXME
   
+  redirect: (url) ->
+    @_actedDuringAction = yes
+    Batman.redirect url
+  
   render: (options) ->
+    @_actedDuringAction = yes
     options ||= {}
+    
+    if not options.view
+      options.source = 'views/' + helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
+      options.view = new Batman.View(options)
+    
+    if view = options.view
+      view.context = @ if not options.context
+      view.ready ->
+        Batman.DOM.contentFor('main', view.get('node'))
 
 class Batman.View extends Batman.Object
   source: @property().observe (path) ->
@@ -388,6 +418,13 @@ class Batman.View extends Batman.Object
       @ready()
   
   ready: $event.oneShot ->
+  
+  methodMissing: (key, value) ->
+    return super if not @context
+    if arguments.length > 1
+      @context.set key, value
+    else
+      @context.get key
 
 class Batman.Model extends Batman.Object
   @_makeRecords: (ids) ->
@@ -400,7 +437,7 @@ class Batman.Model extends Batman.Object
     @::[relation] = ->
       query = model: model
       query[inverse + 'Id'] = @id
-      BATMAN_APP[model]._makeRecords(BATMAN_APP.dataStore.query(query))
+      App[model]._makeRecords(App.dataStore.query(query))
   
   @hasOne: (relation) ->
     
@@ -413,7 +450,7 @@ class Batman.Model extends Batman.Object
       if arguments.length
         @[key] = if value and value.id then ''+value.id else ''+value
       
-      BATMAN_APP[model]._makeRecords(BATMAN_APP.dataStore.query({model: model, id: @[key]}))[0]
+      App[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
   
   @timestamps: (useTimestamps) ->
     return if useTimestamps is off
@@ -421,13 +458,13 @@ class Batman.Model extends Batman.Object
     @::updatedAt = null
   
   @all: ->
-    @_makeRecords BATMAN_APP.dataStore.query({model: @name})
+    @_makeRecords App.dataStore.query({model: @name})
   
   @one: ->
-    @_makeRecords(BATMAN_APP.dataStore.query({model: @name}, {limit: 1}))[0]
+    @_makeRecords(App.dataStore.query({model: @name}, {limit: 1}))[0]
   
   @find: (id) ->
-    new @(BATMAN_APP.dataStore.get(id))
+    new @(App.dataStore.get(id))
   
   constructor: ->
     @_data = {}
@@ -445,7 +482,7 @@ class Batman.Model extends Batman.Object
   
   save: ->
     @id ||= ''+Math.floor(Math.random() * 1000)
-    BATMAN_APP.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
+    App.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
     @
   
   toJSON: ->
@@ -513,6 +550,12 @@ Batman.DOM = {
     bind: (key, node, context) ->
       context.observe key, yes, (value) -> Batman.DOM.valueForNode(node, value)
       Batman.DOM.events.change node, (value) -> context.set(key, value)
+    
+    yield: (key, node, context) ->
+      Batman.DOM.yield key, node
+    
+    contentFor: (key, node, context) ->
+      Batman.DOM.contentFor key, node
   }
   
   events: {
@@ -526,6 +569,21 @@ Batman.DOM = {
       Batman.DOM.addEventListener node, eventName, (e...) ->
         callback Batman.DOM.valueForNode(node), e...
   }
+  
+  yield: (name, node) ->
+    yields = Batman.DOM._yields ||= {}
+    yields[name] = node
+    
+    content = Batman.DOM._yieldContents?[name]
+    node.appendChild(content) if content
+  
+  contentFor: (name, node) ->
+    console.log name
+    contents = Batman.DOM._yieldContents ||= {}
+    contents[name] = node
+    
+    yield = Batman.DOM._yields?[name]
+    yield.appendChild(node) if yield
   
   parseNode: (node, context) ->
     return if not node
