@@ -551,6 +551,13 @@ class Batman.Model extends Batman.Object
       
       App.constructor[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
   
+  @validate: (f) ->
+    
+  
+  @validatesLengthOf: (key, options) ->
+    @validate =>
+      
+  
   @timestamps: (useTimestamps) ->
     return if useTimestamps is off
     @::createdAt = null

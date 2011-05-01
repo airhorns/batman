@@ -1,6 +1,8 @@
 class Twitter.Tweet extends Batman.Model
   @hasMany 'comments'
   
+  @validatesLengthOf 'body', minimum: 3
+  
   formatted: @property ->
     @text.replace(/@([\w]+)/g, '@<a href="#">$1</a>')
          .replace(/#([\w]+)/g, '<a href="#!/%23$1" class="hashtag">#$1</a>')
