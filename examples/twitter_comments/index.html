@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Twitter</title>
+  
+  <script src="lib/coffee-script.js"></script>
+  <script src="lib/batman.js"></script>
+  <script src="nowjs/now.js"></script>
+  
+  <style>
+  * {
+    font-family: "Myriad Pro", Arial, sans-serif;
+  }
+  
+  #batman {
+    width: 250px;
+    margin: 0 auto;
+    margin-top: 300px;
+    text-align: center;
+  }
+  
+  #batman img {
+    margin-left: -43px;
+    margin-top: -22px;
+  }
+  
+  #batman input {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #999;
+    text-align: center;
+    width: 250px;
+    margin-bottom: 50px;
+  }
+  
+  .clearfix {
+    clear: both;
+  }
+  
+  ul {
+    list-style: none;
+  }
+  
+  .twitter {
+    margin-bottom: 24px;
+  }
+  
+  .twitter .avatar {
+    float: left;
+  }
+  
+  .twitter p {
+    float: left;
+  }
+  
+  .twitter p .hashtag {
+    color: #aaa;
+    text-decoration: none;
+  }
+  
+  .twitter .timestamp {
+    color: #666;
+    font-size: 0.8em;
+  }
+  </style>
+</head>
+
+<body>
+  <div data-yield="main"></div>
+  
+  <div id="batman">
+    Search Twitter: <input data-bind="App.query" data-event-submit="App.search"/>
+    <code>powered by</code><br />
+    <img src="resources/batman.png" />
+  </div>
+  
+  <script type="text/coffeescript">
+  class Twitter extends Batman.App
+    @controller 'app', 'comments'
+    @model 'tweet', 'comment'
+    
+    @root 'app.index'
+    @match '/:query', 'app.query'
+    @match '/:id/comment', 'comments.new'
+    @match '/:id/comments', 'comments.index'
+    
+    query: '#'
+    search: ->
+      Batman.redirect '/' + encodeURIComponent(App.query)
+  
+  Twitter.run()
+  </script>
+</body>
+</html>

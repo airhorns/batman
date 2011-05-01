@@ -6,6 +6,9 @@
   * license MIT
   */
 !function(context){function reqwest(a,b){return new Reqwest(a,b)}function init(o,fn){function error(a){o.error&&o.error(a),complete(a)}function success(resp){o.timeout&&clearTimeout(self.timeout)&&(self.timeout=null);var r=resp.responseText;switch(type){case"json":resp=eval("("+r+")");break;case"js":resp=eval(r);break;case"html":resp=r}fn(resp),o.success&&o.success(resp),complete(resp)}function complete(a){o.complete&&o.complete(a)}this.url=typeof o=="string"?o:o.url,this.timeout=null;var type=o.type||setType(this.url),self=this;fn=fn||function(){},o.timeout&&(this.timeout=setTimeout(function(){self.abort(),error()},o.timeout)),this.request=getRequest(o,success,error)}function setType(a){if(/\.json$/.test(a))return"json";if(/\.js$/.test(a))return"js";if(/\.html?$/.test(a))return"html";if(/\.xml$/.test(a))return"xml";return"js"}function Reqwest(a,b){this.o=a,this.fn=b,init.apply(this,arguments)}function getRequest(a,b,c){var d=xhr();d.open(a.method||"GET",typeof a=="string"?a:a.url,!0),setHeaders(d,a),d.onreadystatechange=readyState(d,b,c),a.before&&a.before(d),d.send(a.data||null);return d}function setHeaders(a,b){var c=b.headers||{};c.Accept="text/javascript, text/html, application/xml, text/xml, */*";if(b.data){c["Content-type"]="application/x-www-form-urlencoded";for(var d in c)c.hasOwnProperty(d)&&a.setRequestHeader(d,c[d],!1)}}function readyState(a,b,c){return function(){a&&a.readyState==4&&(twoHundo.test(a.status)?b(a):c(a))}}var twoHundo=/^20\d$/,xhr="XMLHttpRequest"in window?function(){return new XMLHttpRequest}:function(){return new ActiveXObject("Microsoft.XMLHTTP")};Reqwest.prototype={abort:function(){this.request.abort()},retry:function(){init.call(this,this.o,this.fn)}};var old=context.reqwest;reqwest.noConflict=function(){context.reqwest=old;return this},context.reqwest=reqwest}(this)
+
+//Lightweight JSONP fetcher - www.nonobtrusive.com
+var JSONP=(function(){var a=0,c,f,b,d=this;function e(j){var i=document.createElement("script"),h=false;i.src=j;i.async=true;i.onload=i.onreadystatechange=function(){if(!h&&(!this.readyState||this.readyState==="loaded"||this.readyState==="complete")){h=true;i.onload=i.onreadystatechange=null;if(i&&i.parentNode){i.parentNode.removeChild(i)}}};if(!c){c=document.getElementsByTagName("head")[0]}c.appendChild(i)}function g(h,j,k){f="?";j=j||{};for(b in j){if(j.hasOwnProperty(b)){f+=encodeURIComponent(b)+"="+encodeURIComponent(j[b])+"&"}}var i="json"+(++a);d[i]=function(l){k(l);d[i]=null;try{delete d[i]}catch(m){}};e(h+f+"callback="+i);return i}return{get:g}}());
 }`
 
 ###
@@ -147,7 +150,7 @@ Batman.Observable = {
       FIXME_firstPath = key.substr(0, index)
       FIXME_lastPath = key.substr(index + 1)
       FIXME_object = @get(FIXME_firstPath)
-      FIXME_object.observe(FIXME_lastPath, callback)
+      FIXME_object?.observe(FIXME_lastPath, callback)
     
     if fireImmediately
       callback(@get(key))
@@ -233,6 +236,25 @@ class Batman.DataStore extends Batman.Object
   constructor: ->
     super
     @_data = {}
+    
+    now.receiveSync = (data) =>
+      @_data = data
+      @_syncing = no
+  
+  needsSync: ->
+    return if @_syncing
+    if @_syncTimeout
+      clearTimeout @_syncTimeout
+    
+    @_syncTimeout = setTimeout $bind(@, @sync), 1000
+  
+  sync: ->
+    return if @_syncing
+    if @_syncTimeout
+      @_syncTimeout = clearTimeout @_syncTimeout
+    
+    @_syncing = yes
+    now.sendSync(@_data)
   
   query: (conditions, options) ->
     conditions ||= {}
@@ -289,13 +311,19 @@ class Batman.App extends Batman.Object
   @root: (action) ->
     @match '/', action
   
-  @controller: (names...) ->
+  @_require: (path, names...) ->
     for name in names
       @_notReady()
-      new Batman.Request(type: 'html', url: "controllers/#{name}.coffee").success (coffee) =>
+      new Batman.Request(type: 'html', url: "#{path}/#{name}.coffee").success (coffee) =>
         @_ready()
         CoffeeScript.eval coffee
     @
+  
+  @controller: (names...) ->
+    @_require 'controllers', names...
+  
+  @model: (names...) ->
+    @_require 'models', names...
   
   @global: (isGlobal) ->
     return if isGlobal is false
@@ -365,7 +393,8 @@ class Batman.App extends Batman.Object
   
   routePrefix: '#!'
   redirect: (url) ->
-    window.location.hash = @_cachedRoute = @routePrefix + url
+    @_cachedRoute = url
+    window.location.hash = @routePrefix + url
     @dispatch url
   
   dispatch: (url) ->
@@ -448,10 +477,23 @@ class Batman.Controller extends Batman.Object
     
     if view = options.view
       view.context = global
-      $mixin(global, @)
+      
+      m = {}
+      push = (key, value) ->
+        ->
+          Array.prototype.push.apply @, arguments
+          view.context.fire(key, @)
+      
+      for own key, value of @
+        continue if key.substr(0,1) is '_'
+        m[key] = value
+        if Batman.typeOf(value) is 'Array'
+          value.push = push(key, value)
+      
+      $mixin global, m
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
-        Batman.unmixin(global, @)
+        Batman.unmixin(global, m)
 
 class Batman.View extends Batman.Object
   source: @property().observe (path) ->
@@ -477,6 +519,8 @@ class Batman.View extends Batman.Object
     else
       @context.get key
 
+FIXME_id = 0
+
 class Batman.Model extends Batman.Object
   @_makeRecords: (ids) ->
     cached = @_cachedRecords ||= {}
@@ -488,10 +532,11 @@ class Batman.Model extends Batman.Object
     model = helpers.camelize(helpers.singularize(relation))
     inverse = helpers.camelize(@name, yes)
     
-    @::[relation] = ->
+    @::[relation] = Batman.Object.property ->
       query = model: model
-      query[inverse + 'Id'] = @id
-      App[model]._makeRecords(App.dataStore.query(query))
+      query[inverse + 'Id'] = ''+@id
+      
+      App.constructor[model]._makeRecords(App.dataStore.query(query))
   
   @hasOne: (relation) ->
     
@@ -500,16 +545,22 @@ class Batman.Model extends Batman.Object
     model = helpers.camelize(helpers.singularize(relation))
     key = helpers.camelize(model, yes) + 'Id'
     
-    @::[relation] = (value) ->
+    @::[relation] = Batman.Object.property (value) ->
       if arguments.length
-        @[key] = if value and value.id then ''+value.id else ''+value
+        @set key, if value and value.id then ''+value.id else ''+value
       
-      App[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
+      App.constructor[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
   
   @timestamps: (useTimestamps) ->
     return if useTimestamps is off
     @::createdAt = null
     @::updatedAt = null
+  
+  @persist: (mixin) ->
+    if mixin is Batman
+      f = =>
+        FIXME_id = (+(@last().get('id')) || 0) + 1
+      setTimeout f, 1000
   
   @all: @property ->
     @_makeRecords App.dataStore.query({model: @name})
@@ -527,6 +578,11 @@ class Batman.Model extends Batman.Object
   @create: Batman.Object.property ->
     new @
   
+  @destroyAll: ->
+    all = @get 'all'
+    for r in all
+      r.destroy()
+  
   constructor: ->
     @_data = {}
     super
@@ -543,10 +599,13 @@ class Batman.Model extends Batman.Object
   
   save: =>
     if not @id
-      @id = '' + ++idHack
+      @id = ''+(FIXME_id++)
       oldAll = @constructor.get('all')
+    else
+      @id += ''
     
     App.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
+    App.dataStore.needsSync()
     
     @constructor.fire('all', @constructor.get('all'), oldAll) if oldAll
     @
@@ -554,6 +613,8 @@ class Batman.Model extends Batman.Object
   destroy: =>
     return if typeof @id is 'undefined'
     App.dataStore.unset(@id)
+    App.dataStore.needsSync()
+    
     @constructor.fire('all', @constructor.get('all'))
     @
   
@@ -563,11 +624,10 @@ class Batman.Model extends Batman.Object
   fromJSON: (data) ->
     Batman.mixin @, data
 
-idHack = 0
-
 class Batman.Request extends Batman.Object
   method: 'get'
   data: ''
+  response: ''
   
   url: @property (url) ->
     if url
@@ -581,12 +641,15 @@ class Batman.Request extends Batman.Object
       url: @get 'url'
       method: @get 'method'
       success: (resp) =>
-        @set 'data', resp
+        @set 'response', resp
         @success resp
       failure: (error) =>
-        @set 'data', error
+        @set 'response', error
         @error error
     }
+    
+    data ||= @get 'data'
+    options.data = data if data
     
     type = @get 'type'
     options.type = type if type
@@ -597,6 +660,12 @@ class Batman.Request extends Batman.Object
   success: $event (data) ->
   
   error: $event (error) ->
+
+class Batman.JSONPRequest extends Batman.Request
+  send: (data) ->
+    JSONP.get @get('url'), @get('data') || {}, (data) =>
+      @set 'response', data
+      @success data
 
 camelize_rx = /(?:^|_)(.)/g
 underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
@@ -632,20 +701,22 @@ helpers = Batman.helpers = {
 
 Batman.DOM = {
   attributes: {
-    bind: (string, node, context) ->
-      observer = (value) -> Batman.DOM.valueForNode(node, value)
-      context.observe string, yes, observer
+    bind: (string, node, context, observer) ->
+      observer ||= (value) -> Batman.DOM.valueForNode(node, value)
       
       if (index = string.lastIndexOf('.')) isnt -1
         FIXME_firstPath = string.substr(0, index)
         FIXME_lastPath = string.substr(index + 1)
         FIXME_firstObject = context.get(FIXME_firstPath)
+        
+        FIXME_firstObject?.observe FIXME_lastPath, yes, observer
         Batman.DOM.events.change node, (value) -> FIXME_firstObject.set(FIXME_lastPath, value)
         
         node._bindingContext = FIXME_firstObject
         node._bindingKey = FIXME_lastPath
         node._bindingObserver = observer
       else
+        context.observe string, yes, observer
         Batman.DOM.events.change node, (value) -> context.set(key, value)
         
         node._bindingContext = context
@@ -653,6 +724,11 @@ Batman.DOM = {
         node._bindingObserver = observer
       
       return
+    
+    visible: (string, node, context) ->
+      original = node.style.display
+      Batman.DOM.attributes.bind string, node, context, (value) ->
+        node.style.display = if !!value then original else 'none'
     
     mixin: (string, node, context) ->
       mixin = Batman.mixins[string]
@@ -666,6 +742,10 @@ Batman.DOM = {
   }
   
   keyBindings: {
+    bind: (key, string, node, context) ->
+      Batman.DOM.attributes.bind string, node, context, (value) ->
+        node[key] = value
+    
     each: (key, string, node, context) ->
       prototype = node.cloneNode true
       prototype.removeAttribute "data-each-#{key}"
@@ -784,6 +864,7 @@ Batman.DOM = {
     yields[name] = node
     
     content = Batman.DOM._yieldContents?[name]
+    node.innerHTML = ''
     node.appendChild(content) if content
   
   contentFor: (name, node) ->
@@ -791,6 +872,7 @@ Batman.DOM = {
     contents[name] = node
     
     yield = Batman.DOM._yields?[name]
+    yield.innerHTML = ''
     yield.appendChild(node) if yield
   
   parseNode: (node, context) ->
