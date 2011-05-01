@@ -6,7 +6,7 @@
  * Copyright Shopify, 2011
  */
 
-require('../lib/batman.js')
+Batman = require('../lib/batman.js').Batman
 
 Batman.missingArg = function(name) {
 	console.log('why so serious? (please provide ' + name + ')')

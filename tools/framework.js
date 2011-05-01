@@ -9,6 +9,9 @@ var File = require('fs')
 var Path = require('path')
 var exec = require('child_process').exec
 
+File.symlinkSync(Path.join(__dirname, '..', 'lib'), Path.join(process.cwd(), 'lib'))
+
+/*
 var files = ['batman.js', 'batman.mvc.js', 'batman.dom.js']
 var js = files.map(function(file) { return '--js ' + Path.join(__dirname, '..', 'lib', file) }).join(' ')
 
@@ -26,3 +29,4 @@ exec('java -jar ' + Path.join(__dirname, 'compiler.jar') + ' ' + js + ' --js_out
 	
 	console.log('batman.js compiled into lib/batman-min.js')
 })
+*/

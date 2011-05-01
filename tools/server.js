@@ -6,13 +6,17 @@
  */
 
 var http = require('http')
+var stat = require('node-static')
 
 var _port = process.argv.indexOf('-p')
 var port = _port !== -1 ? process.argv[_port + 1] : '8124'
 
+var file = new stat.Server
+
 http.createServer(function(req, res) {
-	res.writeHead(200, {'Content-Type': 'text/plain'})
-	res.end('Batman\n')
+  req.addListener('end', function() {
+    file.serve(req, res)
+  })
 }).listen(port, '127.0.0.1')
 
 console.log('Batman is waiting at http://127.0.0.1:' + port)

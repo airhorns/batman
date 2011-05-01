@@ -15,6 +15,7 @@ var f = (function() {
 	
 	var template = process.argv[3]
 	var name = process.argv[4]
+	var appName;
 	
 	if (!template)
 		return Batman.missingArg('template')
@@ -22,34 +23,40 @@ var f = (function() {
 	if (!name)
 		return Batman.missingArg('name')
 	
-	var dest = Path.join(process.cwd(), name)
+	var dest;
 	var source = Path.join(__dirname, 'templates', template)
 	
 	if (!Path.existsSync(source))
 		return console.log('template ' + template + ' not found')
 	
 	if (template === 'app') {
+	  dest = Path.join(process.cwd(), name);
 		if (Path.existsSync(dest))
 			return console.log('destination already exists')
 		
+		appName = name;
 		File.mkdirSync(dest, 0755)
 	} else {
-		if (!Path.existsSync(dest))
-			return console.log('destination already exists')
+	  dest = process.cwd();
+	  appName = File.readFileSync(Path.join(process.cwd(), '.batman'), 'utf8')
 	}
 	
 	var replaceVars = function(string) {
 		return string
-			.replace(/\$APP\$/g, name.toUpperCase())
-			.replace(/\$App\$/g, name.substr(0,1).toUpperCase() + name.substr(1))
-			.replace(/\$app\$/g, name.toLowerCase())
+			.replace(/\$APP\$/g, appName.toUpperCase())
+			.replace(/\$App\$/g, Batman.helpers.camelize(appName))
+			.replace(/\$app\$/g, appName.toLowerCase())
+			
+			.replace(/\$NAME\$/g, name.toUpperCase())
+			.replace(/\$Name\$/g, Batman.helpers.camelize(name))
+			.replace(/\$name\$/g, name.toLowerCase())
 	}
 	
 	var walk = function(path) {
 		var sourcePath = path ? Path.join(source, path) : source
 		
 		File.readdirSync(sourcePath).forEach(function(file) {
-			if (file.substr(0,1) === '.')
+			if (file === '.gitignore')
 				return;
 			
 			var resultName = replaceVars(file)
@@ -60,7 +67,9 @@ var f = (function() {
 			
 			var stat = File.statSync(Path.join(sourcePath, file))
 			if (stat.isDirectory()) {
-				File.mkdirSync(Path.join(dest, path, resultName), 0755)
+			  var dir = Path.join(dest, path, resultName);
+			  if (!Path.existsSync(dir))
+				  File.mkdirSync(dir, 0755)
 				walk(Path.join(path, file))
 			} else if (ext === 'png' || ext === 'jpg' || ext === 'gif') {
 				var reader = File.readFileSync(Path.join(sourcePath, file), 'binary')
@@ -77,7 +86,9 @@ var f = (function() {
 	
 	walk()
 	
-	process.chdir(dest)
-	require('./framework.js')
+	if (template === 'app') {
+	  process.chdir(dest)
+	  require('./framework.js')
+  }
 	
 })()

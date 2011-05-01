@@ -1,4 +1,4 @@
-`
+`if (typeof window !== 'undefined') {
 /*!
   * Reqwest! A x-browser general purpose XHR connection manager
   * copyright Dustin Diaz 2011
@@ -6,7 +6,7 @@
   * license MIT
   */
 !function(context){function reqwest(a,b){return new Reqwest(a,b)}function init(o,fn){function error(a){o.error&&o.error(a),complete(a)}function success(resp){o.timeout&&clearTimeout(self.timeout)&&(self.timeout=null);var r=resp.responseText;switch(type){case"json":resp=eval("("+r+")");break;case"js":resp=eval(r);break;case"html":resp=r}fn(resp),o.success&&o.success(resp),complete(resp)}function complete(a){o.complete&&o.complete(a)}this.url=typeof o=="string"?o:o.url,this.timeout=null;var type=o.type||setType(this.url),self=this;fn=fn||function(){},o.timeout&&(this.timeout=setTimeout(function(){self.abort(),error()},o.timeout)),this.request=getRequest(o,success,error)}function setType(a){if(/\.json$/.test(a))return"json";if(/\.js$/.test(a))return"js";if(/\.html?$/.test(a))return"html";if(/\.xml$/.test(a))return"xml";return"js"}function Reqwest(a,b){this.o=a,this.fn=b,init.apply(this,arguments)}function getRequest(a,b,c){var d=xhr();d.open(a.method||"GET",typeof a=="string"?a:a.url,!0),setHeaders(d,a),d.onreadystatechange=readyState(d,b,c),a.before&&a.before(d),d.send(a.data||null);return d}function setHeaders(a,b){var c=b.headers||{};c.Accept="text/javascript, text/html, application/xml, text/xml, */*";if(b.data){c["Content-type"]="application/x-www-form-urlencoded";for(var d in c)c.hasOwnProperty(d)&&a.setRequestHeader(d,c[d],!1)}}function readyState(a,b,c){return function(){a&&a.readyState==4&&(twoHundo.test(a.status)?b(a):c(a))}}var twoHundo=/^20\d$/,xhr="XMLHttpRequest"in window?function(){return new XMLHttpRequest}:function(){return new ActiveXObject("Microsoft.XMLHTTP")};Reqwest.prototype={abort:function(){this.request.abort()},retry:function(){init.call(this,this.o,this.fn)}};var old=context.reqwest;reqwest.noConflict=function(){context.reqwest=old;return this},context.reqwest=reqwest}(this)
-`
+}`
 
 ###
 Batman
@@ -175,7 +175,7 @@ Batman.Observable = {
   
   fire: (key, value, oldValue) ->
     observers = @_observers[key]
-    callback.call(@, value, oldValue) for callback in observers if observers
+    (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     @
   
   methodMissing: (key, value) ->
@@ -289,6 +289,14 @@ class Batman.App extends Batman.Object
   @root: (action) ->
     @match '/', action
   
+  @controller: (names...) ->
+    for name in names
+      @_notReady()
+      new Batman.Request(type: 'html', url: "controllers/#{name}.coffee").success (coffee) =>
+        @_ready()
+        CoffeeScript.eval coffee
+    @
+  
   @global: (isGlobal) ->
     return if isGlobal is false
     Batman.Object.global.apply @, arguments
@@ -298,7 +306,19 @@ class Batman.App extends Batman.Object
     
     global.App = instance
   
+  @_notReady: ->
+    @_notReadyCount ||= 0
+    @_notReadyCount++
+  
+  @_ready: ->
+    @_notReadyCount--
+    @run() if @_ranBeforeReady
+  
   @run: ->
+    if @_notReadyCount > 0
+      @_ranBeforeReady = yes
+      return false
+    
     global.App.run()
   
   constructor: ->
@@ -427,9 +447,11 @@ class Batman.Controller extends Batman.Object
       options.view = new Batman.View(options)
     
     if view = options.view
-      view.context = @ if not options.context
+      view.context = global
+      $mixin(global, @)
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
+        Batman.unmixin(global, @)
 
 class Batman.View extends Batman.Object
   source: @property().observe (path) ->
@@ -547,7 +569,7 @@ class Batman.Request extends Batman.Object
   method: 'get'
   data: ''
   
-  url: (url) ->
+  url: @property (url) ->
     if url
       @_url = url
       setTimeout($bind(@, @send), 0)
@@ -555,7 +577,7 @@ class Batman.Request extends Batman.Object
     @_url
   
   send: (data) ->
-    @_request = reqwest
+    options = {
       url: @get 'url'
       method: @get 'method'
       success: (resp) =>
@@ -564,6 +586,12 @@ class Batman.Request extends Batman.Object
       failure: (error) =>
         @set 'data', error
         @error error
+    }
+    
+    type = @get 'type'
+    options.type = type if type
+    
+    @_request = reqwest options
     @
   
   success: $event (data) ->

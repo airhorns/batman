@@ -1,57 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>$App$</title>
-	
-	<script src="lib/batman-min.js"></script>
-	
-	<style>
-	* {
-		font-family: "Myriad Pro", Arial, sans-serif;
-	}
-	
-	#batman {
-		width: 250px;
-		margin: 0 auto;
-		margin-top: 300px;
-		text-align: center;
-	}
-	
-	#batman img {
-		margin-left: -43px;
-		margin-top: -22px;
-	}
-	
-	#batman input {
-		font-size: 1.6em;
-		font-weight: bold;
-		color: #999;
-		text-align: center;
-		width: 250px;
-		margin-bottom: 50px;
-	}
-	</style>
+  <title>$App$</title>
+  
+  <script src="lib/coffee-script.js"></script>
+  <script src="lib/batman.js"></script>
+  
+  <style>
+  * {
+    font-family: "Myriad Pro", Arial, sans-serif;
+  }
+  
+  #batman {
+    width: 250px;
+    margin: 0 auto;
+    margin-top: 300px;
+    text-align: center;
+  }
+  
+  #batman img {
+    margin-left: -43px;
+    margin-top: -22px;
+  }
+  
+  #batman input {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #999;
+    text-align: center;
+    width: 250px;
+    margin-bottom: 50px;
+  }
+  </style>
 </head>
 
 <body>
-	<h1><span data-bind="$App$.name">$App$</span> is ready to fight crime!</h1>
-	
-	<div id="batman">
-		<input data-bind="$App$.name" />
-		<code>powered by</code><br />
-		<img src="resources/batman.png" />
-	</div>
-	
-	<script>
-	$App$ = Batman.App({
-		controllers: ['$app$'],
-		models: [],
-		views: [],
-		
-		name: $binding('--')
-	});
-	
-	$App$.run();
-	</script>
+  <div data-yield="main"></div>
+  
+  <div id="batman">
+    <input data-bind="$App$.name" />
+    <code>powered by</code><br />
+    <img src="resources/batman.png" />
+  </div>
+  
+  <script type="text/coffeescript">
+  class $App$ extends Batman.App
+    @controller 'app'
+    @root 'app.index'
+    
+    name: '$App$'
+  
+  $App$.run()
+  </script>
 </body>
 </html>
