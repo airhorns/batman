@@ -22,7 +22,7 @@ toString = Object.prototype.toString
 Batman.typeOf = (obj) ->
   toString.call(obj).slice(8, -1)
 
-Batman.mixin = (to, objects...) ->
+$mixin = Batman.mixin = (to, objects...) ->
   set = if to.set then $bind(to, to.set) else null
   for object in objects
     continue if Batman.typeOf(object) isnt 'Object'
@@ -82,7 +82,7 @@ Batman.Observable = {
     value = @[key]
     if typeof value is 'undefined'
       @methodMissing key
-    else if typeof value is 'function'
+    else if value and value.isProperty
       value.call @
     else
       value
@@ -94,10 +94,13 @@ Batman.Observable = {
         @set thisKey, thisValue
       return results
     
-    index = key.indexOf '.'
+    index = key.lastIndexOf '.'
     if index isnt -1
-      next = @get(key.substr(0, index))
-      return if next and next.set then next.set(key.substr(index + 1), value) else @methodMissing(key.substr(0, key.indexOf('.', index + 1)))
+      # next = @get(key.substr(0, index))
+      # return if next and next.set then next.set(key.substr(index + 1), value) else @methodMissing(key.substr(0, key.indexOf('.', index + 1)))
+      FIXME_firstObject = @get(key.substr(0, index))
+      FIXME_lastPath = key.substr(index + 1)
+      return FIXME_firstObject.set(FIXME_lastPath, value)
     
     oldValue = @[key]
     
@@ -106,25 +109,31 @@ Batman.Observable = {
       
       if typeof oldValue is 'undefined'
         @methodMissing key, value
-      else if typeof oldValue is 'function'
+      else if oldValue and oldValue.isProperty
         oldValue.call @, value
       else
         @[key] = value
       
-      @fire key, value, oldValue
+      @fire(key, value, oldValue)
     
     value
+  
+  unset: (key) ->
+    if typeof @[key] is 'undefined'
+      @methodMissing('unset:' + key)
+    else
+      @[key] = null
+      delete @[key]
   
   observe: (key, fireImmediately, callback) ->
     if typeof fireImmediately is 'function'
       callback = fireImmediately
       fireImmediately = no
     
-    index = key.indexOf('.')
-    if index is -1
+    if (index = key.lastIndexOf('.')) is -1
       array = @_observers[key] ||= []
       array.push(callback)# if array and array.indexOf(callback) is -1
-    else
+    else if false
       thisObject = @
       callback._recursiveObserver = recursiveObserver = =>
         @forget(key, callback)
@@ -134,6 +143,11 @@ Batman.Observable = {
         break if not thisObject or not thisObject.observe
         thisObject.observe(thisKey, recursiveObserver)
         thisObject = thisObject.get(thisKey)
+    else
+      FIXME_firstPath = key.substr(0, index)
+      FIXME_lastPath = key.substr(index + 1)
+      FIXME_object = @get(FIXME_firstPath)
+      FIXME_object.observe(FIXME_lastPath, callback)
     
     if fireImmediately
       callback(@get(key))
@@ -141,11 +155,11 @@ Batman.Observable = {
     @
   
   forget: (key, callback) ->
-    index = key.indexOf('.')
+    index = key.lastIndexOf('.')
     if index is -1
       array = @_observers[key]
       array.splice(array.indexOf(callback), 1)# if array and array.indexOf(callback) isnt -1
-    else
+    else if false
       thisObject = @
       recursiveObserver = callback._recursiveObserver
       
@@ -153,6 +167,9 @@ Batman.Observable = {
         break if not thisObject or not thisObject.forget
         thisObject.forget(thisKey, recursiveObserver)
         thisObject = thisObject.get(thisKey)
+    else
+      FIXME_object = @get(key.substr(0, index))
+      FIXME_object.forget(key.substr(index + 1), callback)
     
     @
   
@@ -162,17 +179,24 @@ Batman.Observable = {
     @
   
   methodMissing: (key, value) ->
-    if arguments.length > 1
+    if (key.indexOf('unset:') isnt -1)
+      key = key.substr(6)
+      @[key] = null
+      delete @[key]
+    else if arguments.length > 1
       @[key] = value
     
     @[key]
 }
 
 class Batman.Object
-  @property: (defaultValue) ->
+  @property: (original) ->
     f = (value) ->
-      f.value = value if arguments.length
-      f.value
+      result = original.apply @, arguments if typeof original is 'function'
+      f.value = result || value if arguments.length
+      result || f.value
+    
+    f.value = original if typeof original isnt 'function'
     
     f.isProperty = yes
     f._observers = []
@@ -185,6 +209,10 @@ class Batman.Object
   
   @global: (isGlobal) ->
     return if isGlobal is no
+    
+    Batman.mixin @, Batman.Observable
+    @isClass = yes
+    
     global[@name] = @
   
   constructor: (properties...) ->
@@ -200,9 +228,6 @@ class Batman.Object
     Batman.mixin @, properties...
   
   Batman.mixin @::, Batman.Observable
-
-Batman.property = (orig) ->
-  orig
 
 class Batman.DataStore extends Batman.Object
   constructor: ->
@@ -234,7 +259,11 @@ class Batman.DataStore extends Batman.Object
     results
   
   methodMissing: (key, value) ->
-    if arguments.length > 1
+    if key.indexOf('unset:') is 0
+      key = key.substr(6)
+      @_data[key] = null
+      delete @_data[key]
+    else if arguments.length > 1
       @_data[key] = value
     
     @_data[key]
@@ -428,7 +457,10 @@ class Batman.View extends Batman.Object
 
 class Batman.Model extends Batman.Object
   @_makeRecords: (ids) ->
-    new @({id: id}, record) for id, record of ids
+    cached = @_cachedRecords ||= {}
+    for id, record of ids
+      r = cached[id] || (cached[id] = new @({id: id}))
+      $mixin r, record
   
   @hasMany: (relation) ->
     model = helpers.camelize(helpers.singularize(relation))
@@ -457,14 +489,22 @@ class Batman.Model extends Batman.Object
     @::createdAt = null
     @::updatedAt = null
   
-  @all: ->
+  @all: @property ->
     @_makeRecords App.dataStore.query({model: @name})
   
-  @one: ->
+  @first: @property ->
     @_makeRecords(App.dataStore.query({model: @name}, {limit: 1}))[0]
   
+  @last: @property ->
+    array = @_makeRecords(App.dataStore.query({model: @name}))
+    array[array.length - 1]
+  
   @find: (id) ->
-    new @(App.dataStore.get(id))
+    @_makeRecords(App.dataStore.query({model: @name, id: ''+id}))[0]
+  
+  @create: Batman.Object.property ->
+    console.log @
+    new @
   
   constructor: ->
     @_data = {}
@@ -478,11 +518,22 @@ class Batman.Model extends Batman.Object
     
     @_data[key] = super
   
-  reload: ->
+  reload: =>
   
-  save: ->
-    @id ||= ''+Math.floor(Math.random() * 1000)
+  save: =>
+    if not @id
+      @id = '' + ++idHack
+      oldAll = @constructor.get('all')
+    
     App.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
+    
+    @constructor.fire('all', @constructor.get('all'), oldAll) if oldAll
+    @
+  
+  destroy: =>
+    return if typeof @id is 'undefined'
+    App.dataStore.unset(@id)
+    @constructor.fire('all', @constructor.get('all'))
     @
   
   toJSON: ->
@@ -490,6 +541,8 @@ class Batman.Model extends Batman.Object
   
   fromJSON: (data) ->
     Batman.mixin @, data
+
+idHack = 0
 
 class Batman.Request extends Batman.Object
   method: 'get'
@@ -538,7 +591,12 @@ helpers = Batman.helpers = {
     else
       string
   
-  pluralize: (string) ->
+  pluralize: (count, string) ->
+    if string
+      return string if count is 1
+    else
+      string = count
+    
     if string.substr(-1) is 'y'
       "#{string.substr(0,string.length-1)}ies"
     else
@@ -547,15 +605,110 @@ helpers = Batman.helpers = {
 
 Batman.DOM = {
   attributes: {
-    bind: (key, node, context) ->
-      context.observe key, yes, (value) -> Batman.DOM.valueForNode(node, value)
-      Batman.DOM.events.change node, (value) -> context.set(key, value)
+    bind: (string, node, context) ->
+      observer = (value) -> Batman.DOM.valueForNode(node, value)
+      context.observe string, yes, observer
+      
+      if (index = string.lastIndexOf('.')) isnt -1
+        FIXME_firstPath = string.substr(0, index)
+        FIXME_lastPath = string.substr(index + 1)
+        FIXME_firstObject = context.get(FIXME_firstPath)
+        Batman.DOM.events.change node, (value) -> FIXME_firstObject.set(FIXME_lastPath, value)
+        
+        node._bindingContext = FIXME_firstObject
+        node._bindingKey = FIXME_lastPath
+        node._bindingObserver = observer
+      else
+        Batman.DOM.events.change node, (value) -> context.set(key, value)
+        
+        node._bindingContext = context
+        node._bindingKey = string
+        node._bindingObserver = observer
+      
+      return
     
-    yield: (key, node, context) ->
-      Batman.DOM.yield key, node
+    yield: (string, node, context) ->
+      Batman.DOM.yield string, node
     
-    contentFor: (key, node, context) ->
-      Batman.DOM.contentFor key, node
+    contentfor: (string, node, context) ->
+      Batman.DOM.contentFor string, node
+  }
+  
+  keyBindings: {
+    each: (key, string, node, context) ->
+      prototype = node.cloneNode true
+      prototype.removeAttribute "data-each-#{key}"
+      
+      placeholder = document.createElement 'span'
+      placeholder.style.display = 'none'
+      node.parentNode.replaceChild placeholder, node
+      
+      nodes = []
+      context.observe string, true, (array) ->
+        nodesToRemove = []
+        for node in nodes
+          nodesToRemove.push(node) if array.indexOf(node._eachItem) is -1
+        
+        for node in nodesToRemove
+          nodes.splice(nodes.indexOf(node), 1)
+          Batman.DOM.forgetNode(node)
+          
+          if typeof node.hide is 'function' then node.hide() else node.parentNode.removeChild(node)
+        
+        for object in array
+          continue if not object
+          
+          node = nodes[_k]
+          continue if node and node._eachItem is object
+          
+          context[key] = object
+          
+          node = prototype.cloneNode true
+          node._eachItem = object
+          
+          Batman.DOM.parseNode(node, context)
+          
+          placeholder.parentNode.insertBefore(node, placeholder)
+          nodes.push(node)
+          
+          context[key] = null
+          delete context[key]
+        
+        @
+      
+      false
+    
+    event: (key, string, node, context) ->
+      if key is 'click' and node.nodeName.toUpperCase() is 'A'
+        node.href = '#'
+      
+      if handler = Batman.DOM.events[key]
+        callback = context.get(string)
+        if typeof callback is 'function'
+          handler node, (e...) ->
+            callback(e...)
+      
+      return
+    
+    class: (key, string, node, context) ->
+      context.observe string, true, (value) ->
+        className = node.className
+        node.className = if !!value then "#{className} #{key}" else className.replace(key, '')
+      return
+    
+    formfor: (key, string, node, context) ->
+      context.set(key, context.get(string))
+      
+      Batman.DOM.addEventListener node, 'submit', (e) ->
+        Batman.DOM.forgetNode(node)
+        context.unset(key)
+        
+        Batman.DOM.parseNode(node, context)
+        
+        e.preventDefault()
+      
+      return ->
+        context.unset(key)
   }
   
   events: {
@@ -568,6 +721,18 @@ Batman.DOM = {
       
       Batman.DOM.addEventListener node, eventName, (e...) ->
         callback Batman.DOM.valueForNode(node), e...
+    
+    click: (node, callback) ->
+      Batman.DOM.addEventListener node, 'click', (e) ->
+        callback.apply @, arguments
+        e.preventDefault()
+    
+    submit: (node, callback) ->
+      nodeName = node.nodeName.toUpperCase()
+      if nodeName is 'FORM'
+        Batman.DOM.addEventListener node, 'submit', (e) ->
+          callback.apply @, arguments
+          e.preventDefault()
   }
   
   yield: (name, node) ->
@@ -578,7 +743,6 @@ Batman.DOM = {
     node.appendChild(content) if content
   
   contentFor: (name, node) ->
-    console.log name
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
     
@@ -587,6 +751,7 @@ Batman.DOM = {
   
   parseNode: (node, context) ->
     return if not node
+    continuations = null
     
     if typeof node.getAttribute is 'function'
       for attribute in node.attributes # FIXME: get data-attributes only if possible
@@ -596,12 +761,35 @@ Batman.DOM = {
         key = key.substr(5)
         value = attribute.nodeValue
         
-        binding = Batman.DOM.attributes[key]
-        binding(value, node, context) if binding
+        result = if (index = key.indexOf('-')) isnt -1 and (binding = Batman.DOM.keyBindings[key.substr(0, index)])
+          binding key.substr(index + 1), value, node, context
+        else if binding = Batman.DOM.attributes[key]
+          binding(value, node, context)
+        
+        if result is false
+          return
+        else if typeof result is 'function'
+          continuations ||= []
+          continuations.push(result)
     
     for child in node.childNodes
       Batman.DOM.parseNode(child, context)
     
+    if continuations
+      c() for c in continuations
+    
+    return
+  
+  forgetNode: (node) ->
+    return
+    console.log 'FORGET'
+    return if not node
+    if node._bindingContext and node._bindingObserver
+      node._bindingContext.forget?(node._bindingKey, node._bindingObserver)
+    
+    for child in node.childNodes
+      Batman.DOM.forgetNode(child)
+  
   valueForNode: (node, value) ->
     nodeName = node.nodeName.toUpperCase()
     nodeType = node.type?.toUpperCase()
@@ -632,3 +820,5 @@ global.Batman = Batman
 global.$mixin = Batman.mixin
 global.$bind = $bind
 global.$event = $event
+
+$mixin global, Batman.Observable

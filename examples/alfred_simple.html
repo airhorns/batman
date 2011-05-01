@@ -6,6 +6,7 @@
     <link href='http://fonts.googleapis.com/css?family=Lobster' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="resources/alfred.css" type="text/css">
     
+    <script type="text/javascript" src="../lib/coffee-script.js"></script>
     <script type="text/javascript" src="../lib/batman.js"></script>
 </head>
 
@@ -13,50 +14,41 @@
     <div id="container">
         <h1>Alfred</h1>
         
-        <input class="new-item" placeholder="add a todo item" data-events="submit: Alfred.TodosController.add" />
+        <form data-formfor-todo="Todo.create" data-event-submit="todo.save">
+          <input class="new-item" placeholder="add a todo item" data-bind="todo.body" />
+        </form>
         
         <ul id="items">
-            <li data-each-todo="Alfred.Todo.all" data-mixin="animation">
+            <li data-each-todo="Todo.all" data-mixin="animation">
                 <input type="checkbox" data-bind="todo.isDone" />
-                <label data-bind="todo.body" data-classes="done: todo.isDone" data-mixin="editor"></label>
-                <a data-route="todo.destroy">delete</a>
+                <label data-bind="todo.body" data-class-done="todo.isDone" data-mixin="editor"></label>
+                <a data-event-click="todo.destroy">delete</a>
             </li>
+            <li id="item-count"></li>
         </ul>
     </div>
     
-    <script>
-    Batman.ready(function() {
-        
-        Alfred = Batman.App();
-        
-        Alfred.Todo = Batman.Model('todos', {
-            body: $binding().validate(function(value) {
-                return value || 'emtpy todo...';
-            }),
-            
-            isDone: $binding(false)
-        }, Batman.LocalStorage);
-        
-        Alfred.TodosController = Batman.Controller({
-            add: function(text, node) {
-                Alfred.Todo({body: text}).save();
-                
-                node.value = '';
-                node.blur();
-            }
-        });
-        
-        Alfred.Todo.load(function() {
-            if (!Alfred.Todo.all().length) {
-                Alfred.Todo({body: 'riddler sent riemann hypothesis'}).save();
-                Alfred.Todo({body: 'bane wants to meet, not worried'}).save();
-                Alfred.Todo({body: 'joker escaped arkham again'}).save();
-            }
-        });
-        
-        Alfred.run();
-        
-    });
+    <script type="text/coffeescript">
+    class Alfred extends Batman.App
+      @global yes
+    
+    class Alfred.Todo extends Batman.Model
+      @global yes
+      
+      body: ''
+      isDone: no
+    
+    Alfred.run()
+    
+    Todo.observe 'all', (array) ->
+      count = array.length
+      document.getElementById('item-count').innerHTML = "#{count} #{Batman.helpers.pluralize count, 'item'}"
+    
+    if not Todo.all().length
+      new Todo(body: 'joker escaped arkham again', isDone: true).save()
+      new Todo(body: 'riddler sent riemann hypothesis').save()
+      new Todo(body: 'bane wants to meet, not worried').save()
+      new Todo(body: 'back feels funny, must be the weather').save()
     </script>
 </body>
 </html>
