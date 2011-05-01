@@ -503,7 +503,6 @@ class Batman.Model extends Batman.Object
     @_makeRecords(App.dataStore.query({model: @name, id: ''+id}))[0]
   
   @create: Batman.Object.property ->
-    console.log @
     new @
   
   constructor: ->
@@ -627,6 +626,10 @@ Batman.DOM = {
       
       return
     
+    mixin: (string, node, context) ->
+      mixin = Batman.mixins[string]
+      $mixin(node, mixin) if mixin
+    
     yield: (string, node, context) ->
       Batman.DOM.yield string, node
     
@@ -653,7 +656,7 @@ Batman.DOM = {
           nodes.splice(nodes.indexOf(node), 1)
           Batman.DOM.forgetNode(node)
           
-          if typeof node.hide is 'function' then node.hide() else node.parentNode.removeChild(node)
+          if typeof node.hide is 'function' then node.hide(true) else node.parentNode.removeChild(node)
         
         for object in array
           continue if not object
@@ -666,10 +669,18 @@ Batman.DOM = {
           node = prototype.cloneNode true
           node._eachItem = object
           
+          node.style.opacity = 0
           Batman.DOM.parseNode(node, context)
           
           placeholder.parentNode.insertBefore(node, placeholder)
           nodes.push(node)
+          
+          if node.show
+            f = ->
+              node.show()
+            setTimeout f, 0
+          else
+            node.style.opacity = 1
           
           context[key] = null
           delete context[key]
@@ -733,6 +744,11 @@ Batman.DOM = {
         Batman.DOM.addEventListener node, 'submit', (e) ->
           callback.apply @, arguments
           e.preventDefault()
+      else if nodeName is 'INPUT'
+        Batman.DOM.addEventListener node, 'keyup', (e) ->
+          if e.keyCode is 13
+            callback.apply @, arguments
+            e.preventDefault()
   }
   
   yield: (name, node) ->
@@ -782,7 +798,6 @@ Batman.DOM = {
   
   forgetNode: (node) ->
     return
-    console.log 'FORGET'
     return if not node
     if node._bindingContext and node._bindingObserver
       node._bindingContext.forget?(node._bindingKey, node._bindingObserver)
@@ -813,6 +828,84 @@ Batman.DOM = {
       node.attachEvent "on#{eventName}", callback
     
     callback
+}
+
+Batman.mixins = {
+  animation: {
+    initialize: ->
+      @style.display = 'block'
+    
+    show: (appendTo) ->
+      style = @style
+      cachedWidth = @scrollWidth
+      cachedHeight = @scrollHeight
+      
+      style.webkitTransition = ''
+      style.width = 0
+      style.height = 0
+      style.opacity = 0
+      
+      style.webkitTransition = 'all 0.5s ease-in-out'
+      style.opacity = 1
+      style.width = cachedWidth + 'px'
+      style.height = cachedHeight + 'px'
+      
+      f = =>
+        style.webkitTransition = ''
+        appendTo.appendChild(@) if appendTo
+      setTimeout f, 450
+    
+    hide: (remove)->
+      style = @style
+      style.overflow = 'hidden'
+      style.webkitTransition = 'all 0.5s ease-in-out'
+      style.opacity = 0
+      style.width = 0
+      style.height = 0
+      
+      f = =>
+        style.webkitTransition = ''
+        @parentNode.removeChild(@) if remove
+      setTimeout f, 450
+  }
+  
+  editable: {
+    initialize: ->
+      Batman.DOM.addEventListener @, 'click', $bind(@, @startEditing)
+    
+    startEditing: ->
+      return if @isEditing
+      if not @editor
+        editor = @editor = document.createElement 'input'
+        editor.type = 'text'
+        editor.className = 'editor'
+        
+        Batman.DOM.events.submit editor, =>
+          @commit()
+          @stopEditing()
+      
+      @_originalDisplay = @style.display
+      @style.display = 'none'
+      
+      @isEditing = yes
+      @editor.value = Batman.DOM.valueForNode @
+      
+      @parentNode.insertBefore @editor, @
+      @editor.focus()
+      @editor.select()
+      
+      @editor
+    
+    stopEditing: ->
+      return if not @isEditing
+      @style.display = @_originalDisplay
+      @editor.parentNode.removeChild @editor
+      
+      @isEditing = no
+    
+    commit: ->
+      @_bindingContext?.set?(@_bindingKey, @editor.value)
+  }
 }
 
 global = exports ? this

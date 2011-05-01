@@ -21,7 +21,7 @@
         <ul id="items">
             <li data-each-todo="Todo.all" data-mixin="animation">
                 <input type="checkbox" data-bind="todo.isDone" />
-                <label data-bind="todo.body" data-class-done="todo.isDone" data-mixin="editor"></label>
+                <label data-bind="todo.body" data-class-done="todo.isDone" data-mixin="editable"></label>
                 <a data-event-click="todo.destroy">delete</a>
             </li>
             <li id="item-count"></li>
@@ -48,7 +48,6 @@
       new Todo(body: 'joker escaped arkham again', isDone: true).save()
       new Todo(body: 'riddler sent riemann hypothesis').save()
       new Todo(body: 'bane wants to meet, not worried').save()
-      new Todo(body: 'back feels funny, must be the weather').save()
     </script>
 </body>
 </html>
