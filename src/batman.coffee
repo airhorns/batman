@@ -237,7 +237,7 @@ class Batman.DataStore extends Batman.Object
     super
     @_data = {}
     
-    now.receiveSync = (data) =>
+    now?.receiveSync = (data) =>
       @_data = data
       @_syncing = no
   
@@ -254,7 +254,7 @@ class Batman.DataStore extends Batman.Object
       @_syncTimeout = clearTimeout @_syncTimeout
     
     @_syncing = yes
-    now.sendSync(@_data)
+    now?.sendSync(@_data)
   
   query: (conditions, options) ->
     conditions ||= {}
