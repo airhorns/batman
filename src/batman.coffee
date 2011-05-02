@@ -753,9 +753,9 @@ Batman.DOM = {
       Batman.DOM.attributes.bind string, node, context, (value) ->
         node[key] = value
     
-    each: (key, string, node, context) ->
+    foreach: (key, string, node, context) ->
       prototype = node.cloneNode true
-      prototype.removeAttribute "data-each-#{key}"
+      prototype.removeAttribute "data-foreach-#{key}"
       
       placeholder = document.createElement 'span'
       placeholder.style.display = 'none'

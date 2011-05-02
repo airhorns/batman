@@ -1,3 +1,3 @@
 class Twitter.Comment extends Batman.Model
-  @persist Batman
+  # @persist Batman
   @belongsTo 'tweet'
