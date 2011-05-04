@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  
+  <title>batman.js - examples</title>
+  
+  <!-- Begin CSS -->
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/pygments.css">
+  <!--[if !IE 7]><style type="text/css">#content-wrapper{display:table;height:100%}</style><![endif]-->
+  <!-- End CSS -->
+  
+  <!-- Begin jquery -->
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  <!-- End jquery -->
+  
+  <!-- Begin scripts -->
+  <script type="text/javascript" src="http://use.typekit.com/kek3ffx.js"></script>
+  <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+  <script type="text/javascript" src="js/scripts.js"></script>
+  <script type="text/javascript" src="js/jquery.tweet.js"></script>
+  <!-- End scripts -->
+
+</head>
+<body id="sub">
+
+  <!-- Begin header-wrapper -->
+  <div id="header-wrapper">
+    <div id="header">
+      
+      <!-- Begin logo -->
+      <h1 id="logo">
+        <a href="index.html">batman.js</a>
+      </h1>
+      <!-- End logo -->
+      
+      <!-- Begin navigation -->
+      <div id="navigation">
+        <ul>
+          <li><a href="index.html">Overview</a></li>
+          <li><a href="features.html">Features</a></li>
+          <li class="active"><a href="examples.html">Examples</a></li>
+        </ul>
+      </div><div style="clear:both;"></div>
+      <!-- End navigation -->
+      
+    </div>
+  </div>
+  <!-- End header-wrapper -->
+  
+  <!-- Begin content-wrapper -->
+  <div id="content-wrapper">
+    <div id="content">
+      
+      <!-- Begin content-column-wrapper -->
+      <div id="content-column-wrapper">
+        
+        <h2>alfred</h2>
+        <p>the canonical microframework demo, in five lines of trivial code in batman.js</p>
+        
+        <h4>empty index.html</h4>
+        <div class="highlight"><pre>
+    <span class="cp">&lt;!DOCTYPE html&gt;</span>
+    <span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;title&gt;</span>Alfred: Batman&#39;s Todos<span class="nt">&lt;/title&gt;</span>
+
+        <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&#39;http://fonts.googleapis.com/css?family=Lobster&#39;</span> <span class="na">rel=</span><span class="s">&#39;stylesheet&#39;</span> <span class="na">type=</span><span class="s">&#39;text/css&#39;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span> <span class="na">href=</span><span class="s">&quot;resources/alfred.css&quot;</span> <span class="na">type=</span><span class="s">&quot;text/css&quot;</span><span class="nt">&gt;</span>
+
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;lib/coffee-script.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;lib/batman.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">&quot;container&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;h1&gt;</span>Alfred<span class="nt">&lt;/h1&gt;</span>
+
+            <span class="nt">&lt;form&gt;</span>
+              <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;new-item&quot;</span> <span class="na">placeholder=</span><span class="s">&quot;add a todo item&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;/form&gt;</span>
+
+            <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;li&gt;</span>
+                    <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span> <span class="nt">/&gt;</span>
+                    <span class="nt">&lt;label&gt;&lt;/label&gt;</span>
+                    <span class="nt">&lt;a&gt;</span>delete<span class="nt">&lt;/a&gt;</span>
+                <span class="nt">&lt;/li&gt;</span>
+            <span class="nt">&lt;/ul&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/coffeescript&quot;</span><span class="nt">&gt;</span>
+        <span class="kr">class</span> <span class="nx">Alfred</span> <span class="kr">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">App</span>
+
+        <span class="nx">Alfred</span><span class="p">.</span><span class="nx">run</span><span class="p">()</span>
+        <span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+    <span class="nt">&lt;/html&gt;</span>
+        </pre></div>
+        <p>possibly from a designer</p>
+        <br />
+        
+        <h4>define the todo model:</h4>
+        <div class="highlight"><pre>
+    <span class="k">class</span> <span class="nx">Alfred</span><span class="p">.</span><span class="nx">Todo</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
+      <span class="nv">body: </span><span class="s1">&#39;&#39;</span>
+      <span class="nv">isDone: </span><span class="kc">false</span>
+
+    <span class="c1"># create a default todo</span>
+    <span class="k">if</span> <span class="o">not</span> <span class="nx">Todo</span><span class="p">.</span><span class="nx">all</span><span class="p">().</span><span class="nx">length</span>
+      <span class="nv">todo = </span><span class="k">new</span> <span class="nx">Todo</span> <span class="nv">body: </span><span class="s1">&#39;joker escaped from arkham&#39;</span>
+      <span class="nx">todo</span><span class="p">.</span><span class="nx">save</span><span class="p">()</span>
+        </pre></div>
+        <p>the schema definition is totally optional and can be inferred</p>
+        <br />
+        
+        <h4>show all the todos:</h4>
+        <div class="highlight"><pre>
+    <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;label&gt;&lt;/label&gt;</span>
+            <span class="nt">&lt;a&gt;</span>delete<span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/li&gt;</span>
+    <span class="nt">&lt;/ul&gt;</span>
+        </pre></div>
+        <p>forEach todo in Todo.all, create a new &lt;li&gt; that is a copy of this prototype.</p>
+        <br />
+        
+        <h4>show the todo data in the li:</h4>
+        <div class="highlight"><pre>
+    <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.isDone&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;label</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="na">data-class-done=</span><span class="s">&quot;todo.isDone&quot;</span><span class="nt">&gt;&lt;/label&gt;</span>
+            <span class="nt">&lt;a</span> <span class="na">data-event-click=</span><span class="s">&quot;todo.destroy&quot;</span><span class="nt">&gt;</span>delete<span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/li&gt;</span>
+    <span class="nt">&lt;/ul&gt;</span>
+        </pre></div>
+        <p>if todo.isDone is truthy, the class `done` will be added, otherwise it will be removed.</p>
+        <br />
+        
+        <h4>use mixins to easily add functionality:</h4>
+        <div class="highlight"><pre>
+    <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span> <span class="na">data-mixin=</span><span class="s">&quot;animation&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.isDone&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;label</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="na">data-class-done=</span><span class="s">&quot;todo.isDone&quot;</span> <span class="na">data-mixin=</span><span class="s">&quot;editable&quot;</span><span class="nt">&gt;&lt;/label&gt;</span>
+            <span class="nt">&lt;a</span> <span class="na">data-event-click=</span><span class="s">&quot;todo.destroy&quot;</span><span class="nt">&gt;</span>delete<span class="nt">&lt;/a&gt;</span>
+        <span class="nt">&lt;/li&gt;</span>
+    <span class="nt">&lt;/ul&gt;</span>
+        </pre></div>
+        <p>whenever a new todo is created, it will slide into view. when you delete one, it will slide out.</p>
+        <br />
+        
+        <h4>easily create bound forms:</h4>
+        <div class="highlight"><pre>
+    <span class="nt">&lt;form</span> <span class="na">data-formfor-todo=</span><span class="s">&quot;Todo.create&quot;</span> <span class="na">data-event-submit=</span><span class="s">&quot;todo.save&quot;</span><span class="nt">&gt;</span>
+      <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;new-item&quot;</span> <span class="na">placeholder=</span><span class="s">&quot;add a todo item&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="nt">/&gt;</span>
+    <span class="nt">&lt;/form&gt;</span>
+        </pre></div>
+        <p>data-event uses addEventListener and allows you access to your bound context.</p>
+        <br />
+        
+        <h4>persist todos locally:</h4>
+        <div class="highlight"><pre>
+    <span class="k">class</span> <span class="nx">Alfred</span><span class="p">.</span><span class="nx">Todo</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
+      <span class="nx">@persist</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span>
+        </pre></div>
+        <p>also supports Batman.RestStorage, Batman (for the push server)</p>
+        <br />
+        
+        <h4>done!</h4>
+        <div class="highlight"><pre>
+    <span class="cp">&lt;!DOCTYPE html&gt;</span>
+    <span class="nt">&lt;html&gt;</span>
+    <span class="nt">&lt;head&gt;</span>
+        <span class="nt">&lt;title&gt;</span>Alfred: Batman&#39;s Todos<span class="nt">&lt;/title&gt;</span>
+
+        <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&#39;http://fonts.googleapis.com/css?family=Lobster&#39;</span> <span class="na">rel=</span><span class="s">&#39;stylesheet&#39;</span> <span class="na">type=</span><span class="s">&#39;text/css&#39;</span><span class="nt">&gt;</span>
+        <span class="nt">&lt;link</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span> <span class="na">href=</span><span class="s">&quot;resources/alfred.css&quot;</span> <span class="na">type=</span><span class="s">&quot;text/css&quot;</span><span class="nt">&gt;</span>
+
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;lib/coffee-script.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;lib/batman.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+    <span class="nt">&lt;/head&gt;</span>
+
+    <span class="nt">&lt;body&gt;</span>
+        <span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">&quot;container&quot;</span><span class="nt">&gt;</span>
+            <span class="nt">&lt;h1&gt;</span>Alfred<span class="nt">&lt;/h1&gt;</span>
+
+            <span class="nt">&lt;form</span> <span class="na">data-formfor-todo=</span><span class="s">&quot;Todo.create&quot;</span> <span class="na">data-event-submit=</span><span class="s">&quot;todo.save&quot;</span><span class="nt">&gt;</span>
+              <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;new-item&quot;</span> <span class="na">placeholder=</span><span class="s">&quot;add a todo item&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="nt">/&gt;</span>
+            <span class="nt">&lt;/form&gt;</span>
+
+            <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
+                <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span> <span class="na">data-mixin=</span><span class="s">&quot;animation&quot;</span><span class="nt">&gt;</span>
+                    <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">&quot;checkbox&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.isDone&quot;</span> <span class="nt">/&gt;</span>
+                    <span class="nt">&lt;label</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="na">data-class-done=</span><span class="s">&quot;todo.isDone&quot;</span> <span class="na">data-mixin=</span><span class="s">&quot;editable&quot;</span><span class="nt">&gt;&lt;/label&gt;</span>
+                    <span class="nt">&lt;a</span> <span class="na">data-event-click=</span><span class="s">&quot;todo.destroy&quot;</span><span class="nt">&gt;</span>delete<span class="nt">&lt;/a&gt;</span>
+                <span class="nt">&lt;/li&gt;</span>
+            <span class="nt">&lt;/ul&gt;</span>
+        <span class="nt">&lt;/div&gt;</span>
+
+        <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/coffeescript&quot;</span><span class="nt">&gt;</span>
+        <span class="kr">class</span> <span class="nx">Alfred</span> <span class="kr">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">App</span>
+
+        <span class="kr">class</span> <span class="nx">Alfred</span><span class="p">.</span><span class="nx">Todo</span> <span class="kr">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
+          <span class="err">@</span><span class="nx">persist</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span>
+
+        <span class="nx">Alfred</span><span class="p">.</span><span class="nx">run</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nx">not</span> <span class="nx">Todo</span><span class="p">.</span><span class="nx">all</span><span class="p">().</span><span class="nx">length</span>
+          <span class="k">new</span> <span class="nx">Todo</span><span class="p">(</span><span class="nx">body</span><span class="o">:</span> <span class="s1">&#39;joker escaped arkham again&#39;</span><span class="p">,</span> <span class="nx">isDone</span><span class="o">:</span> <span class="kc">true</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+          <span class="k">new</span> <span class="nx">Todo</span><span class="p">(</span><span class="nx">body</span><span class="o">:</span> <span class="s1">&#39;riddler sent riemann hypothesis&#39;</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+          <span class="k">new</span> <span class="nx">Todo</span><span class="p">(</span><span class="nx">body</span><span class="o">:</span> <span class="s1">&#39;bane wants to meet, not worried&#39;</span><span class="p">).</span><span class="nx">save</span><span class="p">()</span>
+        <span class="nt">&lt;/script&gt;</span>
+    <span class="nt">&lt;/body&gt;</span>
+    <span class="nt">&lt;/html&gt;</span>
+        </pre></div>
+        <br /><br />
+        <p><img src="images/alfred.png" /></p>
+        
+      </div>
+      <!-- End content-column-wrapper -->
+      
+    </div>
+  </div>
+  <!-- Begin content-wrapper -->
+  
+  <!-- Begin footer-wrapper -->
+  <div id="footer-wrapper">
+   <div id="footer-content">
+
+    <ul>
+      <li><a class="shopify-logo" href="http://www.shopify.com" target="_blank"><img src="images/logo-shopify.png" width="185" height="54" /></a>Copyright 2011 batman.js, MIT license. <br /> Better web app development is coming soon to a theatre near you. <a href="http://github.com/nciagra" class="inline-link">Nick</a><a href="http://twitter.com/nciagra" class="inline-link">Small</a></li>
+    </ul>
+
+   </div>
+  </div>
+  <!-- End footer-wrapper -->
+
+</body>
+</html>
