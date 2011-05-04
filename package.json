@@ -1,0 +1,25 @@
+{
+  "author": "Nicholas Small <nick@shopify.com>",
+  "name": "batman",
+  "description": "A full-stack Javascript framework that helps you build rich, single-page, Javascript applications.",
+  "version": "0.1.0",
+  "homepage": "http://batmanjs.org",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Shopify/batman.git"
+  },
+  "main": "./lib/batman.js",
+  "bin" : {
+    "batman" : "./tools/batman"
+  },
+  "scripts": {
+    "test": "open ./tests/batman/test.html"
+  },
+  "dependencies": {
+    "node-static": "1"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.1",
+    "glob": "~2.0"
+  }
+}
