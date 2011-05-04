@@ -56,13 +56,13 @@
   <div id="content-wrapper">
     <div id="content">
       
-      <!-- Begin content-column-wrapper -->
-      <div id="content-column-wrapper">
+      <!-- Begin content-column-wrapper-full -->
+      <div id="content-column-wrapper-full">
         
-        <h2>alfred</h2>
-        <p>the canonical microframework demo, in five lines of trivial code in batman.js</p>
+        <h2>Alfred</h2>
+        <p>The canonical microframework demo, in five lines of trivial code in batman.js</p>
         
-        <h4>empty index.html</h4>
+        <h4>Empty index.html</h4>
         <div class="highlight"><pre>
     <span class="cp">&lt;!DOCTYPE html&gt;</span>
     <span class="nt">&lt;html&gt;</span>
@@ -104,7 +104,7 @@
         <p>possibly from a designer</p>
         <br />
         
-        <h4>define the todo model:</h4>
+        <h4>Define the todo model:</h4>
         <div class="highlight"><pre>
     <span class="k">class</span> <span class="nx">Alfred</span><span class="p">.</span><span class="nx">Todo</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
       <span class="nv">body: </span><span class="s1">&#39;&#39;</span>
@@ -118,7 +118,7 @@
         <p>the schema definition is totally optional and can be inferred</p>
         <br />
         
-        <h4>show all the todos:</h4>
+        <h4>Show all the todos:</h4>
         <div class="highlight"><pre>
     <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
         <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span><span class="nt">&gt;</span>
@@ -131,7 +131,7 @@
         <p>forEach todo in Todo.all, create a new &lt;li&gt; that is a copy of this prototype.</p>
         <br />
         
-        <h4>show the todo data in the li:</h4>
+        <h4>Show the todo data in the li:</h4>
         <div class="highlight"><pre>
     <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
         <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span><span class="nt">&gt;</span>
@@ -144,7 +144,7 @@
         <p>if todo.isDone is truthy, the class `done` will be added, otherwise it will be removed.</p>
         <br />
         
-        <h4>use mixins to easily add functionality:</h4>
+        <h4>Use mixins to easily add functionality:</h4>
         <div class="highlight"><pre>
     <span class="nt">&lt;ul</span> <span class="na">id=</span><span class="s">&quot;items&quot;</span><span class="nt">&gt;</span>
         <span class="nt">&lt;li</span> <span class="na">data-foreach-todo=</span><span class="s">&quot;Todo.all&quot;</span> <span class="na">data-mixin=</span><span class="s">&quot;animation&quot;</span><span class="nt">&gt;</span>
@@ -157,7 +157,7 @@
         <p>whenever a new todo is created, it will slide into view. when you delete one, it will slide out.</p>
         <br />
         
-        <h4>easily create bound forms:</h4>
+        <h4>Easily create bound forms:</h4>
         <div class="highlight"><pre>
     <span class="nt">&lt;form</span> <span class="na">data-formfor-todo=</span><span class="s">&quot;Todo.create&quot;</span> <span class="na">data-event-submit=</span><span class="s">&quot;todo.save&quot;</span><span class="nt">&gt;</span>
       <span class="nt">&lt;input</span> <span class="na">class=</span><span class="s">&quot;new-item&quot;</span> <span class="na">placeholder=</span><span class="s">&quot;add a todo item&quot;</span> <span class="na">data-bind=</span><span class="s">&quot;todo.body&quot;</span> <span class="nt">/&gt;</span>
@@ -166,7 +166,7 @@
         <p>data-event uses addEventListener and allows you access to your bound context.</p>
         <br />
         
-        <h4>persist todos locally:</h4>
+        <h4>Persist todos locally:</h4>
         <div class="highlight"><pre>
     <span class="k">class</span> <span class="nx">Alfred</span><span class="p">.</span><span class="nx">Todo</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
       <span class="nx">@persist</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span>
@@ -174,7 +174,7 @@
         <p>also supports Batman.RestStorage, Batman (for the push server)</p>
         <br />
         
-        <h4>done!</h4>
+        <h4>Done!</h4>
         <div class="highlight"><pre>
     <span class="cp">&lt;!DOCTYPE html&gt;</span>
     <span class="nt">&lt;html&gt;</span>
@@ -225,7 +225,7 @@
         <p><img src="images/alfred.png" /></p>
         
       </div>
-      <!-- End content-column-wrapper -->
+      <!-- End content-column-wrapper-full -->
       
     </div>
   </div>

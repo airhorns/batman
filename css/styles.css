@@ -94,10 +94,12 @@ body:before { content:""; height:100%; float:left; width:0; margin-top:-32767px;
 #home #header-wrapper #header { margin: 0 auto; width: 932px; padding: 36px 32px 42px 32px; }
 #home #intro-statement { float: left; width: 600px; padding-top: 78px; margin-right: 32px; }
 #home #intro-statement h2 { color: #b3b3c3; font-size: 30px; font-style: normal; font-weight: 400; margin-bottom: 26px; }
-#home #intro-statement p { color: #b3b3c3; font-size: 18px; line-height: 28px; margin-bottom: 26px; }
-#home #download-box { float: left; margin-top: 40px; width: 236px; padding: 32px; background: #181826 url(../images/download-box-top.png) center 1px no-repeat; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; }
+#home #intro-statement p { color: #b3b3c3; font-size: 18px; line-height: 28px; margin-bottom: 20px; }
+#home #download-box { float: left; margin-top: 55px; width: 236px; padding: 32px; background: #181826 url(../images/download-box-top.png) center 1px no-repeat; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; }
 #home #download-box a.btn-download { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; cursor: pointer; background: url(../images/btn-coming-soon.png) top left no-repeat; }
 #home #download-box a.btn-download:hover { background-position: 0 -50px; }
+#home #download-box p.btn-coming-soon { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; background: url(../images/btn-coming-soon.png) top left no-repeat; }
+#home #download-box p.coming-soon { font-size: 24px; margin-bottom: 18px; color: #fff; }
 #home #download-box p { font-size: 14px; line-height: 20px; margin-bottom: 18px; color: #fff; }
 #home #download-box .title { color: #b3b3c3; }
 
@@ -108,6 +110,9 @@ body:before { content:""; height:100%; float:left; width:0; margin-top:-32767px;
 #home ul.feature-box { margin-bottom: 32px; }
 #home ul.feature-box li.feature-image { margin-bottom: 20px; }
 #home ul.feature-box li.feature-description { margin-bottom: 20px; }
+
+input[type="text"].email-signup { font-size: 13px; text-align: left; width: 222px; padding: 4px; }
+input[type="submit"].email-submit { font-size: 13px; float: right; margin-top: 15px; }
 
 /* ============ */
 /* = Subpages = */
@@ -136,12 +141,15 @@ ul.subnav a:hover { color: #6d6e93; }
 #sub #download-box .title { color: #b3b3c3; }
 
 ul.content { margin-bottom: 20px; }
-ul.content li { background: url(../images/bullet.png) 0 8px no-repeat; margin-bottom: 10px; padding-left: 20px; line-height: 20px; }
+ul.content li { background: url(../images/bullet.png) 0 8px no-repeat; margin-bottom: 5px; padding-left: 20px; line-height: 20px; }
 
 ol.content { margin-bottom: 20px; list-style: decimal; padding-left: 20px; }
 ol.content li { margin-bottom: 10px; line-height: 20px; }
 
 .callout-box { padding: 20px; border: 1px dashed #d0d0d0; background: #eeeef7; }
+
+.example-list { margin-top: 30px; }
+.example-list ul.feature-box { width: 260px; float: left; margin-right: 45px; }
 
 /* =========== */
 /* = Twitter = */
