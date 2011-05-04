@@ -96,7 +96,7 @@ body:before { content:""; height:100%; float:left; width:0; margin-top:-32767px;
 #home #intro-statement h2 { color: #b3b3c3; font-size: 30px; font-style: normal; font-weight: 400; margin-bottom: 26px; }
 #home #intro-statement p { color: #b3b3c3; font-size: 18px; line-height: 28px; margin-bottom: 26px; }
 #home #download-box { float: left; margin-top: 40px; width: 236px; padding: 32px; background: #181826 url(../images/download-box-top.png) center 1px no-repeat; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; }
-#home #download-box a.btn-download { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; cursor: pointer; background: url(../images/btn-download-batman.png) top left no-repeat; }
+#home #download-box a.btn-download { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; cursor: pointer; background: url(../images/btn-coming-soon.png) top left no-repeat; }
 #home #download-box a.btn-download:hover { background-position: 0 -50px; }
 #home #download-box p { font-size: 14px; line-height: 20px; margin-bottom: 18px; color: #fff; }
 #home #download-box .title { color: #b3b3c3; }
@@ -130,8 +130,8 @@ ul.subnav a { color: #8f90ac; display: block; }
 ul.subnav a:hover { color: #6d6e93; }
 
 #sub #download-box { float: right; margin: 0 0 32px 32px; width: 236px; padding: 32px 32px 10px 32px; background: #303153 url(../images/download-box-top.png) center 1px no-repeat; -moz-border-radius:10px; -webkit-border-radius:10px; border-radius:10px; }
-#sub #download-box a.btn-download { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; cursor: pointer; background: url(../images/btn-download-batman.png) top left no-repeat; }
-#sub #download-box a.btn-download:hover { background-position: 0 -50px; }
+#sub #download-box a.btn-download { display: block; text-indent: -999px; overflow: hidden; width: 235px; height: 50px; margin-bottom: 20px; cursor: pointer; background: url(../images/btn-coming-soon.png) top left no-repeat; }
+/*#sub #download-box a.btn-download:hover { background-position: 0 -50px; }*/
 #sub #download-box p { font-size: 14px; line-height: 20px; margin-bottom: 18px; color: #fff; }
 #sub #download-box .title { color: #b3b3c3; }
 
