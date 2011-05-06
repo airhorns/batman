@@ -23,7 +23,6 @@ task = (name, description, f) ->
   tasks[name] = f
   return f
 
-
 alias = (name, original) ->
   f = tasks[original]
   if !f.aliases
@@ -31,7 +30,6 @@ alias = (name, original) ->
 
   f.aliases.push(name)
   aliases[name] = f
-
 
 task 'server', 'starts the Batman server', ->
   require('./server.js')
