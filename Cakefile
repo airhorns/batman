@@ -1,40 +1,14 @@
 # Cakefile
-# Batman
+# batman
 # Copyright Shopify, 2011
-
-
-# Watches the src dir of batman and compiles files when they change to the proper directories.
 
 CoffeeScript  = require 'coffee-script'
 fs            = require 'fs'
 path          = require 'path'
 glob          = require 'glob'
-exec          = require('child_process').exec
+{exec}        = require 'child_process'
 
-CompilationMap =
-  # Relative to src    # Relative to root
-  #'tools/batman.coffe' : 'tools/batman'
- 'batman.coffee'      : 'lib/batman.js'
- 'tools/(.+)\.coffee' : 'tools/$1.js'
-
-getCompilationPairs = ->
-  files = glob.globSync('src/**/*')
-  map = {}
-  for source, dest of CompilationMap
-    source = new RegExp("src/#{source}")
-    for i, file of files
-      if matches = source.exec(file)
-        delete files[i]
-        map[file] = dest.replace("$1", matches[1])
-  map
-
-# Following 3 functions are stolen from Jitter, https://github.com/TrevorBurnham/Jitter/blob/master/src/jitter.coffee
-# Watches a script and compiles it whenever it changes
-watchScript = (source, target, options) ->
-  fs.watchFile source, persistent: true, interval: 250, (curr, prev) ->
-    return if curr.mtime.getTime() is prev.mtime.getTime()
-    compileScript(source, target, options)
-
+# Following 2 functions are stolen from Jitter, https://github.com/TrevorBurnham/Jitter/blob/master/src/jitter.coffee
 # Compiles a script to a destination
 compileScript = (source, target, options) ->
   try
@@ -44,13 +18,6 @@ compileScript = (source, target, options) ->
     notify source, "Compiled #{source} to #{target} successfully"
   catch err
     notify source, err.message, true
-
-# Copies and chmods a file
-copyFile = (source, target, mode = 0644) ->
-  contents = fs.readFileSync source
-  fs.writeFileSync target, contents
-  fs.chmodSync(target, mode)
-  notify source, "Moved #{source} to #{target} successfully"
 
 # Notifies the user of a success or error during compilation
 notify = (source, origMessage, error = false) ->
@@ -68,13 +35,43 @@ notify = (source, origMessage, error = false) ->
     console.log origMessage
   exec args.join(' ')
 
+# Copies and chmods a file
+copyFile = (source, target, mode = 0644) ->
+  contents = fs.readFileSync source
+  fs.writeFileSync target, contents
+  fs.chmodSync(target, mode)
+  notify source, "Moved #{source} to #{target} successfully"
+
+CompilationMap =
+ 'src/batman.coffee'       : (matches) -> compileScript(matches[0], 'lib/batman.js')
+ 'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", 0755)
+ 'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js")
+
+CompilationMap = for pattern, action of CompilationMap
+  {pattern: new RegExp(pattern), action: action}
+
 task 'build', 'compile Batman.js and all the tools', (options) ->
-  for source, target of getCompilationPairs()
-    compileScript(source, target, options)
-  copyFile("src/tools/batman.coffee", "tools/batman")
+  files = glob.globSync('./src/**/*')
+
+  for map in CompilationMap
+    set = []
+    for i, file of files
+      if matches = map.pattern.exec(file)
+        set.push matches
+        delete files[i]
+    for matches in set
+      map.action(matches)
+
   process.exit 0
 
 task 'watch', 'compile Batman.js or the tools when one of the source files changes', (options) ->
-  for source, target of getCompilationPairs()
-    watchScript(source, target, options)
-  console.log "Cake is watching for changes to files."
+  files = glob.globSync('./src/**/*')
+
+  for map in CompilationMap
+    for i, file of files
+      do (file, map) ->
+        if matches = map.pattern.exec(file)
+          delete files[i]
+          fs.watchFile file, persistent: true, interval: 250, (curr, prev) ->
+            return if curr.mtime.getTime() is prev.mtime.getTime()
+            map.action(matches)
