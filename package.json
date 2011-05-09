@@ -16,10 +16,11 @@
     "test": "open ./tests/batman/test.html"
   },
   "dependencies": {
-    "node-static": "1"
+    "node-static": "~0.5"
   },
   "devDependencies": {
     "coffee-script": "~1.1",
+    "now": "~0.5",
     "glob": "~2.0"
   }
 }
