@@ -1,1 +1,0 @@
-STUB_LOADED = true;

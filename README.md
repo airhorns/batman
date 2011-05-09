@@ -333,3 +333,17 @@ The full list of supported events can be found in Batman.DOM.events
 	<div data-content-for="main">Foo</div> => <div id="content">Foo</div>
 
 More documentation coming soon.
+
+# Testing
+
+You can test batman.js locally either on the command line or in the browser and both should work. Tests are written in Coffeescript using [QUnit](http://docs.jquery.com/QUnit#API_documentation).
+
+To run on the command line, install batman.js and its development dependencies using `npm link` or similar, and then run the following command from the project root:
+
+    cake test
+
+To run in the browser (so you can interactively debug perhaps), start a web server to serve up the specs by running this in the project root
+
+    batman server
+
+and then visit `http://localhost:8124/test/batman/test.html` in your browser. Please report any failing tests using Github Issues, and patches are always welcome!
