@@ -1,4 +1,8 @@
-exports = if window? then window else global
+if window?
+  exports = window
+else
+  exports = global
+  exports.window = jsdom().createWindow()
 
 class Spy
   constructor: (original) ->
