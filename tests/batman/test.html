@@ -2,24 +2,18 @@
 <html>
 <head>
     <title>Batman Test Suite</title>
-    
+
     <link rel="stylesheet" href="../lib/qunit.css" type="text/css" media="screen" />
-    
+
     <script type="text/javascript" src="../lib/jquery.js"></script>
     <script type="text/javascript" src="../lib/qunit.js"></script>
-    
-    <script type="text/javascript" src="../../lib/batman.js"></script>
-    
-    <!-- We do it this way instead of using a global Batman.ready and Batman.require in order to ensure test result order -->
-    <script type="text/javascript" src="utilities.js"></script>
-    <script type="text/javascript" src="mixins.js"></script>
-    <script type="text/javascript" src="bindings.js"></script>
-    <script type="text/javascript" src="events.js"></script>
-    <script type="text/javascript" src="request.js"></script>
-    <script type="text/javascript" src="app.js"></script>
-    <script type="text/javascript" src="controller.js"></script>
-    <script type="text/javascript" src="model.js"></script>
-    <script type="text/javascript" src="view.js"></script>
+    <script type="text/javascript" src="../../lib/coffee-script.js"></script>
+
+    <script type="text/coffeescript" src="test_helper.coffee"></script>
+    <script type="text/coffeescript" src="../../src/batman.coffee"></script>
+    <script type="text/coffeescript" src="utilities_test.coffee"></script>
+    <script type="text/coffeescript" src="object_test.coffee"></script>
+    <script type="text/coffeescript" src="app_test.coffee"></script>
 </head>
 
 <body>

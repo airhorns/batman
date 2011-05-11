@@ -12,7 +12,7 @@ var JSONP=(function(){var a=0,c,f,b,d=this;function e(j){var i=document.createEl
 }`
 
 ###
-Batman
+batman
 ###
 
 $bind = (me, f) ->
@@ -29,13 +29,13 @@ $mixin = Batman.mixin = (to, objects...) ->
   set = if to.set then $bind(to, to.set) else null
   for object in objects
     continue if Batman.typeOf(object) isnt 'Object'
-    
+
     for key, value of object
       if set then set(key, value) else to[key] = value
-    
+
     if typeof object.initialize is 'function'
       object.initialize.call to
-  
+
   to
 
 Batman.unmixin = (from, objects...) ->
@@ -43,7 +43,7 @@ Batman.unmixin = (from, objects...) ->
     for key of object
       from[key] = null
       delete from[key]
-  
+
   from
 
 $event = Batman.event = (original) ->
@@ -55,10 +55,10 @@ $event = Batman.event = (original) ->
     else
       result = original.apply @, arguments
       return false if result is false
-      
+
       observer.apply(@, arguments) for observer in observers
       result
-  
+
   f.isEvent = yes
   f.action = original
   f._observers = []
@@ -69,19 +69,19 @@ $event.oneShot = $event
 Batman.Observable = {
   initialize: ->
     @_observers = {}
-  
+
   get: (key) ->
     if arguments.length > 1
       results = for thisKey in arguments
         @get thisKey
       return results
-    
+
     index = key.indexOf '.'
     if index isnt -1
       next = @get(key.substr(0, index))
       nextKey = key.substr(index + 1)
       return if next and next.get then next.get(key.substr(index + 1)) else @methodMissing(key.substr(0, key.indexOf('.', index + 1)))
-    
+
     value = @[key]
     if typeof value is 'undefined'
       @methodMissing key
@@ -89,14 +89,13 @@ Batman.Observable = {
       value.call @
     else
       value
-  
+
   set: (key, value) ->
-    if arguments.length > 2
-      results = for thisKey in arguments
-        thisValue = arguments[++_i]
-        @set thisKey, thisValue
+    if (l = arguments.length) > 2
+      results = for i in [0...l] by 2
+        @set arguments[i], arguments[i+1]
       return results
-    
+
     index = key.lastIndexOf '.'
     if index isnt -1
       # next = @get(key.substr(0, index))
@@ -104,35 +103,35 @@ Batman.Observable = {
       FIXME_firstObject = @get(key.substr(0, index))
       FIXME_lastPath = key.substr(index + 1)
       return FIXME_firstObject.set(FIXME_lastPath, value)
-    
+
     oldValue = @[key]
-    
+
     if oldValue isnt value
       @fire "#{key}:before", value, oldValue
-      
+
       if typeof oldValue is 'undefined'
         @methodMissing key, value
       else if oldValue and oldValue.isProperty
         oldValue.call @, value
       else
         @[key] = value
-      
+
       @fire(key, value, oldValue)
-    
+
     value
-  
+
   unset: (key) ->
     if typeof @[key] is 'undefined'
       @methodMissing('unset:' + key)
     else
       @[key] = null
       delete @[key]
-  
+
   observe: (key, fireImmediately, callback) ->
     if typeof fireImmediately is 'function'
       callback = fireImmediately
       fireImmediately = no
-    
+
     if (index = key.lastIndexOf('.')) is -1
       array = @_observers[key] ||= []
       array.push(callback)# if array and array.indexOf(callback) is -1
@@ -141,7 +140,7 @@ Batman.Observable = {
       callback._recursiveObserver = recursiveObserver = =>
         @forget(key, callback)
         @observe(key, yes, callback)
-      
+
       for thisKey in key.split('.')
         break if not thisObject or not thisObject.observe
         thisObject.observe(thisKey, recursiveObserver)
@@ -151,12 +150,12 @@ Batman.Observable = {
       FIXME_lastPath = key.substr(index + 1)
       FIXME_object = @get(FIXME_firstPath)
       FIXME_object?.observe(FIXME_lastPath, callback)
-    
+
     if fireImmediately
       callback(@get(key))
-    
+
     @
-  
+
   forget: (key, callback) ->
     index = key.lastIndexOf('.')
     if index is -1
@@ -165,7 +164,7 @@ Batman.Observable = {
     else if false
       thisObject = @
       recursiveObserver = callback._recursiveObserver
-      
+
       for thisKey in key.split('.')
         break if not thisObject or not thisObject.forget
         thisObject.forget(thisKey, recursiveObserver)
@@ -173,14 +172,14 @@ Batman.Observable = {
     else
       FIXME_object = @get(key.substr(0, index))
       FIXME_object.forget(key.substr(index + 1), callback)
-    
+
     @
-  
+
   fire: (key, value, oldValue) ->
     observers = @_observers[key]
     (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     @
-  
+
   methodMissing: (key, value) ->
     if (key.indexOf('unset:') isnt -1)
       key = key.substr(6)
@@ -188,7 +187,7 @@ Batman.Observable = {
       delete @[key]
     else if arguments.length > 1
       @[key] = value
-    
+
     @[key]
 }
 
@@ -198,88 +197,88 @@ class Batman.Object
       result = original.apply @, arguments if typeof original is 'function'
       f.value = result || value if arguments.length
       result || f.value
-    
+
     f.value = original if typeof original isnt 'function'
-    
+
     f.isProperty = yes
     f._observers = []
     f.observe = (observer) ->
       observers = f._observers
       observers.push(observer) if observers.indexOf(observer) is -1
       f
-    
+
     f
-  
+
   @global: (isGlobal) ->
     return if isGlobal is no
-    
+
     Batman.mixin @, Batman.Observable
     @isClass = yes
-    
+
     global[@name] = @
-  
+
   constructor: (properties...) ->
     Batman.Observable.initialize.call @
-    
+
     for key, value of @
       if value and value.isProperty
         observers = value._observers
         @observe(key, observer) for observer in observers
       else if value and value.isEvent
         @[key] = $event value.action
-    
+
     Batman.mixin @, properties...
-  
+
   Batman.mixin @::, Batman.Observable
 
 class Batman.DataStore extends Batman.Object
   constructor: ->
     super
     @_data = {}
-    
+
     now?.receiveSync = (data) =>
       @_data = data
       @_syncing = no
-  
+
   needsSync: ->
     return if @_syncing
     if @_syncTimeout
       clearTimeout @_syncTimeout
-    
+
     @_syncTimeout = setTimeout $bind(@, @sync), 1000
-  
+
   sync: ->
     return if @_syncing
     if @_syncTimeout
       @_syncTimeout = clearTimeout @_syncTimeout
-    
+
     @_syncing = yes
     now?.sendSync(@_data)
-  
+
   query: (conditions, options) ->
     conditions ||= {}
     options ||= {}
-    
+
     limit = options.limit
-    
+
     results = {}
     numResults = 0
-    
+
     for id, record of @_data
       match = yes
       for key, value of conditions
         if record[key] isnt value
           match = no
           break
-      
+
       if match
         results[id] = record
         numResults++
-        
+
         return results if limit and numResults >= limit
-    
+
     results
-  
+
   methodMissing: (key, value) ->
     if key.indexOf('unset:') is 0
       key = key.substr(6)
@@ -287,7 +286,7 @@ class Batman.DataStore extends Batman.Object
       delete @_data[key]
     else if arguments.length > 1
       @_data[key] = value
-    
+
     @_data[key]
 
 class Batman.App extends Batman.Object
@@ -296,21 +295,21 @@ class Batman.App extends Batman.Object
   splatParam = /\*([\w\d]+)/g
   namedOrSplat = /[:|\*]([\w\d]+)/g
   escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
-  
+
   @match: (url, action) ->
     routes = @::_routes ||= []
     match = url.replace(escapeRegExp, '\\$&')
     regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
     namedArguments = []
-    
+
     while (array = namedOrSplat.exec(match))?
       namedArguments.push(array[1]) if array[1]
-    
+
     routes.push match: match, regexp: regexp, namedArguments: namedArguments, action: action
-  
+
   @root: (action) ->
     @match '/', action
-  
+
   @_require: (path, names...) ->
     for name in names
       @_notReady()
@@ -318,139 +317,139 @@ class Batman.App extends Batman.Object
         @_ready()
         CoffeeScript.eval coffee
     @
-  
+
   @controller: (names...) ->
     @_require 'controllers', names...
-  
+
   @model: (names...) ->
     @_require 'models', names...
-  
+
   @global: (isGlobal) ->
     return if isGlobal is false
     Batman.Object.global.apply @, arguments
-    
+
     instance = new @
     @sharedApp = instance
-    
+
     global.App = instance
-  
+
   @_notReady: ->
     @_notReadyCount ||= 0
     @_notReadyCount++
-  
+
   @_ready: ->
     @_notReadyCount--
     @run() if @_ranBeforeReady
-  
+
   @run: ->
     if @_notReadyCount > 0
       @_ranBeforeReady = yes
       return false
-    
+
     global.App.run()
-  
+
   constructor: ->
     super
     @dataStore = new Batman.DataStore
-  
+
   run: ->
     new Batman.View context: global, node: document.body
-    
+
     if @_routes?.length
       # for className, controller of @constructor
         # if controller instanceof Batman.Controller
-      
+
       @startRouting()
-  
+
   startRouting: ->
     return if typeof window is 'undefined'
-    
+
     parseUrl = =>
       hash = window.location.hash.replace(@routePrefix, '')
       return if hash is @_cachedRoute
-      
+
       @_cachedRoute = hash
       @dispatch hash
-    
+
     window.location.hash = @routePrefix + '/' if not window.location.hash
     setTimeout(parseUrl, 0)
-    
+
     if 'onhashchange' of window
       @_routeHandler = parseUrl
       window.addEventListener 'hashchange', parseUrl
     else
       @_routeHandler = setInterval(parseUrl, 100)
-  
+
   stopRouting: ->
     if 'onhashchange' of window
       window.removeEventListener 'hashchange', @_routeHandler
       @_routeHandler = null
     else
       @_routeHandler = clearInterval @_routeHandler
-  
+
   match: (url, action) ->
     Batman.App.match.apply @constructor, arguments
-  
+
   routePrefix: '#!'
   redirect: (url) ->
     @_cachedRoute = url
     window.location.hash = @routePrefix + url
     @dispatch url
-  
+
   dispatch: (url) ->
     route = @_matchRoute url
     if not route
       @redirect '/404' unless url is '/404'
       return
-    
+
     params = @_extractParams url, route
     action = route.action
     return unless action
-    
+
     if Batman.typeOf(action) is 'String'
       components = action.split '.'
       controllerName = helpers.camelize(components[0] + 'Controller')
       actionName = helpers.camelize(components[1], true)
-      
+
       controller = @controller controllerName
     else if typeof action is 'object'
       controller = @controller action.controller?.name || action.controller
       actionName = action.action
-    
+
     controller._actedDuringAction = no
     controller._currentAction = actionName
-    
+
     controller[actionName](params)
     controller.render() if not controller._actedDuringAction
-    
+
     delete controller._actedDuringAction
     delete controller._currentAction
-  
+
   _matchRoute: (url) ->
     routes = @_routes
     for route in routes
       return route if route.regexp.test(url)
-    
+
     null
-  
+
   _extractParams: (url, route) ->
     array = route.regexp.exec(url).slice(1)
     params = url: url
-    
+
     for param in array
       params[route.namedArguments[_i]] = param
-    
+
     params
-  
+
   controller: (className) ->
     controllers = @_controllers ||= {}
     controller = controllers[className]
-    
+
     if not controller
       controllerClass = @constructor[className]
       controller = controllers[className] = new controllerClass
       controllerClass.sharedInstance = controller
-    
+
     controller
 
 Batman.redirect = (url) ->
@@ -459,37 +458,37 @@ Batman.redirect = (url) ->
 class Batman.Controller extends Batman.Object
   @match: (url, action) ->
     App.match url, controller: @, action: action
-  
+
   @beforeFilter: (action, options) ->
     # FIXME
-  
+
   redirect: (url) ->
     @_actedDuringAction = yes
     Batman.redirect url
-  
+
   render: (options) ->
     @_actedDuringAction = yes
     options ||= {}
-    
+
     if not options.view
       options.source = 'views/' + helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
-    
+
     if view = options.view
       view.context = global
-      
+
       m = {}
       push = (key, value) ->
         ->
           Array.prototype.push.apply @, arguments
           view.context.fire(key, @)
-      
+
       for own key, value of @
         continue if key.substr(0,1) is '_'
         m[key] = value
         if Batman.typeOf(value) is 'Array'
           value.push = push(key, value)
-      
+
       $mixin global, m
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
@@ -500,18 +499,18 @@ class Batman.View extends Batman.Object
     if path
       new Batman.Request({url: path}).success (data) =>
         @_cachedSource = data
-        
+
         node = document.createElement 'div'
         node.innerHTML = data
         @set 'node', node
-  
+
   node: @property().observe (node) ->
     if node
       Batman.DOM.parseNode(node, @context || @)
       @ready()
-  
+
   ready: $event.oneShot ->
-  
+
   methodMissing: (key, value) ->
     return super if not @context
     if arguments.length > 1
@@ -527,107 +526,107 @@ class Batman.Model extends Batman.Object
     for id, record of ids
       r = cached[id] || (cached[id] = new @({id: id}))
       $mixin r, record
-  
+
   @hasMany: (relation) ->
     model = helpers.camelize(helpers.singularize(relation))
     inverse = helpers.camelize(@name, yes)
-    
+
     @::[relation] = Batman.Object.property ->
       query = model: model
       query[inverse + 'Id'] = ''+@id
-      
+
       App.constructor[model]._makeRecords(App.dataStore.query(query))
-  
+
   @hasOne: (relation) ->
-    
-  
+
+
   @belongsTo: (relation) ->
     model = helpers.camelize(helpers.singularize(relation))
     key = helpers.camelize(model, yes) + 'Id'
-    
+
     @::[relation] = Batman.Object.property (value) ->
       if arguments.length
         @set key, if value and value.id then ''+value.id else ''+value
-      
+
       App.constructor[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
-  
+
   @validate: (f) ->
-    
-  
+
+
   @validatesLengthOf: (key, options) ->
     @validate =>
-      
-  
+
+
   @timestamps: (useTimestamps) ->
     return if useTimestamps is off
     @::createdAt = null
     @::updatedAt = null
-  
+
   @persist: (mixin) ->
     if mixin is Batman
       f = =>
         FIXME_id = (+(@last().get('id')) || 0) + 1
       setTimeout f, 1000
-  
+
   @all: @property ->
     @_makeRecords App.dataStore.query({model: @name})
-  
+
   @first: @property ->
     @_makeRecords(App.dataStore.query({model: @name}, {limit: 1}))[0]
-  
+
   @last: @property ->
     array = @_makeRecords(App.dataStore.query({model: @name}))
     array[array.length - 1]
-  
+
   @find: (id) ->
     @_makeRecords(App.dataStore.query({model: @name, id: ''+id}))[0]
-  
+
   @create: Batman.Object.property ->
     new @
-  
+
   @destroyAll: ->
     all = @get 'all'
     for r in all
       r.destroy()
-  
+
   constructor: ->
     @_data = {}
     super
-  
+
   id: ''
-  
+
   set: (key, value) ->
     if arguments.length > 2
       return super
-    
+
     @_data[key] = super
-  
+
   reload: =>
-  
+
   save: =>
     if not @id
       @id = ''+(FIXME_id++)
       oldAll = @constructor.get('all')
     else
       @id += ''
-    
+
     App.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
     App.dataStore.needsSync()
-    
+
     @constructor.fire('all', @constructor.get('all'), oldAll) if oldAll
     @
-  
+
   destroy: =>
     return if typeof @id is 'undefined'
     App.dataStore.unset(@id)
     App.dataStore.needsSync()
-    
+
     @constructor.fire('all', @constructor.get('all'))
     @
-  
+
   toJSON: ->
     @_data
-  
+
   fromJSON: (data) ->
     Batman.mixin @, data
 
@@ -635,14 +634,14 @@ class Batman.Request extends Batman.Object
   method: 'get'
   data: ''
   response: ''
-  
+
   url: @property (url) ->
     if url
       @_url = url
       setTimeout($bind(@, @send), 0)
-    
+
     @_url
-  
+
   send: (data) ->
     options = {
       url: @get 'url'
@@ -654,18 +653,18 @@ class Batman.Request extends Batman.Object
         @set 'response', error
         @error error
     }
-    
+
     data ||= @get 'data'
     options.data = data if data
-    
+
     type = @get 'type'
     options.type = type if type
-    
+
     @_request = reqwest options
     @
-  
+
   success: $event (data) ->
-  
+
   error: $event (error) ->
 
 class Batman.JSONPRequest extends Batman.Request
@@ -682,24 +681,24 @@ helpers = Batman.helpers = {
   camelize: (string, firstLetterLower) ->
     string = string.replace camelize_rx, (str, p1) -> p1.toUpperCase()
     if firstLetterLower then string.substr(0,1).toLowerCase() + string.substr(1) else string
-  
+
   underscore: (string) ->
     string.replace(underscore_rx1, '$1_$2')
           .replace(underscore_rx2, '$1_$2')
           .replace('-', '_').toLowerCase()
-  
+
   singularize: (string) ->
     if string.substr(-1) is 's'
       string.substr(0, string.length - 1)
     else
       string
-  
+
   pluralize: (count, string) ->
     if string
       return string if count is 1
     else
       string = count
-    
+
     if string.substr(-1) is 'y'
       "#{string.substr(0,string.length-1)}ies"
     else
@@ -710,44 +709,44 @@ Batman.DOM = {
   attributes: {
     bind: (string, node, context, observer) ->
       observer ||= (value) -> Batman.DOM.valueForNode(node, value)
-      
+
       if (index = string.lastIndexOf('.')) isnt -1
         FIXME_firstPath = string.substr(0, index)
         FIXME_lastPath = string.substr(index + 1)
         FIXME_firstObject = context.get(FIXME_firstPath)
-        
+
         FIXME_firstObject?.observe FIXME_lastPath, yes, observer
         Batman.DOM.events.change node, (value) -> FIXME_firstObject.set(FIXME_lastPath, value)
-        
+
         node._bindingContext = FIXME_firstObject
         node._bindingKey = FIXME_lastPath
         node._bindingObserver = observer
       else
         context.observe string, yes, observer
         Batman.DOM.events.change node, (value) -> context.set(key, value)
-        
+
         node._bindingContext = context
         node._bindingKey = string
         node._bindingObserver = observer
-      
+
       return
-    
+
     visible: (string, node, context) ->
       original = node.style.display
       Batman.DOM.attributes.bind string, node, context, (value) ->
         node.style.display = if !!value then original else 'none'
-    
+
     mixin: (string, node, context) ->
       mixin = Batman.mixins[string]
       $mixin(node, mixin) if mixin
-    
+
     yield: (string, node, context) ->
       Batman.DOM.yield string, node
-    
+
     contentfor: (string, node, context) ->
       Batman.DOM.contentFor string, node
   }
-  
+
   keyBindings: {
     bind: (key, string, node, context) ->
       Batman.DOM.attributes.bind string, node, context, (value) ->
@@ -760,99 +759,99 @@ Batman.DOM = {
       placeholder = document.createElement 'span'
       placeholder.style.display = 'none'
       node.parentNode.replaceChild placeholder, node
-      
+
       nodes = []
       context.observe string, true, (array) ->
         nodesToRemove = []
         for node in nodes
           nodesToRemove.push(node) if array.indexOf(node._eachItem) is -1
-        
+
         for node in nodesToRemove
           nodes.splice(nodes.indexOf(node), 1)
           Batman.DOM.forgetNode(node)
-          
+
           if typeof node.hide is 'function' then node.hide(true) else node.parentNode.removeChild(node)
-        
+
         for object in array
           continue if not object
-          
+
           node = nodes[_k]
           continue if node and node._eachItem is object
-          
+
           context[key] = object
-          
+
           node = prototype.cloneNode true
           node._eachItem = object
-          
+
           node.style.opacity = 0
           Batman.DOM.parseNode(node, context)
-          
+
           placeholder.parentNode.insertBefore(node, placeholder)
           nodes.push(node)
-          
+
           if node.show
             f = ->
               node.show()
             setTimeout f, 0
           else
             node.style.opacity = 1
-          
+
           context[key] = null
           delete context[key]
-        
+
         @
-      
+
       false
-    
+
     event: (key, string, node, context) ->
       if key is 'click' and node.nodeName.toUpperCase() is 'A'
         node.href = '#'
-      
+
       if handler = Batman.DOM.events[key]
         callback = context.get(string)
         if typeof callback is 'function'
           handler node, (e...) ->
             callback(e...)
-      
+
       return
-    
+
     class: (key, string, node, context) ->
       context.observe string, true, (value) ->
         className = node.className
         node.className = if !!value then "#{className} #{key}" else className.replace(key, '')
       return
-    
+
     formfor: (key, string, node, context) ->
       context.set(key, context.get(string))
-      
+
       Batman.DOM.addEventListener node, 'submit', (e) ->
         Batman.DOM.forgetNode(node)
         context.unset(key)
-        
+
         Batman.DOM.parseNode(node, context)
-        
+
         e.preventDefault()
-      
+
       return ->
         context.unset(key)
   }
-  
+
   events: {
     change: (node, callback) ->
       nodeName = node.nodeName.toUpperCase()
       nodeType = node.type?.toUpperCase()
-      
+
       eventName = 'change'
       eventName = 'keyup' if (nodeName is 'INPUT' and nodeType is 'TEXT') or nodeName is 'TEXTAREA'
-      
+
       Batman.DOM.addEventListener node, eventName, (e...) ->
         callback Batman.DOM.valueForNode(node), e...
-    
+
     click: (node, callback) ->
       Batman.DOM.addEventListener node, 'click', (e) ->
         callback.apply @, arguments
         e.preventDefault()
-    
+
     submit: (node, callback) ->
       nodeName = node.nodeName.toUpperCase()
       if nodeName is 'FORM'
@@ -865,71 +864,71 @@ Batman.DOM = {
             callback.apply @, arguments
             e.preventDefault()
   }
-  
+
   yield: (name, node) ->
     yields = Batman.DOM._yields ||= {}
     yields[name] = node
-    
+
     content = Batman.DOM._yieldContents?[name]
     node.innerHTML = ''
     node.appendChild(content) if content
-  
+
   contentFor: (name, node) ->
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
-    
+
     yield = Batman.DOM._yields?[name]
     yield.innerHTML = ''
     yield.appendChild(node) if yield
-  
+
   parseNode: (node, context) ->
     return if not node
     continuations = null
-    
+
     if typeof node.getAttribute is 'function'
       for attribute in node.attributes # FIXME: get data-attributes only if possible
         key = attribute.nodeName
         continue if key.substr(0,5) isnt 'data-'
-        
+
         key = key.substr(5)
         value = attribute.nodeValue
-        
+
         result = if (index = key.indexOf('-')) isnt -1 and (binding = Batman.DOM.keyBindings[key.substr(0, index)])
           binding key.substr(index + 1), value, node, context
         else if binding = Batman.DOM.attributes[key]
           binding(value, node, context)
-        
+
         if result is false
           return
         else if typeof result is 'function'
           continuations ||= []
           continuations.push(result)
-    
+
     for child in node.childNodes
       Batman.DOM.parseNode(child, context)
-    
+
     if continuations
       c() for c in continuations
-    
+
     return
-  
+
   forgetNode: (node) ->
     return
     return if not node
     if node._bindingContext and node._bindingObserver
       node._bindingContext.forget?(node._bindingKey, node._bindingObserver)
-    
+
     for child in node.childNodes
       Batman.DOM.forgetNode(child)
-  
+
   valueForNode: (node, value) ->
     nodeName = node.nodeName.toUpperCase()
     nodeType = node.type?.toUpperCase()
     isSetting = arguments.length > 1
     value ||= '' if isSetting
-    
+
     return if isSetting and value is Batman.DOM.valueForNode(node)
-    
+
     if nodeName in ['INPUT', 'TEXTAREA', 'SELECT']
       if nodeType is 'CHECKBOX'
         if isSetting then node.checked = !!value else !!node.checked
@@ -937,13 +936,13 @@ Batman.DOM = {
         if isSetting then node.value = value else node.value
     else
       if isSetting then node.innerHTML = value else node.innerHTML
-  
+
   addEventListener: (node, eventName, callback) ->
     if node.addEventListener
       node.addEventListener eventName, callback
     else
       node.attachEvent "on#{eventName}", callback
-    
+
     callback
 }
 
@@ -951,27 +950,27 @@ Batman.mixins = {
   animation: {
     initialize: ->
       @style.display = 'block'
-    
+
     show: (appendTo) ->
       style = @style
       cachedWidth = @scrollWidth
       cachedHeight = @scrollHeight
-      
+
       style.webkitTransition = ''
       style.width = 0
       style.height = 0
       style.opacity = 0
-      
+
       style.webkitTransition = 'all 0.5s ease-in-out'
       style.opacity = 1
       style.width = cachedWidth + 'px'
       style.height = cachedHeight + 'px'
-      
+
       f = =>
         style.webkitTransition = ''
         appendTo.appendChild(@) if appendTo
       setTimeout f, 450
-    
+
     hide: (remove)->
       style = @style
       style.overflow = 'hidden'
@@ -979,47 +978,47 @@ Batman.mixins = {
       style.opacity = 0
       style.width = 0
       style.height = 0
-      
+
       f = =>
         style.webkitTransition = ''
         @parentNode.removeChild(@) if remove
       setTimeout f, 450
   }
-  
+
   editable: {
     initialize: ->
       Batman.DOM.addEventListener @, 'click', $bind(@, @startEditing)
-    
+
     startEditing: ->
       return if @isEditing
       if not @editor
         editor = @editor = document.createElement 'input'
         editor.type = 'text'
         editor.className = 'editor'
-        
+
         Batman.DOM.events.submit editor, =>
           @commit()
           @stopEditing()
-      
+
       @_originalDisplay = @style.display
       @style.display = 'none'
-      
+
       @isEditing = yes
       @editor.value = Batman.DOM.valueForNode @
-      
+
       @parentNode.insertBefore @editor, @
       @editor.focus()
       @editor.select()
-      
+
       @editor
-    
+
     stopEditing: ->
       return if not @isEditing
       @style.display = @_originalDisplay
       @editor.parentNode.removeChild @editor
-      
+
       @isEditing = no
-    
+
     commit: ->
       @_bindingContext?.set?(@_bindingKey, @editor.value)
   }
