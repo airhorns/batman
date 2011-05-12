@@ -70,6 +70,29 @@ test "should add handlers when passed functions, without calling the original", 
   event(->) && event(->)
   equals original.callCount, 0
 
+test "should fire more than once", ->
+  event = Batman.event(->)
+  observer = createSpy()
+  event(observer)
+  event(1)
+  event(true)
+  equals observer.callCount, 2
+
+QUnit.module "oneshot Batman.events"
+test "should fire handlers when fired", ->
+  event = Batman.event.oneShot(->)
+  observer = createSpy()
+  event(observer)
+  event(true)
+  equals observer.callCount, 1
+
+test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
+  event = Batman.event.oneShot(->)
+  event(true, 1)
+  observer = createSpy()
+  event(observer)
+  deepEqual observer.lastCallArguments, [true, 1]
+
 QUnit.module "Batman.Observable"
 getObservable = (obj, set = true) ->
   if set
