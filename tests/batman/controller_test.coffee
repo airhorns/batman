@@ -12,15 +12,8 @@ test 'should redirect', ->
   (new TestController).redirect("/somewhere/else")
   deepEqual Batman.redirect.lastCallArguments, ["/somewhere/else"]
 
-lastCreatedView = false
-lastCreatedOptions = false
-class MockView extends Batman.Object
-  constructor: (options) ->
-    lastCreatedView = @
-    lastCreatedOptions = options
-    @readys = []
-  ready: (f) -> @readys.push f
-  fireReady: -> f() for f in @readys
+class MockView extends MockClass
+  @chainedCallback 'ready'
   get: createSpy().whichReturns("view contents")
 
 QUnit.module 'Batman.Controller render'
@@ -46,7 +39,9 @@ test 'it should render views if given in the options', ->
 test 'it should pull in views if not present already', ->
   Batman.View = MockView
   @controller.render()
-  equal lastCreatedOptions.source, 'views/test/show.html'
-  lastCreatedView.fireReady()
-  deepEqual lastCreatedView.get.lastCallArguments, ['node']
+  view = MockView.lastInstance
+  equal view.constructorArguments[0].source, 'views/test/show.html'
+
+  view.fireReady()
+  deepEqual view.get.lastCallArguments, ['node']
   deepEqual Batman.DOM.contentFor.lastCallArguments, ['main', 'view contents']
