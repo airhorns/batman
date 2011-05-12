@@ -14,8 +14,7 @@
   },
   "scripts": {
     "test": "cake test",
-    "build": "cake build",
-    "watch": "cake watch"
+    "build": "cake build"
   },
   "dependencies": {
     "node-static": "~0.5"
