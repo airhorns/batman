@@ -249,16 +249,23 @@ class Batman.App extends Batman.Object
   @root: (action) ->
     @match '/', action
 
+  @module: (name) ->
+    @baseUrl = "apps/#{name}/"
+
   @_require: (path, names...) ->
     @global yes
     
     for name in names
       @_notReady()
-      new Batman.Request(type: 'html', url: "#{path}/#{name}.coffee").success (coffee) =>
+      new Batman.Request(type: 'html', url: "#{@baseUrl||''}#{path}/#{name}.coffee").success (coffee) =>
         @_ready()
         CoffeeScript.eval coffee
     @
-
+  
+  @app: (names...) ->
+    for name in names
+      @_require "apps/#{name}", name
+  
   @controller: (names...) ->
     @_require 'controllers', names...
 
