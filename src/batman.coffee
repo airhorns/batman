@@ -239,64 +239,6 @@ class Batman.Object
 
   Batman.mixin @::, Batman.Observable
 
-class Batman.DataStore extends Batman.Object
-  constructor: ->
-    super
-    @_data = {}
-
-    now?.receiveSync = (data) =>
-      @_data = data
-      @_syncing = no
-
-  needsSync: ->
-    return if @_syncing
-    if @_syncTimeout
-      clearTimeout @_syncTimeout
-
-    @_syncTimeout = setTimeout $bind(@, @sync), 1000
-
-  sync: ->
-    return if @_syncing
-    if @_syncTimeout
-      @_syncTimeout = clearTimeout @_syncTimeout
-
-    @_syncing = yes
-    now?.sendSync(@_data)
-
-  query: (conditions, options) ->
-    conditions ||= {}
-    options ||= {}
-
-    limit = options.limit
-
-    results = {}
-    numResults = 0
-
-    for id, record of @_data
-      match = yes
-      for key, value of conditions
-        if record[key] isnt value
-          match = no
-          break
-
-      if match
-        results[id] = record
-        numResults++
-
-        return results if limit and numResults >= limit
-
-    results
-
-  methodMissing: (key, value) ->
-    if key.indexOf('unset:') is 0
-      key = key.substr(6)
-      @_data[key] = null
-      delete @_data[key]
-    else if arguments.length > 1
-      @_data[key] = value
-
-    @_data[key]
-
 class Batman.App extends Batman.Object
   # route matching courtesy of Backbone
   namedParam = /:([\w\d]+)/g
@@ -524,14 +466,49 @@ class Batman.View extends Batman.Object
     else
       @context.get key
 
-FIXME_id = 0
+class Batman.DataStore extends Batman.Object
+  constructor: (model) ->
+    @model = model
+    @_data = {}
+  
+  set: (id, json) ->
+    if not id
+      id = model.getNewId()
+    
+    @_data[''+id] = json
+  
+  get: (id) ->
+    record = @_data[''+id]
+    
+    response = {}
+    response[record.id] = record
+    
+    response
+  
+  all: ->
+    Batman.mixin {}, @_data
+  
+  query: (params) ->
+    results = {}
+    
+    for id, json of @_data
+      match = yes
+      
+      for key, value of params
+        if json[key] isnt value
+          match = no
+          break
+      
+      if match
+        results[id] = json
+    
+    results
 
 class Batman.Model extends Batman.Object
   @_makeRecords: (ids) ->
-    cached = @_cachedRecords ||= {}
-    for id, record of ids
-      r = cached[id] || (cached[id] = new @({id: id}))
-      $mixin r, record
+    for id, json of ids
+      r = new @ {id: id}
+      $mixin r, json
 
   @hasMany: (relation) ->
     model = helpers.camelize(helpers.singularize(relation))
@@ -569,23 +546,29 @@ class Batman.Model extends Batman.Object
     @::updatedAt = null
 
   @persist: (mixin) ->
+    return if mixin is false
+    
+    if not @dataStore
+      @dataStore = new Batman.DataStore @
+    
     if mixin is Batman
-      f = =>
-        FIXME_id = (+(@last().get('id')) || 0) + 1
-      setTimeout f, 1000
+      # FIXME
+    else
+      Batman.mixin @, mixin
 
   @all: @property ->
-    @_makeRecords App.dataStore.query({model: @name})
+    @_makeRecords @dataStore.all()
 
   @first: @property ->
-    @_makeRecords(App.dataStore.query({model: @name}, {limit: 1}))[0]
+    @_makeRecords(@dataStore.all())[0]
 
   @last: @property ->
-    array = @_makeRecords(App.dataStore.query({model: @name}))
+    array = @_makeRecords(@dataStore.all())
     array[array.length - 1]
 
   @find: (id) ->
-    @_makeRecords(App.dataStore.query({model: @name, id: ''+id}))[0]
+    console.log @dataStore.get(id)
+    @_makeRecords(@dataStore.get(id))[0]
 
   @create: Batman.Object.property ->
     new @
@@ -601,25 +584,17 @@ class Batman.Model extends Batman.Object
 
   id: ''
 
-  set: (key, value) ->
-    if arguments.length > 2
-      return super
+  isEqual: (rhs) ->
+    @id is rhs.id
 
+  set: (key, value) ->
     @_data[key] = super
 
-  reload: =>
-
-  save: =>
-    if not @id
-      @id = ''+(FIXME_id++)
-      oldAll = @constructor.get('all')
-    else
-      @id += ''
-
-    App.dataStore.set(@id, Batman.mixin(@toJSON(), {id: @id, model: @constructor.name}))
-    App.dataStore.needsSync()
-
-    @constructor.fire('all', @constructor.get('all'), oldAll) if oldAll
+  save: ->
+    model = @constructor
+    model.dataStore.set(@id, @toJSON())
+    # model.dataStore.needsSync()
+    
     @
 
   destroy: =>
