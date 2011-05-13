@@ -319,6 +319,8 @@ class Batman.App extends Batman.Object
     @match '/', action
 
   @_require: (path, names...) ->
+    @global yes
+    
     for name in names
       @_notReady()
       new Batman.Request(type: 'html', url: "#{path}/#{name}.coffee").success (coffee) =>
@@ -350,7 +352,7 @@ class Batman.App extends Batman.Object
     
     @global yes
     
-    app = new @
+    app = new @()
     @sharedApp = app
     global.SharedApp = app
     
