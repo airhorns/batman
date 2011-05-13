@@ -129,7 +129,7 @@ test "should call properties", ->
 
 QUnit.module "nested gets"
   setup: ->
-    @child = getObservable({"attr": true})
+    @child  = getObservable({"attr": true})
     @parent = getObservable({"child": @child})
 
 test "should allow nested gets", ->
