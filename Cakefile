@@ -16,8 +16,10 @@ compileScript = (source, target, options = {}) ->
     js = CoffeeScript.compile code, {source, bare: options?.bare}
     fs.writeFileSync target, js
     notify source, "Compiled #{source} to #{target} successfully" unless options.notify == false
+    true
   catch err
     notify source, err.message, true unless options.notify == false
+    false
 
 # Notifies the user of a success or error during compilation
 notify = (source, origMessage, error = false) ->
@@ -41,6 +43,7 @@ copyFile = (source, target, mode = 0644) ->
   fs.writeFileSync target, contents
   fs.chmodSync(target, mode)
   notify source, "Moved #{source} to #{target} successfully"
+  true
 
 compileMap = (map) ->
   for pattern, action of map
@@ -50,18 +53,19 @@ runActions = (args) ->
   compiled = compileMap args.map
   for map in compiled
     set = []
+    result = true
     for i, file of args.files
       if matches = map.pattern.exec(file)
         delete args.files[i]
-        map.action(matches)
+        result = result and map.action(matches)
         if args.options.watch
           do (map, matches) ->
             fs.watchFile file, persistent: true, interval: 250, (curr, prev) ->
               return if curr.mtime.getTime() is prev.mtime.getTime()
-              map.action(matches)
-              args.after() if args.after
+              result = map.action(matches)
+              args.after() if args.after and result
 
-  args.after() if args.after
+  args.after() if args.after and result
 
 option '-w', '--watch', 'continue to watch the files and rebuild them when they change'
 
@@ -92,5 +96,5 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
       first = true
       runner.run
         code:  "#{tmpdir}/batman.js"
-        deps: "#{tmpdir}/test_helper.js"
+        deps: ["jsdom", "#{tmpdir}/test_helper.js"]
         tests: require('glob').globSync("#{tmpdir}/*_test.js")

@@ -15,8 +15,8 @@ do ->
       @app = new TestApp
       @app.controller("TestController")
       @controller = TestApp.TestController.sharedInstance
-
-
+    teardown: ->
+      @app.stopRouting()
 
   test "should match simple routes", ->
     spyOn(@controller, "show")
@@ -43,7 +43,44 @@ do ->
       url: '/'
     }]
 
+  asyncTest "should start routing on the root route", 1, ->
+    window.location.hash = ""
+    spyOn(@app, "dispatch")
+    @app.startRouting()
+    setTimeout(=>
+      deepEqual @app.dispatch.lastCallArguments, ["/"]
+      start()
+    , 15)
+
+  asyncTest "should start routing for aribtrary routes", 1, ->
+    window.location.hash = "#!/products/1"
+    spyOn(@app, "dispatch")
+    @app.startRouting()
+    setTimeout(=>
+      deepEqual @app.dispatch.lastCallArguments, ["/products/1"]
+      start()
+    , 15)
+
+  asyncTest "should listen for hashchange events", 2, ->
+    window.location.hash = "#!/products/1"
+    spyOn(@app, "dispatch")
+    @app.startRouting()
+    setTimeout(->
+      window.location.hash = "#!/products/2"
+    , 15)
+    setTimeout(=>
+      deepEqual @app.dispatch.calls[0].arguments, ["/products/1"]
+      deepEqual @app.dispatch.calls[1].arguments, ["/products/2"]
+      start()
+    , 115)
+
+  test "should redirect", ->
+    spyOn(@app, "dispatch")
+    @app.redirect("/somewhere/else")
+    deepEqual @app.dispatch.lastCallArguments, ["/somewhere/else"]
+
   QUnit.module "requiring"
+
 
   QUnit.module "running"
 

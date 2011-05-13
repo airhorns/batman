@@ -50,21 +50,29 @@ $event = Batman.event = (original) ->
   f = (handler) ->
     observers = f._observers
     if Batman.typeOf(handler) is 'Function'
-      observers.push(handler) if observers.indexOf(handler) is -1
+      if f.oneShot && f.lastFire?
+        handler.apply(@, f.lastFire)
+      else
+        observers.push(handler) if observers.indexOf(handler) is -1
       @
     else
       result = original.apply @, arguments
+      f.lastFire = arguments
       return false if result is false
 
       observer.apply(@, arguments) for observer in observers
       result
 
   f.isEvent = yes
+  f.oneShot = false
   f.action = original
   f._observers = []
   f
 
-$event.oneShot = $event
+$event.oneShot = (x) ->
+  e = $event(x)
+  e.oneShot = true
+  e
 
 Batman.Observable = {
   initialize: ->
