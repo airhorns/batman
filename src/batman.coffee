@@ -332,15 +332,6 @@ class Batman.App extends Batman.Object
   @model: (names...) ->
     @_require 'models', names...
 
-  @global: (isGlobal) ->
-    return if isGlobal is false
-    Batman.Object.global.apply @, arguments
-
-    instance = new @
-    @sharedApp = instance
-
-    global.App = instance
-
   @_notReady: ->
     @_notReadyCount ||= 0
     @_notReadyCount++
@@ -350,15 +341,20 @@ class Batman.App extends Batman.Object
     @run() if @_ranBeforeReady
 
   @run: ->
+    if SharedApp?
+      throw "An app is already running!"
+    
     if @_notReadyCount > 0
       @_ranBeforeReady = yes
       return false
-
-    global.App.run()
-
-  constructor: ->
-    super
-    @dataStore = new Batman.DataStore
+    
+    @global yes
+    
+    app = new @
+    @sharedApp = app
+    global.SharedApp = app
+    
+    app.run()
 
   run: ->
     new Batman.View context: global, node: document.body
@@ -461,11 +457,11 @@ class Batman.App extends Batman.Object
     controller
 
 Batman.redirect = (url) ->
-  App.redirect url
+  SharedApp.redirect url
 
 class Batman.Controller extends Batman.Object
   @match: (url, action) ->
-    App.match url, controller: @, action: action
+    SharedApp.match url, controller: @, action: action
 
   @beforeFilter: (action, options) ->
     # FIXME
