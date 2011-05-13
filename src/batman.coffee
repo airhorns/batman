@@ -290,7 +290,7 @@ class Batman.App extends Batman.Object
     app.run()
 
   run: ->
-    new Batman.View context: global, node: document.body
+    new Batman.View context: global, node: document
 
     if @_routes?.length
       # for className, controller of @constructor
