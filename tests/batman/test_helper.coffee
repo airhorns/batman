@@ -5,6 +5,8 @@ else
   exports.window = jsdom().createWindow()
   exports.document = exports.window.document
 
+exports.ASYNC_TEST_DELAY = 10
+
 class Spy
   constructor: (original) ->
     @called = false
@@ -22,7 +24,7 @@ class Spy
 # Use `createSpy` to get back a function which tracks if it has been
 # called, how many times, with what arguments, and optionally returns
 # something specific. Example:
-#    
+#
 #    observer = createSpy()
 #
 #    object.on('click', observer)
@@ -55,7 +57,7 @@ createSpy = (original) ->
 
   f
 
-# `spyOn` can also be used as a shortcut to create or replace a 
+# `spyOn` can also be used as a shortcut to create or replace a
 # method on an existing object with a spy. Example:
 #
 #    object = new DooHickey
@@ -69,9 +71,19 @@ createSpy = (original) ->
 spyOn = (obj, method) ->
   obj[method] = createSpy(obj[method])
 
+# `spyOnDuring` replaces a method on an object with a spy, but
+# only for the duration of a passed function, after which it
+# restores the original value.
+spyOnDuring = (obj, method, fn) ->
+  original = obj[method]
+  spy = spyOn(obj, method)
+  result = fn(spy)
+  obj[method] = original
+  [spy, result]
+
 # MockClass
-# A class suitable for extending to mock a class which some code 
-# instantiates For example, to test code which creates 
+# A class suitable for extending to mock a class which some code
+# instantiates For example, to test code which creates
 # `Batman.Request`s, extend this class:
 #
 #     class MockRequest extends MockClass
@@ -92,30 +104,36 @@ spyOn = (obj, method) ->
 # arguments passed to the constructor.
 
 class MockClass
-  # The last instance created from this class
-  @lastInstance: false
-  # All the instances created from this class, ordered by time of
-  # creation
-  @instances: []
-  # The count of instances created
-  @instanceCount: 0
-  # The last arguments passed to this class' constructor
-  @lastConstructorArguments: false
-  # All the sets of arugments passed to this class' constructor
-  @constructorArguments: []
-  
+
+  # Resets this class into the vanilla state, forgetting any instances
+  # created.
+  @reset: ->
+    # The last instance created from this class
+    @lastInstance = false
+    # All the instances created from this class, ordered by time of
+    # creation
+    @instances = []
+    # The count of instances created
+    @instanceCount = 0
+    # The last arguments passed to this class' constructor
+    @lastConstructorArguments = false
+    # All the sets of arugments passed to this class' constructor
+    @constructorArguments = []
+
+  @reset()
+
   # Class level method to make an instance level method a spy
   @spyOn: (name) ->
     spyOn(@::, name)
 
   # Class level method to add chained callback style methods.
-  # Calling this on a subclass of `MockClass` will add two 
-  # methods on the instances, one which adds callbacks to a 
+  # Calling this on a subclass of `MockClass` will add two
+  # methods on the instances, one which adds callbacks to a
   # stack, and one which fires the stack. Example:
-  # 
+  #
   #    class MockRequest extends Mock Class
   #      @chainedCallback 'success'
-  #    
+  #
   #    mock = new MockRequest
   #
   # Adding a new callback to the stack:
@@ -132,6 +150,7 @@ class MockClass
     @::_callbackStacks[name] = []
     @::[name] = (f) ->
       @_callbackStacks[name].push f
+      @
     @::["fire#{name.charAt(0).toUpperCase() + name.slice(1)}"] = () ->
       f.apply(@, arguments) for f in @_callbackStacks[name]
 
@@ -145,7 +164,19 @@ class MockClass
     @constructor.constructorArguments.push arguments
     @constructor.instanceCount++
 
+# Replaces a class in a namespace with a mock class for
+# the duration of a function, and then sets it back to its
+# original value. The function is passed the mock class.
+mockClassDuring = (namespace, name, mock = MockClass, fn) ->
+  original = namespace[name]
+  namespace[name] = mock
+  result = fn(mock)
+  namespace[name] = original
+  [mock, result]
+
 exports.Spy = Spy
 exports.MockClass = MockClass
 exports.createSpy = createSpy
 exports.spyOn = spyOn
+exports.spyOnDuring = spyOnDuring
+exports.mockClassDuring = mockClassDuring
