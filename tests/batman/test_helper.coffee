@@ -9,6 +9,7 @@ else
   exports.IN_NODE = true
 
 exports.ASYNC_TEST_DELAY = 20
+exports.BENCH_SUITES = []
 
 class Spy
   constructor: (original) ->

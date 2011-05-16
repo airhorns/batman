@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batman Bench Suite</title>
+
+    <link rel="stylesheet" href="../lib/qunit.css" type="text/css" media="screen" />
+
+    <script type="text/javascript" src="../lib/benchmark.js"></script>
+    <script type="text/javascript" src="../../lib/coffee-script.js"></script>
+
+    <script type="text/coffeescript" src="test_helper.coffee"></script>
+    <script type="text/coffeescript" src="../../src/batman.coffee"></script>
+    <script type="text/coffeescript" src="view_bench.coffee"></script>
+    <script type="text/coffeescript">
+      class Tracker extends Batman.Object
+        constructor: ->
+          @_suites = []
+
+        suites: @property
+            set: (suite) -> @_suites.push suite
+            get: -> @_suites
+
+      class Suite extends Batman.Object
+        constructor: (suite) ->
+          @set('suite', suite)
+          @_benches = []
+
+        benches: @property
+          set: (bench) -> @_benches.push bench
+          get: -> @_benches
+      
+      window.SuiteTracker = new Tracker
+
+      for suite in BENCH_SUITES
+        s = new Suite(suite)
+        SuiteTracker.suites s
+
+        suite.on 'cycle', (bench) ->
+          console.log String(bench)
+          s.benches bench
+
+        suite.on 'complete', () ->
+          console.log  'Fastest is ' + this.filter('fastest').pluck('name')
+        
+        suite.run()
+
+    </script>
+</head>
+
+<body>
+  <h1>Batman Bench Suite</h1>
+  <!--<applet code="nano" archive="nano.jar"></applet>-->
+  <table data-foreach-suite="SuiteTracker.suites">
+    <tr>
+      <th colspan="3" data-bind="suite.suite.name">
+    </tr>
+    <tr>
+      <th>Name</th>
+      <th>Ops/sec</th>
+      <th>Cycles</th>
+    </tr>
+    <tr data-foreach-bench="suite.benches">
+      <td data-bind="bench.name"></td>
+      <td><span data-bind="bench.hz"></span> ops/sec +/-<span data-bind="bench.stats.RME"></span>%</td>
+      <td data-bind="bench.stats.size"></td>
+    </tr>  
+  </table>
+</body>
+</html>
+
