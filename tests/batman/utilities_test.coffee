@@ -93,7 +93,6 @@ test "should fire handlers added after the first fire immediately and pass the o
   event(observer)
   deepEqual observer.lastCallArguments, [true, 1]
 
-QUnit.module "Batman.Observable"
 getObservable = (obj, set = true) ->
   if set
     observable = Batman.mixin({}, Batman.Observable)
@@ -103,7 +102,7 @@ getObservable = (obj, set = true) ->
     observable = Batman.mixin(obj, Batman.Observable)
   observable
 
-QUnit.module "get"
+QUnit.module "Batman.Observable get"
 test "should allow retrieval of keys", ->
   obsv = getObservable({foo: "bar"})
   equal obsv.get("foo"), "bar"
@@ -127,7 +126,7 @@ test "should call properties", ->
   obsv = getObservable({"attr": prop})
   equal obsv.get("attr"), "value"
 
-QUnit.module "nested gets"
+QUnit.module "Batman.Observable nested gets"
   setup: ->
     @child  = getObservable({"attr": true})
     @parent = getObservable({"child": @child})
@@ -140,7 +139,7 @@ test "should call method missing on children", ->
   @parent.get("child.nonexistant")
   deepEqual @child.methodMissing.lastCallArguments, ["nonexistant"]
 
-QUnit.module "set",
+QUnit.module "Batman.Observable set",
   setup: ->
     @obsv = getObservable()
 
@@ -174,9 +173,9 @@ test "should call properties", ->
   prop.isProperty = true
 
   obsv = getObservable({"attr": prop})
-  equal "val", obsv.set("attr", "val")
+  obsv.set("attr", "val")
 
-QUnit.module "nested sets"
+QUnit.module "Batman.Observable nested sets"
   setup: ->
     @child = getObservable({"attr": true})
     @parent = getObservable({"child": @child})
@@ -189,7 +188,7 @@ test "should call method missing on children", ->
   @parent.set("child.nonexistant", "val")
   deepEqual @child.methodMissing.lastCallArguments, ["nonexistant", "val"]
 
-QUnit.module "unsetting"
+QUnit.module "Batman.Observable unsetting"
   setup: ->
     @obsv = getObservable({foo: "bar"})
 
@@ -202,7 +201,7 @@ test "should call method missing for non existant keys", ->
   @obsv.unset('nonexistant')
   deepEqual @obsv.methodMissing.lastCallArguments, ["unset:nonexistant"]
 
-QUnit.module "observing fields"
+QUnit.module "Batman.Observable observing fields"
   setup: ->
     @obsv = getObservable({foo: "bar"})
     @callback = createSpy()
@@ -224,7 +223,7 @@ test "should not fire change observers when the same value is set", ->
   @obsv.set("foo", "bar")
   equal @callback.callCount, 0
 
-QUnit.module "nested observing"
+QUnit.module "Batman.Observable nested observing"
   setup: ->
     @child = getObservable({"attr": true})
     @parent = getObservable({"child": @child})
@@ -236,7 +235,7 @@ test "should allow observing of nested attributes", ->
   @child.set("attr", "bar")
   equal @callback.callCount, 2
 
-QUnit.module "forgetting observers"
+QUnit.module "Batman.Observable forgetting observers"
   setup: ->
     @callback = createSpy()
 
@@ -259,3 +258,32 @@ test "should forget nested observers", ->
   @parent.set("child.attr", "bar")
   equal @callback.callCount, 1
 
+QUnit.module "Batman.Observable mixed in at class and instance level",
+  setup: ->
+    @classLevel = c = createSpy()
+    @instanceLevel = i = createSpy()
+    @klass = class Test
+      Batman.mixin @, Batman.Observable
+      Batman.mixin @::, Batman.Observable
+
+      @observe 'attr', c
+      @::observe 'attr', i
+    
+    @obj = new Test
+
+test "observers attached during class definition should be fired", ->
+  @obj.set('attr', 'foo')
+  ok @instanceLevel.called
+
+test "instance observers attached after class definition to the prototype should be fired", ->
+  @klass::observe('attr', spy = createSpy())
+  @obj.set('attr', 'bar')
+  ok spy.called
+
+test "instance level observers shouldn't fire class level observers", ->
+  @obj.set('attr', 'foo')
+  ok !@classLevel.called
+
+test "class level observers shouldn't fire instance level observers", ->
+  @klass.set('attr', 'bar')
+  ok !@instanceLevel.called

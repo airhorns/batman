@@ -11,13 +11,15 @@ Batman = (objects...) ->
 Batman.Modules = {}
 
 toString = Object.prototype.toString
-Batman.typeOf = (obj) ->
+typeOf = Batman.typeOf = (obj) ->
   toString.call(obj).slice(8, -1)
+isFunction = Batman.isFunction = (obj) ->
+  !!(obj && obj.constructor && obj.call && obj.apply)
 
 $mixin = Batman.mixin = (to, objects...) ->
   set = if to.set then $bind(to, to.set) else null
   for object in objects
-    continue if Batman.typeOf(object) isnt 'Object'
+    continue if typeOf(object) isnt 'Object'
 
     for key, value of object
       if set then set(key, value) else to[key] = value
@@ -38,7 +40,7 @@ Batman.unmixin = (from, objects...) ->
 $event = Batman.event = (original) ->
   f = (handler) ->
     observers = f._observers
-    if Batman.typeOf(handler) is 'Function'
+    if typeOf(handler) is 'Function'
       if f.oneShot && f.lastFire?
         handler.apply(@, f.lastFire)
       else
@@ -83,7 +85,7 @@ Batman.Observable = {
     if typeof value is 'undefined'
       @methodMissing key
     else if value and value.isProperty
-      value.call @
+      @[key]()
     else
       value
 
@@ -107,13 +109,13 @@ Batman.Observable = {
       @fire "#{key}:before", value, oldValue
 
       if typeof oldValue is 'undefined'
-        @methodMissing key, value
+        value = @methodMissing key, value
       else if oldValue and oldValue.isProperty
-        oldValue.call @, value
+        value = @[key](value)
       else
         @[key] = value
-
-      @fire(key, value, oldValue)
+ 
+      @fire(key, value, oldValue) if value isnt oldValue
 
     value
 
@@ -173,8 +175,8 @@ Batman.Observable = {
     @
 
   fire: (key, value, oldValue) ->
-    observers = @_observers[key]
-    (callback.call(@, value, oldValue) if callback) for callback in observers if observers
+    for observers in [@_observers[key], @constructor::_observers?[key]]
+      (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     @
 
   methodMissing: (key, value) ->
@@ -189,43 +191,49 @@ Batman.Observable = {
 }
 
 class Batman.Object
-  @property: (original) ->
+  @property: (dependencies..., optionsOrFn = {}) ->
     f = (value) ->
-      result = original.apply @, arguments if typeof original is 'function'
-      f.value = result || value if arguments.length
-      result || f.value
+      if value?
+        f.set.call(@, value)
+      else
+        f.get.call(@)
+    
+    defaults =
+      get: ->
+      set: (value) ->
+      observe: (observer) ->
+        (f._preInstantiationObservers ||= []).push observer
+        f
 
-    f.value = original if typeof original isnt 'function'
-
-    f.isProperty = yes
-    f._observers = []
-    f.observe = (observer) ->
-      observers = f._observers
-      observers.push(observer) if observers.indexOf(observer) is -1
-      f
-
+    if isFunction optionsOrFn
+      options = $mixin {}, defaults,
+        get: optionsOrFn
+    else
+      options = $mixin {}, defaults, optionsOrFn
+    
+    $mixin f, options
+    f.isProperty = true
     f
-
-  @global: (isGlobal) ->
-    return if isGlobal is no
-
-    Batman.mixin @, Batman.Observable
-    @isClass = yes
-
+  
+  @global: (isGlobal = true) ->
+    return if isGlobal is false
     global[@name] = @
-
+  
   constructor: (properties...) ->
     Batman.Observable.initialize.call @
-
+    @_properties = []
     for key, value of @
       if value and value.isProperty
-        observers = value._observers
-        @observe(key, observer) for observer in observers
+        observers = value._preInstantiationObservers
+        @observe(key, observer) for observer in observers if observers?
+        value.observe = (observer) => @observe(key, observer)
+        value.key = key
       else if value and value.isEvent
         @[key] = $event value.action
 
     Batman.mixin @, properties...
-
+  
+  Batman.mixin @, Batman.Observable
   Batman.mixin @::, Batman.Observable
 
 class Batman.App extends Batman.Object
@@ -350,7 +358,7 @@ class Batman.App extends Batman.Object
     action = route.action
     return unless action
 
-    if Batman.typeOf(action) is 'String'
+    if typeOf(action) is 'String'
       components = action.split '.'
       controllerName = helpers.camelize(components[0] + 'Controller')
       actionName = helpers.camelize(components[1], true)
@@ -430,7 +438,7 @@ class Batman.Controller extends Batman.Object
       for own key, value of @
         continue if key.substr(0,1) is '_'
         m[key] = value
-        if Batman.typeOf(value) is 'Array'
+        if typeOf(value) is 'Array'
           value.push = push(key, value)
 
       $mixin global, m
@@ -439,7 +447,7 @@ class Batman.Controller extends Batman.Object
         Batman.unmixin(global, m)
 
 class Batman.View extends Batman.Object
-  source: @property().observe (path) ->
+  @::observe 'source', (path) ->
     if path
       new Batman.Request({url: path}).success (data) =>
         @_cachedSource = data
@@ -448,7 +456,7 @@ class Batman.View extends Batman.Object
         node.innerHTML = data
         @set 'node', node
 
-  node: @property().observe (node) ->
+  @::observe 'node', (node) ->
     if node
       Batman.DOM.parseNode(node, @context || @)
       @ready()
@@ -611,13 +619,9 @@ class Batman.Request extends Batman.Object
   method: 'get'
   data: ''
   response: ''
-
-  url: @property (url) ->
-    if url
-      @_url = url
-      setTimeout($bind(@, @send), 0)
-
-    @_url
+  
+  @::observe 'url', ->
+    setTimeout($bind(@, @send), 0)
 
   send: (data) ->
     options = {

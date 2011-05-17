@@ -41,10 +41,11 @@ createSpy = (original) ->
     f.called = true
     f.callCount++
     f.lastCall =
-      object: this
+      context: this
       arguments: args
 
     f.lastCallArguments = f.lastCall.arguments
+    f.lastCallContext = f.lastCall.context
     f.calls.push f.lastCall
 
     unless f.fixedReturn
