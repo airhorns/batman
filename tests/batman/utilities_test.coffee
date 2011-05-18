@@ -122,7 +122,7 @@ test "should call properties", ->
     equal @, obsv
     "value"
   prop.isProperty = true
-
+  
   obsv = getObservable({"attr": prop})
   equal obsv.get("attr"), "value"
 
@@ -168,8 +168,12 @@ test "should call method missing of the key doesn't exist", ->
 
 test "should call properties", ->
   prop = (val) ->
-    equal @, obsv
-    equal val, "val"
+    if val
+      equal @, obsv
+      equal val, "val"
+      "val"
+    else
+      ""
   prop.isProperty = true
 
   obsv = getObservable({"attr": prop})

@@ -82,10 +82,10 @@ Batman.Observable = {
       return if next and next.get then next.get(key.substr(index + 1)) else @methodMissing(key.substr(0, key.indexOf('.', index + 1)))
 
     value = @[key]
-    if typeof value is 'undefined'
-      @methodMissing key
-    else if value and value.isProperty
+    if value?.isProperty
       @[key]()
+    else if typeof value is 'undefined'
+      @methodMissing key
     else
       value
 
@@ -103,20 +103,21 @@ Batman.Observable = {
       FIXME_lastPath = key.substr(index + 1)
       return FIXME_firstObject.set(FIXME_lastPath, value)
 
-    oldValue = @[key]
+    oldValue = @get key
 
-    if oldValue isnt value
+    if @[key]?.isProperty
       @fire "#{key}:before", value, oldValue
+      value = @[key](value)
+    else
+      if oldValue isnt value
+        @fire "#{key}:before", value, oldValue
 
-      if typeof oldValue is 'undefined'
-        value = @methodMissing key, value
-      else if oldValue and oldValue.isProperty
-        value = @[key](value)
-      else
-        @[key] = value
- 
-      @fire(key, value, oldValue) if value isnt oldValue
+        if typeof oldValue is 'undefined'
+          value = @methodMissing key, value
+        else
+          @[key] = value
 
+    @fire(key, value, oldValue) if value isnt oldValue
     value
 
   unset: (key) ->
@@ -197,7 +198,7 @@ class Batman.Object
         f.set.call(@, value)
       else
         f.get.call(@)
-    
+
     defaults =
       get: ->
       set: (value) ->
@@ -210,15 +211,15 @@ class Batman.Object
         get: optionsOrFn
     else
       options = $mixin {}, defaults, optionsOrFn
-    
+
     $mixin f, options
     f.isProperty = true
     f
-  
+
   @global: (isGlobal = true) ->
     return if isGlobal is false
     global[@name] = @
-  
+
   constructor: (properties...) ->
     Batman.Observable.initialize.call @
     @_properties = []
@@ -232,7 +233,7 @@ class Batman.Object
         @[key] = $event value.action
 
     Batman.mixin @, properties...
-  
+
   Batman.mixin @, Batman.Observable
   Batman.mixin @::, Batman.Observable
 
@@ -262,18 +263,18 @@ class Batman.App extends Batman.Object
 
   @_require: (path, names...) ->
     @global yes
-    
+
     for name in names
       @_notReady()
       new Batman.Request(type: 'html', url: "#{@baseUrl||''}#{path}/#{name}.coffee").success (coffee) =>
         @_ready()
         CoffeeScript.eval coffee
     @
-  
+
   @app: (names...) ->
     for name in names
       @_require "apps/#{name}", name
-  
+
   @controller: (names...) ->
     @_require 'controllers', names...
 
@@ -291,17 +292,17 @@ class Batman.App extends Batman.Object
   @run: ->
     if SharedApp?
       throw "An app is already running!"
-    
+
     if @_notReadyCount > 0
       @_ranBeforeReady = yes
       return false
-    
+
     @global yes
-    
+
     app = new @()
     @sharedApp = app
     global.SharedApp = app
-    
+
     app.run()
 
   run: ->
@@ -474,38 +475,38 @@ class Batman.DataStore extends Batman.Object
   constructor: (model) ->
     @model = model
     @_data = {}
-  
+
   set: (id, json) ->
     if not id
       id = model.getNewId()
-    
+
     @_data[''+id] = json
-  
+
   get: (id) ->
     record = @_data[''+id]
-    
+
     response = {}
     response[record.id] = record
-    
+
     response
-  
+
   all: ->
     Batman.mixin {}, @_data
-  
+
   query: (params) ->
     results = {}
-    
+
     for id, json of @_data
       match = yes
-      
+
       for key, value of params
         if json[key] isnt value
           match = no
           break
-      
+
       if match
         results[id] = json
-    
+
     results
 
 class Batman.Model extends Batman.Object
@@ -551,10 +552,10 @@ class Batman.Model extends Batman.Object
 
   @persist: (mixin) ->
     return if mixin is false
-    
+
     if not @dataStore
       @dataStore = new Batman.DataStore @
-    
+
     if mixin is Batman
       # FIXME
     else
@@ -619,7 +620,7 @@ class Batman.Request extends Batman.Object
   method: 'get'
   data: ''
   response: ''
-  
+
   @::observe 'url', ->
     setTimeout($bind(@, @send), 0)
 
@@ -732,11 +733,11 @@ Batman.DOM = {
     bind: (key, string, node, context) ->
       Batman.DOM.attributes.bind string, node, context, (value) ->
         node[key] = value
-    
+
     foreach: (key, string, node, context) ->
       prototype = node.cloneNode true
       prototype.removeAttribute "data-foreach-#{key}"
-      
+
       placeholder = document.createElement 'span'
       placeholder.style.display = 'none'
       node.parentNode.replaceChild placeholder, node
