@@ -2,8 +2,8 @@ if window?
   exports = window
 else
   exports = global
-  exports.window = jsdom().createWindow()
-  exports.document = exports.window.document
+  exports.window = w = jsdom().createWindow()
+  exports.document = w.document
 
 exports.ASYNC_TEST_DELAY = 10
 

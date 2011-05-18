@@ -464,13 +464,6 @@ class Batman.View extends Batman.Object
 
   ready: $event.oneShot ->
 
-  methodMissing: (key, value) ->
-    return super if not @context
-    if arguments.length > 1
-      @context.set key, value
-    else
-      @context.get key
-
 class Batman.DataStore extends Batman.Object
   constructor: (model) ->
     @model = model
@@ -851,17 +844,17 @@ Batman.DOM = {
     yields = Batman.DOM._yields ||= {}
     yields[name] = node
 
-    content = Batman.DOM._yieldContents?[name]
-    node.innerHTML = ''
-    node.appendChild(content) if content
+    if content = Batman.DOM._yieldContents?[name]
+      node.innerHTML = ''
+      node.appendChild(content)
 
   contentFor: (name, node) ->
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
 
-    yield = Batman.DOM._yields?[name]
-    yield.innerHTML = ''
-    yield.appendChild(node) if yield
+    if yield = Batman.DOM._yields?[name]
+      yield.innerHTML = ''
+      yield.appendChild(node)
 
   parseNode: (node, context) ->
     return if not node
