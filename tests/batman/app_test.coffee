@@ -17,6 +17,7 @@ do ->
       @controller = TestApp.TestController.sharedInstance
     teardown: ->
       @app.stopRouting()
+      window.location.hash = ""
 
   test "should match simple routes", ->
     spyOn(@controller, "show")
@@ -50,7 +51,7 @@ do ->
     setTimeout(=>
       deepEqual @app.dispatch.lastCallArguments, ["/"]
       start()
-    , 15)
+    , ASYNC_TEST_DELAY)
 
   asyncTest "should start routing for aribtrary routes", 1, ->
     window.location.hash = "#!/products/1"
@@ -59,20 +60,21 @@ do ->
     setTimeout(=>
       deepEqual @app.dispatch.lastCallArguments, ["/products/1"]
       start()
-    , 15)
+    , ASYNC_TEST_DELAY)
 
-  asyncTest "should listen for hashchange events", 2, ->
+  asyncTest "should listen for hashchange events", 3, ->
     window.location.hash = "#!/products/1"
     spyOn(@app, "dispatch")
     @app.startRouting()
     setTimeout(->
       window.location.hash = "#!/products/2"
-    , 15)
+    , ASYNC_TEST_DELAY)
     setTimeout(=>
+      equal @app.dispatch.callCount, 2
       deepEqual @app.dispatch.calls[0].arguments, ["/products/1"]
       deepEqual @app.dispatch.calls[1].arguments, ["/products/2"]
       start()
-    , 115)
+    , ASYNC_TEST_DELAY*2 + 100)
 
   test "should redirect", ->
     spyOn(@app, "dispatch")
