@@ -32,11 +32,35 @@ test "classes should have observable mixed in", ->
   ok  @subSubClass.get
   ok  @subClass.set
   ok  @subSubClass.set
+  
+  debugger
 
 test "classes shouldn't share attributes", ->
   @subSubClass.set("foo", "bar")
   equal @subSubClass.get("foo"), "bar"
   equal @subClass.get("foo"), undefined
+
+test "classes shouldn't share observables", ->
+  @subClass.observe 'foo', spy = createSpy()
+  @subSubClass.observe 'foo', subSpy = createSpy()
+  @subSubClass.set 'foo', 'bar'
+  Batman.Object.set 'foo', 'bar'
+
+  ok !spy.called
+  ok subSpy.called
+
+  @subClass.set 'foo', 'bar'
+  ok spy.called
+
+test "newly created classes shouldn't share observables", ->
+  @subClass.observe 'foo', spy = createSpy()
+
+  newSubClass = class TestSubClass extends @subClass
+
+  newSubClass.observe 'foo', subSpy = createSpy()
+  newSubClass.set 'foo', 'bar'
+  ok !spy.called
+  ok subSpy.called
 
 QUnit.module "Batman.Object properties"
   setup: ->
@@ -97,7 +121,7 @@ test "it should allow custom getters and setters", ->
 
   @obj.set("foo", "something")
   equal @obj.somethingElse, "something"
-
+  
 test "one object should not affect the other", ->
   @obj2 = new @klass
 
@@ -113,20 +137,20 @@ test "property setters should fire observers if the return a changed value", 2, 
       get: () -> @test
       set: (value) ->
         @test = value * 2
-    
+
     bar: @property
       get: () ->
         "silly"
       set: (value) ->
         "silly"
-  
+
   @obj = new Custom
   @obj.set 'foo', 1
   @obj.observe 'foo', (value, oldValue) ->
     equals value, 4
     equals oldValue, 2
   @obj.set 'foo', 2
-  
+
   @obj.observe 'bar', (value, oldValue) ->
     ok false, "Observer isn't supposed to be called because set doesn't return a different value!"
   @obj.set 'bar', 'weird'
