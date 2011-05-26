@@ -23,7 +23,6 @@ test "should only initialize objects which have a function initializer", ->
   Batman.mixin(@base, obj)
   ok true, "Initializer wasn't called because no error was thrown"
 
-
 test "should use set on objects which have it defined", ->
   obj = {}
   spyOn(obj, 'set')
@@ -293,3 +292,43 @@ test "instance level observers shouldn't fire class level observers", ->
 test "class level observers shouldn't fire instance level observers", ->
   @klass.set('attr', 'bar')
   ok !@instanceLevel.called
+
+QUnit.module "Batman.Deferred function deferring"
+  setup: ->
+    @deferred = new Batman.Deferred 
+    @spy = createSpy()
+    @spy2 = createSpy()
+
+test "should fire then/always callbacks on success", ->
+  @deferred.then @spy
+  @deferred.always @spy2
+  @deferred.resolve true
+  ok @spy.called
+  ok @spy2.called
+
+test "should fire then/always callbacks on failure", ->
+  @deferred.then @spy
+  @deferred.always @spy2
+  @deferred.reject true
+  ok @spy.called
+  ok @spy2.called
+
+test "should fire done callbacks on success", ->
+  @deferred.done @spy
+  @deferred.resolve true
+  ok @spy.called
+
+test "should not fire done callbacks on failure", ->
+  @deferred.done @spy
+  @deferred.reject true
+  ok !@spy.called
+
+test "should fire fail callbacks on failure", ->
+  @deferred.fail @spy
+  @deferred.reject true
+  ok @spy.called
+
+test "should not fire fail callbacks on success", ->
+  @deferred.fail @spy
+  @deferred.resolve true
+  ok !@spy.called

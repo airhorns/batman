@@ -191,6 +191,41 @@ Batman.Observable = {
     @[key]
 }
 
+class Batman.Deferred
+  constructor: (original = ->) ->
+    @success = $event.oneShot(original)
+    @failure = $event.oneShot(original)
+    @all     = $event.oneShot(original)
+
+    @resolved = false
+    @rejected = false
+
+  then: (f) ->
+    @all f 
+    @
+  always: () ->
+    @then(arguments...)
+  done: (f) ->
+    @success f
+    @
+  fail: (f) ->
+    @failure f
+    @
+
+  resolve: (resolution) ->
+    @resolved = true
+    @rejected = false
+    @success resolution
+    @all resolution
+    @
+
+  reject: (failResolution) ->
+    @resolved = true
+    @rejected = true
+    @failure failResolution
+    @all failResolution
+    @
+
 class Batman.Object
   @property: (dependencies..., optionsOrFn = {}) ->
     f = (value) ->
