@@ -75,6 +75,8 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     options: options
     map:
       'src/batman.coffee'       : (matches) -> compileScript(matches[0], 'lib/batman.js')
+      'src/batman.nodep.coffee' : (matches) -> compileScript(matches[0], 'lib/batman.nodep.js')
+      'src/batman.jquery.coffee': (matches) -> compileScript(matches[0], 'lib/batman.jquery.js')
       'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", 0755)
       'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js")
   console.log "Watching src..." if options.watch
