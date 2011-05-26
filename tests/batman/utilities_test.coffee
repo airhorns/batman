@@ -21,6 +21,8 @@ test "should only initialize objects which have a function initializer", ->
   obj =
     initialize: "x"
   Batman.mixin(@base, obj)
+  ok true, "Initializer wasn't called because no error was thrown"
+
 
 test "should use set on objects which have it defined", ->
   obj = {}
