@@ -6,16 +6,19 @@
 # The global namespace, the Batman function will also create also create a new
 # instance of Batman.Object and mixin all arguments to it.
 Batman = (mixins...) ->
-  new Batman.Object mixins...
+ new Batman.Object mixins...
+
+# Cache this function to skip property lookups.
+_objectToString = Object.prototype.toString
 
 # Batman.typeOf returns a string that contains the built-in class of an object
 # like String, Array, or Object. Note that only Object will be returned for
 # the entire prototype chain.
 Batman.typeOf = $typeOf = (object) ->
   _objectToString.call(object).slice(8, -1)
-# Cache this function to skip property lookups.
-_objectToString = Object.prototype.toString
 
+isFunction = Batman.isFunction = (obj) ->
+  !!(obj && obj.constructor && obj.call && obj.apply)
 ###
 # Mixins
 ###
@@ -26,7 +29,6 @@ _objectToString = Object.prototype.toString
 Batman.mixin = $mixin = (to, mixins...) ->
   set = to.set
   hasSet = $typeOf(set) is 'Function'
-  
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
     
@@ -35,8 +37,11 @@ Batman.mixin = $mixin = (to, mixins...) ->
       if hasSet then set.call(to, key, value) else to[key] = value
     
     if $typeOf(mixin.initialize) is 'Function'
+      to._batman ||= {}
       mixin.initialize.call to
-  
+      to._batman.initializers ||= []
+      to._batman.initializers.push mixin.initialize
+
   to
 
 # Batman.unmixin will remove every key from every argument after the first
@@ -52,15 +57,24 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
     
     if $typeOf(mixin.deinitialize) is 'Function'
       mixin.deinitialize.call from
-  
+    
   from
 
 Batman._initializeObject = (object) ->
-  object._batman = {} if not object.hasOwnProperty '_batman'
-
-Batman._initializeClass = (object) ->
-  if object.prototype and object._batman?.__initClass__ isnt @
-    object._batman = {__initClass__: @}
+  if object._batman?
+    if object._batman.initializedOn != object
+      old = object._batman
+      delete object._batman
+      batman = object._batman = {}
+      batman.initializedOn = object
+      if old.initializers?
+        batman.initializers = []
+       for init in old.initializers 
+         batman.initializers.push init
+         init.call(object)
+      true
+  else
+    object._batman = {}
 
 Batman._findName = (f, context) ->
   if not f.displayName
@@ -78,10 +92,10 @@ Batman._findName = (f, context) ->
 # Batman.Observable is a generic mixin that can be applied to any object in
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
-Batman.Observable = {
+Batman.Observable =
   initialize: ->
-    Batman._initializeObject @
     @_batman.observers ||= {}
+    @_batman.preventCounts ||= {}
   
   get: (key) ->
     value = @[key]
@@ -111,8 +125,8 @@ Batman.Observable = {
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (key, fireImmediately, callback) ->
-    Batman._initializeClass @
-    
+    Batman._initializeObject @
+
     if not callback
       callback = fireImmediately
       fireImmediately = no
@@ -132,22 +146,16 @@ Batman.Observable = {
     if typeof value is 'undefined'
       value = @get key
     
-    for observers in [@_batman.observers[key], @constructor::_observers?[key]]
+    for observers in [@_batman.observers?[key], @constructor::_observers?[key]]
       (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     
     @
-}
 
-Batman.Preventable = {
-  initialize: ->
-    Batman._initializeObject @
-    @_batman.preventCounts = {}
-  
   # Prevent allows you to prevent a given binding from firing. You can
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
   prevent: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
     counts = @_batman.preventCounts ||= {}
     counts[key] ||= 0
@@ -157,25 +165,38 @@ Batman.Preventable = {
   # Unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow.
   allow: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
     counts = @_batman.preventCounts ||= {}
     counts[key]-- if counts[key] > 0
     @
+    
+  # Prevents all bindings from firing. Nestable.
+  preventAll: () ->
+    @prevent('__all')
+
+  # Allows all bindings to fire. Nestable
+  allow: (key) ->
+    @allow('__all')
   
   # Returns a boolean whether or not the property is currently allowed
   # to fire its observers.
   allowed: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
-    !(@_batman.preventCounts?[key] > 0)
-}
+    !(@_batman.preventCounts?[key] > 0 || @_batman.preventCounts?['__all'] > 0)
+
+  # Allows bulk updates which fire the observers after the update is complete
+  fireAfter: (f) ->
+    @preventAll()
+    f()
+    @allowAll()
+    @
 
 ###
 # Batman.Event
 ###
-
-Batman.Event = {
+Batman.Event =
   isEvent: yes
   
   get: (key, parent) ->
@@ -183,12 +204,10 @@ Batman.Event = {
   
   set: (key, value, parent) ->
     parent.observe key, value
-}
-
-Batman.EventEmitter = {
+  
+Batman.EventEmitter =
   initialize: ->
-    Batman._initializeObject @
-    @_batman.events = {}
+    @_batman.events ||= {}
   
   # An event is a convenient observer wrapper. Wrap any function in an event.
   # Whenever you call that function, it will cause this object to fire all
@@ -199,19 +218,25 @@ Batman.EventEmitter = {
       throw "EventEmitter needs to be on an object that has Batman.Observable."
     
     f = (observer) ->
+      Batman._initializeObject @
       key = Batman._findName(f, @)
-      
+      props = @_batman.events[key] ||= {}
+
       if $typeOf(observer) is 'Function'
-        @observe key, f.isOneShot and f.fired, observer
+        if f.isOneShot and props.fired
+          observer.call @, props.value
+        else
+          @observe key, observer
       else if @allowed key
         return false if f.isOneShot and f.fired
         
-        value = callback.apply @, arguments
-        value = arguments[0] if typeof value is 'undefined'
-        value = null if typeof value is 'undefined'
+        value = callback.apply @, arguments if callback?
+        value ||= arguments[0]
+        value ||= null 
         
         @fire key, value
-        f.fired = yes if f.isOneShot
+        props.fired = true
+        props.value = value
         
         value
       else
@@ -226,7 +251,6 @@ Batman.EventEmitter = {
     f.isOneShot = yes
     
     f
-}
 
 ###
 # Batman.Object
@@ -244,6 +268,34 @@ class Batman.Object
   @mixin: (mixins...) ->
     $mixin @, mixins...
   
+  # Watch a function for it's dependencies, caching its output and
+  # recalculating its output when they change. Accepts custom getters and 
+  # setters. 
+  @property: (dependencies..., optionsOrFn = {}) ->
+    f = (value) ->
+      if value?
+        f.set.call(@, value)
+      else
+        f.get.call(@)
+
+    defaults =
+      get: ->
+      set: (value) ->
+      observe: (observer) ->
+        (f._preInstantiationObservers ||= []).push observer
+        f
+
+    if isFunction optionsOrFn
+      options = $mixin {}, defaults,
+        get: optionsOrFn
+    else
+      options = $mixin {}, defaults, optionsOrFn
+
+    $mixin f, options
+    f.isProperty = true
+    f
+
+
   # Apply mixins to instances of this subclass.
   mixin: (mixins...) ->
     $mixin @, mixins...
@@ -253,12 +305,12 @@ class Batman.Object
     # pointers. However, we're still creating a new object, so we want to make
     # sure we reapply the Batman.Observable initializer.
     Batman.Observable.initialize.call @
-    
     @mixin mixins...
-  
+ 
   # Make every subclass and their instances observable.
-  @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable
+  # Make the class observable and event friendly
+  @mixin Batman.Observable, Batman.EventEmitter
 
 ###
 # Batman.Deferred
@@ -266,8 +318,6 @@ class Batman.Object
 ###
 
 class Batman.Deferred extends Batman.Object
-  @::mixin Batman.EventEmitter
-  
   constructor: (original = ->) ->
     @success = $event.oneShot(original)
     @failure = $event.oneShot(original)
@@ -302,6 +352,7 @@ class Batman.Deferred extends Batman.Object
     @all failResolution
     @
 
+  @::mixin Batman.EventEmitter
 ###
 # Batman.App
 ###
@@ -352,6 +403,17 @@ class Batman.App extends Batman.Object
     
     @startRouting()
 
+  @startRouting: ->
+    return if not Batman._routes.length
+    f = ->
+      Batman._routes[0]()
+    
+    addEventListener 'hashchange', f
+    if window.location.hash.length <= 1 then $redirect('/') else f()
+  
+  @root: (callback) ->
+    $route '/', callback
+
 ###
 # Routing
 ###
@@ -362,12 +424,11 @@ splatParam = /\*([\w\d]+)/g
 namedOrSplat = /[:|\*]([\w\d]+)/g
 escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
-Batman.Route = {
+Batman.Route =
   isRoute: yes
   
   toString: ->
     "route: #{@pattern} #{@action}"
-}
 
 $mixin Batman,
   HASH_PATTERN: '#!'

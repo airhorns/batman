@@ -32,8 +32,6 @@ test "classes should have observable mixed in", ->
   ok  @subSubClass.get
   ok  @subClass.set
   ok  @subSubClass.set
-  
-  debugger
 
 test "classes shouldn't share attributes", ->
   @subSubClass.set("foo", "bar")

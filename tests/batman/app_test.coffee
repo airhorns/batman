@@ -1,8 +1,8 @@
 do ->
   class TestApp extends Batman.App
     @root 'test.root'
-    @match 'products/:id', 'test.show'
-    @match '*first/fixed/:id/*last', 'test.complex'
+    #@match 'products/:id', 'test.show'
+    #@match '*first/fixed/:id/*last', 'test.complex'
 
   class TestApp.TestController
     render: -> true
