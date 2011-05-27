@@ -55,6 +55,13 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
   
   from
 
+Batman._initializeObject = (object) ->
+  object._batman = {} if not object.hasOwnProperty '_batman'
+
+Batman._initializeClass = (object) ->
+  if object.prototype and object._batman?.__initClass__ isnt @
+    object._batman = {__initClass__: @}
+
 Batman._findName = (f, context) ->
   if not f.displayName
     for key, value of context
@@ -71,10 +78,10 @@ Batman._findName = (f, context) ->
 # Batman.Observable is a generic mixin that can be applied to any object in
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
-Batman.Observable =
+Batman.Observable = {
   initialize: ->
-    if not @hasOwnProperty '_observers'
-      @_observers = {}
+    Batman._initializeObject @
+    @_batman.observers ||= {}
   
   get: (key) ->
     value = @[key]
@@ -104,40 +111,45 @@ Batman.Observable =
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (key, fireImmediately, callback) ->
-    Batman._observerClassHack.call @
+    Batman._initializeClass @
     
     if not callback
       callback = fireImmediately
       fireImmediately = no
     
-    observers = @_observers[key] ||= []
+    observers = @_batman.observers[key] ||= []
     observers.push callback if observers.indexOf(callback) is -1
     
     callback.call(@, @get(key)) if fireImmediately
-    
     @
   
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
-    # Batman._observerClassHack.call @ # allowed will call this already
+    # Batman._initializeClass @ # allowed will call this already
     return if not @allowed key
     
     if typeof value is 'undefined'
       value = @get key
     
-    for observers in [@_observers[key], @constructor::_observers?[key]]
+    for observers in [@_batman.observers[key], @constructor::_observers?[key]]
       (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     
     @
+}
+
+Batman.Preventable = {
+  initialize: ->
+    Batman._initializeObject @
+    @_batman.preventCounts = {}
   
   # Prevent allows you to prevent a given binding from firing. You can
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
   prevent: (key) ->
-    Batman._observerClassHack.call @
+    Batman._initializeClass @
     
-    counts = @_observers.__preventCounts__ ||= {}
+    counts = @_batman.preventCounts ||= {}
     counts[key] ||= 0
     counts[key]++
     @
@@ -145,22 +157,19 @@ Batman.Observable =
   # Unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow.
   allow: (key) ->
-    Batman._observerClassHack.call @
+    Batman._initializeClass @
     
-    counts = @_observers.__preventCounts__ ||= {}
+    counts = @_batman.preventCounts ||= {}
     counts[key]-- if counts[key] > 0
     @
   
   # Returns a boolean whether or not the property is currently allowed
   # to fire its observers.
   allowed: (key) ->
-    Batman._observerClassHack.call @
+    Batman._initializeClass @
     
-    !(@_observers.__preventCounts__?[key] > 0)
-
-Batman._observerClassHack = ->
-  if @prototype and @_observers?.__initClass__ isnt @
-    @_observers = {__initClass__: @}
+    !(@_batman.preventCounts?[key] > 0)
+}
 
 ###
 # Batman.Event
@@ -177,6 +186,10 @@ Batman.Event = {
 }
 
 Batman.EventEmitter = {
+  initialize: ->
+    Batman._initializeObject @
+    @_batman.events = {}
+  
   # An event is a convenient observer wrapper. Wrap any function in an event.
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
@@ -392,12 +405,24 @@ Batman.Object.redirect = $redirect = Batman.redirect
 
 $mixin Batman.App,
   startRouting: ->
+    return if typeof window is 'undefined'
     return if not Batman._routes.length
-    f = ->
-      Batman._routes[0]()
     
-    addEventListener 'hashchange', f
-    if window.location.hash.length <= 1 then $redirect('/') else f()
+    parseUrl = =>
+      hash = window.location.hash.replace(Batman.HASH_PATTERN, '')
+      return if hash is @_cachedRoute
+      
+      @_cachedRoute = hash
+      @dispatch hash
+    
+    window.location.hash = "#{Batman.HASH_PATTERN}/" if not window.location.hash
+    setTimeout(parseUrl, 0)
+    
+    if 'onhashchange' of window
+      @_routeHandler = parseUrl
+      window.addEventListener 'hashchange', parseUrl
+    else
+      @_routeHandler = setInterval(parseUrl, 100)
   
   root: (callback) ->
     $route '/', callback
@@ -417,21 +442,7 @@ $mixin Batman.App,
   startRouting: ->
     return if typeof window is 'undefined'
 
-    parseUrl = =>
-      hash = window.location.hash.replace(@routePrefix, '')
-      return if hash is @_cachedRoute
-
-      @_cachedRoute = hash
-      @dispatch hash
-
-    window.location.hash = @routePrefix + '/' if not window.location.hash
-    setTimeout(parseUrl, 0)
-
-    if 'onhashchange' of window
-      @_routeHandler = parseUrl
-      window.addEventListener 'hashchange', parseUrl
-    else
-      @_routeHandler = setInterval(parseUrl, 100)
+    
 
   stopRouting: ->
     if 'onhashchange' of window
