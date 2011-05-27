@@ -2,8 +2,8 @@ if window?
   exports = window
 else
   exports = global
-  exports.window = jsdom().createWindow()
-  exports.document = exports.window.document
+  exports.window = w = jsdom().createWindow()
+  exports.document = w.document
 
 exports.ASYNC_TEST_DELAY = 10
 
@@ -41,10 +41,11 @@ createSpy = (original) ->
     f.called = true
     f.callCount++
     f.lastCall =
-      object: this
+      context: this
       arguments: args
 
     f.lastCallArguments = f.lastCall.arguments
+    f.lastCallContext = f.lastCall.context
     f.calls.push f.lastCall
 
     unless f.fixedReturn
