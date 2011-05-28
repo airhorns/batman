@@ -19,6 +19,7 @@ Batman.typeOf = $typeOf = (object) ->
 
 isFunction = Batman.isFunction = (obj) ->
   !!(obj && obj.constructor && obj.call && obj.apply)
+
 ###
 # Mixins
 ###
@@ -105,12 +106,13 @@ Batman.Observable =
       value
   
   set: (key, value) ->
-    oldValue = @[key]
-    if oldValue and oldValue.set
-      oldValue.set key, value, @
+    oldValue = @get key
+    if @[key]?.set
+      newValue = @[key].set key, value, @
     else
-      @[key] = value
-      @fire key, value, oldValue
+      newValue = @[key] = value
+    
+    @fire key, newValue, oldValue unless newValue == oldValue
   
   unset: (key) ->
     oldValue = @[key]
@@ -145,12 +147,25 @@ Batman.Observable =
     
     if typeof value is 'undefined'
       value = @get key
-    
-    for observers in [@_batman.observers?[key], @constructor::_observers?[key]]
+    for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
       (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     
     @
-
+  
+  # Forget removes an observer from an object. If the callback is passed in, 
+  # its removed. If no callback but a key is passed in, all the observers on
+  # that key are removed. If no key is passed in, all observers are removed.
+  forget: (key, callback) ->
+    if key?
+      if callback?
+        array = @_batman.observers[key]
+        array.splice(array.indexOf(callback), 1) if array
+      else
+        @_batman.observers[key] = []
+    else
+      @_batman.observers = {}
+    @
+  # 
   # Prevent allows you to prevent a given binding from firing. You can
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
@@ -273,14 +288,15 @@ class Batman.Object
   # setters. 
   @property: (dependencies..., optionsOrFn = {}) ->
     f = (value) ->
+      key = Batman._findName(f, @)
       if value?
-        f.set.call(@, value)
+        f.set(key, value, @)
       else
-        f.get.call(@)
+        f.get(key, @)
 
     defaults =
-      get: ->
-      set: (value) ->
+      get: (key, context) ->
+      set: (key, value, context) ->
       observe: (observer) ->
         (f._preInstantiationObservers ||= []).push observer
         f
@@ -295,16 +311,12 @@ class Batman.Object
     f.isProperty = true
     f
 
-
   # Apply mixins to instances of this subclass.
   mixin: (mixins...) ->
     $mixin @, mixins...
   
   constructor: (mixins...) ->
-    # We mixin Batman.Observable to the prototype in order to construct fewer
-    # pointers. However, we're still creating a new object, so we want to make
-    # sure we reapply the Batman.Observable initializer.
-    Batman.Observable.initialize.call @
+    Batman._initializeObject @
     @mixin mixins...
  
   # Make every subclass and their instances observable.
@@ -318,11 +330,11 @@ class Batman.Object
 ###
 
 class Batman.Deferred extends Batman.Object
-  constructor: (original = ->) ->
-    @success = $event.oneShot(original)
-    @failure = $event.oneShot(original)
-    @all     = $event.oneShot(original)
+  success: @eventOneShot()
+  failure: @eventOneShot()
+  all:     @eventOneShot()
 
+  constructor: (original = ->) ->
     @resolved = false
     @rejected = false
   

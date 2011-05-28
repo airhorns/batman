@@ -183,18 +183,6 @@ test "should not fire change observers when the same value is set", ->
   @obsv.set("foo", "bar")
   equal @callback.callCount, 0
 
-QUnit.module "Batman.Observable nested observing"
-  setup: ->
-    @child = getObservable({"attr": true})
-    @parent = getObservable({"child": @child})
-    @callback = createSpy()
-
-test "should allow observing of nested attributes", ->
-  @parent.observe('child.attr', @callback)
-  @parent.set('child.attr', "foo")
-  @child.set("attr", "bar")
-  equal @callback.callCount, 2
-
 QUnit.module "Batman.Observable forgetting observers"
   setup: ->
     @callback = createSpy()

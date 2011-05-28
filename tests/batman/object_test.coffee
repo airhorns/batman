@@ -50,15 +50,26 @@ test "classes shouldn't share observables", ->
   @subClass.set 'foo', 'bar'
   ok spy.called
 
-test "newly created classes shouldn't share observables", ->
+test "newly created classes shouldn't fire observers on parent classes", ->
   @subClass.observe 'foo', spy = createSpy()
 
   newSubClass = class TestSubClass extends @subClass
-
   newSubClass.observe 'foo', subSpy = createSpy()
+
   newSubClass.set 'foo', 'bar'
   ok !spy.called
   ok subSpy.called
+
+test "parent classes shouldn't fire observers on newly created classes", ->
+  @subClass.observe 'foo', spy = createSpy()
+
+  newSubClass = class TestSubClass extends @subClass
+  newSubClass.observe 'foo', subSpy = createSpy()
+
+  @subClass.set 'foo', 'bar'
+  ok spy.called
+  ok !subSpy.called
+
 
 QUnit.module "Batman.Object properties"
   setup: ->
@@ -75,11 +86,11 @@ test "it should allow creation of properties", ->
 
 test "it should allow getting and setting via the object", ->
   @obj.set("foo", "bar")
-  deepEqual @set.lastCallArguments, ["bar"]
+  deepEqual @set.lastCallArguments, ["foo", "bar", @obj]
 
 test "it should allow getting and setting via the property", ->
   @obj.foo("qux")
-  deepEqual @set.lastCallArguments, ["qux"]
+  deepEqual @set.lastCallArguments, ["foo", "qux", @obj]
 
 test "it should allow observation via the object", ->
   a = createSpy()
@@ -109,10 +120,11 @@ test "it should allow observation via the class", ->
 test "it should allow custom getters and setters", ->
   class Custom extends Batman.Object
     foo: @property
-      get: ->
+      get: (key, context) ->
         "special"
-      set: (value) ->
-        @somethingElse = value
+      set: (key, value, context) ->
+        context.somethingElse = value
+
   @obj = new Custom
   @obj.get("foo")
   equal @obj.get("foo"), "special"
@@ -124,22 +136,22 @@ test "one object should not affect the other", ->
   @obj2 = new @klass
 
   @obj.set("foo", "bar")
-  equal @set.lastCallContext, @obj
+  equal @set.lastCallArguments[2], @obj
 
   @obj2.set("foo", "baz")
-  equal @set.lastCallContext, @obj2
+  equal @set.lastCallArguments[2], @obj2
 
 test "property setters should fire observers if the return a changed value", 2, ->
   class Custom extends Batman.Object
     foo: @property
-      get: () -> @test
-      set: (value) ->
-        @test = value * 2
+      get: (key, context) -> context.test
+      set: (key, value, context) ->
+        context.test = value * 2
 
     bar: @property
-      get: () ->
+      get: (key, context) ->
         "silly"
-      set: (value) ->
+      set: (key, value, context) ->
         "silly"
 
   @obj = new Custom
