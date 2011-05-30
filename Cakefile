@@ -8,18 +8,88 @@ path          = require 'path'
 glob          = require 'glob'
 {exec}        = require 'child_process'
 
+class SerialJobProcessor
+  constructor: ->
+    @queueQueue = []
+    @queues = {}
+    @done = {}
+  push: (queue, f) ->
+    @queueWithName(queue).push(f)
+    @run()
+  finished: (queue) ->
+    @done[queue] = true
+  run: ->
+    process.nextTick =>
+      queue = @queueQueue[0]
+      if queue and f = @queues[queue].shift()
+        f()
+      else if @done[queue]
+        @queueQueue.shift()
+      @run() if @queueQueue[0]
+  queueWithName: (name) ->
+    for existing in @queueQueue
+      return @queues[existing] if existing is name
+    delete @done[name]
+    @queueQueue.push(name)
+    @queues[name] ||= []
+
+jobs = new SerialJobProcessor
+
+Object.prototype.merge = (other) ->
+  result = {}
+  for o in [@,other]
+    for k,v of o
+      result[k] = v
+  result
+  
+
+readFile = (file, options, callback) ->
+  if options.commit
+    exec "git show :"+file, (err, stdout, stderr) ->
+      handleFileError file, err, options, -> callback(stdout)
+  else
+    fs.readFile file, (err, data) ->
+      handleFileError file, err, options, -> callback(data.toString())
+
+writeFile = (file, data, options, callback) ->
+  mode = options.mode || 0644
+  if options.commit
+    jobs.push file, ->
+      child = exec "git hash-object --stdin -w", (err, stdout, stderr) ->
+        handleFileError file, err, options, ->
+          sha = stdout.substr(0,40)
+          exec "git update-index --add --cacheinfo 100"+mode.toString(8)+" "+sha+" "+file, (err, stdout, stderr) ->
+            handleFileError file, err, options, ->
+              jobs.finished(file)
+              callback() if callback
+      child.stdin.write(data)
+      child.stdin.end()
+  else
+    fs.writeFile file, data, (err) ->
+      handleFileError file, err, options, ->
+        fs.chmod file, mode, (err) ->
+          handleFileError file, err, options, callback
+      
+
+handleFileError = (file, err, options, callback) ->
+  if err
+    jobs.finished(file)
+    notify file, err.message, true unless options.notify == false
+  else
+    callback() if callback
+
 # Following 2 functions are stolen from Jitter, https://github.com/TrevorBurnham/Jitter/blob/master/src/jitter.coffee
 # Compiles a script to a destination
 compileScript = (source, target, options = {}) ->
-  try
-    code = fs.readFileSync(source).toString()
-    js = CoffeeScript.compile code, {source, bare: options?.bare}
-    fs.writeFileSync target, js
-    notify source, "Compiled #{source} to #{target} successfully" unless options.notify == false
-    true
-  catch err
-    notify source, err.message, true unless options.notify == false
-    false
+  readFile source, options, (data) ->
+    try
+      js = CoffeeScript.compile data, {source, bare: options?.bare}
+      writeFile target, js, options, ->
+        notify source, "Compiled #{source} to #{target} successfully" unless options.notify == false
+    catch err
+      notify source, err.message, true unless options.notify == false
+      
+
 
 # Notifies the user of a success or error during compilation
 notify = (source, origMessage, error = false) ->
@@ -38,12 +108,10 @@ notify = (source, origMessage, error = false) ->
   exec args.join(' ')
 
 # Copies and chmods a file
-copyFile = (source, target, mode = 0644) ->
-  contents = fs.readFileSync source
-  fs.writeFileSync target, contents
-  fs.chmodSync(target, mode)
-  notify source, "Moved #{source} to #{target} successfully"
-  true
+copyFile = (source, target, options) ->
+  readFile source, options, (contents) ->
+    writeFile target, contents, options, ->
+      notify source, "Moved #{source} to #{target} successfully"
 
 compileMap = (map) ->
   for pattern, action of map
@@ -53,32 +121,32 @@ runActions = (args) ->
   compiled = compileMap args.map
   for map in compiled
     set = []
-    result = true
     for i, file of args.files
       if matches = map.pattern.exec(file)
         delete args.files[i]
-        result = result and map.action(matches)
+        map.action(matches)
         if args.options.watch
           do (map, matches) ->
             fs.watchFile file, persistent: true, interval: 250, (curr, prev) ->
               return if curr.mtime.getTime() is prev.mtime.getTime()
-              result = map.action(matches)
-              args.after() if args.after and result
+              map.action(matches)
+              args.after() if args.after
 
-  args.after() if args.after and result
+  args.after() if args.after
 
 option '-w', '--watch', 'continue to watch the files and rebuild them when they change'
+option '-c', '--commit', 'operate on the git index instead of the working tree'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
   runActions
     files: glob.globSync './src/**/*'
     options: options
     map:
-      'src/batman.coffee'       : (matches) -> compileScript(matches[0], 'lib/batman.js')
-      'src/batman.nodep.coffee' : (matches) -> compileScript(matches[0], 'lib/batman.nodep.js')
-      'src/batman.jquery.coffee': (matches) -> compileScript(matches[0], 'lib/batman.jquery.js')
-      'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", 0755)
-      'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js")
+      'src/batman.coffee'       : (matches) -> compileScript(matches[0], 'lib/batman.js', options)
+      'src/batman.nodep.coffee' : (matches) -> compileScript(matches[0], 'lib/batman.nodep.js', options)
+      'src/batman.jquery.coffee': (matches) -> compileScript(matches[0], 'lib/batman.jquery.js', options)
+      'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", options.merge(mode: 0755))
+      'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js", options)
   console.log "Watching src..." if options.watch
 
 task 'test', 'compile Batman.js and the tests and run them on the command line', (options) ->
@@ -91,9 +159,9 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
     options: options
     map:
-     'src/batman.coffee'               : (matches) -> compileScript(matches[0], "#{tmpdir}/batman.js", {notify: first})
-     'tests/batman/(.+)_test.coffee'   : (matches) -> compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", {notify: first})
-     'tests/batman/test_helper.coffee' : (matches) -> compileScript(matches[0], "#{tmpdir}/test_helper.js", {notify: first})
+     'src/batman.coffee'               : (matches) -> compileScript(matches[0], "#{tmpdir}/batman.js", {notify: first}.merge(options))
+     'tests/batman/(.+)_test.coffee'   : (matches) -> compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", {notify: first}.merge(options))
+     'tests/batman/test_helper.coffee' : (matches) -> compileScript(matches[0], "#{tmpdir}/test_helper.js", {notify: first}.merge(options))
     after: ->
       first = true
       runner.run
