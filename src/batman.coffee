@@ -152,19 +152,12 @@ Batman.Observable =
   
   get: (key) ->
     value = @[key]
-    if value and value.get
-      value.get key, @
-    else
-      value
   
   set: (key, value) ->
     oldValue = @get key
-    if @[key]?.set
-      newValue = @[key].set key, value, @
-    else
-      newValue = @[key] = value
+    newValue = @[key] = value
     
-    @fire key, newValue, oldValue unless newValue == oldValue
+    @fire key, newValue, oldValue unless newValue is oldValue
   
   unset: (key) ->
     oldValue = @[key]
@@ -285,7 +278,7 @@ Batman.Observable =
     @prevent('__all')
 
   # Allows all bindings to fire. Nestable
-  allow: (key) ->
+  allowAll: (key) ->
     @allow('__all')
   
   # Returns a boolean whether or not the property is currently allowed
@@ -305,15 +298,7 @@ Batman.Observable =
 ###
 # Batman.Event
 ###
-Batman.Event =
-  isEvent: yes
-  
-  get: (key, parent) ->
-    @.call parent
-  
-  set: (key, value, parent) ->
-    parent.observe key, value
-  
+
 Batman.EventEmitter =
   initialize: ->
     @_batman.events ||= {}
@@ -351,15 +336,14 @@ Batman.EventEmitter =
       else
         false
     
-    $mixin f, Batman.Event
+    $mixin f,
+      isEvent: yes
   
   # Use a one shot event for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately.
   eventOneShot: (callback) ->
-    f = Batman.EventEmitter.event.apply @, arguments
-    f.isOneShot = yes
-    
-    f
+    $mixin Batman.EventEmitter.event.apply(@, arguments)
+      isOneShot: yes
 
 ###
 # Batman.Object
