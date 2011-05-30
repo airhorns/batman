@@ -467,8 +467,7 @@ class Batman.App extends Batman.Object
           CoffeeScript.eval response
           
           @allow 'run'
-          # FIXME
-          @get 'run'
+          @run()
   
   @controller: (names...) ->
     @_require 'controllers', names...
