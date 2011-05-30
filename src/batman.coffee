@@ -86,6 +86,55 @@ Batman._findName = (f, context) ->
   
   f.displayName
 
+
+
+###
+# Batman.Keypath
+###
+
+# Batman.Keypath represents a keypath on a particular Batman object.
+class Batman.Keypath
+  constructor: (base, string) ->
+    @base = base
+    @string = string
+    
+  eachPartition: (f) ->
+    segments = @segments()
+    for index in [0...segments.length]
+      f(segments.slice(0,index).join('.'), segments.slice(index).join('.'))
+  
+  eachKeypath: (f) ->
+    for index in [0...@segments().length]
+      keypath = @keypathAt(index)
+      break unless keypath
+      f(keypath, index)
+  
+  eachValue: (f) ->
+    for index in [0...@segments().length]
+      f(@valueAt(index), index)
+      
+  keypathAt: (index) ->
+    segments = @segments()
+    return if index >= segments.length or index < 0 or not @base.get
+    return @ if index == 0
+    obj = @base.get(segments.slice(0, index).join('.'))
+    return unless obj and obj.get
+    remainingKeypath = segments.slice(index).join('.')
+    new Batman.Keypath obj, remainingKeypath
+  
+  valueAt: (index) ->
+    segments = @segments()
+    return if index >= segments.length or index < 0 or not @base.get
+    @base.get(segments.slice(0, index+1).join('.'))
+    
+  segments: ->
+    @string.split('.')
+  
+  get: ->
+    @base.get(@string)
+
+
+
 ###
 # Batman.Observable
 ###
@@ -97,6 +146,9 @@ Batman.Observable =
   initialize: ->
     @_batman.observers ||= {}
     @_batman.preventCounts ||= {}
+    
+  keypath: (string) ->
+    new Batman.Keypath(@, string)
   
   get: (key) ->
     value = @[key]
@@ -126,17 +178,52 @@ Batman.Observable =
   
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
-  observe: (key, fireImmediately, callback) ->
+  observe: (wholeKeypathString, fireImmediately, callback) ->
     Batman._initializeObject @
 
     if not callback
       callback = fireImmediately
       fireImmediately = no
     
-    observers = @_batman.observers[key] ||= []
-    observers.push callback if observers.indexOf(callback) is -1
+    return @ unless callback
     
-    callback.call(@, @get(key)) if fireImmediately
+    wholeKeypath = @keypath(wholeKeypathString)
+    
+    keyObservers = @_batman.observers[wholeKeypathString] ||= []
+    keyObservers.push(callback)
+    
+    self = @
+    if wholeKeypath.segments().length > 1
+      callback._triggers = []
+      callback._refresh_triggers = ->
+        wholeKeypath.eachKeypath (keypath, index) ->
+          segments = keypath.segments()
+          if trigger = callback._triggers[index]
+            keypath.base.forget(segments[0], trigger)
+          trigger = (value, oldValue) ->
+            if segments.length > 1 and oldKeypath = oldValue.keypath?(segments.slice(1).join('.'))
+              oldKeypath.eachKeypath (k, i) ->
+                absoluteIndex = index + i
+                console.log "forgetting trigger at '"+k.segments()[0]+"' for '"+wholeKeypathString+"'"
+                k.base.forget(k.segments()[0], callback._triggers[index + i])
+              callback._refresh_triggers(index)
+              oldValue = oldKeypath.get()
+            callback.call self, self.get(wholeKeypathString), oldValue
+          console.log "adding trigger to '"+segments[0]+"' for '"+wholeKeypathString+"'"
+          callback._triggers[index] = trigger
+          keypath.base.observe?(segments[0], trigger)
+      
+      callback._refresh_triggers()
+      callback._forgotten = =>
+        wholeKeypath.eachKeypath (keypath, index) =>
+          if trigger = callback._triggers[index]
+            console.log "forgetting trigger at '"+keypath.segments()[0]+"' for '"+wholeKeypathString+"'"
+            keypath.base.forget(keypath.segments()[0], trigger)
+            callback._triggers[index] = null
+      
+    if fireImmediately
+      value = @get wholeKeypathString
+      callback value, value
     @
   
   # You normally shouldn't call this directly. It will be invoked by `set`
@@ -159,10 +246,17 @@ Batman.Observable =
     if key?
       if callback?
         array = @_batman.observers[key]
-        array.splice(array.indexOf(callback), 1) if array
+        callbackIndex = array.indexOf(callback)
+        array.splice(callbackIndex, 1) if array and callbackIndex isnt -1
+        callback._forgotten?()
       else
+        for o in @_batman.observers[key]
+          o._forgotten?()
         @_batman.observers[key] = []
     else
+      for k, ary of @_batman.observers
+        for o in ary
+          o._forgotten?()
       @_batman.observers = {}
     @
   # 

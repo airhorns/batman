@@ -170,7 +170,7 @@ QUnit.module "Batman.Observable observing fields"
 
 test "should fire immediate observes if specified", ->
   @obsv.observe "foo", true, @callback
-  deepEqual @callback.lastCallArguments, ["bar"]
+  deepEqual @callback.lastCallArguments, ["bar", "bar"]
 
 test "should fire change observers when a new value is set", ->
   @obsv.observe "foo", @callback
