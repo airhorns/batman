@@ -342,7 +342,7 @@ Batman.EventEmitter =
   # Use a one shot event for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately.
   eventOneShot: (callback) ->
-    $mixin Batman.EventEmitter.event.apply(@, arguments)
+    $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
 
 ###
@@ -408,13 +408,13 @@ class Batman.Object
 ###
 
 class Batman.Deferred extends Batman.Object
-  success: @eventOneShot()
-  failure: @eventOneShot()
-  all:     @eventOneShot()
-
   constructor: (original = ->) ->
     @resolved = false
     @rejected = false
+  
+  success: @eventOneShot ->
+  failure: @eventOneShot ->
+  all:     @eventOneShot ->
   
   then: (f) ->
     @all f 
