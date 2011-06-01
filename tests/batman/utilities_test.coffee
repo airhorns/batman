@@ -40,72 +40,59 @@ QUnit.module "Batman.unmixin",
 test "should remove properties on the from that exist on the sources", ->
   deepEqual {z: 'z'}, Batman.unmixin(@base, {x: 'x'}, {y: 'y'})
 
-QUnit.module "Batman.EventEmitter"
-  setup: ->
-    @klass = class TestEventClass extends Batman.Object
-      @::mixin Batman.EventEmitter
-    
-      explode: @event ->
-    @obj = new TestEventClass
-    
-    @addEvent = (key, f = ->) ->
-      TestEventClass::[key] = TestEventClass::event f
-
-    @addOneShot = (key, f = ->) ->
-      TestEventClass::[key] = TestEventClass::eventOneShot f
-
-test "should create an event", ->
-  ok @obj.explode.isEvent
+QUnit.module "Batman.event"
+test "should create an event with an action", ->
+  event = Batman.event("x")
+  ok event.isEvent
+  equal event.action, "x"
 
 test "should fire event handlers with the value when passed a value", ->
+  event = Batman.event((x) -> x * 2)
   observer = createSpy()
-  @obj.explode observer
-  @obj.explode 2
-  equals observer.lastCallArguments[0], 2
+  event(observer)
+  event(2)
+  equals observer.lastCallArguments, 2
+
+test "should return false and not fire observers if the result is false", ->
+  event = Batman.event((x) -> false)
+  observer = createSpy()
+  event(observer)
+  result = event(true)
+  equal observer.called, false
+  equal result, false
 
 test "should return the result of the original function", ->
-  @addEvent 'returnY', (x) -> "y"
-  equal @obj.returnY(), "y"
+  event = Batman.event((x) -> "y")
+  equal event(true), "y"
 
 test "should add handlers when passed functions, without calling the original", ->
   original = createSpy()
-  @addEvent 'e', original
-  @obj.e(->) && @obj.e(->)
+  event = Batman.event(original)
+  event(->) && event(->)
   equals original.callCount, 0
 
 test "should fire more than once", ->
-  @addEvent 'e'
+  event = Batman.event(->)
   observer = createSpy()
-  @obj.e(observer)
-  @obj.e(1)
-  @obj.e(true)
+  event(observer)
+  event(1)
+  event(true)
   equals observer.callCount, 2
 
-test "observers shouldn't be shared between instances", ->
-  @before = new @klass
-  @addEvent 'e'
-  @after = new @klass
-  @obj.e(true)
-
-  ok @obj._batman.events['e'].fired
-  if @before._batman.events?['e']?
-    ok !@before._batman.events['e'] .fired
-  if @after._batman.events?['e']?
-    ok !@after._batman.events['e'] .fired
-
-test "one shot events should fire handlers when fired", ->
-  @addOneShot 'e'
+QUnit.module "oneshot Batman.events"
+test "should fire handlers when fired", ->
+  event = Batman.event.oneShot(->)
   observer = createSpy()
-  @obj.e observer
-  @obj.e true
+  event(observer)
+  event(true)
   equals observer.callCount, 1
 
-test "one shot events should fire handlers added after the first fire immediately and pass the original result in", ->
-  @addOneShot 'e', -> [false, 2]
-  @obj.e true, 1
+test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
+  event = Batman.event.oneShot(->)
+  event(true, 1)
   observer = createSpy()
-  @obj.e observer
-  deepEqual observer.lastCallArguments, [[false, 2]]
+  event(observer)
+  deepEqual observer.lastCallArguments, [true, 1]
 
 getObservable = (obj, set = true) ->
   if set
@@ -121,16 +108,37 @@ test "should allow retrieval of keys", ->
   obsv = getObservable({foo: "bar"})
   equal obsv.get("foo"), "bar"
 
-test "should call things with their own getters defined", ->
-  prop = 
-    get: (key, context) ->
-      equal @, prop # assert context doesn't change
-      equal context, obsv
-      equal key, "attr"
-      "value"
+test "should allow retrieval of multiple keys", ->
+  obsv = getObservable({foo: "bar", x: 1})
+  deepEqual obsv.get("foo", "x"), ["bar", 1]
+
+test "should call methodMissing if the key doesn't exist", ->
+  obsv = getObservable()
+  spyOn(obsv, 'methodMissing')
+  obsv.get("nonexistant")
+  deepEqual obsv.methodMissing.lastCallArguments, ["nonexistant"]
+
+test "should call properties", ->
+  prop = () ->
+    equal @, obsv
+    "value"
+  prop.isProperty = true
   
   obsv = getObservable({"attr": prop})
   equal obsv.get("attr"), "value"
+
+QUnit.module "Batman.Observable nested gets"
+  setup: ->
+    @child  = getObservable({"attr": true})
+    @parent = getObservable({"child": @child})
+
+test "should allow nested gets", ->
+  equal @parent.get("child.attr"), true
+
+test "should call method missing on children", ->
+  spyOn(@child, 'methodMissing')
+  @parent.get("child.nonexistant")
+  deepEqual @child.methodMissing.lastCallArguments, ["nonexistant"]
 
 QUnit.module "Batman.Observable set",
   setup: ->
@@ -141,19 +149,49 @@ test "should allow setting of keys", ->
   equal @obsv.foo, "bar"
   equal @obsv.get("foo"), "bar"
 
-test "should call things with their own setters defined", ->
-  prop = 
-    set: (key, val, context) ->
-      if val
-        equal @, prop # assert context doesn't change
-        equal context, obsv
-        equal val, "val"
-        "val"
-      else
-        ""
+test "should allow setting of multiple keys", ->
+  @obsv.set("foo", "bar", "baz", "qux")
+  equal @obsv.foo, "bar"
+  equal @obsv.baz, "qux"
+  equals @obsv.bar, undefined
+  equals @obsv.qux, undefined
+
+test "should not call method missing if the key does exist", ->
+  @obsv.foo = "bar"
+  spyOn(@obsv, 'methodMissing')
+  @obsv.set("foo", "baz")
+  equals @obsv.methodMissing.callCount, 0
+
+test "should call method missing of the key doesn't exist", ->
+  spyOn(@obsv, 'methodMissing')
+  @obsv.set("nonexistant", "val")
+  deepEqual @obsv.methodMissing.lastCallArguments, ["nonexistant", "val"]
+
+test "should call properties", ->
+  prop = (val) ->
+    if val
+      equal @, obsv
+      equal val, "val"
+      "val"
+    else
+      ""
+  prop.isProperty = true
 
   obsv = getObservable({"attr": prop})
   obsv.set("attr", "val")
+
+QUnit.module "Batman.Observable nested sets"
+  setup: ->
+    @child = getObservable({"attr": true})
+    @parent = getObservable({"child": @child})
+
+test "should allow nested sets", ->
+  equal true, @parent.set("child.attr", true)
+
+test "should call method missing on children", ->
+  spyOn(@child, 'methodMissing')
+  @parent.set("child.nonexistant", "val")
+  deepEqual @child.methodMissing.lastCallArguments, ["nonexistant", "val"]
 
 QUnit.module "Batman.Observable unsetting"
   setup: ->
@@ -162,6 +200,11 @@ QUnit.module "Batman.Observable unsetting"
 test "should unset existant keys", ->
   @obsv.unset('foo')
   equals @obsv.foo, undefined
+
+test "should call method missing for non existant keys", ->
+  spyOn(@obsv, 'methodMissing')
+  @obsv.unset('nonexistant')
+  deepEqual @obsv.methodMissing.lastCallArguments, ["unset:nonexistant"]
 
 QUnit.module "Batman.Observable observing fields"
   setup: ->
@@ -174,12 +217,14 @@ test "should fire immediate observes if specified", ->
 
 test "should fire change observers when a new value is set", ->
   @obsv.observe "foo", @callback
+  @obsv.observe "foo:before", @callback
   @obsv.set("foo", "baz")
   deepEqual @callback.lastCallArguments, ["baz", "bar"]
-  equal @callback.callCount, 1
+  equal @callback.callCount, 2
 
 test "should not fire change observers when the same value is set", ->
   @obsv.observe "foo", @callback
+  @obsv.observe "foo:before", @callback
   @obsv.set("foo", "bar")
   equal @callback.callCount, 0
 

@@ -6,19 +6,15 @@
 # The global namespace, the Batman function will also create also create a new
 # instance of Batman.Object and mixin all arguments to it.
 Batman = (mixins...) ->
- new Batman.Object mixins...
-
-# Cache this function to skip property lookups.
-_objectToString = Object.prototype.toString
+  new Batman.Object mixins...
 
 # Batman.typeOf returns a string that contains the built-in class of an object
 # like String, Array, or Object. Note that only Object will be returned for
 # the entire prototype chain.
 Batman.typeOf = $typeOf = (object) ->
   _objectToString.call(object).slice(8, -1)
-
-isFunction = Batman.isFunction = (obj) ->
-  !!(obj && obj.constructor && obj.call && obj.apply)
+# Cache this function to skip property lookups.
+_objectToString = Object.prototype.toString
 
 ###
 # Mixins
@@ -30,6 +26,7 @@ isFunction = Batman.isFunction = (obj) ->
 Batman.mixin = $mixin = (to, mixins...) ->
   set = to.set
   hasSet = $typeOf(set) is 'Function'
+  
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
     
@@ -38,11 +35,8 @@ Batman.mixin = $mixin = (to, mixins...) ->
       if hasSet then set.call(to, key, value) else to[key] = value
     
     if $typeOf(mixin.initialize) is 'Function'
-      to._batman ||= {}
       mixin.initialize.call to
-      to._batman.initializers ||= []
-      to._batman.initializers.push mixin.initialize
-
+  
   to
 
 # Batman.unmixin will remove every key from every argument after the first
@@ -58,24 +52,15 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
     
     if $typeOf(mixin.deinitialize) is 'Function'
       mixin.deinitialize.call from
-    
+  
   from
 
 Batman._initializeObject = (object) ->
-  if object._batman?
-    if object._batman.initializedOn != object
-      old = object._batman
-      delete object._batman
-      batman = object._batman = {}
-      batman.initializedOn = object
-      if old.initializers?
-        batman.initializers = []
-       for init in old.initializers 
-         batman.initializers.push init
-         init.call(object)
-      true
-  else
-    object._batman = {}
+  object._batman = {} if not object.hasOwnProperty '_batman'
+
+Batman._initializeClass = (object) ->
+  if object.prototype and object._batman?.__initClass__ isnt @
+    object._batman = {__initClass__: @}
 
 Batman._findName = (f, context) ->
   if not f.displayName
@@ -85,8 +70,6 @@ Batman._findName = (f, context) ->
         break
   
   f.displayName
-
-
 
 ###
 # Batman.Keypath
@@ -133,8 +116,6 @@ class Batman.Keypath
   get: ->
     @base.get(@string)
 
-
-
 ###
 # Batman.Observable
 ###
@@ -142,11 +123,11 @@ class Batman.Keypath
 # Batman.Observable is a generic mixin that can be applied to any object in
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
-Batman.Observable =
+Batman.Observable = {
   initialize: ->
+    Batman._initializeObject @
     @_batman.observers ||= {}
-    @_batman.preventCounts ||= {}
-    
+  
   keypath: (string) ->
     new Batman.Keypath(@, string)
   
@@ -161,24 +142,19 @@ Batman.Observable =
   
   unset: (key) ->
     oldValue = @[key]
-    if oldValue and oldValue.unset
-      oldValue.unset key, @
-    else
-      @[key] = null
-      delete @[key]
-      
-      @fire key, oldValue
+    @[key] = null
+    delete @[key]
+    
+    @fire key, oldValue
   
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (wholeKeypathString, fireImmediately, callback) ->
     Batman._initializeObject @
-
+    
     if not callback
       callback = fireImmediately
       fireImmediately = no
-    
-    return @ unless callback
     
     wholeKeypath = @keypath(wholeKeypathString)
     
@@ -227,6 +203,7 @@ Batman.Observable =
     
     if typeof value is 'undefined'
       value = @get key
+    
     for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
       (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     
@@ -252,12 +229,12 @@ Batman.Observable =
           o._forgotten?()
       @_batman.observers = {}
     @
-  # 
+  
   # Prevent allows you to prevent a given binding from firing. You can
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
   prevent: (key) ->
-    Batman._initializeObject @
+    Batman._initializeClass @
     
     counts = @_batman.preventCounts ||= {}
     counts[key] ||= 0
@@ -267,41 +244,28 @@ Batman.Observable =
   # Unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow.
   allow: (key) ->
-    Batman._initializeObject @
+    Batman._initializeClass @
     
     counts = @_batman.preventCounts ||= {}
     counts[key]-- if counts[key] > 0
     @
-    
-  # Prevents all bindings from firing. Nestable.
-  preventAll: () ->
-    @prevent('__all')
-
-  # Allows all bindings to fire. Nestable
-  allowAll: (key) ->
-    @allow('__all')
   
   # Returns a boolean whether or not the property is currently allowed
   # to fire its observers.
   allowed: (key) ->
-    Batman._initializeObject @
+    Batman._initializeClass @
     
-    !(@_batman.preventCounts?[key] > 0 || @_batman.preventCounts?['__all'] > 0)
-
-  # Allows bulk updates which fire the observers after the update is complete
-  fireAfter: (f) ->
-    @preventAll()
-    f()
-    @allowAll()
-    @
+    !(@_batman.preventCounts?[key] > 0)
+}
 
 ###
 # Batman.Event
 ###
 
-Batman.EventEmitter =
+Batman.EventEmitter = {
   initialize: ->
-    @_batman.events ||= {}
+    Batman._initializeObject @
+    @_batman.events = {}
   
   # An event is a convenient observer wrapper. Wrap any function in an event.
   # Whenever you call that function, it will cause this object to fire all
@@ -312,25 +276,19 @@ Batman.EventEmitter =
       throw "EventEmitter needs to be on an object that has Batman.Observable."
     
     f = (observer) ->
-      Batman._initializeObject @
       key = Batman._findName(f, @)
-      props = @_batman.events[key] ||= {}
-
+      
       if $typeOf(observer) is 'Function'
-        if f.isOneShot and props.fired
-          observer.call @, props.value
-        else
-          @observe key, observer
+        @observe key, f.isOneShot and f.fired, observer
       else if @allowed key
         return false if f.isOneShot and f.fired
         
-        value = callback.apply @, arguments if callback?
-        value ||= arguments[0]
-        value ||= null 
+        value = callback.apply @, arguments
+        value = arguments[0] if typeof value is 'undefined'
+        value = null if typeof value is 'undefined'
         
         @fire key, value
-        props.fired = true
-        props.value = value
+        f.fired = yes if f.isOneShot
         
         value
       else
@@ -344,6 +302,7 @@ Batman.EventEmitter =
   eventOneShot: (callback) ->
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
+}
 
 ###
 # Batman.Object
@@ -361,88 +320,22 @@ class Batman.Object
   @mixin: (mixins...) ->
     $mixin @, mixins...
   
-  # Watch a function for it's dependencies, caching its output and
-  # recalculating its output when they change. Accepts custom getters and 
-  # setters. 
-  @property: (dependencies..., optionsOrFn = {}) ->
-    f = (value) ->
-      key = Batman._findName(f, @)
-      if value?
-        f.set(key, value, @)
-      else
-        f.get(key, @)
-
-    defaults =
-      get: (key, context) ->
-      set: (key, value, context) ->
-      observe: (observer) ->
-        (f._preInstantiationObservers ||= []).push observer
-        f
-
-    if isFunction optionsOrFn
-      options = $mixin {}, defaults,
-        get: optionsOrFn
-    else
-      options = $mixin {}, defaults, optionsOrFn
-
-    $mixin f, options
-    f.isProperty = true
-    f
-
   # Apply mixins to instances of this subclass.
   mixin: (mixins...) ->
     $mixin @, mixins...
   
   constructor: (mixins...) ->
-    Batman._initializeObject @
+    # We mixin Batman.Observable to the prototype in order to construct fewer
+    # pointers. However, we're still creating a new object, so we want to make
+    # sure we reapply the Batman.Observable initializer.
+    Batman.Observable.initialize.call @
+    
     @mixin mixins...
- 
+  
   # Make every subclass and their instances observable.
-  @::mixin Batman.Observable
-  # Make the class observable and event friendly
   @mixin Batman.Observable, Batman.EventEmitter
+  @::mixin Batman.Observable
 
-###
-# Batman.Deferred
-# Test Code - what is it useful for?
-###
-
-class Batman.Deferred extends Batman.Object
-  constructor: (original = ->) ->
-    @resolved = false
-    @rejected = false
-  
-  success: @eventOneShot ->
-  failure: @eventOneShot ->
-  all:     @eventOneShot ->
-  
-  then: (f) ->
-    @all f 
-    @
-  always: () ->
-    @then(arguments...)
-  done: (f) ->
-    @success f
-    @
-  fail: (f) ->
-    @failure f
-    @
-  
-  resolve: (resolution) ->
-    @resolved = true
-    @rejected = false
-    @success resolution
-    @all resolution
-    @
-  
-  reject: (failResolution) ->
-    @resolved = true
-    @rejected = true
-    @failure failResolution
-    @all failResolution
-    @
-
-  @::mixin Batman.EventEmitter
 ###
 # Batman.App
 ###
@@ -492,17 +385,6 @@ class Batman.App extends Batman.Object
     
     @startRouting()
 
-  @startRouting: ->
-    return if not Batman._routes.length
-    f = ->
-      Batman._routes[0]()
-    
-    addEventListener 'hashchange', f
-    if window.location.hash.length <= 1 then $redirect('/') else f()
-  
-  @root: (callback) ->
-    $route '/', callback
-
 ###
 # Routing
 ###
@@ -513,11 +395,12 @@ splatParam = /\*([\w\d]+)/g
 namedOrSplat = /[:|\*]([\w\d]+)/g
 escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
-Batman.Route =
+Batman.Route = {
   isRoute: yes
   
   toString: ->
     "route: #{@pattern} #{@action}"
+}
 
 $mixin Batman,
   HASH_PATTERN: '#!'
@@ -576,84 +459,6 @@ $mixin Batman.App,
   
   root: (callback) ->
     $route '/', callback
-
-###
-  @match: (url, action) ->
-    routes = @::_routes ||= []
-    match = url.replace(escapeRegExp, '\\$&')
-    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
-    namedArguments = []
-
-    while (array = namedOrSplat.exec(match))?
-      namedArguments.push(array[1]) if array[1]
-
-    routes.push match: match, regexp: regexp, namedArguments: namedArguments, action: action
-  
-  startRouting: ->
-    return if typeof window is 'undefined'
-
-    
-
-  stopRouting: ->
-    if 'onhashchange' of window
-      window.removeEventListener 'hashchange', @_routeHandler
-      @_routeHandler = null
-    else
-      @_routeHandler = clearInterval @_routeHandler
-
-  match: (url, action) ->
-    Batman.App.match.apply @constructor, arguments
-
-  routePrefix: '#!'
-  redirect: (url) ->
-    @_cachedRoute = url
-    window.location.hash = @routePrefix + url
-    @dispatch url
-
-  dispatch: (url) ->
-    route = @_matchRoute url
-    if not route
-      @redirect '/404' unless url is '/404'
-      return
-
-    params = @_extractParams url, route
-    action = route.action
-    return unless action
-
-    if typeOf(action) is 'String'
-      components = action.split '.'
-      controllerName = helpers.camelize(components[0] + 'Controller')
-      actionName = helpers.camelize(components[1], true)
-
-      controller = @controller controllerName
-    else if typeof action is 'object'
-      controller = @controller action.controller?.name || action.controller
-      actionName = action.action
-
-    controller._actedDuringAction = no
-    controller._currentAction = actionName
-
-    controller[actionName](params)
-    controller.render() if not controller._actedDuringAction
-
-    delete controller._actedDuringAction
-    delete controller._currentAction
-
-  _matchRoute: (url) ->
-    routes = @_routes
-    for route in routes
-      return route if route.regexp.test(url)
-
-    null
-
-  _extractParams: (url, route) ->
-    array = route.regexp.exec(url).slice(1)
-    params = url: url
-
-    for param in array
-      params[route.namedArguments[_i]] = param
-###
-
 
 ###
 # Batman.Controller
@@ -1154,6 +959,7 @@ Batman.DOM = {
       else
         if isSetting then node.value = value else node.value
 }
+
 ###
 # Batman.Request
 ###

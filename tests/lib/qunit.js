@@ -1,6 +1,6 @@
 /**
  * QUnit - A JavaScript Unit Testing Framework
- *
+ * 
  * http://docs.jquery.com/QUnit
  *
  * Copyright (c) 2011 John Resig, Jörn Zaefferer
@@ -117,8 +117,8 @@
         },
         teardown: function() {
             try {
-                this.testEnvironment.teardown.call(this.testEnvironment);
                 checkPollution();
+                this.testEnvironment.teardown.call(this.testEnvironment);
             } catch (e) {
                 QUnit.ok(false, "Teardown failed on " + this.testName + ": " + e.message);
             }
@@ -382,13 +382,13 @@
                 // we don't want to validate thrown error
                 if (!expected) {
                     ok = true;
-                    // expected is a regexp
+                    // expected is a regexp	
                 } else if (QUnit.objectType(expected) === "regexp") {
                     ok = expected.test(actual);
-                    // expected is a constructor
+                    // expected is a constructor	
                 } else if (actual instanceof expected) {
                     ok = true;
-                    // expected is a validation function which returns true is validation passed
+                    // expected is a validation function which returns true is validation passed	
                 } else if (expected.call({}, actual) === true) {
                     ok = true;
                 }
@@ -550,7 +550,7 @@
 
         /**
          * Resets the test setup. Useful for tests that modify the DOM.
-         *
+         * 
          * If jQuery is available, uses jQuery's html(), otherwise just innerHTML.
          */
         reset: function() {
@@ -805,7 +805,7 @@
             return true;
         }
 
-        var not = filter.charAt(0) === "!";
+        not = filter.charAt(0) === "!";
         if (not) {
             filter = filter.slice(1);
         }
@@ -1156,12 +1156,12 @@
             return [pre, inner + arr, base + post].join(s);
         };
 
-        function array(arr, stack) {
+        function array(arr) {
             var i = arr.length,
                 ret = Array(i);
             this.up();
             while (i--)
-            ret[i] = this.parse(arr[i], undefined, stack);
+            ret[i] = this.parse(arr[i]);
             this.down();
             return join('[', ret, ']');
         };
@@ -1169,23 +1169,11 @@
         var reName = /^function (\w+)/;
 
         var jsDump = {
-            parse: function(obj, type, stack) { //type is used mostly internally, you can fix a (custom)type in advance
-                stack = stack || [];
+            parse: function(obj, type) { //type is used mostly internally, you can fix a (custom)type in advance
                 var parser = this.parsers[type || this.typeOf(obj)];
                 type = typeof parser;
-                var inStack = inArray(obj, stack);
-                if (inStack != -1) {
-                    return 'recursion(' + (inStack - stack.length) + ')';
-                }
-                //else
-                if (type == 'function') {
-                    stack.push(obj);
-                    var res = parser.call(this, obj, stack);
-                    stack.pop();
-                    return res;
-                }
-                // else 
-                return (type == 'string') ? parser : this.parsers.error;
+
+                return type == 'function' ? parser.call(this, obj) : type == 'string' ? parser : this.parsers.error;
             },
             typeOf: function(obj) {
                 var type;
@@ -1257,13 +1245,11 @@
                 array: array,
                 nodelist: array,
                 arguments: array,
-                object: function(map, stack) {
+                object: function(map) {
                     var ret = [];
                     QUnit.jsDump.up();
-                    for (var key in map) {
-                        var val = map[key];
-                        ret.push(QUnit.jsDump.parse(key, 'key') + ': ' + QUnit.jsDump.parse(val, undefined, stack));
-                    }
+                    for (var key in map)
+                    ret.push(QUnit.jsDump.parse(key, 'key') + ': ' + QUnit.jsDump.parse(map[key]));
                     QUnit.jsDump.down();
                     return join('{', ret, '}');
                 },
@@ -1340,23 +1326,6 @@
         return ret;
     };
 
-    //from jquery.js
-
-
-    function inArray(elem, array) {
-        if (array.indexOf) {
-            return array.indexOf(elem);
-        }
-
-        for (var i = 0, length = array.length; i < length; i++) {
-            if (array[i] === elem) {
-                return i;
-            }
-        }
-
-        return -1;
-    }
-
 /*
  * Javascript Diff Algorithm
  *  By John Resig (http://ejohn.org/)
@@ -1366,9 +1335,9 @@
  *
  * More Info:
  *  http://ejohn.org/projects/javascript-diff-algorithm/
- *
+ *  
  * Usage: QUnit.diff(expected, actual)
- *
+ * 
  * QUnit.diff("the quick brown fox jumped over", "the quick fox jumps over") == "the  quick <del>brown </del> fox <del>jumped </del><ins>jumps </ins> over"
  */
     QUnit.diff = (function() {
