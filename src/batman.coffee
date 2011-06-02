@@ -667,6 +667,8 @@ class Batman.View extends Batman.Object
   node: null
   contentFor: null
   
+  ready: @event ->
+  
   @::observe 'source', ->
     setTimeout @reloadSource, 0
   
@@ -690,7 +692,7 @@ class Batman.View extends Batman.Object
       @set 'node', node
   
   @::observe 'node', (node) ->
-    Batman.DOM.parseNode node
+    new Batman.Renderer node, => @ready()
 
 ###
 # Helpers
@@ -729,238 +731,76 @@ helpers = Batman.helpers = {
 }
 
 ###
+# Filters
+###
+
+filters = Batman.filters = {
+  
+}
+
+###
 # DOM Helpers
 ###
 
+class Batman.Renderer extends Batman.Object
+  constructor: (@node, @callback) ->
+    super
+    setTimeout @start, 0
+  
+  start: =>
+    @tree = {}
+    @startTime = new Date
+    @parseNode @node
+  
+  resume: =>
+    console.log('resume')
+    @startTime = new Date
+    @parseNode @resumeNode
+  
+  finish: ->
+    console.log('done')
+    @startTime = null
+    @callback()
+  
+  regexp = /data\-(.*)/
+  
+  parseNode: (node) ->
+    if (new Date) - @startTime > 50
+      console.log('stopping')
+      @resumeNode = node
+      setTimeout @resume, 0
+      return
+    
+    if node.getAttribute
+      for attr in node.attributes
+        name = attr.nodeName
+        console.log(node.nodeName, name, name.match(regexp))
+    
+    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish
+  
+  nextNode: (node) ->
+    children = node.childNodes
+    return children[0] if children?.length
+    
+    sibling = node.nextSibling
+    return sibling if sibling
+    
+    nextParent = node
+    while nextParent = nextParent.parentNode
+      parentSibling = nextParent.nextSibling
+      return parentSibling if parentSibling
+    
+    return
+    
+
 Batman.DOM = {
-  attributes: {
-    bind: (string, node, context, observer) ->
-      observer ||= (value) -> Batman.DOM.valueForNode(node, value)
-
-      if (index = string.lastIndexOf('.')) isnt -1
-        FIXME_firstPath = string.substr(0, index)
-        FIXME_lastPath = string.substr(index + 1)
-        FIXME_firstObject = context.get(FIXME_firstPath)
-
-        FIXME_firstObject?.observe FIXME_lastPath, yes, observer
-        Batman.DOM.events.change node, (value) -> FIXME_firstObject.set(FIXME_lastPath, value)
-
-        node._bindingContext = FIXME_firstObject
-        node._bindingKey = FIXME_lastPath
-        node._bindingObserver = observer
-      else
-        context.observe string, yes, observer
-        Batman.DOM.events.change node, (value) -> context.set(key, value)
-
-        node._bindingContext = context
-        node._bindingKey = string
-        node._bindingObserver = observer
-
-      return
-
-    visible: (string, node, context) ->
-      original = node.style.display
-      Batman.DOM.attributes.bind string, node, context, (value) ->
-        node.style.display = if !!value then original else 'none'
-
-    mixin: (string, node, context) ->
-      mixin = Batman.mixins[string]
-      $mixin(node, mixin) if mixin
-
-    yield: (string, node, context) ->
-      Batman.DOM.yield string, node
-
-    contentfor: (string, node, context) ->
-      Batman.DOM.contentFor string, node
+  readers: {
+    
   }
-
-  keyBindings: {
-    bind: (key, string, node, context) ->
-      Batman.DOM.attributes.bind string, node, context, (value) ->
-        node[key] = value
-
-    foreach: (key, string, node, context) ->
-      prototype = node.cloneNode true
-      prototype.removeAttribute "data-foreach-#{key}"
-
-      placeholder = document.createElement 'span'
-      placeholder.style.display = 'none'
-      node.parentNode.replaceChild placeholder, node
-
-      nodes = []
-      context.observe string, true, (array) ->
-        nodesToRemove = []
-        for node in nodes
-          nodesToRemove.push(node) if array.indexOf(node._eachItem) is -1
-
-        for node in nodesToRemove
-          nodes.splice(nodes.indexOf(node), 1)
-          Batman.DOM.forgetNode(node)
-
-          if typeof node.hide is 'function' then node.hide(true) else node.parentNode.removeChild(node)
-
-        for object in array
-          continue if not object
-
-          node = nodes[_k]
-          continue if node and node._eachItem is object
-
-          context[key] = object
-
-          node = prototype.cloneNode true
-          node._eachItem = object
-
-          node.style.opacity = 0
-          Batman.DOM.parseNode(node, context)
-
-          placeholder.parentNode.insertBefore(node, placeholder)
-          nodes.push(node)
-
-          if node.show
-            f = ->
-              node.show()
-            setTimeout f, 0
-          else
-            node.style.opacity = 1
-
-          context[key] = null
-          delete context[key]
-
-        @
-
-      false
-
-    event: (key, string, node, context) ->
-      if key is 'click' and node.nodeName.toUpperCase() is 'A'
-        node.href = '#'
-
-      if handler = Batman.DOM.events[key]
-        callback = context.get(string)
-        if typeof callback is 'function'
-          handler node, (e...) ->
-            callback(e...)
-
-      return
-
-    class: (key, string, node, context) ->
-      context.observe string, true, (value) ->
-        className = node.className
-        node.className = if !!value then "#{className} #{key}" else className.replace(key, '')
-      return
-
-    formfor: (key, string, node, context) ->
-      context.set(key, context.get(string))
-
-      Batman.DOM.addEventListener node, 'submit', (e) ->
-        Batman.DOM.forgetNode(node)
-        context.unset(key)
-
-        Batman.DOM.parseNode(node, context)
-
-        e.preventDefault()
-
-      return ->
-        context.unset(key)
+  
+  keyReaders: {
+    
   }
-
-  events: {
-    change: (node, callback) ->
-      nodeName = node.nodeName.toUpperCase()
-      nodeType = node.type?.toUpperCase()
-
-      eventName = 'change'
-      eventName = 'keyup' if (nodeName is 'INPUT' and nodeType is 'TEXT') or nodeName is 'TEXTAREA'
-
-      Batman.DOM.addEventListener node, eventName, (e...) ->
-        callback Batman.DOM.valueForNode(node), e...
-
-    click: (node, callback) ->
-      Batman.DOM.addEventListener node, 'click', (e) ->
-        callback.apply @, arguments
-        e.preventDefault()
-
-    submit: (node, callback) ->
-      nodeName = node.nodeName.toUpperCase()
-      if nodeName is 'FORM'
-        Batman.DOM.addEventListener node, 'submit', (e) ->
-          callback.apply @, arguments
-          e.preventDefault()
-      else if nodeName is 'INPUT'
-        Batman.DOM.addEventListener node, 'keyup', (e) ->
-          if e.keyCode is 13
-            callback.apply @, arguments
-            e.preventDefault()
-  }
-
-  yield: (name, node) ->
-    yields = Batman.DOM._yields ||= {}
-    yields[name] = node
-
-    if content = Batman.DOM._yieldContents?[name]
-      node.innerHTML = ''
-      node.appendChild(content)
-
-  contentFor: (name, node) ->
-    contents = Batman.DOM._yieldContents ||= {}
-    contents[name] = node
-
-    if yield = Batman.DOM._yields?[name]
-      yield.innerHTML = ''
-      yield.appendChild(node)
-
-  parseNode: (node, context) ->
-    return if not node
-    continuations = null
-
-    if typeof node.getAttribute is 'function'
-      for attribute in node.attributes # FIXME: get data-attributes only if possible
-        key = attribute.nodeName
-        continue if key.substr(0,5) isnt 'data-'
-
-        key = key.substr(5)
-        value = attribute.nodeValue
-
-        result = if (index = key.indexOf('-')) isnt -1 and (binding = Batman.DOM.keyBindings[key.substr(0, index)])
-          binding key.substr(index + 1), value, node, context
-        else if binding = Batman.DOM.attributes[key]
-          binding(value, node, context)
-
-        if result is false
-          return
-        else if typeof result is 'function'
-          continuations ||= []
-          continuations.push(result)
-
-    for child in node.childNodes
-      Batman.DOM.parseNode(child, context)
-
-    if continuations
-      c() for c in continuations
-
-    return
-
-  forgetNode: (node) ->
-    return
-    return if not node
-    if node._bindingContext and node._bindingObserver
-      node._bindingContext.forget?(node._bindingKey, node._bindingObserver)
-
-    for child in node.childNodes
-      Batman.DOM.forgetNode(child)
-
-  valueForNode: (node, value) ->
-    nodeName = node.nodeName.toUpperCase()
-    nodeType = node.type?.toUpperCase()
-    isSetting = arguments.length > 1
-    value ||= '' if isSetting
-
-    return if isSetting and value is Batman.DOM.valueForNode(node)
-
-    if nodeName in ['INPUT', 'TEXTAREA', 'SELECT']
-      if nodeType is 'CHECKBOX'
-        if isSetting then node.checked = !!value else !!node.checked
-      else
-        if isSetting then node.value = value else node.value
 }
 
 ###
