@@ -56,11 +56,17 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
   from
 
 Batman._initializeObject = (object) ->
-  object._batman = {} if not object.hasOwnProperty '_batman'
-
-Batman._initializeClass = (object) ->
   if object.prototype and object._batman?.__initClass__ isnt @
     object._batman = {__initClass__: @}
+  else if not object.hasOwnProperty '_batman'
+    o = {}
+    
+    if object._batman
+      for key, value of object._batman
+        value = Array.prototype.slice.call(value) if $typeOf(value) is 'Array'
+        o[key] = value
+    
+    object._batman = o
 
 Batman._findName = (f, context) ->
   if not f.displayName
@@ -124,10 +130,6 @@ class Batman.Keypath
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
 Batman.Observable = {
-  initialize: ->
-    Batman._initializeObject @
-    @_batman.observers ||= {}
-  
   keypath: (string) ->
     new Batman.Keypath(@, string)
   
@@ -151,6 +153,7 @@ Batman.Observable = {
   # callback will be called in the context of the original object.
   observe: (wholeKeypathString, fireImmediately, callback) ->
     Batman._initializeObject @
+    @_batman.observers ||= {}
     
     if not callback
       callback = fireImmediately
@@ -198,14 +201,15 @@ Batman.Observable = {
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
-    # Batman._initializeClass @ # allowed will call this already
+    # Batman._initializeObject @ # allowed will call this already
     return if not @allowed key
     
     if typeof value is 'undefined'
       value = @get key
     
-    for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
-      (callback.call(@, value, oldValue) if callback) for callback in observers if observers
+    observers = @_batman.observers?[key]
+    #for observers in [@_batman.observers?[key], @constructor::_batman?.observers?[key]]
+    (callback.call(@, value, oldValue) if callback) for callback in observers if observers
     
     @
   
@@ -213,12 +217,16 @@ Batman.Observable = {
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
   forget: (key, callback) ->
-    if key?
-      if callback?
+    Batman._initializeObject @
+    @_batman.observers ||= {}
+    
+    if key
+      if callback
         array = @_batman.observers[key]
-        callbackIndex = array.indexOf(callback)
-        array.splice(callbackIndex, 1) if array and callbackIndex isnt -1
-        callback._forgotten?()
+        if array
+          callbackIndex = array.indexOf(callback)
+          array.splice(callbackIndex, 1) if array and callbackIndex isnt -1
+          callback._forgotten?()
       else
         for o in @_batman.observers[key]
           o._forgotten?()
@@ -234,7 +242,7 @@ Batman.Observable = {
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
   prevent: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
     counts = @_batman.preventCounts ||= {}
     counts[key] ||= 0
@@ -244,7 +252,7 @@ Batman.Observable = {
   # Unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow.
   allow: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
     counts = @_batman.preventCounts ||= {}
     counts[key]-- if counts[key] > 0
@@ -253,7 +261,7 @@ Batman.Observable = {
   # Returns a boolean whether or not the property is currently allowed
   # to fire its observers.
   allowed: (key) ->
-    Batman._initializeClass @
+    Batman._initializeObject @
     
     !(@_batman.preventCounts?[key] > 0)
 }
@@ -263,10 +271,6 @@ Batman.Observable = {
 ###
 
 Batman.EventEmitter = {
-  initialize: ->
-    Batman._initializeObject @
-    @_batman.events = {}
-  
   # An event is a convenient observer wrapper. Wrap any function in an event.
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
@@ -316,6 +320,9 @@ class Batman.Object
     return if isGlobal is false
     global[@name] = @
   
+  @property: (foo) ->
+    {}
+  
   # Apply mixins to this subclass.
   @mixin: (mixins...) ->
     $mixin @, mixins...
@@ -325,11 +332,7 @@ class Batman.Object
     $mixin @, mixins...
   
   constructor: (mixins...) ->
-    # We mixin Batman.Observable to the prototype in order to construct fewer
-    # pointers. However, we're still creating a new object, so we want to make
-    # sure we reapply the Batman.Observable initializer.
-    Batman.Observable.initialize.call @
-    
+    Batman._initializeObject @
     @mixin mixins...
   
   # Make every subclass and their instances observable.
@@ -383,7 +386,7 @@ class Batman.App extends Batman.Object
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View node: document
     
-    @startRouting()
+    #@startRouting()
 
 ###
 # Routing
