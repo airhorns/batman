@@ -161,6 +161,18 @@ class Batman.TriggerSet
     for trigger, index in @triggers
       return index if trigger.keypath.isEqual(keypath) and trigger.depth is depth
     return -1
+  
+  fireAll: (oldValue) ->
+    for trigger in @triggers
+      {keypath, depth} = trigger
+      pathToTargetOldValue = new Batman.Keypath(oldValue, keypath.segments.slice(depth+1))
+      pathToTargetOldValue.eachPair (minimalKeypath, index) ->
+        if triggerSet = minimalKeypath.base._batman?.outboundTriggers?[minimalKeypath.segments[0]]
+          triggerSet.remove(keypath, depth+index+1)
+      keypath.base._populateTriggers(keypath, depth)
+      targetOldValue = pathToTargetOldValue.resolve()
+      targetNewValue = keypath.resolve()
+      keypath.base.fire(keypath.path(), targetNewValue, targetOldValue)
 
 ###
 # Batman.Observable
@@ -219,32 +231,20 @@ Batman.Observable = {
       thisKey = minimalKeypath.segments[0]
       triggers[thisKey] ||= new Batman.TriggerSet
       triggers[thisKey].add(keypath, startAtIndex + index)
-    
-  
-  _removeTriggers: (key, keypath, depth) ->
-    if triggerSet = @_batman?.outboundTriggers?[key]
-      triggerSet.remove(keypath, depth)
   
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
     return unless @allowed(key)
     Batman.Observable.initialize.call @
+    
     for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
       continue unless observers
       for callback in observers
         callback.call(@, value, oldValue)
     
     if triggerSet = @_batman.outboundTriggers[key]
-      for trigger in triggerSet.triggers
-        {keypath, depth} = trigger
-        pathToTargetOldValue = new Batman.Keypath(oldValue, keypath.segments.slice(depth+1))
-        pathToTargetOldValue.eachPair (minimalKeypath, index) ->
-          minimalKeypath.base._removeTriggers(minimalKeypath.segments[0], keypath, depth+index+1)
-        keypath.base._populateTriggers(keypath, depth)
-        targetOldValue = pathToTargetOldValue.resolve()
-        targetNewValue = keypath.resolve()
-        keypath.base.fire(keypath.path(), targetNewValue, targetOldValue)
+      triggerSet.fireAll(oldValue)
     
     @
   
