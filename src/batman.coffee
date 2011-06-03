@@ -33,9 +33,6 @@ Batman.mixin = $mixin = (to, mixins...) ->
     for key, value of mixin
       continue if key in ['initialize', 'deinitialize', 'prototype']
       if hasSet then set.call(to, key, value) else to[key] = value
-    
-    if $typeOf(mixin.initialize) is 'Function'
-      mixin.initialize.call to
   
   to
 
@@ -130,6 +127,11 @@ class Batman.Keypath
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
 Batman.Observable = {
+  initialize: ->
+    Batman._initializeObject @
+    @_batman.observers ||= {}
+    @_batman.preventCounts ||= {}
+  
   keypath: (string) ->
     new Batman.Keypath(@, string)
   
@@ -152,8 +154,7 @@ Batman.Observable = {
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (wholeKeypathString, fireImmediately, callback) ->
-    Batman._initializeObject @
-    @_batman.observers ||= {}
+    Batman.Observable.initialize.call @
     
     if not callback
       callback = fireImmediately
@@ -201,7 +202,7 @@ Batman.Observable = {
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
-    # Batman._initializeObject @ # allowed will call this already
+    # Batman.Observable.initialize.call @ # allowed will call this already
     return if not @allowed key
     
     if typeof value is 'undefined'
@@ -217,8 +218,7 @@ Batman.Observable = {
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
   forget: (key, callback) ->
-    Batman._initializeObject @
-    @_batman.observers ||= {}
+    Batman.Observable.initialize.call @
     
     if key
       if callback
@@ -242,9 +242,9 @@ Batman.Observable = {
   # nest prevent counts, so three calls to prevent means you need to
   # make three calls to allow before you can fire observers again.
   prevent: (key) ->
-    Batman._initializeObject @
+    Batman.Observable.initialize.call @
     
-    counts = @_batman.preventCounts ||= {}
+    counts = @_batman.preventCounts
     counts[key] ||= 0
     counts[key]++
     @
@@ -252,17 +252,16 @@ Batman.Observable = {
   # Unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow.
   allow: (key) ->
-    Batman._initializeObject @
+    Batman.Observable.initialize.call @
     
-    counts = @_batman.preventCounts ||= {}
+    counts = @_batman.preventCounts
     counts[key]-- if counts[key] > 0
     @
   
   # Returns a boolean whether or not the property is currently allowed
   # to fire its observers.
   allowed: (key) ->
-    Batman._initializeObject @
-    
+    Batman.Observable.initialize.call @
     !(@_batman.preventCounts?[key] > 0)
 }
 
