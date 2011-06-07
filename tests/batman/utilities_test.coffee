@@ -1,36 +1,40 @@
-QUnit.module "Batman.mixin"
+QUnit.module "$mixin"
   setup: ->
     @base = {x: "x"}
 
 test "should copy properties from the source to the destination", ->
-  deepEqual {x: "y", y: "y"}, Batman.mixin(@base, {x: "y"}, {y: "y"})
+  deepEqual {x: "y", y: "y"}, $mixin(@base, {x: "y"}, {y: "y"})
 
 test "shouldn't affect the source objects", ->
-  more = {x: "y"}
-  Batman.mixin(@base, more)
-  deepEqual more, {x: "y"}
+  more = x: "y"
+  $mixin @base, more
+  deepEqual more, x: "y"
 
-test "should initialize objects", ->
+test "reserved words don't get applied", ->
   obj =
-    initialize: m = createSpy().whichReturns(true)
+    initialize: createSpy()
+    uninitialize: ->
 
-  Batman.mixin(@base, obj)
-  ok obj.initialize.called, "initialized was never called on the object"
+  $mixin @base, obj
+  ok !obj.initialize.called, "initialized was never called on the object"
+  ok !@base.initialize
+  ok !@base.uninitialize
 
 test "should only initialize objects which have a function initializer", ->
   obj =
     initialize: "x"
-  Batman.mixin(@base, obj)
+  
+  $mixin @base, obj
   ok true, "Initializer wasn't called because no error was thrown"
 
 test "should use set on objects which have it defined", ->
   obj = {}
-  spyOn(obj, 'set')
+  spyOn obj, 'set'
 
-  Batman.mixin(obj, x: "y")
+  $mixin obj, x: "y"
   deepEqual obj.set.lastCallArguments, ["x", "y"]
 
-QUnit.module "Batman.unmixin",
+QUnit.module "$unmixin",
   setup: ->
     @base =
       x: "x"
@@ -38,17 +42,42 @@ QUnit.module "Batman.unmixin",
       z: "z"
 
 test "should remove properties on the from that exist on the sources", ->
-  deepEqual {z: 'z'}, Batman.unmixin(@base, {x: 'x'}, {y: 'y'})
+  deepEqual {z: 'z'}, $unmixin(@base, {x: 'x'}, {y: 'y'})
 
-QUnit.module "Batman.event"
-test "should create an event with an action", ->
-  event = Batman.event("x")
+QUnit.module "$event"
+
+test "ephemeral events", ->
+  event = $event ->
   ok event.isEvent
-  equal event.action, "x"
+
+test "prototype events", ->
+  class Emitter extends Batman.Object
+    foo: @event ->
+  
+  e = new Emitter
+  ok e.foo.isEvent
+
+test "class events", ->
+  class Emitter extends Batman.Object
+    @foo: @event ->
+  
+  ok Emitter.foo.isEvent
+
+test "instance events", ->
+  foo = new Batman.Object
+  foo.event 'bar', ->
+  ok foo.bar.isEvent
+
+test "should create an event with an action", ->
+  event = $event callback = ->
+  
+  ok event.isEvent
+  strictEqual event.action, callback
 
 test "should fire event handlers with the value when passed a value", ->
-  event = Batman.event((x) -> x * 2)
+  event = $event (x) -> x * 2
   observer = createSpy()
+  
   event(observer)
   event(2)
   equals observer.lastCallArguments, 2
@@ -280,43 +309,3 @@ test "instance level observers shouldn't fire class level observers", ->
 test "class level observers shouldn't fire instance level observers", ->
   @klass.set('attr', 'bar')
   ok !@instanceLevel.called
-
-QUnit.module "Batman.Deferred function deferring"
-  setup: ->
-    @deferred = new Batman.Deferred 
-    @spy = createSpy()
-    @spy2 = createSpy()
-
-test "should fire then/always callbacks on success", ->
-  @deferred.then @spy
-  @deferred.always @spy2
-  @deferred.resolve true
-  ok @spy.called
-  ok @spy2.called
-
-test "should fire then/always callbacks on failure", ->
-  @deferred.then @spy
-  @deferred.always @spy2
-  @deferred.reject true
-  ok @spy.called
-  ok @spy2.called
-
-test "should fire done callbacks on success", ->
-  @deferred.done @spy
-  @deferred.resolve true
-  ok @spy.called
-
-test "should not fire done callbacks on failure", ->
-  @deferred.done @spy
-  @deferred.reject true
-  ok !@spy.called
-
-test "should fire fail callbacks on failure", ->
-  @deferred.fail @spy
-  @deferred.reject true
-  ok @spy.called
-
-test "should not fire fail callbacks on success", ->
-  @deferred.fail @spy
-  @deferred.resolve true
-  ok !@spy.called

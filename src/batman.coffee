@@ -25,13 +25,13 @@ _objectToString = Object.prototype.toString
 # the context of the `to` object and won't be applied.
 Batman.mixin = $mixin = (to, mixins...) ->
   set = to.set
-  hasSet = $typeOf(set) is 'Function'
+  hasSet = typeof set is 'function'
   
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
     
     for key, value of mixin
-      continue if key in ['initialize', 'deinitialize', 'prototype']
+      continue if key in ['initialize', 'uninitialize', 'prototype']
       if hasSet then set.call(to, key, value) else to[key] = value
   
   to
@@ -42,12 +42,12 @@ Batman.mixin = $mixin = (to, mixins...) ->
 Batman.unmixin = $unmixin = (from, mixins...) ->
   for mixin in mixins
     for key of mixin
-      continue if key in ['initialize', 'deinitialize']
+      continue if key in ['initialize', 'uninitialize']
       
       from[key] = null
       delete from[key]
     
-    if $typeOf(mixin.deinitialize) is 'Function'
+    if typeof mixin.deinitialize is 'function'
       mixin.deinitialize.call from
   
   from
@@ -308,31 +308,42 @@ Batman.EventEmitter = {
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
   # register an observer simply by calling the event with a function argument.
-  event: (callback) ->
-    if not @observe
-      throw "EventEmitter needs to be on an object that has Batman.Observable."
+  event: (key, callback) ->
+    if not callback and $typeOf(key) isnt 'String'
+      callback = key
+      key = null
     
-    f = (observer) ->
-      key = Batman._findName(f, @)
+    callbackEater = (callback, context) ->
+      f = (observer) ->
+        if not @observe
+          throw "EventEmitter object needs to be observable."
+        
+        key ||= Batman._findName(f, @)
+        
+        if typeof observer is 'function'
+          @observe key, f.isOneShot and f.fired, observer
+        else if @allowed key
+          return false if f.isOneShot and f.fired
+          
+          value = callback?.apply @, arguments
+          value = arguments[0] if typeof value is 'undefined'
+          value = null if typeof value is 'undefined'
+          
+          @fire key, value
+          f.fired = yes if f.isOneShot
+          
+          value
+        else
+          false
       
-      if $typeOf(observer) is 'Function'
-        @observe key, f.isOneShot and f.fired, observer
-      else if @allowed key
-        return false if f.isOneShot and f.fired
-        
-        value = callback.apply @, arguments
-        value = arguments[0] if typeof value is 'undefined'
-        value = null if typeof value is 'undefined'
-        
-        @fire key, value
-        f.fired = yes if f.isOneShot
-        
-        value
-      else
-        false
+      f = f.bind(context) if context
+      @[key] = f if $typeOf(key) is 'String'
+      
+      $mixin f,
+        isEvent: yes
+        action: callback
     
-    $mixin f,
-      isEvent: yes
+    if typeof callback is 'function' then callbackEater.call(@, callback) else callbackEater
   
   # Use a one shot event for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately.
@@ -340,6 +351,16 @@ Batman.EventEmitter = {
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
 }
+
+# $event lets you create an ephemeral event without needing an EventEmitter.
+# If you already have an EventEmitter object, you should call .event() on it.
+$event = (callback) ->
+  context = new Batman.Object
+  context.event('_event')(callback, context)
+
+$eventOneShot = (callback) ->
+  context = new Batman.Object
+  context.eventOneShot('_event')(callback, context)
 
 ###
 # Batman.Object
@@ -370,7 +391,7 @@ class Batman.Object
   
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
-  @::mixin Batman.Observable
+  @::mixin Batman.Observable, Batman.EventEmitter
 
 ###
 # Batman.App
@@ -463,7 +484,7 @@ $mixin Batman,
       f
     
     callbackEater.context = @
-    if $typeOf(callback) is 'Function' then callbackEater(callback) else callbackEater
+    if typeof callback is 'function' then callbackEater(callback) else callbackEater
   
   redirect: (urlOrFunction) ->
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
@@ -867,3 +888,4 @@ Batman.exportGlobals = ->
   global.$unmixin = $unmixin
   global.$route = $route
   global.$redirect = $redirect
+  global.$event = $event
