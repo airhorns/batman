@@ -74,54 +74,58 @@ test "should create an event with an action", ->
   ok event.isEvent
   strictEqual event.action, callback
 
-test "should fire event handlers with the value when passed a value", ->
+test "should maintain return value and arguments for observers", ->
   event = $event (x) -> x * 2
   observer = createSpy()
   
   event(observer)
-  event(2)
-  equals observer.lastCallArguments, 2
+  equal event(2), 4
+  deepEqual observer.lastCallArguments, [4, 2] # result of event function, followed by original argument
 
-test "should return false and not fire observers if the result is false", ->
-  event = Batman.event((x) -> false)
-  observer = createSpy()
-  event(observer)
-  result = event(true)
+test "return false from event should not fire observers", ->
+  event = $event -> false
+  event observer = createSpy()
+  event true
+  
   equal observer.called, false
-  equal result, false
 
 test "should return the result of the original function", ->
-  event = Batman.event((x) -> "y")
-  equal event(true), "y"
+  event = $event -> "y"
+  equal event(), "y"
 
-test "should add handlers when passed functions, without calling the original", ->
-  original = createSpy()
-  event = Batman.event(original)
+test "should add observers when passed functions, without calling the original", ->
+  event = $event original = createSpy()
   event(->) && event(->)
-  equals original.callCount, 0
+  equal original.callCount, 0
 
-test "should fire more than once", ->
-  event = Batman.event(->)
-  observer = createSpy()
-  event(observer)
-  event(1)
-  event(true)
-  equals observer.callCount, 2
+test "should fire more than once if not oneShot", ->
+  event = $event ->
+  event observer = createSpy()
+  
+  event 1
+  event true
+  
+  equal observer.callCount, 2
 
-QUnit.module "oneshot Batman.events"
-test "should fire handlers when fired", ->
-  event = Batman.event.oneShot(->)
-  observer = createSpy()
-  event(observer)
-  event(true)
-  equals observer.callCount, 1
+QUnit.module "$eventOneShot"
+
+test "should fire exactly once", ->
+  event = $eventOneShot ->
+  event observer = createSpy()
+  ok event.isOneShot
+  
+  event 1
+  event true
+  
+  equal observer.callCount, 1
 
 test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
-  event = Batman.event.oneShot(->)
-  event(true, 1)
-  observer = createSpy()
-  event(observer)
-  deepEqual observer.lastCallArguments, [true, 1]
+  event = $eventOneShot -> "result"
+  event true, 1
+  
+  event observer = createSpy()
+  equal observer.callCount, 1
+  deepEqual observer.lastCallArguments, ["result", true, 1]
 
 getObservable = (obj, set = true) ->
   if set

@@ -220,7 +220,7 @@ Batman.Observable = {
     
     @_populateTriggers(keypath) if keypath.depth() > 1
     
-    callback(currentVal, currentVal) if fireImmediately
+    callback.call(@, currentVal, currentVal) if fireImmediately
     @
   
   _populateTriggers: (keypath, startAtIndex=0) ->
@@ -238,10 +238,13 @@ Batman.Observable = {
     return unless @allowed(key)
     Batman.Observable.initialize.call @
     
+    args = [value]
+    args.push oldValue if typeof oldValue isnt 'undefined'
+    
     for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
       continue unless observers
       for callback in observers
-        callback.call(@, value, oldValue)
+        callback.apply @, args
     
     if triggerSet = @_batman.outboundTriggers[key]
       triggerSet.fireAll(oldValue)
@@ -321,16 +324,26 @@ Batman.EventEmitter = {
         key ||= Batman._findName(f, @)
         
         if typeof observer is 'function'
-          @observe key, f.isOneShot and f.fired, observer
+          @observe key, observer
+          observer.apply @, f._firedArgs if f.isOneShot and f.fired
         else if @allowed key
           return false if f.isOneShot and f.fired
           
           value = callback?.apply @, arguments
-          value = arguments[0] if typeof value is 'undefined'
-          value = null if typeof value is 'undefined'
           
-          @fire key, value
-          f.fired = yes if f.isOneShot
+          # Observers will only fire if the result of the event is not false.
+          if value isnt false
+            value = arguments[0] if typeof value is 'undefined'
+            value = null if typeof value is 'undefined'
+            
+            # Observers will be called with the result of the event function,
+            # followed by the original arguments.
+            f._firedArgs = [value].concat arguments...
+            args = Array.prototype.slice.call f._firedArgs
+            args.unshift key
+            
+            @fire.apply @, args
+            f.fired = yes if f.isOneShot
           
           value
         else
@@ -342,6 +355,7 @@ Batman.EventEmitter = {
       $mixin f,
         isEvent: yes
         action: callback
+        isOneShot: callbackEater.isOneShot
     
     if typeof callback is 'function' then callbackEater.call(@, callback) else callbackEater
   
@@ -889,3 +903,4 @@ Batman.exportGlobals = ->
   global.$route = $route
   global.$redirect = $redirect
   global.$event = $event
+  global.$eventOneShot = $eventOneShot
