@@ -41,7 +41,9 @@ Object.prototype.merge = (other) ->
     for k,v of o
       result[k] = v
   result
-  
+
+inRebase = ->
+  path.existsSync('.git/rebase-apply')
 
 readFile = (file, options, callback) ->
   if options.commit
@@ -129,6 +131,7 @@ runActions = (args) ->
           do (map, matches) ->
             fs.watchFile file, persistent: true, interval: 250, (curr, prev) ->
               return if curr.mtime.getTime() is prev.mtime.getTime()
+              return if inRebase()
               map.action(matches)
               args.after() if args.after
 
