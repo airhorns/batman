@@ -216,3 +216,92 @@ test "observe(key, callback) will only fire once and will not break when there's
   equal newVal, 'newVal'
   ok oldVal == oldBar, "oldVal is not oldBar"
   
+
+###
+# observesKeyWithObserver(key, observer)
+###
+test "observesKeyWithObserver(key, observer) returns false when the given key is not observed by the given observer", ->
+  @obj.observe 'foo', ->
+  equal false, @obj.observesKeyWithObserver('foo', ->)
+
+test "observesKeyWithObserver(key, observer) returns true when the given key is observed by the given observer", ->
+  observer = ->
+  @obj.observe 'foo', observer
+  equal true, @obj.observesKeyWithObserver('foo', observer)
+
+
+###
+# forget(key [, callback])
+###
+test "forget(key, callback) for a simple key will remove the specified callback from that key's observers", ->
+  callback1 = createSpy()
+  callback2 = createSpy()
+  @obj.observe 'foo', callback1
+  @obj.observe 'foo', callback2
+  
+  @obj.forget 'foo', callback2
+  
+  @obj.set 'foo', 'newVal'
+  equal callback1.callCount, 1
+  equal callback2.callCount, 0
+  
+  
+test "forget(key) for a simple key with no callback specified will forget all observers for that key, leaving observers of other keys untouched", ->
+  callback1 = createSpy()
+  callback2 = createSpy()
+  callback3 = createSpy()
+  @obj.observe 'foo', callback1
+  @obj.observe 'foo', callback2
+  @obj.observe 'someOtherKey', callback3
+  
+  @obj.forget 'foo'
+  
+  @obj.set 'foo', 'newVal'
+  
+  equal callback1.callCount, 0
+  equal callback2.callCount, 0
+  
+  @obj.set 'someOtherKey', 'someVal'
+  equal callback3.callCount, 1
+  
+  
+test "forget() without any arguments removes all observers from all of this object's keys", ->
+  callback1 = createSpy()
+  callback2 = createSpy()
+  callback3 = createSpy()
+  @obj.observe 'foo', callback1
+  @obj.observe 'foo', callback2
+  @obj.observe 'someOtherKey', callback3
+  
+  @obj.forget()
+  
+  @obj.set 'foo', 'newVal'
+  
+  equal callback1.callCount, 0
+  equal callback2.callCount, 0
+  
+  @obj.set 'someOtherKey', 'someVal'
+  equal callback3.callCount, 0
+  
+  
+test "forget(key) for a deep keypath will remove all triggers for that callback on other objects", ->
+  callback1 = createSpy()
+  callback2 = createSpy()
+  
+  @obj.observe 'foo.bar.baz', callback1
+  @obj.observe 'foo.bar.baz', callback2
+  
+  @obj.forget 'foo.bar.baz', callback2
+  
+  equal @obj._batman.outboundTriggers['foo'].triggers.length, 1
+  equal @obj.foo._batman.outboundTriggers['bar'].triggers.length, 1
+  equal @obj.foo.bar._batman.outboundTriggers['baz'].triggers.length, 1
+  
+  equal @obj._batman.inboundTriggers['foo.bar.baz'].triggers.length, 3
+  
+  @obj.foo.bar.set 'baz', 'newBaz'
+  @obj.foo.set 'bar', 'newBar'
+  @obj.set 'foo', 'newFoo'
+  equal callback1.callCount, 3
+  equal callback2.callCount, 0
+  

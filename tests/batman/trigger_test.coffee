@@ -50,23 +50,33 @@ test "isEqual(other) returns false when keypaths are not equivalent or when any 
 
 
 ###
-# isValid()
+# isInKeypath()
 ###
-test "isValid() returns true if the trigger's base and key form a minimal pair within the targetKeypath, false otherwise", ->
-  ok @trigger.isValid()
+test "isInKeypath() returns true if the trigger's base and key form a minimal pair within the targetKeypath, false otherwise", ->
+  ok @trigger.isInKeypath()
   oldFoo = @obj.foo
   @obj.foo = 'newVal'
-  ok not @trigger.isValid()
+  ok not @trigger.isInKeypath()
   @obj.foo = oldFoo
-  ok @trigger.isValid()
+  ok @trigger.isInKeypath()
   
   deeperTrigger = new Batman.Trigger(@obj.foo.bar.baz, 'qux', @keypath, @callback)
-  ok deeperTrigger.isValid()
+  ok deeperTrigger.isInKeypath()
   oldBar = @obj.foo.bar
   @obj.foo.bar = 'newVal'
-  ok not deeperTrigger.isValid()
+  ok not deeperTrigger.isInKeypath()
   @obj.foo.bar = oldBar
-  ok deeperTrigger.isValid()
+  ok deeperTrigger.isInKeypath()
+
+
+###
+# hasActiveObserver()
+###
+test "hasActiveObserver() returns false if the trigger's callback is not actually observing the target key", ->
+  @obj.observesKeyWithObserver = -> true
+  ok @trigger.hasActiveObserver()
+  @obj.observesKeyWithObserver = -> false
+  ok not @trigger.hasActiveObserver()
 
 
 ###

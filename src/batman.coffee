@@ -142,6 +142,7 @@ class Batman.Trigger
     for base in [@base, @targetKeypath.base]
       return unless base.observe
       Batman.Observable.initialize.call base
+    # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
     (@base._batman.outboundTriggers[@key] ||= new Batman.TriggerSet()).add @
     (@targetKeypath.base._batman.inboundTriggers[@targetKeypath.path()] ||= new Batman.TriggerSet()).add @
   
@@ -151,14 +152,19 @@ class Batman.Trigger
     @key is other.key and 
     @targetKeypath.isEqual(other.targetKeypath) and
     @callback is other.callback
-    
-  isValid: ->
+  
+  isInKeypath: ->
     targetBase = @targetKeypath.base
     for segment in @targetKeypath.segments
       return true if targetBase is @base and segment is @key
-      return false unless targetBase = targetBase?[segment]
+      targetBase = targetBase?[segment]
+      return false unless targetBase
+  
+  hasActiveObserver: ->
+    @targetKeypath.base.observesKeyWithObserver(@targetKeypath.path(), @callback)
     
   remove: ->
+    # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
     if outboundSet = @base._batman?.outboundTriggers[@key]
       outboundSet.remove @
     if inboundSet = @targetKeypath.base._batman?.inboundTriggers[@targetKeypath.path()]
@@ -211,9 +217,13 @@ class Batman.TriggerSet
     for trigger in @triggers
       Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
   
-  removeInvalidTriggers: ->
+  removeTriggersNotInKeypath: ->
     for trigger in @triggers.slice()
-      trigger.remove() unless trigger.isValid()
+      trigger.remove() unless trigger.isInKeypath()
+  
+  removeTriggersWithInactiveObservers: ->
+    for trigger in @triggers.slice()
+      trigger.remove() unless trigger.hasActiveObserver()
     
 ###
 # Batman.Observable
@@ -294,9 +304,15 @@ Batman.Observable = {
       outboundTriggers.fireAll()
       outboundTriggers.refreshKeypathsWithTriggers()
         
-    @_batman.inboundTriggers[key]?.removeInvalidTriggers()
+    @_batman.inboundTriggers[key]?.removeTriggersNotInKeypath()
         
     @
+  
+  observesKeyWithObserver: (key, observer) ->
+    return false unless @_batman?.observers?[key]
+    for o in @_batman.observers[key]
+      return true if o is observer
+    return false
   
   # Forget removes an observer from an object. If the callback is passed in, 
   # its removed. If no callback but a key is passed in, all the observers on
@@ -306,20 +322,15 @@ Batman.Observable = {
     
     if key
       if callback
-        array = @_batman.observers[key]
-        if array
-          callbackIndex = array.indexOf(callback)
-          array.splice(callbackIndex, 1) if array and callbackIndex isnt -1
-          callback._forgotten?()
+        if keyObservers = @_batman.observers[key]
+          callbackIndex = keyObservers.indexOf(callback)
+          keyObservers.splice(callbackIndex, 1) if callbackIndex isnt -1
+        if triggersForKey = @_batman.inboundTriggers[key]
+          triggersForKey.removeTriggersWithInactiveObservers()
       else
-        for o in @_batman.observers[key]
-          o._forgotten?()
-        @_batman.observers[key] = []
+        @forget key, o for o in @_batman.observers[key]
     else
-      for k, ary of @_batman.observers
-        for o in ary
-          o._forgotten?()
-      @_batman.observers = {}
+      @forget k for k of @_batman.observers
     @
   
   # Prevent allows you to prevent a given binding from firing. You can
