@@ -7,75 +7,125 @@ QUnit.module 'Batman.TriggerSet',
           baz: observable
             qux: 'quxVal'
     @keypath = new Batman.Keypath(@obj, 'foo.bar.baz.qux')
-    @set = new Batman.TriggerSet()
+    @set = new Batman.TriggerSet(@obj.foo, 'bar')
+    @callback = createSpy()
+    @trigger = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback)
 
 
 ###
 # constructor
 ###
-test "initializes with an empty array of triggers", ->
+test "initializes with an empty array of triggers and keypaths", ->
   deepEqual @set.triggers, []
+  deepEqual @set.keypaths, []
 
 
 ###
-# add
+# add(trigger)
 ###
-test "add(keypath, depth) when an equivalent trigger isn't there yet results in a trigger with those properties being added", ->
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 3)
+test "add(trigger) adds a trigger to the set and the trigger's keypath to the set's keypaths", ->
+  @set.add(@trigger)
+  equal @set.triggers.length, 1
+  ok @set.triggers[0] is @trigger
+  equal @set.keypaths.length, 1
+  ok @set.keypaths[0] is @keypath
+  
+test "add(trigger) does not add duplicate triggers", ->
+  @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  equal @set.triggers.length, 1
+  ok @set.triggers[0] is trigger1
+  equal @set.keypaths.length, 1
+  ok @set.keypaths[0] is @keypath
+  
+test "add(trigger) does not add duplicate keypaths", ->
+  @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
   equal @set.triggers.length, 2
-  deepEqual @set.triggers[0], {keypath: @keypath, depth: 2, observerCount: 1}
-  deepEqual @set.triggers[1], {keypath: @keypath, depth: 3, observerCount: 1}
+  ok @set.triggers[0] is trigger1
+  ok @set.triggers[1] is trigger2
+  equal @set.keypaths.length, 1
+  ok @set.keypaths[0] is @keypath
   
-test "add(keypath, depth) when an equivalent trigger is already there results in the already-present trigger's observerCount being incremented", ->
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 2)
-  deepEqual @set.triggers, [{keypath: @keypath, depth: 2, observerCount: 2}]
 
 
 ###
-# remove
+# remove(trigger)
 ###
-test "remove(keypath, depth) on an empty TriggerSet returns undefined", ->
-  equal typeof(@set.remove(@keypath, 2)), 'undefined'
-  deepEqual @set.triggers, []
+test "remove(trigger) returns undefined and does not remove matching keypaths if there is no matching trigger in the set", ->
+  @set.add(@trigger)
+  result = @set.remove(new Batman.Trigger(@obj.foo.bar, 'baz', @keypath, @callback))
+  equal typeof(result), 'undefined'
+  equal @set.triggers.length, 1
+  ok @set.triggers[0] is @trigger
+  equal @set.keypaths.length, 1
+  ok @set.keypaths[0] is @keypath
   
   
-test "remove(keypath, depth) when a matching trigger is there with an observerCount of 1 splices the trigger out and returns it", ->
-  @set.add(@keypath, 1)
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 3)
-  @set.remove(@keypath, 2)
-  equal @set.triggers.length, 2
-  deepEqual @set.triggers[0], {keypath: @keypath, depth: 1, observerCount: 1}
-  deepEqual @set.triggers[1], {keypath: @keypath, depth: 3, observerCount: 1}
-  equal typeof(@set.triggers[2]), 'undefined'
+test "remove(trigger) removes a matching trigger and its associated keypath if it's the only trigger in the set with an equivalent keypath", ->
+  @set.add(@trigger)
+  result = @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  ok result is @trigger
+  equal @set.triggers.length, 0
+  equal @set.keypaths.length, 0
   
+test "remove(trigger) removes a matching trigger but leaves the associated keypath alone if there's another trigger with an equivalent keypath", ->
+  @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
   
-test "remove(keypath, depth) when a matching trigger is there with an observerCount of more than 1 simply decrements that count", ->
-  @set.add(@keypath, 1)
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 2)
-  @set.add(@keypath, 3)
-  @set.remove(@keypath, 2)
-  equal @set.triggers.length, 3
-  deepEqual @set.triggers[0], {keypath: @keypath, depth: 1, observerCount: 1}
-  deepEqual @set.triggers[1], {keypath: @keypath, depth: 2, observerCount: 2}
-  deepEqual @set.triggers[2], {keypath: @keypath, depth: 3, observerCount: 1}
-
+  result = @set.remove(trigger1)
+  ok result is trigger1
+  
+  equal @set.triggers.length, 1
+  ok @set.triggers[0] is trigger2
+  equal @set.keypaths.length, 1
+  ok @set.keypaths[0] is @keypath
+  
 
 ###
-# _indexOfTrigger(keypath, depth)
+# rememberOldValues()
 ###
-test "_indexOfTrigger(keypath, depth) returns the index of a trigger if it is already in the set with an equal keypath and depth", ->
-  @set.add(@keypath, 1)
-  @set.add(@keypath, 2)
-  equal @set._indexOfTrigger(new Batman.Keypath(@obj, 'foo.bar.baz.qux'), 2), 1
+test "rememberOldValues() populates the an oldValues array with the current values referenced by each keypath, in the same order as the keypaths array", ->
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj.foo, 'bar.baz'), @callback))
   
-test "_indexOfTrigger(keypath, depth) returns -1 if there is no trigger with the same keypath and depth", ->
-  @set.add(@keypath, 1)
-  @set.add(@keypath, 2)
-  equal @set._indexOfTrigger(new Batman.Keypath(@obj, 'foo.bar.baz.qux'), 3), -1
-  equal @set._indexOfTrigger(new Batman.Keypath(@obj, 'foo.bar.baz'), 2), -1
+  @set.rememberOldValues()
+  
+  equal @set.oldValues.length, 2
+  equal @set.oldValues[0], 'quxVal'
+  equal @set.oldValues[1], @obj.foo.bar.baz
+  
 
+###
+# forgetOldValues()
+###
+test "forgetOldValues() sets oldValues to a blank array", ->
+  @set.oldValues = ['val1', 'val2']
+  @set.forgetOldValues()
+  deepEqual @set.oldValues, []
+  
+
+###
+# fireAll()
+###
+test "fireAll() calls fire() on each keypath's base with keypath.path(), getting the new value from keypath.resolve(), and getting the old value from this.oldValues", ->
+  spyOn(@obj, 'fire')
+  spyOn(@obj.foo, 'fire')
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj.foo, 'bar.baz'), @callback))
+  
+  @set.oldValues = ['oldVal1', 'oldVal2']
+  @set.fireAll()
+  
+  equal @obj.fire.callCount, 1
+  [key, value, oldValue] = @obj.fire.lastCallArguments
+  equal key, 'foo.bar.baz.qux'
+  equal value, 'quxVal'
+  equal oldValue, 'oldVal1'
+  
+  equal @obj.foo.fire.callCount, 1
+  [key, value, oldValue] = @obj.foo.fire.lastCallArguments
+  equal key, 'bar.baz'
+  equal value, @obj.foo.bar.baz
+  equal oldValue, 'oldVal2'
+  

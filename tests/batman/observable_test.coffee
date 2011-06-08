@@ -1,10 +1,11 @@
 QUnit.module 'Batman.Observable',
   setup: ->
-    observable = (obj) -> Batman.mixin(obj, Batman.Observable)
-    @obj = observable
-      foo: observable
-        bar: observable
-          baz: observable
+    # spyOn Batman.TriggerSet.prototype, 'add'
+    # spyOn Batman.TriggerSet.prototype, 'remove'
+    @obj = Batman
+      foo: Batman
+        bar: Batman
+          baz: Batman
             qux: 'quxVal'
 
 ###
@@ -93,7 +94,7 @@ test "observe(key, fireImmediately, callback) calls the callback immediately if 
   @obj.observe 'foo.bar.baz.qux', yes, callback
   deepEqual callback.lastCallArguments, ['quxVal', 'quxVal']
 
-test "observe(key, callback) with a deep keypath will fire with the new value if the final key value is changed directly", ->
+test "observe(key, callback) with a deep keypath will fire with the new value when the final key value is changed directly", ->
   @obj.observe 'foo.bar.baz.qux', callback = createSpy()
   
   @obj.foo.bar.baz.set 'qux', 'newVal'
@@ -103,7 +104,7 @@ test "observe(key, callback) with a deep keypath will fire with the new value if
   equal newVal, 'newVal'
   equal oldVal, 'quxVal'
 
-test "observe(key, callback) with a deep keypath will fire with the new value the final key value is changed via the same deep keypath", ->
+test "observe(key, callback) with a deep keypath will fire with the new value when the final key value is changed via the same deep keypath", ->
   @obj.observe 'foo.bar.baz.qux', callback = createSpy()
   
   @obj.set 'foo.bar.baz.qux', 'newVal'
@@ -113,7 +114,7 @@ test "observe(key, callback) with a deep keypath will fire with the new value th
   equal newVal, 'newVal'
   equal oldVal, 'quxVal'
 
-test "observe(key, callback) with a deep keypath will fire with the new value the final key value is changed via an equivalent subset of that deep keypath", ->
+test "observe(key, callback) with a deep keypath will fire with the new value when the final key value is changed via an equivalent subset of that deep keypath", ->
   @obj.observe 'foo.bar.baz.qux', callback = createSpy()
   
   @obj.foo.set 'bar.baz.qux', 'newVal'
@@ -156,7 +157,7 @@ test "observe(key, callback) with a deep keypath will fire with a previous value
   [newVal, oldVal] = callback.lastCallArguments
   equal typeof(newVal), 'undefined'
   equal oldVal, 'quxVal'
-  
+
   @obj.set 'foo.bar', bar
   
   equal callback.callCount, 2
@@ -198,11 +199,20 @@ test "observe(key, callback) called twice to attach two different observers on t
   equal callback1.callCount, 1
   equal callback2.callCount, 1
 
-# test "observe(key, callback) will only fire once and will not break when there's an object cycle", ->
-#   @obj.foo.bar.baz.foo = @obj.foo
-#   @obj.observe 'foo.bar.baz.foo.bar', callback = createSpy()
-#   
-#   @obj.set 'foo.bar.baz.foo.bar'
-#   
-#   equal callback.callCount, 1
-#   
+test "observe(key, callback) will only fire once and will not break when there's an object cycle", ->
+  @obj.foo.bar.baz.foo = @obj.foo
+  
+  @obj.observe 'foo.bar.baz.foo.bar', callback = createSpy()
+  
+  oldBar = @obj.foo.bar
+  newBar = Batman
+    baz: Batman
+      foo: Batman
+        bar: 'newVal'
+  @obj.foo.set 'bar', newBar
+  
+  equal callback.callCount, 1
+  [newVal, oldVal] = callback.lastCallArguments
+  equal newVal, 'newVal'
+  ok oldVal == oldBar, "oldVal is not oldBar"
+  

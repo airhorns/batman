@@ -129,51 +129,92 @@ class Batman.Keypath
   
   isEqual: (other) ->
     @base is other.base and @path() is other.path()
+    
 
-###
-# Batman.TriggerSet
-###
+class Batman.Trigger
+  @populateKeypath: (keypath, callback) ->
+    keypath.eachPair (minimalKeypath, index) ->
+      return unless minimalKeypath.base.observe
+      Batman.Observable.initialize.call minimalKeypath.base
+      new Batman.Trigger(minimalKeypath.base, minimalKeypath.segments[0], keypath, callback)
+  
+  constructor: (@base, @key, @targetKeypath, @callback) ->
+    for base in [@base, @targetKeypath.base]
+      return unless base.observe
+      Batman.Observable.initialize.call base
+    (@base._batman.outboundTriggers[@key] ||= new Batman.TriggerSet()).add @
+    (@targetKeypath.base._batman.inboundTriggers[@targetKeypath.path()] ||= new Batman.TriggerSet()).add @
+  
+  isEqual: (other) ->
+    other instanceof Batman.Trigger and
+    @base is other.base and
+    @key is other.key and 
+    @targetKeypath.isEqual(other.targetKeypath) and
+    @callback is other.callback
+    
+  isValid: ->
+    targetBase = @targetKeypath.base
+    for segment in @targetKeypath.segments
+      return true if targetBase is @base and segment is @key
+      return false unless targetBase = targetBase?[segment]
+    
+  remove: ->
+    if outboundSet = @base._batman?.outboundTriggers[@key]
+      outboundSet.remove @
+    if inboundSet = @targetKeypath.base._batman?.inboundTriggers[@targetKeypath.path()]
+      inboundSet.remove @
+
+
 class Batman.TriggerSet
   constructor: ->
     @triggers = []
+    @keypaths = []
+    @oldValues = []
   
-  add: (keypath, depth) ->
-    triggerIndex = @_indexOfTrigger(keypath, depth)
-    if triggerIndex isnt -1
-      @triggers[triggerIndex].observerCount++
-    else
-      @triggers.push
-        keypath: keypath
-        depth: depth
-        observerCount: 1
-    @
+  add: (trigger) ->
+    @_add(trigger, @triggers)
+    @_add(trigger.targetKeypath, @keypaths)
+    trigger
   
-  remove: (keypath, depth) ->
-    triggerIndex = @_indexOfTrigger(keypath, depth)
-    if triggerIndex isnt -1
-      trigger = @triggers[triggerIndex]
-      trigger.observerCount--
-      if trigger.observerCount is 0
-        @triggers.splice(triggerIndex, 1)
-      trigger
+  remove: (trigger) ->
+    return unless result = @_remove(trigger, @triggers)
+    for t in @triggers
+      return result if t.targetKeypath.isEqual(trigger.targetKeypath)
+    @_remove(trigger.targetKeypath, @keypaths)
+    result
   
-  _indexOfTrigger: (keypath, depth) ->
-    for trigger, index in @triggers
-      return index if trigger.keypath.isEqual(keypath) and trigger.depth is depth
-    return -1
+  _add: (item, set) ->
+    for existingItem in set
+      return existingItem if item.isEqual(existingItem)
+    set.push item
   
-  fireAll: (oldValue) ->
+  _remove: (item, set) ->
+    for existingItem, index in set
+      if item.isEqual(existingItem)
+        set.splice(index, 1)
+        return existingItem
+    return
+  
+  rememberOldValues: ->
+    @oldValues = []
+    for keypath in @keypaths
+      @oldValues.push(keypath.resolve())
+  
+  forgetOldValues: ->
+    @oldValues = []
+    
+  fireAll: ->
+    for keypath, index in @keypaths
+      keypath.base.fire keypath.path(), keypath.resolve(), @oldValues[index]
+  
+  refreshKeypathsWithTriggers: ->
     for trigger in @triggers
-      {keypath, depth} = trigger
-      pathToTargetOldValue = new Batman.Keypath(oldValue, keypath.segments.slice(depth+1))
-      pathToTargetOldValue.eachPair (minimalKeypath, index) ->
-        if triggerSet = minimalKeypath.base._batman?.outboundTriggers?[minimalKeypath.segments[0]]
-          triggerSet.remove(keypath, depth+index+1)
-      keypath.base._populateTriggers(keypath, depth)
-      targetOldValue = pathToTargetOldValue.resolve()
-      targetNewValue = keypath.resolve()
-      keypath.base.fire(keypath.path(), targetNewValue, targetOldValue)
-
+      Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
+  
+  removeInvalidTriggers: ->
+    for trigger in @triggers.slice()
+      trigger.remove() unless trigger.isValid()
+    
 ###
 # Batman.Observable
 ###
@@ -186,7 +227,16 @@ Batman.Observable = {
     Batman._initializeObject @
     @_batman.observers ||= {}
     @_batman.outboundTriggers ||= {}
+    @_batman.inboundTriggers ||= {}
     @_batman.preventCounts ||= {}
+  
+  rememberingOutboundTriggerValues: (key, callback) ->
+    Batman.Observable.initialize.call @
+    if triggers = @_batman.outboundTriggers[key]
+      triggers.rememberOldValues()
+    callback()
+    if triggers
+      triggers.forgetOldValues()
   
   keypath: (string) ->
     new Batman.Keypath(@, string)
@@ -197,14 +247,17 @@ Batman.Observable = {
   set: (key, val) ->
     minimalKeypath = @keypath(key).finalPair()
     oldValue = minimalKeypath.resolve()
-    minimalKeypath.base.fire(minimalKeypath.segments[0], minimalKeypath.assign(val), oldValue)
+    minimalKeypath.base.rememberingOutboundTriggerValues minimalKeypath.segments[0], ->
+      minimalKeypath.assign(val)
+      minimalKeypath.base.fire(minimalKeypath.segments[0], val, oldValue)
     val
   
   unset: (key) ->
     minimalKeypath = @keypath(key).finalPair()
     oldValue = minimalKeypath.resolve()
-    minimalKeypath.remove()
-    minimalKeypath.base.fire(minimalKeypath.segments[0], `void(0)`, oldValue)
+    minimalKeypath.base.rememberingOutboundTriggerValues minimalKeypath.segments[0], ->
+      minimalKeypath.remove()
+      minimalKeypath.base.fire(minimalKeypath.segments[0], `void 0`, oldValue)
     return
   
   # Pass a key and a callback. Whenever the value for that key changes, your
@@ -218,19 +271,10 @@ Batman.Observable = {
     observers = @_batman.observers[key] ||= []
     observers.push callback
     
-    @_populateTriggers(keypath) if keypath.depth() > 1
+    Batman.Trigger.populateKeypath(keypath, callback) if keypath.depth() > 1
     
     callback.call(@, currentVal, currentVal) if fireImmediately
     @
-  
-  _populateTriggers: (keypath, startAtIndex=0) ->
-    keypath.slice(startAtIndex).eachPair (minimalKeypath, index) ->
-      return unless minimalKeypath.base.observe
-      Batman.Observable.initialize.call minimalKeypath.base
-      triggers = minimalKeypath.base._batman.outboundTriggers
-      thisKey = minimalKeypath.segments[0]
-      triggers[thisKey] ||= new Batman.TriggerSet
-      triggers[thisKey].add(keypath, startAtIndex + index)
   
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
@@ -246,9 +290,12 @@ Batman.Observable = {
       for callback in observers
         callback.apply @, args
     
-    if triggerSet = @_batman.outboundTriggers[key]
-      triggerSet.fireAll(oldValue)
-    
+    if outboundTriggers = @_batman.outboundTriggers[key]
+      outboundTriggers.fireAll()
+      outboundTriggers.refreshKeypathsWithTriggers()
+        
+    @_batman.inboundTriggers[key]?.removeInvalidTriggers()
+        
     @
   
   # Forget removes an observer from an object. If the callback is passed in, 
