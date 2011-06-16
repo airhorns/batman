@@ -74,6 +74,56 @@ Batman._findName = (f, context) ->
   
   f.displayName
 
+
+class Batman.Hash
+  constructor: ->
+    @_storage = {}
+  hasKey: (key) ->
+    typeof @get(key) isnt 'undefined'
+  get: (key) ->
+    if matches = @_storage[key]
+      for [obj,v] in matches
+        return v if @equality(obj, key)
+  set: (key, val) ->
+    matches = @_storage[key] ||= []
+    for match in matches
+      pair = match if @equality(match[0], key)
+    unless pair
+      pair = [key]
+      matches.push(pair)
+    pair[1] = val
+  remove: (key) ->
+    if matches = @_storage[key]
+      for [obj,v], index in matches
+        if @equality(obj, key)
+          matches.splice(index,1)
+          return obj
+  equality: (lhs, rhs) ->
+    if typeof lhs.isEqual is 'function'
+      lhs.isEqual rhs
+    else if typeof rhs.isEqual is 'function'
+      rhs.isEqual lhs
+    else
+      lhs is rhs
+  keys: ->
+    result = []
+    for key, values of @_storage
+      result.push obj for [obj, value] in values
+    result
+    
+class Batman.Set
+  constructor: ->
+    @_storage = new Batman.Hash
+  has: (item) ->
+    @_storage.hasKey item
+  add: (item) ->
+    @_storage.set item, true
+    item
+  remove: (item) ->
+    @_storage.remove item
+  toArray: ->
+    @_storage.keys()
+
 ###
 # Batman.Keypath
 ###
