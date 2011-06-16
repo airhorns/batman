@@ -56,14 +56,7 @@ Batman._initializeObject = (object) ->
   if object.prototype and object._batman?.__initClass__ isnt @
     object._batman = {__initClass__: @}
   else if not object.hasOwnProperty '_batman'
-    o = {}
-    
-    if object._batman
-      for key, value of object._batman
-        value = Array.prototype.slice.call(value) if $typeOf(value) is 'Array'
-        o[key] = value
-    
-    object._batman = o
+    object._batman = {}
 
 Batman._findName = (f, context) ->
   if not f.displayName
@@ -539,6 +532,26 @@ class Batman.Object
   @::mixin Batman.Observable, Batman.EventEmitter
 
 ###
+# Batman.Request
+###
+
+class Batman.Request extends Batman.Object
+  url: ''
+  data: ''
+  method: 'get'
+  
+  response: null
+  
+  @::observe 'url', ->
+    setTimeout (=> @send()), 0
+  
+  loading: @event ->
+  loaded: @event ->
+  
+  success: @event ->
+  error: @event ->
+
+###
 # Batman.App
 ###
 
@@ -549,7 +562,7 @@ class Batman.App extends Batman.Object
   # The require class methods (`controller`, `model`, `view`) simply tells
   # your app where to look for coffeescript source files. This
   # implementation may change in the future.
-  @_require: (path, names...) ->
+  @require: (path, names...) ->
     base = @requirePath + path
     for name in names
       @prevent 'run'
@@ -563,15 +576,16 @@ class Batman.App extends Batman.Object
           
           @allow 'run'
           @run()
+    @
   
   @controller: (names...) ->
-    @_require 'controllers', names...
+    @require 'controllers', names...
   
   @model: (names...) ->
-    @_require 'models', names...
+    @require 'models', names...
   
   @view: (names...) ->
-    @_require 'views', names...
+    @require 'views', names...
   
   # Layout is your base view that other views can be yielded into. The
   # default behavior is that when you call `app.run()`, a new view will
@@ -582,10 +596,13 @@ class Batman.App extends Batman.Object
   # Call `MyApp.run()` to actually start up your app. Batman level
   # initializers will be run to bootstrap your application.
   @run: @eventOneShot ->
+    return false if @hasRun
+    
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View node: document
     
     #@startRouting()
+    @hasRun = yes
 
 ###
 # Routing
@@ -887,11 +904,81 @@ class Batman.View extends Batman.Object
       node = @node || document.createElement 'div'
       node.innerHTML = html
       
-      @node = null # FIXME: is this still necessary?
-      @set 'node', node
+      @set 'node', node if @node isnt node
   
   @::observe 'node', (node) ->
-    new Batman.Renderer node, => @ready()
+    if @_renderer
+      @_renderer.forgetAll()
+    
+    if node
+      @_renderer = new Batman.Renderer node, => @ready()
+
+###
+# DOM Helpers
+###
+
+class Batman.Renderer extends Batman.Object
+  constructor: (@node, @callback) ->
+    super
+    setTimeout @start, 0
+  
+  start: =>
+    @tree = {}
+    @startTime = new Date
+    @parseNode @node
+  
+  resume: =>
+    console.log('resume')
+    @startTime = new Date
+    @parseNode @resumeNode
+  
+  finish: ->
+    console.log('done')
+    @startTime = null
+    @callback()
+  
+  forgetAll: ->
+    
+  regexp = /data\-(.*)/
+  
+  parseNode: (node) ->
+    if (new Date) - @startTime > 50
+      console.log('stopping')
+      @resumeNode = node
+      setTimeout @resume, 0
+      return
+    
+    if node.getAttribute
+      for attr in node.attributes
+        name = attr.nodeName
+        console.log(node.nodeName, name, name.match(regexp))
+    
+    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish
+  
+  nextNode: (node) ->
+    children = node.childNodes
+    return children[0] if children?.length
+    
+    sibling = node.nextSibling
+    return sibling if sibling
+    
+    nextParent = node
+    while nextParent = nextParent.parentNode
+      parentSibling = nextParent.nextSibling
+      return parentSibling if parentSibling
+    
+    return
+    
+
+Batman.DOM = {
+  readers: {
+    
+  }
+  
+  keyReaders: {
+    
+  }
+}
 
 ###
 # Helpers
@@ -936,91 +1023,6 @@ helpers = Batman.helpers = {
 filters = Batman.filters = {
   
 }
-
-###
-# DOM Helpers
-###
-
-class Batman.Renderer extends Batman.Object
-  constructor: (@node, @callback) ->
-    super
-    setTimeout @start, 0
-  
-  start: =>
-    @tree = {}
-    @startTime = new Date
-    @parseNode @node
-  
-  resume: =>
-    console.log('resume')
-    @startTime = new Date
-    @parseNode @resumeNode
-  
-  finish: ->
-    console.log('done')
-    @startTime = null
-    @callback()
-  
-  regexp = /data\-(.*)/
-  
-  parseNode: (node) ->
-    if (new Date) - @startTime > 50
-      console.log('stopping')
-      @resumeNode = node
-      setTimeout @resume, 0
-      return
-    
-    if node.getAttribute
-      for attr in node.attributes
-        name = attr.nodeName
-        console.log(node.nodeName, name, name.match(regexp))
-    
-    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish
-  
-  nextNode: (node) ->
-    children = node.childNodes
-    return children[0] if children?.length
-    
-    sibling = node.nextSibling
-    return sibling if sibling
-    
-    nextParent = node
-    while nextParent = nextParent.parentNode
-      parentSibling = nextParent.nextSibling
-      return parentSibling if parentSibling
-    
-    return
-    
-
-Batman.DOM = {
-  readers: {
-    
-  }
-  
-  keyReaders: {
-    
-  }
-}
-
-###
-# Batman.Request
-###
-
-class Batman.Request extends Batman.Object
-  url: ''
-  data: ''
-  method: 'get'
-  
-  response: null
-  
-  @::observe 'url', ->
-    setTimeout (=> @send()), 0
-  
-  loading: @event ->
-  loaded: @event ->
-  
-  success: @event ->
-  error: @event ->
 
 # Export a few globals.
 global = exports ? this
