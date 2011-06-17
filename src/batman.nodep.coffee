@@ -1,3 +1,11 @@
+###
+# batman.nodep.coffee
+# batman.js
+# 
+# Created by Nicholas Small
+# Copyright 2011, JadedPixel Technologies, Inc.
+###
+
 `
 /*!
   * Reqwest! A x-browser general purpose XHR connection manager
@@ -28,4 +36,5 @@ Batman.Request::send = (data) ->
       @error error
     
     complete: =>
+      @loading no
       @loaded yes

@@ -1,6 +1,9 @@
 ###
-# batman.js
 # batman.coffee
+# batman.js
+# 
+# Created by Nicholas Small
+# Copyright 2011, JadedPixel Technologies, Inc.
 ###
 
 # The global namespace, the Batman function will also create also create a new
@@ -55,7 +58,7 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 Batman._initializeObject = (object) ->
   if object.prototype and object._batman?.__initClass__ isnt @
     object._batman = {__initClass__: @}
-  else if not object.hasOwnProperty '_batman'
+  else unless object.hasOwnProperty '_batman'
     object._batman = {}
 
 Batman._findName = (f, context) ->
@@ -160,13 +163,14 @@ class Batman.SortableSet extends Batman.Set
 
 ###
 # Batman.Keypath
+# A keypath has a base object and one or more key segments
+# which represent a path to a target value.
 ###
 
-# A keypath has a base object, and one or more key segments which represent
-# a path to a target value.
 class Batman.Keypath
-  constructor: (@base, @segments) ->
-    @segments = @segments.split('.') if $typeOf(@segments) is 'String'
+  constructor: (@base, segments) ->
+    return null if $typeOf(segments) isnt 'String'
+    @segments = segments.split('.') 
   
   path: ->
     @segments.join '.'
@@ -176,8 +180,9 @@ class Batman.Keypath
   
   slice: (begin, end) ->
     base = @base
-    for segment, index in @segments.slice(0, begin)
+    for segment in @segments.slice(0, begin)
       return unless base = base?[segment]
+    
     new Batman.Keypath base, @segments.slice(begin, end)
   
   finalPair: ->
@@ -295,11 +300,11 @@ class Batman.TriggerSet
     
 ###
 # Batman.Observable
-###
-
 # Batman.Observable is a generic mixin that can be applied to any object in
 # order to make that object bindable. It is applied by default to every
 # instance of Batman.Object and subclasses.
+###
+
 Batman.Observable = {
   initialize: ->
     Batman._initializeObject @
@@ -356,7 +361,7 @@ Batman.Observable = {
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
     return unless @allowed(key)
-    Batman.Observable.initialize.call @
+    # We don't need to call Batman.Observable.initialize because @allowed calls it.
     
     args = [value]
     args.push oldValue if typeof oldValue isnt 'undefined'
@@ -428,6 +433,9 @@ Batman.Observable = {
 
 ###
 # Batman.Event
+# Another generic mixin that simply allows an object to emit events. All events
+# require an object that is observable. If you don't want to use an emitter,
+# you can use the $event functions to create ephemeral objects internally.
 ###
 
 Batman.EventEmitter = {
@@ -440,6 +448,10 @@ Batman.EventEmitter = {
       callback = key
       key = null
     
+    # The callback eater assists in creating events from two places: a class
+    # definition where a bug in CoffeeScript requires you to wrap the key in
+    # parenthesis and from outside a class definition, where you can pass in
+    # the callback directly.
     callbackEater = (callback, context) ->
       f = (observer) ->
         if not @observe
@@ -447,9 +459,13 @@ Batman.EventEmitter = {
         
         key ||= Batman._findName(f, @)
         
+        # Pass a function to the event to register it as an observer.
         if typeof observer is 'function'
           @observe key, observer
           observer.apply @, f._firedArgs if f.isOneShot and f.fired
+        
+        # Otherwise, calling the event will cause it to fire. Any
+        # arguments you pass will be passed to your wrapped function.
         else if @allowed key
           return false if f.isOneShot and f.fired
           
@@ -476,6 +492,7 @@ Batman.EventEmitter = {
       f = f.bind(context) if context
       @[key] = f if $typeOf(key) is 'String'
       
+      # This could be its own mixin but is kept here for brevity.
       $mixin f,
         isEvent: yes
         action: callback
@@ -502,6 +519,7 @@ $eventOneShot = (callback) ->
 
 ###
 # Batman.Object
+# The base class for all other Batman objects. It is not abstract. 
 ###
 
 class Batman.Object
@@ -513,7 +531,7 @@ class Batman.Object
     global[@name] = @
   
   @property: (foo) ->
-    {}
+    {} #FIXME
   
   # Apply mixins to this subclass.
   @mixin: (mixins...) ->
@@ -533,6 +551,7 @@ class Batman.Object
 
 ###
 # Batman.Request
+# A normalizer for XHR requests.
 ###
 
 class Batman.Request extends Batman.Object
@@ -542,14 +561,22 @@ class Batman.Request extends Batman.Object
   
   response: null
   
+  # After the URL gets set, we'll try to automatically send
+  # your request after a short period. If this behavior is
+  # not desired, use @cancel() after setting the URL.
   @::observe 'url', ->
-    setTimeout (=> @send()), 0
+    @_autosendTimeout = setTimeout (=> @send()), 0
   
   loading: @event ->
   loaded: @event ->
   
   success: @event ->
   error: @event ->
+  
+  send: (data) -> # Defined in your dependency file
+  
+  cancel: ->
+    clearTimeout(@_autosendTimeout) if @_autosendTimeout
 
 ###
 # Batman.App
@@ -567,15 +594,18 @@ class Batman.App extends Batman.Object
     for name in names
       @prevent 'run'
       
-      path = base + '/' + name + '.coffee'
+      path = base + '/' + name + '.coffee' # FIXME: don't hardcode this
       new Batman.Request
         url: path
         type: 'html'
         success: (response) =>
           CoffeeScript.eval response
+          # FIXME: under no circumstances should we be compiling coffee in
+          # the browser. This can be fixed via a real deployment solution
+          # to compile coffeescripts, such as Sprockets.
           
           @allow 'run'
-          @run()
+          @run() # FIXME: this should only happen if the client actually called run.
     @
   
   @controller: (names...) ->
@@ -874,16 +904,24 @@ class Batman.Model extends Batman.Object
 
 ###
 # Batman.View
+# A few can function two ways: a mechanism to load and/or parse html files
+# or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 ###
 
 class Batman.View extends Batman.Object
+  # Set the source attribute to an html file to have that file loaded.
   source: ''
+  
+  # Set the html to a string of html to have that html parsed.
   html: ''
   
+  # Set an existing DOM node to parse immediately.
   node: null
+  
   contentFor: null
   
-  ready: @event ->
+  # Fires once a node is parsed.
+  ready: @eventOneShot ->
   
   @::observe 'source', ->
     setTimeout @reloadSource, 0
@@ -907,6 +945,8 @@ class Batman.View extends Batman.Object
       @set 'node', node if @node isnt node
   
   @::observe 'node', (node) ->
+    @ready.fired = false
+    
     if @_renderer
       @_renderer.forgetAll()
     
@@ -982,6 +1022,8 @@ Batman.DOM = {
 
 ###
 # Helpers
+# Just a few random Rails-style string helpers. You can add more
+# to the Batman.helpers object.
 ###
 
 camelize_rx = /(?:^|_)(.)/g
@@ -1027,6 +1069,8 @@ filters = Batman.filters = {
 # Export a few globals.
 global = exports ? this
 global.Batman = Batman
+
+$mixin global, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportGlobals = ->
