@@ -293,11 +293,11 @@ test "forget(key) for a deep keypath will remove all triggers for that callback 
   
   @obj.forget 'foo.bar.baz', callback2
   
-  equal @obj._batman.outboundTriggers['foo'].triggers.length, 1
-  equal @obj.foo._batman.outboundTriggers['bar'].triggers.length, 1
-  equal @obj.foo.bar._batman.outboundTriggers['baz'].triggers.length, 1
+  equal @obj._batman.outboundTriggers['foo'].triggers.toArray().length, 1
+  equal @obj.foo._batman.outboundTriggers['bar'].triggers.toArray().length, 1
+  equal @obj.foo.bar._batman.outboundTriggers['baz'].triggers.toArray().length, 1
   
-  equal @obj._batman.inboundTriggers['foo.bar.baz'].triggers.length, 3
+  equal @obj._batman.inboundTriggers['foo.bar.baz'].triggers.toArray().length, 3
   
   @obj.foo.bar.set 'baz', 'newBaz'
   @obj.foo.set 'bar', 'newBar'

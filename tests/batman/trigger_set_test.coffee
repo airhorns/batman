@@ -15,94 +15,76 @@ QUnit.module 'Batman.TriggerSet',
 ###
 # constructor
 ###
-test "initializes with an empty array of triggers and keypaths", ->
-  deepEqual @set.triggers, []
-  deepEqual @set.keypaths, []
+test "initializes with an empty set of triggers", ->
+  deepEqual @set.triggers, new Batman.Set
 
 
 ###
 # add(trigger)
 ###
-test "add(trigger) adds a trigger to the set and the trigger's keypath to the set's keypaths", ->
+test "add(trigger) adds a trigger to the set", ->
   @set.add(@trigger)
-  equal @set.triggers.length, 1
-  ok @set.triggers[0] is @trigger
-  equal @set.keypaths.length, 1
-  ok @set.keypaths[0] is @keypath
+  equal @set.triggers.toArray().length, 1
+  ok @set.triggers.has(@trigger)
   
 test "add(trigger) does not add duplicate triggers", ->
   @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  equal @set.triggers.length, 1
-  ok @set.triggers[0] is trigger1
-  equal @set.keypaths.length, 1
-  ok @set.keypaths[0] is @keypath
+  equal @set.triggers.toArray().length, 1
+  ok @set.triggers.has(@trigger)
   
 test "add(trigger) does not add duplicate keypaths", ->
   @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
-  equal @set.triggers.length, 2
-  ok @set.triggers[0] is trigger1
-  ok @set.triggers[1] is trigger2
-  equal @set.keypaths.length, 1
-  ok @set.keypaths[0] is @keypath
+  equal @set.triggers.toArray().length, 2
+  ok @set.triggers.has(trigger1)
+  ok @set.triggers.has(trigger2)
+
+
+
+###
+# keypaths()
+###
   
+test "keypaths() returns a Batman.Set of the triggers' target keypaths", ->
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz'), ->))
+  keypaths = @set.keypaths()
+  equal keypaths.toArray().length, 2
+  ok keypaths.has(@keypath)
+  ok keypaths.has(new Batman.Keypath(@obj, 'foo.bar.baz'))
 
 
 ###
 # remove(trigger)
 ###
-test "remove(trigger) returns undefined and does not remove matching keypaths if there is no matching trigger in the set", ->
+test "remove(trigger) returns undefined and does not remove anything if there is no matching trigger in the set", ->
   @set.add(@trigger)
   result = @set.remove(new Batman.Trigger(@obj.foo.bar, 'baz', @keypath, @callback))
   equal typeof(result), 'undefined'
-  equal @set.triggers.length, 1
-  ok @set.triggers[0] is @trigger
-  equal @set.keypaths.length, 1
-  ok @set.keypaths[0] is @keypath
+  equal @set.triggers.toArray().length, 1
+  ok @set.triggers.has(@trigger)
   
   
-test "remove(trigger) removes a matching trigger and its associated keypath if it's the only trigger in the set with an equivalent keypath", ->
+test "remove(trigger) removes a matching trigger", ->
   @set.add(@trigger)
   result = @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   ok result is @trigger
-  equal @set.triggers.length, 0
-  equal @set.keypaths.length, 0
-  
-test "remove(trigger) removes a matching trigger but leaves the associated keypath alone if there's another trigger with an equivalent keypath", ->
-  @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
-  
-  result = @set.remove(trigger1)
-  ok result is trigger1
-  
-  equal @set.triggers.length, 1
-  ok @set.triggers[0] is trigger2
-  equal @set.keypaths.length, 1
-  ok @set.keypaths[0] is @keypath
+  equal @set.triggers.toArray().length, 0
   
 
 ###
 # rememberOldValues()
 ###
-test "rememberOldValues() populates the an oldValues array with the current values referenced by each keypath, in the same order as the keypaths array", ->
+test "rememberOldValues() populates the an oldValues hash with the current values referenced by each keypath", ->
   @set.add(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj.foo, 'bar.baz'), @callback))
   
   @set.rememberOldValues()
   
-  equal @set.oldValues.length, 2
-  equal @set.oldValues[0], 'quxVal'
-  equal @set.oldValues[1], @obj.foo.bar.baz
-  
-
-###
-# forgetOldValues()
-###
-test "forgetOldValues() sets oldValues to a blank array", ->
-  @set.oldValues = ['val1', 'val2']
-  @set.forgetOldValues()
-  deepEqual @set.oldValues, []
+  equal @set.oldValues.get(@keypath), 'quxVal'
+  equal @set.oldValues.get(new Batman.Keypath(@obj.foo, 'bar.baz')), @obj.foo.bar.baz
   
 
 ###
@@ -112,9 +94,11 @@ test "fireAll() calls fire() on each keypath's base with keypath.path(), getting
   spyOn(@obj, 'fire')
   spyOn(@obj.foo, 'fire')
   @set.add(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  @set.add(new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj.foo, 'bar.baz'), @callback))
+  @set.add(new Batman.Trigger(@obj.foo, 'bar', (kp2 = new Batman.Keypath(@obj.foo, 'bar.baz')), @callback))
   
-  @set.oldValues = ['oldVal1', 'oldVal2']
+  @set.oldValues = new Batman.Hash
+  @set.oldValues.set @keypath, 'oldVal1'
+  @set.oldValues.set kp2, 'oldVal2'
   @set.fireAll()
   
   equal @obj.fire.callCount, 1

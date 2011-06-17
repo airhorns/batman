@@ -17,12 +17,12 @@ QUnit.module 'Batman.Trigger',
 ###
 test "initialize adds the trigger to the appropriate trigger sets", ->
   outboundTriggers = @obj.foo._batman.outboundTriggers['bar'].triggers
-  equal outboundTriggers.length, 1
-  ok outboundTriggers[0] is @trigger
+  equal outboundTriggers.toArray().length, 1
+  ok outboundTriggers.has(@trigger)
   
   inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux'].triggers
-  equal inboundTriggers.length, 1
-  ok inboundTriggers[0] is @trigger
+  equal inboundTriggers.toArray().length, 1
+  ok inboundTriggers.has(@trigger)
 
 
 ###
@@ -86,7 +86,7 @@ test "remove() removes the trigger from the inbound and outbound trigger sets wh
   @trigger.remove()
 
   outboundTriggers = @obj.foo._batman.outboundTriggers['bar'].triggers
-  equal outboundTriggers.length, 0
+  equal outboundTriggers.toArray().length, 0
   
   inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux'].triggers
-  equal inboundTriggers.length, 0
+  equal inboundTriggers.toArray().length, 0

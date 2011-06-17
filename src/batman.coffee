@@ -105,10 +105,12 @@ class Batman.Hash
       rhs.isEqual lhs
     else
       lhs is rhs
+  each: (iterator) ->
+    for key, values of @_storage
+      iterator(obj, value) for [obj, value] in values
   keys: ->
     result = []
-    for key, values of @_storage
-      result.push obj for [obj, value] in values
+    @each (obj) -> result.push obj
     result
     
 class Batman.Set
@@ -121,6 +123,8 @@ class Batman.Set
     item
   remove: (item) ->
     @_storage.remove item
+  each: (iterator) ->
+    @_storage.each (key, value) -> iterator(key)
   toArray: ->
     @_storage.keys()
 
@@ -223,56 +227,40 @@ class Batman.Trigger
 
 class Batman.TriggerSet
   constructor: ->
-    @triggers = []
-    @keypaths = []
-    @oldValues = []
+    @triggers = new Batman.Set
+    @oldValues = new Batman.Hash
   
   add: (trigger) ->
-    @_add(trigger, @triggers)
-    @_add(trigger.targetKeypath, @keypaths)
-    trigger
+    @triggers.add trigger
   
   remove: (trigger) ->
-    return unless result = @_remove(trigger, @triggers)
-    for t in @triggers
-      return result if t.targetKeypath.isEqual(trigger.targetKeypath)
-    @_remove(trigger.targetKeypath, @keypaths)
+    @triggers.remove(trigger)
+  
+  keypaths: ->
+    result = new Batman.Set
+    @triggers.each (trigger) ->
+      result.add trigger.targetKeypath
     result
   
-  _add: (item, set) ->
-    for existingItem in set
-      return existingItem if item.isEqual(existingItem)
-    set.push item
-  
-  _remove: (item, set) ->
-    for existingItem, index in set
-      if item.isEqual(existingItem)
-        set.splice(index, 1)
-        return existingItem
-    return
-  
   rememberOldValues: ->
-    @oldValues = []
-    for keypath in @keypaths
-      @oldValues.push(keypath.resolve())
-  
-  forgetOldValues: ->
-    @oldValues = []
+    oldValues = @oldValues = new Batman.Hash
+    @keypaths().each (keypath) ->
+      oldValues.set keypath, keypath.resolve()
     
   fireAll: ->
-    for keypath, index in @keypaths
-      keypath.base.fire keypath.path(), keypath.resolve(), @oldValues[index]
+    @oldValues.each (keypath, oldValue) ->
+      keypath.base.fire keypath.path(), keypath.resolve(), oldValue
   
   refreshKeypathsWithTriggers: ->
-    for trigger in @triggers
+    @triggers.each (trigger) ->
       Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
   
   removeTriggersNotInKeypath: ->
-    for trigger in @triggers.slice()
+    for trigger in @triggers.toArray()
       trigger.remove() unless trigger.isInKeypath()
   
   removeTriggersWithInactiveObservers: ->
-    for trigger in @triggers.slice()
+    for trigger in @triggers.toArray()
       trigger.remove() unless trigger.hasActiveObserver()
     
 ###
@@ -295,8 +283,6 @@ Batman.Observable = {
     if triggers = @_batman.outboundTriggers[key]
       triggers.rememberOldValues()
     callback()
-    if triggers
-      triggers.forgetOldValues()
   
   keypath: (string) ->
     new Batman.Keypath(@, string)
