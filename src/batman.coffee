@@ -128,6 +128,43 @@ class Batman.Set
   toArray: ->
     @_storage.keys()
 
+class Batman.SortableSet extends Batman.Set
+  constructor: (index) ->
+    super
+    @_indexes = {}
+    @addIndex(index)
+  add: (item) ->
+    super
+    @_reIndex()
+    item
+  remove: (item) ->
+    super
+    @_reIndex()
+    item
+  addIndex: (keypath) ->
+    @_reIndex(keypath)
+    @activeIndex = keypath
+  removeIndex: (keypath) ->
+    @_indexes[keypath] = null
+    delete @_indexes[keypath]
+    keypath
+  each: (iterator) ->
+    iterator(el) for el in toArray()
+  toArray: ->
+    ary = @_indexes[@activeIndex] ? ary : super
+  _reIndex: (index) ->
+    if index
+      [keypath, ordering] = index.split ' '
+      ary = Batman.Set.prototype.toArray.call @
+      @_indexes[index] = ary.sort (a,b) ->
+        valueA = (new Batman.Keypath(a, keypath)).resolve()?.valueOf()
+        valueB = (new Batman.Keypath(b, keypath)).resolve()?.valueOf()
+        [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
+        if valueA < valueB then -1 else if valueA > valueB then 1 else 0
+    else
+      @_reIndex(index) for index of @_indexes
+
+
 ###
 # Batman.Keypath
 ###
