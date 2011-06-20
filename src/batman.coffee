@@ -168,9 +168,8 @@ class Batman.SortableSet extends Batman.Set
 ###
 
 class Batman.Keypath
-  constructor: (@base, segments) ->
-    return null if $typeOf(segments) isnt 'String'
-    @segments = segments.split('.') 
+  constructor: (@base, @segments) ->
+    @segments = @segments.split('.') if $typeOf(@segments) is 'String'
   
   path: ->
     @segments.join '.'
@@ -627,6 +626,7 @@ class Batman.App extends Batman.Object
   # initializers will be run to bootstrap your application.
   @run: @eventOneShot ->
     return false if @hasRun
+    Batman.currentApp = @
     
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View node: document
@@ -957,23 +957,26 @@ class Batman.View extends Batman.Object
 # DOM Helpers
 ###
 
+# Batman.Renderer will take a node and parse all recognized data
+# attributes out of it and its children. It is a continuation
+# style parser, designed not to blog for longer than 50ms at a
+# time if the document fragment is particularly long.
 class Batman.Renderer extends Batman.Object
   constructor: (@node, @callback) ->
     super
+    @contexts = [window, Batman.currentApp, @contextObject = new Batman.Object]
+    
     setTimeout @start, 0
   
   start: =>
-    @tree = {}
     @startTime = new Date
     @parseNode @node
   
   resume: =>
-    console.log('resume')
     @startTime = new Date
     @parseNode @resumeNode
   
   finish: ->
-    console.log('done')
     @startTime = null
     @callback()
   
@@ -982,16 +985,24 @@ class Batman.Renderer extends Batman.Object
   regexp = /data\-(.*)/
   
   parseNode: (node) ->
-    if (new Date) - @startTime > 50
-      console.log('stopping')
+    if new Date - @startTime > 50
       @resumeNode = node
       setTimeout @resume, 0
       return
     
     if node.getAttribute
+      @contextObject.node = node
+      contexts = @contexts
+      
       for attr in node.attributes
-        name = attr.nodeName
-        console.log(node.nodeName, name, name.match(regexp))
+        name = attr.nodeName.match(regexp)?[1]
+        continue if not name
+        
+        if (index = name.indexOf('-')) is -1
+          Batman.DOM.readers[name]?(node, attr.value, contexts)
+        else
+          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts)
+        
     
     if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish
   
@@ -999,25 +1010,106 @@ class Batman.Renderer extends Batman.Object
     children = node.childNodes
     return children[0] if children?.length
     
+    node.onParseExit?()
+    
     sibling = node.nextSibling
     return sibling if sibling
     
     nextParent = node
     while nextParent = nextParent.parentNode
+      nextParent.onParseExit?()
       parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
     
     return
     
 
+matchContext = (contexts, key) ->
+  base = key.split('.')[0]
+  i = contexts.length
+  while i--
+    context = contexts[i]
+    return context if typeof context[base] isnt 'undefined'
+
 Batman.DOM = {
   readers: {
+    bind: (node, key, contexts) ->
+      context = matchContext contexts, key
+      shouldSet = yes
+      
+      if Batman.DOM.nodeIsEditable(node)
+        Batman.DOM.events.change node, ->
+          shouldSet = no
+          context.set key, node.value
+          shouldSet = yes
+      
+      context?.observe key, yes, observer = (value) ->
+        if shouldSet
+          Batman.DOM.valueForNode node, value
     
+    context: (node, key, contexts) ->
+      context = matchContext(contexts, key).get(key)
+      contexts.push context
+      
+      node.onParseExit = ->
+        index = contexts.indexOf(context)
+        contexts.splice(index, contexts.length - index)
+    
+    route: (node, key, contexts) ->
+      if key.substr(0, 1) is '/'
+        route = Batman.redirect.bind Batman, key
+        routeName = key
+      else
+        route = matchContext contexts, key
+        routeName = route.path
+      
+      switch node.nodeName.toUpperCase()
+        when 'A' then node.href = Batman.HASH_PATTERN + routeName
+      
+      Batman.DOM.addEventListener node, 'click', (e) ->
+        e.preventDefault()
+        
+        route()
+        false
   }
   
-  keyReaders: {
-    
+  attrReaders: {
+    bind: (node, attr, key, contexts) ->
+      context = matchContext contexts, key
+      context?.observe key, yes, (value) ->
+        node[attr] = value
+      
+    foreach: (node, attr, key, contexts) ->
+      context = matchContext contexts, key
+      context
   }
+  
+  events: {
+    change: (node, callback) ->
+      eventName = switch node.nodeName.toUpperCase()
+        when 'TEXTAREA' then 'keyup'
+        when 'INPUT'
+          if node.type.toUpperCase() is 'TEXT' then 'keyup' else 'change'
+        else 'change'
+      
+      Batman.DOM.addEventListener node, eventName, callback
+  }
+  
+  valueForNode: (node, value) ->
+    isSetting = arguments.length > 1
+    
+    switch node.nodeName.toUpperCase()
+      when 'INPUT' then (if isSetting then (node.value = value) else node.value)
+      else (if isSetting then (node.innerHTML = value) else node.innerHTML)
+  
+  nodeIsEditable: (node) ->
+    node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA']
+  
+  addEventListener: (node, eventName, callback) ->
+    if node.addEventListener
+      node.addEventListener eventName, callback, false
+    else
+      node.attachEvent "on#{eventName}", callback
 }
 
 ###
