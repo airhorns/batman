@@ -1055,6 +1055,29 @@ Batman.DOM = {
         index = contexts.indexOf(context)
         contexts.splice(index, contexts.length - index)
     
+    mixin: (node, key, contexts) ->
+      contexts.push(Batman.mixins)
+      context = matchContext contexts, key
+      mixin = context.get key
+      contexts.pop()
+      
+      $mixin node, mixin
+    
+    showif: (node, key, contexts, invert) ->
+      originalDisplay = node.style.display
+      originalDisplay = 'block' if !originalDisplay or originalDisplay is 'none'
+      
+      context = matchContext contexts, key
+      
+      context.observe key, yes, (value) ->
+        if !!value is !invert
+          if typeof node.show is 'function' then node.show() else node.style.display = originalDisplay
+        else
+          if typeof node.hide is 'function' then node.hide() else node.style.display = 'none'
+    
+    hideif: (args...) ->
+      Batman.DOM.readers.showif args..., yes
+    
     route: (node, key, contexts) ->
       if key.substr(0, 1) is '/'
         route = Batman.redirect.bind Batman, key
@@ -1066,11 +1089,13 @@ Batman.DOM = {
       switch node.nodeName.toUpperCase()
         when 'A' then node.href = Batman.HASH_PATTERN + routeName
       
-      Batman.DOM.addEventListener node, 'click', (e) ->
-        e.preventDefault()
-        
-        route()
-        false
+      Batman.DOM.events.click node, route
+    
+    yield: (node, key, contexts) ->
+      Batman.DOM.yield key, node
+    
+    contentfor: (node, key, contexts) ->
+      Batman.DOM.contentFor key, node
   }
   
   attrReaders: {
@@ -1078,13 +1103,40 @@ Batman.DOM = {
       context = matchContext contexts, key
       context?.observe key, yes, (value) ->
         node[attr] = value
+    
+    event: (node, eventName, key, contexts) ->
+      context = matchContext contexts, key
+      callback = context.get key
       
-    foreach: (node, attr, key, contexts) ->
+      Batman.DOM.events[eventName](node, callback)
+    
+    addclass: (node, className, key, contexts, invert) ->
+      className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
+      
+      context = matchContext contexts, key
+      context.observe key, yes, (value) ->
+        currentName = node.className
+        includesClassName = currentName.indexOf(className) isnt -1
+        
+        if !!value is !invert
+          node.className = "#{currentName} #{className}" if !includesClassName
+        else
+          node.className = currentName.replace(className, '') if includesClassName
+          
+    removeclass: (args...) ->
+      Batman.DOM.attrReaders.addclass args..., yes
+    
+    foreach: (node, iteratorName, key, contexts) ->
       context = matchContext contexts, key
       context
   }
   
   events: {
+    click: (node, callback) ->
+      Batman.DOM.addEventListener node, 'click', (e) ->
+        callback @, arguments
+        e.preventDefault()
+    
     change: (node, callback) ->
       eventName = switch node.nodeName.toUpperCase()
         when 'TEXTAREA' then 'keyup'
@@ -1093,7 +1145,34 @@ Batman.DOM = {
         else 'change'
       
       Batman.DOM.addEventListener node, eventName, callback
+    
+    submit: (node, callback) ->
+      if Batman.DOM.nodeIsEditable(node)
+        Batman.DOM.addEventListener node, 'keyup', (e) ->
+          if e.keyCode is 13
+            callback.apply @, arguments
+            e.preventDefault()
+      else
+        Batman.DOM.addEventListener node, 'submit', (e) ->
+          callback.apply @, arguments
+          e.preventDefault()
   }
+  
+  yield: (name, node) ->
+    yields = Batman.DOM._yields ||= {}
+    yields[name] = node
+    
+    if content = Batman.DOM._yieldContents?[name]
+      node.innerHTML = ''
+      node.appendChild(content)
+  
+  contentFor: (name, node) ->
+    contents = Batman.DOM._yieldContents ||= {}
+    contents[name] = node
+    
+    if yield = Batman.DOM._yields?[name]
+      yield.innerHTML = ''
+      yield.appendChild(node)
   
   valueForNode: (node, value) ->
     isSetting = arguments.length > 1
@@ -1155,6 +1234,13 @@ helpers = Batman.helpers = {
 ###
 
 filters = Batman.filters = {
+  
+}
+
+###
+# Mixins
+###
+mixins = Batman.mixins = {
   
 }
 
