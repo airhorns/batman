@@ -648,6 +648,8 @@ Batman.Route = {
   isRoute: yes
   
   pattern: null
+  regexp: null
+  namedArguments: null
   action: null
   context: null
   
@@ -661,18 +663,27 @@ $mixin Batman,
   
   route: (pattern, callback) ->
     callbackEater = (callback) ->
-      f = ->
+      f = (args...) ->
         context = f.context || @
         if context and context.sharedInstance
           context = context.get 'sharedInstance'
         
         if context and context.dispatch
-          context.dispatch f, @
+          context.dispatch f, args...
         else
           f.action.apply context, arguments
       
+      match = pattern.replace(escapeRegExp, '\\$&')
+      regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+      
+      namedArguments = []
+      while (array = namedOrSplat.exec(match))?
+        namedArguments.push(array[1]) if array[1]
+      
       $mixin f, Batman.Route,
-        pattern: pattern
+        pattern: match
+        regexp: regexp
+        namedArguments: namedArguments
         action: callback
         context: callbackEater.context
       
@@ -710,10 +721,37 @@ $mixin Batman.App,
     else
       @_routeHandler = setInterval(parseUrl, 100)
   
-  _dispatch: (hash) ->
+  stopRouting: ->
+    return if not @_routeHandler
+    
+    if 'onhashchange' of window
+      window.removeEventListener 'hashchange', @_routeHandler
+      @_routeHandler = null
+    else
+      @_routeHandler = clearInterval @_routeHandler
+  
+  _dispatch: (url) ->
+    route = @_matchRoute url
+    if not route
+      return $redirect '/404' unless url is '/404'
+    
+    params = @_extractParams url, route
+    route(params)
+  
+  _matchRoute: (url) ->
     for route in Batman._routes
-      if route.pattern is hash
-        return route()
+      return route if route.regexp.test(url)
+    
+    null
+  
+  _extractParams: (url, route) ->
+    array = route.regexp.exec(url).slice(1)
+    params = url: url
+    
+    for param, index in array
+      params[route.namedArguments[index]] = param
+    
+    params
   
   root: (callback) ->
     $route '/', callback
