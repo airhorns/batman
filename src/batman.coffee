@@ -767,15 +767,18 @@ class Batman.Controller extends Batman.Object
     @_sharedInstance
   
   dispatch: (route, params...) ->
-    @_actedDuringAction = no
-    
-    result = route.action.call @, params...
     key = Batman._findName route, @
     
+    @_actedDuringAction = no
+    @_currentAction = key
+    
+    result = route.action.call @, params...
+    
     if not @_actedDuringAction
-      new Batman.View source: ""
+      @render()
     
     delete @_actedDuringAction
+    delete @_currentAction
   
   redirect: (url) ->
     @_actedDuringAction = yes
@@ -789,24 +792,8 @@ class Batman.Controller extends Batman.Object
       options.view = new Batman.View(options)
     
     if view = options.view
-      view.context = global
-      
-      m = {}
-      push = (key, value) ->
-        ->
-          Array.prototype.push.apply @, arguments
-          view.context.fire(key, @)
-      
-      for own key, value of @
-        continue if key.substr(0,1) is '_'
-        m[key] = value
-        if typeOf(value) is 'Array'
-          value.push = push(key, value)
-      
-      $mixin global, m
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
-        Batman.unmixin(global, m)
 
 ###
 # Batman.DataStore
