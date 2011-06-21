@@ -541,6 +541,7 @@ class Batman.Object
     $mixin @, mixins...
   
   constructor: (mixins...) ->
+
     Batman._initializeObject @
     @mixin mixins...
   
@@ -958,33 +959,34 @@ class Batman.View extends Batman.Object
   ready: @eventOneShot ->
   
   # Where to look for views
-  prefix: ''
+  prefix: 'views'
 
   @::observe 'source', ->
     setTimeout @reloadSource, 0
   
   reloadSource: =>
-    return if not @source
+    return unless @get('source')?
     
     url = "#{@get 'prefix'}/#{@get 'source'}"
     new Batman.Request
       url: url 
       type: 'html'
-      success: (response) ->
+      success: (response) =>
         @set 'html', response
-      error: (response) ->
+      error: (response) =>
         console.error "Error loading view from #{url}!"
 
   @::observe 'html', (html) ->
     if @contentFor
       # FIXME: contentFor
     else
-      node = @node || document.createElement 'div'
+      node = @get('node') || document.createElement 'div'
       node.innerHTML = html
       
-      @set 'node', node if @node isnt node
+      @set('node', node) if @node isnt node
   
   @::observe 'node', (node) ->
+    return unless node
     @ready.fired = false
     
     if @_renderer
@@ -1037,14 +1039,13 @@ class Batman.Renderer extends Batman.Object
       for attr in node.attributes
         name = attr.nodeName.match(regexp)?[1]
         continue if not name
-        
         if (index = name.indexOf('-')) is -1
           Batman.DOM.readers[name]?(node, attr.value, contexts)
         else
           Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts)
         
     
-    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish
+    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish()
   
   nextNode: (node) ->
     children = node.childNodes
@@ -1069,7 +1070,8 @@ matchContext = (contexts, key) ->
   i = contexts.length
   while i--
     context = contexts[i]
-    return context if typeof context[base] isnt 'undefined'
+    return context if context.get(base)?
+  return null
 
 Batman.DOM = {
   readers: {
