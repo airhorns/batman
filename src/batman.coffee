@@ -666,7 +666,7 @@ $mixin Batman,
       f = (args...) ->
         context = f.context || @
         if context and context.sharedInstance
-          context = context.get 'sharedInstance'
+          context = context.sharedInstance()
         
         if context and context.dispatch
           context.dispatch f, args...
