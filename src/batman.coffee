@@ -788,7 +788,7 @@ class Batman.Controller extends Batman.Object
     @_actedDuringAction = yes
     
     if not options.view
-      options.source = 'views/' + helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
+      options.source = helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
     
     if view = options.view
@@ -957,18 +957,24 @@ class Batman.View extends Batman.Object
   # Fires once a node is parsed.
   ready: @eventOneShot ->
   
+  # Where to look for views
+  prefix: ''
+
   @::observe 'source', ->
     setTimeout @reloadSource, 0
   
   reloadSource: =>
     return if not @source
     
+    url = "#{@get 'prefix'}/#{@get 'source'}"
     new Batman.Request
-      url: "views/#{@source}"
+      url: url 
       type: 'html'
       success: (response) ->
         @set 'html', response
-  
+      error: (response) ->
+        console.error "Error loading view from #{url}!"
+
   @::observe 'html', (html) ->
     if @contentFor
       # FIXME: contentFor
