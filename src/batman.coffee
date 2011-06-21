@@ -631,7 +631,7 @@ class Batman.App extends Batman.Object
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View node: document
     
-    #@startRouting()
+    @startRouting()
     @hasRun = yes
 
 ###
@@ -646,6 +646,10 @@ escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
 Batman.Route = {
   isRoute: yes
+  
+  pattern: null
+  action: null
+  context: null
   
   toString: ->
     "route: #{@pattern} #{@action}"
@@ -682,8 +686,8 @@ $mixin Batman,
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
     window.location.hash = "#{Batman.HASH_PATTERN}#{url}"
 
-Batman.Object.route = $route = Batman.route
-Batman.Object.redirect = $redirect = Batman.redirect
+Batman.Object.route = Batman.App.route = $route = Batman.route
+Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
 
 $mixin Batman.App,
   startRouting: ->
@@ -695,7 +699,7 @@ $mixin Batman.App,
       return if hash is @_cachedRoute
       
       @_cachedRoute = hash
-      @dispatch hash
+      @_dispatch hash
     
     window.location.hash = "#{Batman.HASH_PATTERN}/" if not window.location.hash
     setTimeout(parseUrl, 0)
@@ -705,6 +709,11 @@ $mixin Batman.App,
       window.addEventListener 'hashchange', parseUrl
     else
       @_routeHandler = setInterval(parseUrl, 100)
+  
+  _dispatch: (hash) ->
+    for route in Batman._routes
+      if route.pattern is hash
+        return route()
   
   root: (callback) ->
     $route '/', callback
