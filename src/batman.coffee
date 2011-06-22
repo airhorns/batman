@@ -56,8 +56,8 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
   from
 
 Batman._initializeObject = (object) ->
-  if object.prototype and object._batman?.__initClass__ isnt @
-    object._batman = {__initClass__: @}
+  if object.prototype and object._batman?.__initClass__ isnt object
+    object._batman = {__initClass__: object}
   else unless object.hasOwnProperty '_batman'
     object._batman = {}
 

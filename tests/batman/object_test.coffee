@@ -62,10 +62,10 @@ test "newly created classes shouldn't fire observers on parent classes", ->
 
 test "parent classes shouldn't fire observers on newly created classes", ->
   @subClass.observe 'foo', spy = createSpy()
-
+  
   newSubClass = class TestSubClass extends @subClass
   newSubClass.observe 'foo', subSpy = createSpy()
-
+  
   @subClass.set 'foo', 'bar'
   ok spy.called
   ok !subSpy.called
