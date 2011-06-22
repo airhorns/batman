@@ -752,9 +752,10 @@ $mixin Batman.App,
     route = @_matchRoute url
     if not route
       $redirect '/404' unless url is '/404'
-    else 
-      params = @_extractParams url, route
-      route(params)
+      return
+    
+    params = @_extractParams url, route
+    route(params)
   
   _matchRoute: (url) ->
     for route in Batman._routes
@@ -784,11 +785,23 @@ class Batman.Controller extends Batman.Object
     @_sharedInstance = new @ if not @_sharedInstance
     @_sharedInstance
   
+  @beforeFilter: (nameOrFunction) ->
+    filters = @_beforeFilters ||= []
+    filters.push nameOrFunction
+  
+  @resources: (base_url) ->
+    
+  
   dispatch: (route, params...) ->
     key = Batman._findName route, @
     
     @_actedDuringAction = no
     @_currentAction = key
+    
+    filters = @constructor._beforeFilters
+    if filters
+      for filter in filters
+        filter.call @
     
     result = route.action.call @, params...
     
