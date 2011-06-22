@@ -655,7 +655,7 @@ Batman.Route = {
   context: null
   
   toString: ->
-    "route: #{@pattern} #{@action}"
+    "route: #{@pattern}"
 }
 
 $mixin Batman,
@@ -704,12 +704,9 @@ Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
 $mixin Batman.App,
   startRouting: ->
     return if typeof window is 'undefined'
-    return if not Batman._routes.length
-    
     parseUrl = =>
       hash = window.location.hash.replace(Batman.HASH_PATTERN, '')
       return if hash is @_cachedRoute
-      
       @_cachedRoute = hash
       @_dispatch hash
     
@@ -720,11 +717,11 @@ $mixin Batman.App,
       @_routeHandler = parseUrl
       window.addEventListener 'hashchange', parseUrl
     else
-      @_routeHandler = setInterval(parseUrl, 100)
+      old = window.location.hash
+      @_routeHandler = setInterval parseUrl, 100
   
   stopRouting: ->
-    return if not @_routeHandler
-    
+    return unless @_routeHandler?
     if 'onhashchange' of window
       window.removeEventListener 'hashchange', @_routeHandler
       @_routeHandler = null
@@ -734,10 +731,10 @@ $mixin Batman.App,
   _dispatch: (url) ->
     route = @_matchRoute url
     if not route
-      return $redirect '/404' unless url is '/404'
-    
-    params = @_extractParams url, route
-    route(params)
+      $redirect '/404' unless url is '/404'
+    else 
+      params = @_extractParams url, route
+      route(params)
   
   _matchRoute: (url) ->
     for route in Batman._routes
@@ -893,7 +890,6 @@ class Batman.Model extends Batman.Object
     array[array.length - 1]
   
   @find: (id) ->
-    console.log @dataStore.get(id)
     @_makeRecords(@dataStore.get(id))[0]
   
   @create: Batman.Object.property ->

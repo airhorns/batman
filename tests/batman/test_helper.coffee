@@ -5,7 +5,7 @@ else
   exports.window = w = jsdom().createWindow()
   exports.document = w.document
 
-exports.ASYNC_TEST_DELAY = 10
+exports.ASYNC_TEST_DELAY = 20
 
 class Spy
   constructor: (original) ->
@@ -157,13 +157,19 @@ class MockClass
 
   _callbackStacks: {}
 
-  constructor: ->
+  constructor: (options = {}) ->
     @constructorArguments = arguments
     @constructor.lastInstance = this
     @constructor.instances.push this
     @constructor.lastConstructorArguments = arguments
     @constructor.constructorArguments.push arguments
     @constructor.instanceCount++
+
+    for k, v of options
+      if @[k]
+        @[k](v)
+      else
+        @[k] = v
 
 # Replaces a class in a namespace with a mock class for
 # the duration of a function, and then sets it back to its
@@ -175,9 +181,12 @@ mockClassDuring = (namespace, name, mock = MockClass, fn) ->
   namespace[name] = original
   [mock, result]
 
-exports.Spy = Spy
-exports.MockClass = MockClass
-exports.createSpy = createSpy
-exports.spyOn = spyOn
-exports.spyOnDuring = spyOnDuring
-exports.mockClassDuring = mockClassDuring
+# Handy for async tests which usually follow this pattern
+delay = (fn) ->
+  setTimeout(->
+    fn()
+    start()
+  , ASYNC_TEST_DELAY)
+
+for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay}
+  exports[k] = v
