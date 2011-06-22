@@ -681,6 +681,22 @@ Batman.Route = {
   action: null
   context: null
   
+  # call the action without going through the dispatch mechanism
+  fire: (args, context) ->
+    action = @action
+    if $typeOf(action) is 'String'
+      if (index = action.indexOf('#')) isnt -1
+        controllerName = helpers.camelize(action.substr(0, index) + 'Controller')
+        controller = Batman.currentApp[controllerName]
+        
+        context = controller
+        if context?.sharedInstance
+          context = context.sharedInstance()
+        
+        action = context[action.substr(index + 1)]
+    
+    action.apply(context || @context, args) if action
+  
   toString: ->
     "route: #{@pattern}"
 }
@@ -688,35 +704,37 @@ Batman.Route = {
 $mixin Batman,
   HASH_PATTERN: '#!'
   _routes: []
- 
+  
   route: $block (pattern, callback) ->
     f = (args...) ->
       context = f.context || @
       if context and context.sharedInstance
         context = context.sharedInstance()
       
+      Batman.currentApp._cachedRoute = f.pattern
+      window.location.hash = Batman.HASH_PATTERN + f.pattern
+        
       if context and context.dispatch
         context.dispatch f, args...
       else
-        f.action.apply context, arguments
-    
-    match = pattern.replace(escapeRegExp, '\\$&')
-    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
-    
-    namedArguments = []
-    while (array = namedOrSplat.exec(match))?
-      namedArguments.push(array[1]) if array[1]
-    
-    $mixin f, Batman.Route,
-      pattern: match
-      regexp: regexp
-      namedArguments: namedArguments
-      action: callback
-      context: @
+        f.fire arguments, context
+      
+      match = pattern.replace(escapeRegExp, '\\$&')
+      regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+      
+      namedArguments = []
+      while (array = namedOrSplat.exec(match))?
+        namedArguments.push(array[1]) if array[1]
+      
+      $mixin f, Batman.Route,
+        pattern: match
+        regexp: regexp
+        namedArguments: namedArguments
+        action: callback
+        context: @
     
     Batman._routes.push f
     f
-    
   
   redirect: (urlOrFunction) ->
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
@@ -755,7 +773,7 @@ $mixin Batman.App,
   _dispatch: (url) ->
     route = @_matchRoute url
     if not route
-      $redirect '/404' unless url is '/404'
+      if url is '/404' then Batman.currentApp['404']() else $redirect '/404'
       return
     
     params = @_extractParams url, route
@@ -778,6 +796,11 @@ $mixin Batman.App,
   
   root: (callback) ->
     $route '/', callback
+  
+  '404': ->
+    view = new Batman.View
+      html: '<h1>Page could not be found</h1>'
+      contentFor: 'main'
 
 ###
 # Batman.Controller
@@ -793,8 +816,18 @@ class Batman.Controller extends Batman.Object
     filters = @_beforeFilters ||= []
     filters.push nameOrFunction
   
-  @resources: (base_url) ->
+  @resources: (base) ->
+    f = =>
+      @::index = @route("/#{base}", @::index) if @::index
+      @::show = @route("/#{base}/:id", @::show) if @::show
+      @::edit = @route("/#{base}/:id/edit", @::edit) if @::edit
+    setTimeout f, 0
     
+    #name = helpers.underscore(@name.replace('Controller', ''))
+    
+    #$route "/#{base}", "#{name}#index"
+    #$route "/#{base}/:id", "#{name}#show"
+    #$route "/#{base}/:id/edit", "#{name}#edit"
   
   dispatch: (route, params...) ->
     key = Batman._findName route, @
@@ -807,7 +840,7 @@ class Batman.Controller extends Batman.Object
       for filter in filters
         filter.call @
     
-    result = route.action.call @, params...
+    result = route.fire params, @
     
     if not @_actedDuringAction
       @render()
@@ -995,28 +1028,25 @@ class Batman.View extends Batman.Object
   prefix: 'views'
 
   @::observe 'source', ->
-    setTimeout @reloadSource, 0
+    setTimeout (=> @reloadSource()), 0
   
   reloadSource: =>
-    return unless @get('source')?
+    return unless @get('source')
     
     url = "#{@get 'prefix'}/#{@get 'source'}"
     new Batman.Request
       url: url 
       type: 'html'
       success: (response) =>
-        @set 'html', response
+        @set('html', response)
       error: (response) =>
-        console.error "Error loading view from #{url}!"
-
+        throw "Error loading view from #{url}!"
+  
   @::observe 'html', (html) ->
-    if @contentFor
-      # FIXME: contentFor
-    else
-      node = @get('node') || document.createElement 'div'
-      node.innerHTML = html
-      
-      @set('node', node) if @node isnt node
+    node = @node || document.createElement 'div'
+    node.innerHTML = html
+    
+    @set('node', node) if @node isnt node
   
   @::observe 'node', (node) ->
     return unless node
@@ -1026,7 +1056,9 @@ class Batman.View extends Batman.Object
       @_renderer.forgetAll()
     
     if node
-      @_renderer = new Batman.Renderer node, => @ready()
+      @_renderer = new Batman.Renderer node, =>
+        Batman.DOM.contentFor(@contentFor, node) if @contentFor
+        @ready(node)
 
 ###
 # DOM Helpers
@@ -1170,8 +1202,8 @@ Batman.DOM = {
         route = context.get key
         routeName = route?.pattern
       
-      switch node.nodeName.toUpperCase()
-        when 'A' then node.href = Batman.HASH_PATTERN + routeName
+      if node.nodeName.toUpperCase() is 'A'
+        node.href = Batman.HASH_PATTERN + (routeName || '')
       
       Batman.DOM.events.click node, route
     
