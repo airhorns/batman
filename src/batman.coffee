@@ -140,56 +140,6 @@ class Batman.Hash
     @each (obj) -> result.push obj
     result
     
-class Batman.Set
-  constructor: ->
-    @_storage = new Batman.Hash
-  has: (item) ->
-    @_storage.hasKey item
-  add: (item) ->
-    @_storage.set item, true
-    item
-  remove: (item) ->
-    @_storage.remove item
-  each: (iterator) ->
-    @_storage.each (key, value) -> iterator(key)
-  toArray: ->
-    @_storage.keys()
-
-class Batman.SortableSet extends Batman.Set
-  constructor: (index) ->
-    super
-    @_indexes = {}
-    @addIndex(index)
-  add: (item) ->
-    super
-    @_reIndex()
-    item
-  remove: (item) ->
-    super
-    @_reIndex()
-    item
-  addIndex: (keypath) ->
-    @_reIndex(keypath)
-    @activeIndex = keypath
-  removeIndex: (keypath) ->
-    @_indexes[keypath] = null
-    delete @_indexes[keypath]
-    keypath
-  each: (iterator) ->
-    iterator(el) for el in toArray()
-  toArray: ->
-    ary = @_indexes[@activeIndex] ? ary : super
-  _reIndex: (index) ->
-    if index
-      [keypath, ordering] = index.split ' '
-      ary = Batman.Set.prototype.toArray.call @
-      @_indexes[index] = ary.sort (a,b) ->
-        valueA = (new Batman.Keypath(a, keypath)).resolve()?.valueOf()
-        valueB = (new Batman.Keypath(b, keypath)).resolve()?.valueOf()
-        [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
-        if valueA < valueB then -1 else if valueA > valueB then 1 else 0
-    else
-      @_reIndex(index) for index of @_indexes
 
 
 ###
@@ -482,6 +432,8 @@ Batman.EventEmitter = {
       if not @observe
         throw "EventEmitter object needs to be observable."
       
+      Batman.Observable.initialize.call @
+      
       key ||= Batman._findName(f, @)
       fired = @_batman._oneShotFired?[key]
       
@@ -494,7 +446,7 @@ Batman.EventEmitter = {
       # arguments you pass will be passed to your wrapped function.
       else if @allowed key
         return false if f.isOneShot and fired
-        
+                
         value = callback?.apply @, arguments
         
         # Observers will only fire if the result of the event is not false.
@@ -557,7 +509,7 @@ class Batman.Object
     global[@name] = @
   
   @property: (foo) ->
-    {} #FIXME
+    foo #FIXME
   
   # Apply mixins to this subclass.
   @mixin: (mixins...) ->
@@ -575,6 +527,70 @@ class Batman.Object
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
+
+###
+# Batman.Set
+###
+
+class Batman.Set extends Batman.Object
+  constructor: (items...) ->
+    @_storage = new Batman.Hash
+    @length = 0
+    
+    for item in items
+      @add item
+  
+  has: (item) ->
+    @_storage.hasKey item
+  add: @event (item) ->
+    @_storage.set item, true
+    @set 'length', @length + 1
+    item
+  remove: @event (item) ->
+    @_storage.remove item
+    @set 'length', @length - 1
+  each: (iterator) ->
+    @_storage.each (key, value) -> iterator(key)
+  empty: @property ->
+    @get('length') is 0
+  toArray: ->
+    @_storage.keys()
+
+class Batman.SortableSet extends Batman.Set
+  constructor: (index) ->
+    super
+    @_indexes = {}
+    @addIndex(index)
+  add: (item) ->
+    super
+    @_reIndex()
+    item
+  remove: (item) ->
+    super
+    @_reIndex()
+    item
+  addIndex: (keypath) ->
+    @_reIndex(keypath)
+    @activeIndex = keypath
+  removeIndex: (keypath) ->
+    @_indexes[keypath] = null
+    delete @_indexes[keypath]
+    keypath
+  each: (iterator) ->
+    iterator(el) for el in toArray()
+  toArray: ->
+    ary = @_indexes[@activeIndex] ? ary : super
+  _reIndex: (index) ->
+    if index
+      [keypath, ordering] = index.split ' '
+      ary = Batman.Set.prototype.toArray.call @
+      @_indexes[index] = ary.sort (a,b) ->
+        valueA = (new Batman.Keypath(a, keypath)).resolve()?.valueOf()
+        valueB = (new Batman.Keypath(b, keypath)).resolve()?.valueOf()
+        [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
+        if valueA < valueB then -1 else if valueA > valueB then 1 else 0
+    else
+      @_reIndex(index) for index of @_indexes
 
 ###
 # Batman.Request
@@ -706,13 +722,19 @@ $mixin Batman,
   _routes: []
   
   route: $block (pattern, callback) ->
-    f = (args...) ->
+    f = (params) ->
       context = f.context || @
       if context and context.sharedInstance
         context = context.sharedInstance()
       
-      Batman.currentApp._cachedRoute = f.pattern
-      window.location.hash = Batman.HASH_PATTERN + f.pattern
+      pattern = f.pattern
+        if params and not params.url
+          for key, value of params
+            pattern = pattern.replace(new RegExp('[:|\*]' + key), value)
+        
+        if (params and not params.url) or not params
+          Batman.currentApp._cachedRoute = pattern
+          window.location.hash = Batman.HASH_PATTERN + pattern
         
       if context and context.dispatch
         context.dispatch f, args...
@@ -817,8 +839,10 @@ class Batman.Controller extends Batman.Object
     filters.push nameOrFunction
   
   @resources: (base) ->
+    # FIXME: MUST find a non-deferred way to do this
     f = =>
       @::index = @route("/#{base}", @::index) if @::index
+      @::create = @route("/#{base}/new", @::create) if @::create
       @::show = @route("/#{base}/:id", @::show) if @::show
       @::edit = @route("/#{base}/:id/edit", @::edit) if @::edit
     setTimeout f, 0
@@ -860,6 +884,7 @@ class Batman.Controller extends Batman.Object
       options.view = new Batman.View(options)
     
     if view = options.view
+      view.context ||= @ 
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
 
@@ -1010,6 +1035,8 @@ class Batman.Model extends Batman.Object
 ###
 
 class Batman.View extends Batman.Object
+  viewSources = {}
+  
   # Set the source attribute to an html file to have that file loaded.
   source: ''
   
@@ -1019,6 +1046,8 @@ class Batman.View extends Batman.Object
   # Set an existing DOM node to parse immediately.
   node: null
   
+  context: null
+  contexts: null
   contentFor: null
   
   # Fires once a node is parsed.
@@ -1030,17 +1059,21 @@ class Batman.View extends Batman.Object
   @::observe 'source', ->
     setTimeout (=> @reloadSource()), 0
   
-  reloadSource: =>
-    return unless @get('source')
+  reloadSource: ->
+    source = @get 'source'
+    return if not source
     
-    url = "#{@get 'prefix'}/#{@get 'source'}"
-    new Batman.Request
-      url: url 
-      type: 'html'
-      success: (response) =>
-        @set('html', response)
-      error: (response) =>
-        throw "Error loading view from #{url}!"
+    if viewSources[source]
+      @set('html', viewSources[source])
+    else
+      new Batman.Request
+        url: "views/#{@source}"
+        type: 'html'
+        success: (response) =>
+          viewSources[source] = response
+          @set('html', response)
+        error: (response) ->
+          throw "Could not load view from #{url}"
   
   @::observe 'html', (html) ->
     node = @node || document.createElement 'div'
@@ -1056,9 +1089,20 @@ class Batman.View extends Batman.Object
       @_renderer.forgetAll()
     
     if node
-      @_renderer = new Batman.Renderer node, =>
-        Batman.DOM.contentFor(@contentFor, node) if @contentFor
-        @ready(node)
+      @_renderer = new Batman.Renderer( node, =>
+        content = @contentFor
+        if typeof content is 'string'
+          @contentFor = Batman.DOM._yields?[content]
+        
+        if @contentFor and node
+          @contentFor.innerHTML = ''
+          @contentFor.appendChild(node)
+        
+        @ready node
+      , @contexts)
+      
+      @_renderer.contexts.push(@context) if @context
+      @_renderer.contextObject.view = @
 
 ###
 # DOM Helpers
@@ -1069,9 +1113,10 @@ class Batman.View extends Batman.Object
 # style parser, designed not to blog for longer than 50ms at a
 # time if the document fragment is particularly long.
 class Batman.Renderer extends Batman.Object
-  constructor: (@node, @callback) ->
+  constructor: (@node, @callback, contexts) ->
     super
-    @contexts = [window, Batman.currentApp, @contextObject = new Batman.Object]
+    @contexts = contexts || [Batman.currentApp, new Batman.Object]
+    @contextObject = @contexts[1]
     
     setTimeout @start, 0
   
@@ -1085,7 +1130,7 @@ class Batman.Renderer extends Batman.Object
   
   finish: ->
     @startTime = null
-    @callback()
+    @callback?()
   
   forgetAll: ->
     
@@ -1104,17 +1149,22 @@ class Batman.Renderer extends Batman.Object
       for attr in node.attributes
         name = attr.nodeName.match(regexp)?[1]
         continue if not name
-        if (index = name.indexOf('-')) is -1
+                
+        result = if (index = name.indexOf('-')) is -1
           Batman.DOM.readers[name]?(node, attr.value, contexts)
         else
           Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts)
         
+        if result is false
+          skipChildren = true
+          break
     
-    if (nextNode = @nextNode(node)) then @parseNode(nextNode) else @finish()
+    if (nextNode = @nextNode(node, skipChildren)) then @parseNode(nextNode) else @finish()
   
-  nextNode: (node) ->
-    children = node.childNodes
-    return children[0] if children?.length
+  nextNode: (node, skipChildren) ->
+    if not skipChildren
+      children = node.childNodes
+      return children[0] if children?.length
     
     node.onParseExit?()
     
@@ -1124,6 +1174,9 @@ class Batman.Renderer extends Batman.Object
     nextParent = node
     while nextParent = nextParent.parentNode
       nextParent.onParseExit?()
+      #return if nextParent is @node
+      # FIXME: we need a way to break if you exit the original node context of the renderer.
+      
       parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
     
@@ -1200,18 +1253,34 @@ Batman.DOM = {
       else
         context = matchContext contexts, key
         route = context.get key
-        routeName = route?.pattern
+        
+        if route instanceof Batman.Model
+          controllerName = helpers.camelize(helpers.pluralize(key)) + 'Controller'
+          context = matchContext contexts, controllerName
+          controller = context[controllerName].sharedInstance()
+          
+          id = route.id
+          route = controller.show?.bind(controller, {id: id})
+          routeName = '/' + helpers.pluralize(key) + '/' + id
+        else
+          routeName = route?.pattern
       
       if node.nodeName.toUpperCase() is 'A'
         node.href = Batman.HASH_PATTERN + (routeName || '')
       
-      Batman.DOM.events.click node, route
+      Batman.DOM.events.click node, (-> do route)
     
-    yield: (node, key, contexts) ->
-      Batman.DOM.yield key, node
+    partial: (node, path, contexts) ->
+      view = new Batman.View
+        source: path + '.html'
+        contentFor: node
+        contexts: Array.prototype.slice.call(contexts)
     
-    contentfor: (node, key, contexts) ->
-      Batman.DOM.contentFor key, node
+    yield: (node, key) ->
+      setTimeout (-> Batman.DOM.yield key, node), 0
+    
+    contentfor: (node, key) ->
+      setTimeout (-> Batman.DOM.contentFor key, node), 0
   }
   
   attrReaders: {
@@ -1223,19 +1292,47 @@ Batman.DOM = {
           filter = Batman.filters[filterName] || Batman.helpers[filterName]
           continue if not filter
           
-          key = filter(key)
-          
-          node[attr] = key
+          value = filter(key, args..., node)
+          node.setAttribute attr, value
       else
         context = matchContext contexts, key
         context.observe key, yes, (value) ->
-          node[attr] = value
+          if attr is 'value'
+            node.value = value
+          else
+            node.setAttribute attr, value
+      
+        if attr is 'value'
+          Batman.DOM.events.change node, ->
+            value = node.value
+            if value is 'false' then value = false
+            if value is 'true' then value = true
+            context.set key, value
+    
+    context: (node, contextName, key, contexts) ->
+      context = matchContext(contexts, key).get(key)
+      object = new Batman.Object
+      object[contextName] = context
+      
+      contexts.push object
+      
+      node.onParseExit = ->
+        index = contexts.indexOf(context)
+        contexts.splice(index, contexts.length - index)
     
     event: (node, eventName, key, contexts) ->
-      context = matchContext contexts, key
-      callback = context.get key
+      if key.substr(0, 1) is '@'
+        callback = new Function key.substr(1)
+      else
+        context = matchContext contexts, key
+        callback = context.get key
       
-      Batman.DOM.events[eventName](node, callback)
+      Batman.DOM.events[eventName] node, ->
+        confirmText = node.getAttribute('data-confirm')
+        if confirmText and not confirm(confirmText)
+          return
+        
+        callback?.apply context, arguments
     
     addclass: (node, className, key, contexts, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
@@ -1254,16 +1351,54 @@ Batman.DOM = {
       Batman.DOM.attrReaders.addclass args..., yes
     
     foreach: (node, iteratorName, key, contexts) ->
+      prototype = node.cloneNode true
+      prototype.removeAttribute "data-foreach-#{iteratorName}"
+      
+      node.style.display = 'none'
+      node.innerHTML = ''
+      
+      nodeMap = new Batman.Hash
+      
+      contextsClone = Array.prototype.slice.call(contexts)
       context = matchContext contexts, key
-      context.observe key, yes, (collection) ->
+      collection = context.get key
+      
+      collection.observe 'add', add = (item) ->
+        newNode = prototype.cloneNode true
+        nodeMap.set item, newNode
         
+        renderer = new Batman.Renderer newNode, ->
+          node.parentNode.insertBefore newNode, node
+        
+        renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
+        renderer.contextObject = Batman localClone[1]
+        
+        iteratorContext = new Batman.Object
+        iteratorContext[iteratorName] = item
+        localClone.push iteratorContext
+        localClone.push item
+      
+      collection.observe 'remove', remove = (item) ->
+        oldNode = nodeMap.get item
+        oldNode?.parentNode?.removeChild oldNode
+      
+      collection.observe 'sort', ->
+        collection.each remove
+        setTimeout (-> collection.each add), 0
+      
+      collection.each add
+      
+      false
   }
   
   events: {
     click: (node, callback) ->
       Batman.DOM.addEventListener node, 'click', (e) ->
-        callback @, arguments
+        callback?.apply @, arguments
         e.preventDefault()
+      
+      if node.nodeName.toUpperCase() is 'A' and not node.href
+        node.href = '#'
     
     change: (node, callback) ->
       eventName = switch node.nodeName.toUpperCase()
@@ -1290,17 +1425,17 @@ Batman.DOM = {
     yields = Batman.DOM._yields ||= {}
     yields[name] = node
     
-    if content = Batman.DOM._yieldContents?[name]
+    if (content = Batman.DOM._yieldContents?[name])
       node.innerHTML = ''
-      node.appendChild(content)
+      node.appendChild(content) if content
   
   contentFor: (name, node) ->
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
     
-    if yield = Batman.DOM._yields?[name]
+    if (yield = Batman.DOM._yields?[name])
       yield.innerHTML = ''
-      yield.appendChild(node)
+      yield.appendChild(node) if node
   
   valueForNode: (node, value) ->
     isSetting = arguments.length > 1
