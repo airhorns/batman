@@ -1100,7 +1100,8 @@ matchContext = (contexts, key) ->
   while i--
     context = contexts[i]
     return context if context.get(base)?
-  return null
+  
+  global
 
 Batman.DOM = {
   readers: {
@@ -1114,7 +1115,7 @@ Batman.DOM = {
           context.set key, node.value
           shouldSet = yes
       
-      context?.observe key, yes, observer = (value) ->
+      context.observe key, yes, observer = (value) ->
         if shouldSet
           Batman.DOM.valueForNode node, value
     
@@ -1153,9 +1154,17 @@ Batman.DOM = {
       if key.substr(0, 1) is '/'
         route = Batman.redirect.bind Batman, key
         routeName = key
+      else if (index = key.indexOf('#')) isnt -1
+        controllerName = helpers.camelize(key.substr(0, index)) + 'Controller'
+        context = matchContext contexts, controllerName
+        controller = context[controllerName]
+        
+        route = controller?.sharedInstance()[key.substr(index + 1)]
+        routeName = route?.pattern
       else
-        route = matchContext contexts, key
-        routeName = route.path
+        context = matchContext contexts, key
+        route = context.get key
+        routeName = route?.pattern
       
       switch node.nodeName.toUpperCase()
         when 'A' then node.href = Batman.HASH_PATTERN + routeName
@@ -1171,9 +1180,20 @@ Batman.DOM = {
   
   attrReaders: {
     bind: (node, attr, key, contexts) ->
-      context = matchContext contexts, key
-      context?.observe key, yes, (value) ->
-        node[attr] = value
+      filters = key.split(/\s*\|\s*/)
+      if filters.length
+        key = filters.shift()
+        while filterName = filters.shift()
+          filter = Batman.filters[filterName] || Batman.helpers[filterName]
+          continue if not filter
+          
+          key = filter(key)
+          
+          node[attr] = key
+      else
+        context = matchContext contexts, key
+        context.observe key, yes, (value) ->
+          node[attr] = value
     
     event: (node, eventName, key, contexts) ->
       context = matchContext contexts, key
@@ -1199,7 +1219,8 @@ Batman.DOM = {
     
     foreach: (node, iteratorName, key, contexts) ->
       context = matchContext contexts, key
-      context
+      context.observe key, yes, (collection) ->
+        
   }
   
   events: {
