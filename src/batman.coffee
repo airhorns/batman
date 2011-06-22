@@ -483,16 +483,17 @@ Batman.EventEmitter = {
         throw "EventEmitter object needs to be observable."
       
       key ||= Batman._findName(f, @)
+      fired = @_batman._oneShotFired?[key]
       
       # Pass a function to the event to register it as an observer.
       if typeof observer is 'function'
         @observe key, observer
-        observer.apply @, f._firedArgs if f.isOneShot and f.fired
+        observer.apply(@, f._firedArgs) if f.isOneShot and fired
       
       # Otherwise, calling the event will cause it to fire. Any
       # arguments you pass will be passed to your wrapped function.
       else if @allowed key
-        return false if f.isOneShot and f.fired
+        return false if f.isOneShot and fired
         
         value = callback?.apply @, arguments
         
@@ -508,7 +509,10 @@ Batman.EventEmitter = {
           args.unshift key
           
           @fire.apply @, args
-          f.fired = yes if f.isOneShot
+          
+          if f.isOneShot
+            firings = @_batman._oneShotFired ||= {}
+            firings[key] = yes
         
         value
       else
