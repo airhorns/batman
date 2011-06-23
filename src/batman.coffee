@@ -70,6 +70,38 @@ Batman._findName = (f, context) ->
   
   f.displayName
 
+# $block takes in a function and returns a function which can either
+#   A) take a callback as its last argument as it would normally, or 
+#   B) accept a callback as a second function application.
+# This is useful so that multiline functions can be passed as callbacks 
+# without the need for wrapping brackets (which a CoffeeScript bug 
+# requires them to have).
+#
+# Example:
+#  With a function that accepts a callback as its last argument
+#
+#     ex = (a, b, callback) -> callback(a + b)
+#
+#  We can use $block to make it accept the callback in both ways:   
+#
+#     ex(2, 3, (x) -> alert(x))
+#
+#  or
+#
+#     ex(2, 3) (x) -> alert(x)
+
+Batman._block = $block = (fn) ->
+  callbackEater = (args...) ->
+    ctx = @
+    f = (innerCallback) ->
+      args.push innerCallback
+      fn.apply(ctx, args)
+    
+    if typeof (outerCallback = args[args.length-1]) is 'function'
+      args.pop()
+      f(outerCallback)
+    else
+      f
 
 class Batman.Hash
   constructor: ->
@@ -434,7 +466,8 @@ Batman.Observable = {
 # Batman.Event
 # Another generic mixin that simply allows an object to emit events. All events
 # require an object that is observable. If you don't want to use an emitter,
-# you can use the $event functions to create ephemeral objects internally.
+# you can use the $event f
+if outypeofunctions to create ephemeral objects internally.
 ###
 
 Batman.EventEmitter = {
@@ -442,62 +475,54 @@ Batman.EventEmitter = {
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
   # register an observer simply by calling the event with a function argument.
-  event: (key, callback) ->
+  event: $block (key, context = @, callback) ->
     if not callback and $typeOf(key) isnt 'String'
       callback = key
       key = null
     
-    # The callback eater assists in creating events from two places: a class
-    # definition where a bug in CoffeeScript requires you to wrap the key in
-    # parenthesis and from outside a class definition, where you can pass in
-    # the callback directly.
-    callbackEater = (callback, context) ->
-      f = (observer) ->
-        if not @observe
-          throw "EventEmitter object needs to be observable."
-        
-        key ||= Batman._findName(f, @)
-        
-        # Pass a function to the event to register it as an observer.
-        if typeof observer is 'function'
-          @observe key, observer
-          observer.apply @, f._firedArgs if f.isOneShot and f.fired
-        
-        # Otherwise, calling the event will cause it to fire. Any
-        # arguments you pass will be passed to your wrapped function.
-        else if @allowed key
-          return false if f.isOneShot and f.fired
-          
-          value = callback?.apply @, arguments
-          
-          # Observers will only fire if the result of the event is not false.
-          if value isnt false
-            value = arguments[0] if typeof value is 'undefined'
-            value = null if typeof value is 'undefined'
-            
-            # Observers will be called with the result of the event function,
-            # followed by the original arguments.
-            f._firedArgs = [value].concat arguments...
-            args = Array.prototype.slice.call f._firedArgs
-            args.unshift key
-            
-            @fire.apply @, args
-            f.fired = yes if f.isOneShot
-          
-          value
-        else
-          false
+    f = (observer) ->
+      if not @observe
+        throw "EventEmitter object needs to be observable."
       
-      f = f.bind(context) if context
-      @[key] = f if $typeOf(key) is 'String'
+      key ||= Batman._findName(f, @)
       
-      # This could be its own mixin but is kept here for brevity.
-      $mixin f,
-        isEvent: yes
-        action: callback
-        isOneShot: callbackEater.isOneShot
+      # Pass a function to the event to register it as an observer.
+      if typeof observer is 'function'
+        @observe key, observer
+        observer.apply @, f._firedArgs if f.isOneShot and f.fired
+      
+      # Otherwise, calling the event will cause it to fire. Any
+      # arguments you pass will be passed to your wrapped function.
+      else if @allowed key
+        return false if f.isOneShot and f.fired
+        
+        value = callback?.apply @, arguments
+        
+        # Observers will only fire if the result of the event is not false.
+        if value isnt false
+          value = arguments[0] if typeof value is 'undefined'
+          value = null if typeof value is 'undefined'
+          
+          # Observers will be called with the result of the event function,
+          # followed by the original arguments.
+          f._firedArgs = [value].concat arguments...
+          args = Array.prototype.slice.call f._firedArgs
+          args.unshift key
+          
+          @fire.apply @, args
+          f.fired = yes if f.isOneShot
+        
+        value
+      else
+        false
     
-    if typeof callback is 'function' then callbackEater.call(@, callback) else callbackEater
+    @[key] = f if $typeOf(key) is 'String'
+    
+    # This could be its own mixin but is kept here for brevity.
+    $mixin f,
+      isEvent: yes
+      action: callback
+      isOneShot: @isOneShot
   
   # Use a one shot event for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately.
@@ -510,11 +535,11 @@ Batman.EventEmitter = {
 # If you already have an EventEmitter object, you should call .event() on it.
 $event = (callback) ->
   context = new Batman.Object
-  context.event('_event')(callback, context)
+  context.event('_event', context, callback)
 
 $eventOneShot = (callback) ->
   context = new Batman.Object
-  context.eventOneShot('_event')(callback, context)
+  context.eventOneShot('_event', context, callback)
 
 ###
 # Batman.Object
@@ -661,38 +686,35 @@ Batman.Route = {
 $mixin Batman,
   HASH_PATTERN: '#!'
   _routes: []
-  
-  route: (pattern, callback) ->
-    callbackEater = (callback) ->
-      f = (args...) ->
-        context = f.context || @
-        if context and context.sharedInstance
-          context = context.sharedInstance()
-        
-        if context and context.dispatch
-          context.dispatch f, args...
-        else
-          f.action.apply context, arguments
+ 
+  route: $block (pattern, callback) ->
+    f = (args...) ->
+      context = f.context || @
+      if context and context.sharedInstance
+        context = context.sharedInstance()
       
-      match = pattern.replace(escapeRegExp, '\\$&')
-      regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
-      
-      namedArguments = []
-      while (array = namedOrSplat.exec(match))?
-        namedArguments.push(array[1]) if array[1]
-      
-      $mixin f, Batman.Route,
-        pattern: match
-        regexp: regexp
-        namedArguments: namedArguments
-        action: callback
-        context: callbackEater.context
-      
-      Batman._routes.push f
-      f
+      if context and context.dispatch
+        context.dispatch f, args...
+      else
+        f.action.apply context, arguments
     
-    callbackEater.context = @
-    if typeof callback is 'function' then callbackEater(callback) else callbackEater
+    match = pattern.replace(escapeRegExp, '\\$&')
+    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+    
+    namedArguments = []
+    while (array = namedOrSplat.exec(match))?
+      namedArguments.push(array[1]) if array[1]
+    
+    $mixin f, Batman.Route,
+      pattern: match
+      regexp: regexp
+      namedArguments: namedArguments
+      action: callback
+      context: @
+    
+    Batman._routes.push f
+    f
+    
   
   redirect: (urlOrFunction) ->
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
