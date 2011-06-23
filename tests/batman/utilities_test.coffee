@@ -50,7 +50,7 @@ test "ephemeral events", ->
   event = $event ->
   ok event.isEvent
 
-QUnit.module "prototype events"
+QUnit.module "$events on Batman.Object: prototype events"
   setup: ->
     @oneMethodObserver = a = createSpy()
     @oneRedeclaredObserver = b = createSpy()
@@ -83,10 +83,12 @@ test "should be declarable", ->
 
 test "should fire observers attached to the prototype", ->
   @one.method("foo")
-  ok @oneMethodObserver.called
+  equal @oneMethodObserver.callCount, 1
+  equal @twoMethodObserver.callCount, 0
 
   @two.method("foo")
-  ok @twoMethodObserver.called
+  equal @oneMethodObserver.callCount, 1
+  equal @twoMethodObserver.callCount, 1
 
 test "should fire observers for redeclared methods", ->
   @one.redeclaredMethod("foo")
@@ -97,12 +99,14 @@ test "should fire observers for redeclared methods", ->
   equal @oneRedeclaredObserver.callCount, 1
   equal @twoRedeclaredObserver.callCount, 1
 
-QUnit.module "class events"
+QUnit.module "$events on Batman.Object: class events"
 test "class events", ->
   class Emitter extends Batman.Object
     @foo: @event ->
   
   ok Emitter.foo.isEvent
+
+QUnit.module "$events on Batman.Object: instance events"
 
 test "instance events", ->
   foo = new Batman.Object

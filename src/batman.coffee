@@ -423,7 +423,9 @@ Batman.EventEmitter = {
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
   # register an observer simply by calling the event with a function argument.
-  event: $block (key, context = @, callback) ->
+  event: $block (key, context, callback) ->
+    if not callback and typeof context isnt 'undefined'
+      callback = context
     if not callback and $typeOf(key) isnt 'String'
       callback = key
       key = null
@@ -446,12 +448,11 @@ Batman.EventEmitter = {
       # arguments you pass will be passed to your wrapped function.
       else if @allowed key
         return false if f.isOneShot and fired
-                
         value = callback?.apply @, arguments
         
         # Observers will only fire if the result of the event is not false.
         if value isnt false
-          f._firedArgs = if value?
+          f._firedArgs = if typeof value isnt 'undefined'
               [value].concat arguments...
             else
               if arguments.length == 0
@@ -461,7 +462,6 @@ Batman.EventEmitter = {
 
           args = Array.prototype.slice.call f._firedArgs
           args.unshift key
-          
           @fire(args...)
           
           if f.isOneShot
@@ -473,7 +473,8 @@ Batman.EventEmitter = {
         false
     
     # This could be its own mixin but is kept here for brevity.
-    f = f.bind(context)
+    f = f.bind(context) if context
+    @[key] = f if key?
     $mixin f,
       isEvent: yes
       action: callback
@@ -742,19 +743,19 @@ $mixin Batman,
       else
         f.fire arguments, context
       
-      match = pattern.replace(escapeRegExp, '\\$&')
-      regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+    match = pattern.replace(escapeRegExp, '\\$&')
+    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+    
+    namedArguments = []
+    while (array = namedOrSplat.exec(match))?
+      namedArguments.push(array[1]) if array[1]
       
-      namedArguments = []
-      while (array = namedOrSplat.exec(match))?
-        namedArguments.push(array[1]) if array[1]
-      
-      $mixin f, Batman.Route,
-        pattern: match
-        regexp: regexp
-        namedArguments: namedArguments
-        action: callback
-        context: @
+    $mixin f, Batman.Route,
+      pattern: match
+      regexp: regexp
+      namedArguments: namedArguments
+      action: callback
+      context: @
     
     Batman._routes.push f
     f
