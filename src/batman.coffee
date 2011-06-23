@@ -451,16 +451,18 @@ Batman.EventEmitter = {
         
         # Observers will only fire if the result of the event is not false.
         if value isnt false
-          value = arguments[0] if typeof value is 'undefined'
-          value = null if typeof value is 'undefined'
-          
-          # Observers will be called with the result of the event function,
-          # followed by the original arguments.
-          f._firedArgs = [value].concat arguments...
+          f._firedArgs = if value?
+              [value].concat arguments...
+            else
+              if arguments.length == 0
+                []
+              else
+                Array.prototype.slice.call arguments
+
           args = Array.prototype.slice.call f._firedArgs
           args.unshift key
           
-          @fire.apply @, args
+          @fire(args...)
           
           if f.isOneShot
             firings = @_batman._oneShotFired ||= {}
@@ -470,9 +472,8 @@ Batman.EventEmitter = {
       else
         false
     
-    @[key] = f if $typeOf(key) is 'String'
-    
     # This could be its own mixin but is kept here for brevity.
+    f = f.bind(context)
     $mixin f,
       isEvent: yes
       action: callback
@@ -728,13 +729,13 @@ $mixin Batman,
         context = context.sharedInstance()
       
       pattern = f.pattern
-        if params and not params.url
-          for key, value of params
-            pattern = pattern.replace(new RegExp('[:|\*]' + key), value)
-        
-        if (params and not params.url) or not params
-          Batman.currentApp._cachedRoute = pattern
-          window.location.hash = Batman.HASH_PATTERN + pattern
+      if params and not params.url
+        for key, value of params
+          pattern = pattern.replace(new RegExp('[:|\*]' + key), value)
+      
+      if (params and not params.url) or not params
+        Batman.currentApp._cachedRoute = pattern
+        window.location.hash = Batman.HASH_PATTERN + pattern
         
       if context and context.dispatch
         context.dispatch f, args...

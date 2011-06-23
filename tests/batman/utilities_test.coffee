@@ -50,13 +50,54 @@ test "ephemeral events", ->
   event = $event ->
   ok event.isEvent
 
-test "prototype events", ->
+QUnit.module "prototype events"
+  setup: ->
+    @oneMethodObserver = a = createSpy()
+    @oneRedeclaredObserver = b = createSpy()
+    @twoMethodObserver = c = createSpy()
+    @twoRedeclaredObserver = d = createSpy()
+
+    class One extends Batman.Object
+      method: @event ->
+      @::observe "method", a
+
+      redeclaredMethod: @event ->
+      @::observe "redeclaredMethod", b
+
+    class Two extends One
+      # Redeclare a new event with the same key
+      redeclaredMethod: @event ->
+
+      @::observe "method", c
+      @::observe "redeclaredMethod", d
+
+    @one = new One
+    @two = new Two
+    
+test "should be declarable", ->
   class Emitter extends Batman.Object
     foo: @event ->
   
   e = new Emitter
   ok e.foo.isEvent
 
+test "should fire observers attached to the prototype", ->
+  @one.method("foo")
+  ok @oneMethodObserver.called
+
+  @two.method("foo")
+  ok @twoMethodObserver.called
+
+test "should fire observers for redeclared methods", ->
+  @one.redeclaredMethod("foo")
+  equal @oneRedeclaredObserver.callCount, 1
+  equal @twoRedeclaredObserver.callCount, 0
+
+  @two.redeclaredMethod("foo")
+  equal @oneRedeclaredObserver.callCount, 1
+  equal @twoRedeclaredObserver.callCount, 1
+
+QUnit.module "class events"
 test "class events", ->
   class Emitter extends Batman.Object
     @foo: @event ->
@@ -67,7 +108,7 @@ test "instance events", ->
   foo = new Batman.Object
   foo.event 'bar', ->
   ok foo.bar.isEvent
-
+  
 test "should create an event with an action", ->
   event = $event callback = ->
   
@@ -121,11 +162,24 @@ test "should fire exactly once", ->
 
 test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
   event = $eventOneShot -> "result"
-  event true, 1
+  event false, 2
   
-  event observer = createSpy()
+  event (observer = createSpy())
+
   equal observer.callCount, 1
-  deepEqual observer.lastCallArguments, ["result", true, 1]
+  deepEqual observer.lastCallArguments, ["result", false, 2]
+
+test "oneShotEvents shouldn't fire each other", ->
+  one = $eventOneShot -> "result"
+  two = $eventOneShot -> "result"
+  
+  one (oneObserver = createSpy())
+  two (twoObserver = createSpy())
+
+  one "args", "which", "fire"
+
+  equal oneObserver.callCount, 1
+  equal twoObserver.callCount, 0
 
 QUnit.module "Batman._block"
 
