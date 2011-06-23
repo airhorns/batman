@@ -93,13 +93,12 @@ Batman._findName = (f, context) ->
 Batman._block = $block = (fn) ->
   callbackEater = (args...) ->
     ctx = @
-    f = (innerCallback) ->
-      args.push innerCallback
+    f = (callback) ->
+      args.push callback
       fn.apply(ctx, args)
     
-    if typeof (outerCallback = args[args.length-1]) is 'function'
-      args.pop()
-      f(outerCallback)
+    if typeof args[args.length-1] is 'function'
+      f(args.pop())
     else
       f
 
@@ -466,8 +465,7 @@ Batman.Observable = {
 # Batman.Event
 # Another generic mixin that simply allows an object to emit events. All events
 # require an object that is observable. If you don't want to use an emitter,
-# you can use the $event f
-if outypeofunctions to create ephemeral objects internally.
+# you can use the $event functions to create ephemeral objects internally.
 ###
 
 Batman.EventEmitter = {
