@@ -35,8 +35,8 @@ class SerialJobProcessor
 
 jobs = new SerialJobProcessor
 
-Object.prototype.merge = (other) ->
-  result = {}
+$extend = (onto, other) ->
+  result = onto
   for o in [@,other]
     for k,v of o
       result[k] = v
@@ -148,7 +148,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       'src/batman.coffee'       : (matches) -> compileScript(matches[0], 'lib/batman.js', options)
       'src/batman.nodep.coffee' : (matches) -> compileScript(matches[0], 'lib/batman.nodep.js', options)
       'src/batman.jquery.coffee': (matches) -> compileScript(matches[0], 'lib/batman.jquery.js', options)
-      'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", options.merge(mode: 0755))
+      'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", $extend(options, {mode: 0755}))
       'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js", options)
   console.log "Watching src..." if options.watch
 
@@ -162,12 +162,13 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
     options: options
     map:
-     'src/batman.coffee'               : (matches) -> compileScript(matches[0], "#{tmpdir}/batman.js", {notify: first}.merge(options))
-     'tests/batman/(.+)_test.coffee'   : (matches) -> compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", {notify: first}.merge(options))
-     'tests/batman/test_helper.coffee' : (matches) -> compileScript(matches[0], "#{tmpdir}/test_helper.js", {notify: first}.merge(options))
+     'src/batman.coffee'               : (matches) -> compileScript(matches[0], "#{tmpdir}/batman.js", $extend {notify: first}, options)
+     'src/batman.nodep.coffee'         : (matches) -> compileScript(matches[0], "#{tmpdir}/batman.nodep.js", $extend {notify: first}, options)
+     'tests/batman/(.+)_test.coffee'   : (matches) -> compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", $extend {notify: first}, options)
+     'tests/batman/test_helper.coffee' : (matches) -> compileScript(matches[0], "#{tmpdir}/test_helper.js", $extend {notify: first}, options)
     after: ->
       first = true
       runner.run
         code:  "#{tmpdir}/batman.js"
-        deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
+        deps: ["#{tmpdir}/batman.nodep.js", "jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
         tests: require('glob').globSync("#{tmpdir}/*_test.js")

@@ -185,7 +185,7 @@ mockClassDuring = (namespace, name, mock = MockClass, fn) ->
 delay = (fn) ->
   setTimeout(->
     fn()
-    start()
+    QUnit.start()
   , ASYNC_TEST_DELAY)
 
 for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay}

@@ -325,7 +325,7 @@ Batman.Observable = {
   # callback will be called in the context of the original object.
   observe: (key, fireImmediately..., callback) ->
     Batman.Observable.initialize.call @
-    fireImmediately = fireImmediately[0]?
+    fireImmediately = fireImmediately[0] is true
     
     keypath = @keypath(key)
     currentVal = keypath.resolve()
@@ -1190,8 +1190,9 @@ matchContext = (contexts, key) ->
   i = contexts.length
   while i--
     context = contexts[i]
-    return context if context.get(base)?
-  
+    if (context.get? && context.get(base)?) || (context[base])?
+      return context
+
   global
 
 Batman.DOM = {
@@ -1205,8 +1206,7 @@ Batman.DOM = {
           shouldSet = no
           context.set key, node.value
           shouldSet = yes
-      
-      context.observe key, yes, observer = (value) ->
+      context.observe key, yes, (value) ->
         if shouldSet
           Batman.DOM.valueForNode node, value
     
@@ -1223,7 +1223,7 @@ Batman.DOM = {
       context = matchContext contexts, key
       mixin = context.get key
       contexts.pop()
-      
+
       $mixin node, mixin
     
     showif: (node, key, contexts, invert) ->
@@ -1288,8 +1288,8 @@ Batman.DOM = {
   attrReaders: {
     bind: (node, attr, key, contexts) ->
       filters = key.split(/\s*\|\s*/)
+      key = filters.shift()
       if filters.length
-        key = filters.shift()
         while filterName = filters.shift()
           filter = Batman.filters[filterName] || Batman.helpers[filterName]
           continue if not filter
@@ -1356,6 +1356,8 @@ Batman.DOM = {
       prototype = node.cloneNode true
       prototype.removeAttribute "data-foreach-#{iteratorName}"
       
+      parent = node.parentNode
+      parent.removeChild(node)
       node.style.display = 'none'
       node.innerHTML = ''
       
@@ -1370,7 +1372,7 @@ Batman.DOM = {
         nodeMap.set item, newNode
         
         renderer = new Batman.Renderer newNode, ->
-          node.parentNode.insertBefore newNode, node
+          parent.appendChild newNode
         
         renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
         renderer.contextObject = Batman localClone[1]
@@ -1505,9 +1507,7 @@ filters = Batman.filters = {
 ###
 # Mixins
 ###
-mixins = Batman.mixins = {
-  
-}
+mixins = Batman.mixins = new Batman.Object
 
 # Export a few globals.
 global = exports ? this
