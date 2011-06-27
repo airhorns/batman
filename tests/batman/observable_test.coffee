@@ -3,7 +3,15 @@ QUnit.module 'Batman.Observable',
     # spyOn Batman.TriggerSet.prototype, 'add'
     # spyOn Batman.TriggerSet.prototype, 'remove'
     @obj = Batman
+      someProperty: new Batman.Property
+        resolve: createSpy()
+        assign: createSpy()
+        remove: createSpy()
       foo: Batman
+        someProperty: new Batman.Property
+          resolve: createSpy()
+          assign: createSpy()
+          remove: createSpy()
         bar: Batman
           baz: Batman
             qux: 'quxVal'
@@ -33,16 +41,14 @@ test "get(key) with an unresolvable keypath returns undefined", ->
   equal typeof(@obj.get('foo.bar.nothing')), 'undefined'
 
 test "get(key) with a simple key calls resolve() on the result if it is a Batman.Property and returns that instead", ->
-  @obj.foo =
-    isProperty: true
-    resolve: -> 'resolvedValue'
-  equal @obj.get('foo'), 'resolvedValue'
+  @obj.someProperty.resolve.whichReturns('resolvedValue')
+  equal @obj.get('someProperty'), 'resolvedValue'
+  equal @obj.someProperty.resolve.lastCallContext, @obj
 
 test "get(key) with a deep keypath calls resolve() on the result if it is a Batman.Property and returns that instead", ->
-  @obj.foo.bar =
-    isProperty: true
-    resolve: -> 'resolvedValue'
-  equal @obj.get('foo.bar'), 'resolvedValue'
+  @obj.foo.someProperty.resolve.whichReturns('resolvedValue')
+  equal @obj.get('foo.someProperty'), 'resolvedValue'
+  equal @obj.foo.someProperty.resolve.lastCallContext, @obj.foo
 
 
 ###
@@ -68,20 +74,18 @@ test "set(key, val) with a deep keypath does not call fire() directly", ->
   equal @obj.fire.called, false
 
 test "set(key, val) with a simple key should use the existing value's assign() method if the value is a Batman.Property", ->
-  @obj.foo.isProperty = true
-  @obj.foo.assign = createSpy()
-  foo = @obj.foo
-  @obj.set 'foo', 'newVal'
-  equal foo, @obj.foo
-  deepEqual foo.assign.lastCallArguments, ['newVal']
+  someProperty = @obj.someProperty
+  @obj.set 'someProperty', 'newVal'
+  equal someProperty, @obj.someProperty
+  deepEqual someProperty.assign.lastCallArguments, ['newVal']
+  equal someProperty.assign.lastCallContext, @obj
 
 test "set(key, val) with a deep keypath should use the existing value's assign() method if the value is a Batman.Property", ->
-  @obj.foo.bar.isProperty = true
-  @obj.foo.bar.assign = createSpy()
-  bar = @obj.foo.bar
-  @obj.set 'foo.bar', 'newVal'
-  equal bar, @obj.foo.bar
-  deepEqual bar.assign.lastCallArguments, ['newVal']
+  someProperty = @obj.foo.someProperty
+  @obj.set 'foo.someProperty', 'newVal'
+  equal someProperty, @obj.foo.someProperty
+  deepEqual someProperty.assign.lastCallArguments, ['newVal']
+  equal someProperty.assign.lastCallContext, @obj.foo
 
 
 ###
@@ -106,18 +110,18 @@ test "unset(key) with a deep keypath does not call fire() directly", ->
   equal @obj.fire.called, false
 
 test "unset(key) with a simple key should use the existing value's remove() method if the value is a Batman.Property", ->
-  @obj.foo =
-    isProperty: true
-    remove: createSpy()
-  @obj.unset 'foo'
-  equal @obj.foo.remove.called, true
+  someProperty = @obj.someProperty
+  @obj.unset 'someProperty'
+  equal someProperty, @obj.someProperty
+  equal someProperty.remove.called, true
+  equal someProperty.remove.lastCallContext, @obj
 
 test "unset(key) with a deep keypath should use the existing value's remove() method if the value is a Batman.Property", ->
-  @obj.foo.bar =
-    isProperty: true
-    remove: createSpy()
-  @obj.unset 'foo.bar'
-  equal @obj.foo.bar.remove.called, true
+  someProperty = @obj.foo.someProperty
+  @obj.unset 'foo.someProperty'
+  equal someProperty, @obj.foo.someProperty
+  equal someProperty.remove.called, true
+  equal someProperty.remove.lastCallContext, @obj.foo
 
 
 ###

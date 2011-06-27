@@ -141,57 +141,65 @@ class Batman.Hash
     result
     
 
+
+      
+class Batman.Property
+  constructor: (opts) ->
+    @[key] = val for key, val of opts if opts
+  isProperty: true
+  resolve: ->
+  assign: (val) ->
+  remove: ->
+  resolveOnObject: (obj) -> @resolve.call obj
+  assignOnObject: (obj, val) -> @assign.call obj, val
+  removeOnObject: (obj) -> @remove.call obj
+
+class Batman.AutonomousProperty extends Batman.Property
+  resolveOnObject: -> @resolve.call @
+  assignOnObject: (obj, val) -> @assign.call @, val
+  removeOnObject: -> @remove.call @
+  
 ###
 # Batman.Keypath
 # A keypath has a base object and one or more key segments
 # which represent a path to a target value.
 ###
 
-class Batman.Keypath
+class Batman.Keypath extends Batman.AutonomousProperty
   constructor: (@base, @segments) ->
     @segments = @segments.split('.') if $typeOf(@segments) is 'String'
-  
   path: ->
     @segments.join '.'
-    
   depth: ->
     @segments.length
-  
   slice: (begin, end) ->
     base = @base
     for segment in @segments.slice(0, begin)
       return unless base? and base = Batman.Observable.get.call(base, segment)
-    
     new Batman.Keypath base, @segments.slice(begin, end)
-  
   finalPair: ->
     @slice(-1)
-  
   eachPair: (callback) ->
     base = @base
     for segment, index in @segments
       return unless nextBase = Batman.Observable.get.call(base, segment)
       callback(new Batman.Keypath(base, segment), index)
       base = nextBase
-  
   resolve: ->
     switch @depth()
       when 0 then @base
       when 1 then Batman.Observable.get.call(@base, @segments[0])
       else @finalPair()?.resolve()
-  
   assign: (val) ->
     switch @depth()
       when 0 then return
       when 1 then Batman.Observable.set.call(@base, @segments[0], val)
       else @finalPair()?.assign(val)
-  
   remove: ->
     switch @depth()
       when 0 then return
       when 1 then Batman.Observable.unset.call(@base, @segments[0])
       else @finalPair().remove()
-  
   isEqual: (other) ->
     @base is other.base and @path() is other.path()
     
@@ -202,7 +210,6 @@ class Batman.Trigger
       return unless minimalKeypath.base.observe
       Batman.Observable.initialize.call minimalKeypath.base
       new Batman.Trigger(minimalKeypath.base, minimalKeypath.segments[0], keypath, callback)
-  
   constructor: (@base, @key, @targetKeypath, @callback) ->
     for base in [@base, @targetKeypath.base]
       return unless base.observe
@@ -210,24 +217,20 @@ class Batman.Trigger
     # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
     (@base._batman.outboundTriggers[@key] ||= new Batman.TriggerSet()).add @
     (@targetKeypath.base._batman.inboundTriggers[@targetKeypath.path()] ||= new Batman.TriggerSet()).add @
-  
   isEqual: (other) ->
     other instanceof Batman.Trigger and
     @base is other.base and
     @key is other.key and 
     @targetKeypath.isEqual(other.targetKeypath) and
     @callback is other.callback
-  
   isInKeypath: ->
     targetBase = @targetKeypath.base
     for segment in @targetKeypath.segments
       return true if targetBase is @base and segment is @key
       targetBase = targetBase?[segment]
       return false unless targetBase
-  
   hasActiveObserver: ->
     @targetKeypath.base.observesKeyWithObserver(@targetKeypath.path(), @callback)
-    
   remove: ->
     # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
     if outboundSet = @base._batman?.outboundTriggers[@key]
@@ -240,36 +243,28 @@ class Batman.TriggerSet
   constructor: ->
     @triggers = new Batman.Set
     @oldValues = new Batman.Hash
-  
   add: (trigger) ->
     @triggers.add trigger
-  
   remove: (trigger) ->
     @triggers.remove(trigger)
-  
   keypaths: ->
     result = new Batman.Set
     @triggers.each (trigger) ->
       result.add trigger.targetKeypath
     result
-  
   rememberOldValues: ->
     oldValues = @oldValues = new Batman.Hash
     @keypaths().each (keypath) ->
       oldValues.set keypath, keypath.resolve()
-    
   fireAll: ->
     @oldValues.each (keypath, oldValue) ->
       keypath.base.fire keypath.path(), keypath.resolve(), oldValue
-  
   refreshKeypathsWithTriggers: ->
     @triggers.each (trigger) ->
       Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
-  
   removeTriggersNotInKeypath: ->
     for trigger in @triggers.toArray()
       trigger.remove() unless trigger.isInKeypath()
-  
   removeTriggersWithInactiveObservers: ->
     for trigger in @triggers.toArray()
       trigger.remove() unless trigger.hasActiveObserver()
@@ -281,7 +276,7 @@ class Batman.TriggerSet
 # instance of Batman.Object and subclasses.
 ###
 
-Batman.Observable = {
+Batman.Observable =
   initialize: ->
     Batman._initializeObject @
     @_batman.observers ||= {}
@@ -299,14 +294,14 @@ Batman.Observable = {
     new Batman.Keypath(@, string)
     
   _resolveObjectIfPossible: (obj) ->
-    if typeof obj?.resolve is 'function'
-      obj.resolve()
+    if obj?.isProperty
+      obj.resolveOnObject @
     else
       obj
   
   get: (key) ->
     result = Batman.Observable.getWithoutResolution.apply(@, arguments)
-    Batman.Observable._resolveObjectIfPossible(result)
+    Batman.Observable._resolveObjectIfPossible.call @, result
   
   getWithoutResolution: (key) ->
     if key.indexOf('.') is -1
@@ -330,7 +325,7 @@ Batman.Observable = {
     
     Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
       if unresolvedOldValue?.isProperty
-        unresolvedOldValue.assign(val)
+        unresolvedOldValue.assignOnObject @, val
       else
         @[key] = val
       @fire?(key, val, resolvedOldValue)
@@ -348,7 +343,7 @@ Batman.Observable = {
     
     Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
       if unresolvedOldValue?.isProperty
-        unresolvedOldValue.remove()
+        unresolvedOldValue.removeOnObject @
       else
         @[key] = null
         delete @[key]
@@ -443,7 +438,6 @@ Batman.Observable = {
   allowed: (key) ->
     Batman.Observable.initialize.call @
     !(@_batman.preventCounts?[key] > 0)
-}
 
 ###
 # Batman.Event
@@ -452,7 +446,7 @@ Batman.Observable = {
 # you can use the $event functions to create ephemeral objects internally.
 ###
 
-Batman.EventEmitter = {
+Batman.EventEmitter =
   # An event is a convenient observer wrapper. Wrap any function in an event.
   # Whenever you call that function, it will cause this object to fire all
   # the observers for that event. There is also some syntax sugar so you can
@@ -519,7 +513,7 @@ Batman.EventEmitter = {
   eventOneShot: (callback) ->
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
-}
+
 
 # $event lets you create an ephemeral event without needing an EventEmitter.
 # If you already have an EventEmitter object, you should call .event() on it.
