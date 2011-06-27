@@ -32,6 +32,18 @@ test "get(key) with an unresolvable simple key returns undefined", ->
 test "get(key) with an unresolvable keypath returns undefined", ->
   equal typeof(@obj.get('foo.bar.nothing')), 'undefined'
 
+test "get(key) with a simple key calls resolve() on the result if it is a Batman.Property and returns that instead", ->
+  @obj.foo =
+    isProperty: true
+    resolve: -> 'resolvedValue'
+  equal @obj.get('foo'), 'resolvedValue'
+
+test "get(key) with a deep keypath calls resolve() on the result if it is a Batman.Property and returns that instead", ->
+  @obj.foo.bar =
+    isProperty: true
+    resolve: -> 'resolvedValue'
+  equal @obj.get('foo.bar'), 'resolvedValue'
+
 
 ###
 # set(key)
@@ -55,6 +67,22 @@ test "set(key, val) with a deep keypath does not call fire() directly", ->
   @obj.set 'foo.bar.baz.qux', 'newVal'
   equal @obj.fire.called, false
 
+test "set(key, val) with a simple key should use the existing value's assign() method if the value is a Batman.Property", ->
+  @obj.foo.isProperty = true
+  @obj.foo.assign = createSpy()
+  foo = @obj.foo
+  @obj.set 'foo', 'newVal'
+  equal foo, @obj.foo
+  deepEqual foo.assign.lastCallArguments, ['newVal']
+
+test "set(key, val) with a deep keypath should use the existing value's assign() method if the value is a Batman.Property", ->
+  @obj.foo.bar.isProperty = true
+  @obj.foo.bar.assign = createSpy()
+  bar = @obj.foo.bar
+  @obj.set 'foo.bar', 'newVal'
+  equal bar, @obj.foo.bar
+  deepEqual bar.assign.lastCallArguments, ['newVal']
+
 
 ###
 # unset(key)
@@ -76,6 +104,20 @@ test "unset(key) with a deep keypath does not call fire() directly", ->
   spyOn(@obj, 'fire')
   @obj.unset 'foo.bar.baz.qux'
   equal @obj.fire.called, false
+
+test "unset(key) with a simple key should use the existing value's remove() method if the value is a Batman.Property", ->
+  @obj.foo =
+    isProperty: true
+    remove: createSpy()
+  @obj.unset 'foo'
+  equal @obj.foo.remove.called, true
+
+test "unset(key) with a deep keypath should use the existing value's remove() method if the value is a Batman.Property", ->
+  @obj.foo.bar =
+    isProperty: true
+    remove: createSpy()
+  @obj.unset 'foo.bar'
+  equal @obj.foo.bar.remove.called, true
 
 
 ###
@@ -304,7 +346,6 @@ test "forget(key) for a deep keypath will remove all triggers for that callback 
   @obj.set 'foo', 'newFoo'
   equal callback1.callCount, 3
   equal callback2.callCount, 0
-
 
 
 QUnit.module "Batman.Observable mixed in at class and instance level",

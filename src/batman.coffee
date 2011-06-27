@@ -141,7 +141,6 @@ class Batman.Hash
     result
     
 
-
 ###
 # Batman.Keypath
 # A keypath has a base object and one or more key segments
@@ -161,7 +160,7 @@ class Batman.Keypath
   slice: (begin, end) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base = base?[segment]
+      return unless base? and base = Batman.Observable.get.call(base, segment)
     
     new Batman.Keypath base, @segments.slice(begin, end)
   
@@ -171,29 +170,26 @@ class Batman.Keypath
   eachPair: (callback) ->
     base = @base
     for segment, index in @segments
-      return unless nextBase = base?[segment]
+      return unless nextBase = Batman.Observable.get.call(base, segment)
       callback(new Batman.Keypath(base, segment), index)
       base = nextBase
   
   resolve: ->
     switch @depth()
       when 0 then @base
-      when 1 then @base[@segments[0]]
+      when 1 then Batman.Observable.get.call(@base, @segments[0])
       else @finalPair()?.resolve()
   
   assign: (val) ->
     switch @depth()
       when 0 then return
-      when 1 then @base[@segments[0]] = val
-      else @finalPair().assign(val)
+      when 1 then Batman.Observable.set.call(@base, @segments[0], val)
+      else @finalPair()?.assign(val)
   
   remove: ->
     switch @depth()
       when 0 then return
-      when 1
-        @base[@segments[0]] = null
-        delete @base[@segments[0]]
-        return
+      when 1 then Batman.Observable.unset.call(@base, @segments[0])
       else @finalPair().remove()
   
   isEqual: (other) ->
@@ -297,28 +293,66 @@ Batman.Observable = {
     Batman.Observable.initialize.call @
     if triggers = @_batman.outboundTriggers[key]
       triggers.rememberOldValues()
-    callback()
+    callback.call @
   
   keypath: (string) ->
     new Batman.Keypath(@, string)
+    
+  _resolveObjectIfPossible: (obj) ->
+    if typeof obj?.resolve is 'function'
+      obj.resolve()
+    else
+      obj
   
   get: (key) ->
-    @keypath(key).resolve()
+    result = Batman.Observable.getWithoutResolution.apply(@, arguments)
+    Batman.Observable._resolveObjectIfPossible(result)
+  
+  getWithoutResolution: (key) ->
+    if key.indexOf('.') is -1
+      Batman.Observable.getWithoutKeypaths.apply(@, arguments)
+    else
+      new Batman.Keypath @, key
+      
+  getWithoutKeypaths: (key) ->
+    @[key]
   
   set: (key, val) ->
-    minimalKeypath = @keypath(key).finalPair()
-    oldValue = minimalKeypath.resolve()
-    minimalKeypath.base.rememberingOutboundTriggerValues minimalKeypath.segments[0], ->
-      minimalKeypath.assign(val)
-      minimalKeypath.base.fire(minimalKeypath.segments[0], val, oldValue)
+    if key.indexOf('.') is -1
+      Batman.Observable.setWithoutKeypaths.apply(@, arguments)
+    else
+      new Batman.Keypath(@, key).assign(val)
+  
+      
+  setWithoutKeypaths: (key, val) ->
+    unresolvedOldValue = Batman.Observable.getWithoutResolution.call(@, key)
+    resolvedOldValue = Batman.Observable._resolveObjectIfPossible(unresolvedOldValue)
+    
+    Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
+      if unresolvedOldValue?.isProperty
+        unresolvedOldValue.assign(val)
+      else
+        @[key] = val
+      @fire?(key, val, resolvedOldValue)
     val
   
   unset: (key) ->
-    minimalKeypath = @keypath(key).finalPair()
-    oldValue = minimalKeypath.resolve()
-    minimalKeypath.base.rememberingOutboundTriggerValues minimalKeypath.segments[0], ->
-      minimalKeypath.remove()
-      minimalKeypath.base.fire(minimalKeypath.segments[0], `void 0`, oldValue)
+    if key.indexOf('.') is -1
+      Batman.Observable.unsetWithoutKeypaths.apply(@, arguments)
+    else
+      new Batman.Keypath(@, key).remove()
+  
+  unsetWithoutKeypaths: (key) ->
+    unresolvedOldValue = Batman.Observable.getWithoutResolution.call(@, key)
+    resolvedOldValue = Batman.Observable._resolveObjectIfPossible(unresolvedOldValue)
+    
+    Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
+      if unresolvedOldValue?.isProperty
+        unresolvedOldValue.remove()
+      else
+        @[key] = null
+        delete @[key]
+      @fire?(key, `void 0`, resolvedOldValue)
     return
   
   # Pass a key and a callback. Whenever the value for that key changes, your
