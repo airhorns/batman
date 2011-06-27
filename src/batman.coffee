@@ -1112,7 +1112,7 @@ class Batman.View extends Batman.Object
 
 # Batman.Renderer will take a node and parse all recognized data
 # attributes out of it and its children. It is a continuation
-# style parser, designed not to blog for longer than 50ms at a
+# style parser, designed not to block for longer than 50ms at a
 # time if the document fragment is particularly long.
 class Batman.Renderer extends Batman.Object
   constructor: (@node, @callback, contexts) ->
@@ -1153,9 +1153,9 @@ class Batman.Renderer extends Batman.Object
         continue if not name
                 
         result = if (index = name.indexOf('-')) is -1
-          Batman.DOM.readers[name]?(node, attr.value, contexts)
+          Batman.DOM.readers[name]?(node, attr.value, contexts, @)
         else
-          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts)
+          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts, @)
         
         if result is false
           skipChildren = true
@@ -1226,7 +1226,7 @@ Batman.DOM = {
 
       $mixin node, mixin
     
-    showif: (node, key, contexts, invert) ->
+    showif: (node, key, contexts, renderer, invert) ->
       originalDisplay = node.style.display
       originalDisplay = 'block' if !originalDisplay or originalDisplay is 'none'
       
@@ -1336,7 +1336,7 @@ Batman.DOM = {
         
         callback?.apply context, arguments
     
-    addclass: (node, className, key, contexts, invert) ->
+    addclass: (node, className, key, contexts, parentRenderer, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
       
       context = matchContext contexts, key
@@ -1352,14 +1352,12 @@ Batman.DOM = {
     removeclass: (args...) ->
       Batman.DOM.attrReaders.addclass args..., yes
     
-    foreach: (node, iteratorName, key, contexts) ->
+    foreach: (node, iteratorName, key, contexts, parentRenderer) ->
       prototype = node.cloneNode true
       prototype.removeAttribute "data-foreach-#{iteratorName}"
       
       parent = node.parentNode
-      parent.removeChild(node)
-      node.style.display = 'none'
-      node.innerHTML = ''
+      parent.removeChild node
       
       nodeMap = new Batman.Hash
       
@@ -1373,6 +1371,7 @@ Batman.DOM = {
         
         renderer = new Batman.Renderer newNode, ->
           parent.appendChild newNode
+          parentRenderer.allow 'ready'
         
         renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
         renderer.contextObject = Batman localClone[1]
@@ -1390,7 +1389,9 @@ Batman.DOM = {
         collection.each remove
         setTimeout (-> collection.each add), 0
       
-      collection.each add
+      collection.each (item) ->
+        parentRenderer.prevent 'ready'
+        add(item)
       
       false
   }
