@@ -49,6 +49,20 @@ test "get(key) with a deep keypath calls resolve() on the result if it is a Batm
   @obj.foo.someProperty.resolve.whichReturns('resolvedValue')
   equal @obj.get('foo.someProperty'), 'resolvedValue'
   equal @obj.foo.someProperty.resolve.lastCallContext, @obj.foo
+  
+test "get(key) with a simple key uses _get(key) if present", ->
+  fancyObj =
+    _get: (key) -> 'fancy '+key
+  result = Batman.Observable.get.call(fancyObj, 'foo')
+  equal result, 'fancy foo'
+  
+test "get(key) with a deep keypath uses _get(key) if present", ->
+  fancyObj =
+    _get: (key) -> 'fancy '+key
+  wrapper =
+    fancy: fancyObj
+  result = Batman.Observable.get.call(wrapper, 'fancy.foo')
+  equal result, 'fancy foo'
 
 
 ###
@@ -86,6 +100,21 @@ test "set(key, val) with a deep keypath should use the existing value's assign()
   equal someProperty, @obj.foo.someProperty
   deepEqual someProperty.assign.lastCallArguments, ['newVal']
   equal someProperty.assign.lastCallContext, @obj.foo
+
+test "set(key, val) with a simple key uses _set(key, val) if present", ->
+  fancyObj =
+    _set: (key, val) -> @[key] = 'fancy '+val
+  Batman.Observable.set.call(fancyObj, 'foo', 'bar')
+  equal fancyObj.foo, 'fancy bar'
+
+test "set(key, val) with a deep keypath uses _set(key, val) if present", ->
+  fancyObj =
+    _set: (key, val) -> @[key] = 'fancy '+val
+  wrapper =
+    fancy: fancyObj
+  Batman.Observable.set.call(wrapper, 'fancy.foo', 'bar')
+  equal fancyObj.foo, 'fancy bar'
+  
 
 
 ###

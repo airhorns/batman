@@ -310,7 +310,10 @@ Batman.Observable =
       new Batman.Keypath @, key
       
   getWithoutKeypaths: (key) ->
-    @[key]
+    if typeof @_get is 'function'
+      @_get(key)
+    else
+      @[key]
   
   set: (key, val) ->
     if key.indexOf('.') is -1
@@ -326,6 +329,8 @@ Batman.Observable =
     Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
       if unresolvedOldValue?.isProperty
         unresolvedOldValue.assignOnObject @, val
+      else if typeof @_set is 'function'
+        @_set(key, val)
       else
         @[key] = val
       @fire?(key, val, resolvedOldValue)
