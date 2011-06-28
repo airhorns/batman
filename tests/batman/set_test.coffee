@@ -11,6 +11,13 @@ test "add(items...) adds the items to the set, such that has(item) returns true 
   equal @set.has('foo'), true
   equal @set.has('bar'), true
 
+test "add(items...) only increments length for items that aren't already there", ->
+  @set.add('foo')
+  @set.add('foo', 'bar')
+  @set.add('baz', 'baz')
+  
+  equal @set.length, 3
+
 test "remove(items...) removes the items from the set, returning the item and not touching any others", ->
   @set.add('foo', o1={}, o2={}, o3={})
   
@@ -28,3 +35,12 @@ test "remove(items...) returns an array of only the items that were there in the
   
   deepEqual @set.remove('foo', 'bar'), ['foo']
   deepEqual @set.remove('foo'), []
+
+test "remove(items...) only decrements length for items that are there to be removed", ->
+  @set.add('foo', 'bar', 'baz')
+  @set.remove('foo', 'qux')
+  @set.remove('bar', 'bar')
+  
+  equal @set.length, 1
+  
+  

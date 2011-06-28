@@ -575,15 +575,17 @@ class Batman.Set extends Batman.Object
     @_storage.hasKey item
   add: @event (items...) ->
     for item in items
-      @_storage.set item, true
-      @set 'length', @length + 1
+      unless @_storage.hasKey(item)
+        @_storage.set item, true
+        @set 'length', @length + 1
     items
   remove: @event (items...) ->
     results = []
     for item in items
       result = @_storage.remove item
-      @set 'length', @length - 1
-      results.push result if result?
+      if result?
+        results.push result
+        @set 'length', @length - 1
     results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
