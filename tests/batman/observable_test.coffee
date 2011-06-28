@@ -121,7 +121,7 @@ test "set(key, val) with a deep keypath uses _set(key, val) if present", ->
 # unset(key)
 ###
 test "unset(key) removes the referenced property", ->
-  @obj.unset 'foo.bar.baz.qux'
+  equal typeof(@obj.unset('foo.bar.baz.qux')), 'undefined'
   equal typeof(@obj.foo.bar.baz.qux), 'undefined'
 
 test "unset(key) with a simple key calls fire(key, undefined, oldValue)", ->

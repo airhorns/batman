@@ -27,18 +27,17 @@ test "set(key, val) keeps unequal keys distinct", ->
   equal @hash.get(key1), 1
   equal @hash.get(key2), 2
 
-test "remove(key) removes a key and its value from the hash, returning the existing key", ->
+test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
   @hash.set 'foo', 'bar'
-  equal @hash.remove('foo'), 'foo'
+  equal typeof(@hash.unset('foo')), 'undefined'
   equal @hash.hasKey('foo'), false
-  equal typeof(@hash.remove('foo')), 'undefined'
 
-test "remove(key) doesn't touch any other keys", ->
+test "unset(key) doesn't touch any other keys", ->
   @hash.set 'foo', 'bar'
   @hash.set (o1 = {}), 1
   @hash.set (o2 = {}), 2
   @hash.set (o3 = {}), 3
-  @hash.remove o2
+  @hash.unset o2
   equal @hash.hasKey('foo'), true
   equal @hash.hasKey(o1), true
   equal @hash.hasKey(o2), false
@@ -63,7 +62,7 @@ test "keys() returns an array of the hash's keys", ->
   @hash.set 'foo', 'baz'
   @hash.set 'bar', 'buzz'
   @hash.set 'baz', 'blue'
-  @hash.remove 'baz'
+  @hash.unset 'baz'
   keys = @hash.keys()
   equal keys.indexOf('baz'), -1
   notEqual keys.indexOf('foo'), -1

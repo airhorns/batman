@@ -296,7 +296,7 @@ Batman.Observable =
     val
   
   unset: (key) ->
-    if key.indexOf('.') is -1
+    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
       Batman.Observable.unsetWithoutKeypaths.apply(@, arguments)
     else
       new Batman.Keypath(@, key).remove()
@@ -542,12 +542,12 @@ class Batman.Hash extends Batman.Object
       pair = [key]
       matches.push(pair)
     pair[1] = val
-  remove: (key) ->
+  _unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
           matches.splice(index,1)
-          return obj
+          return
   equality: (lhs, rhs) ->
     if typeof lhs.isEqual is 'function'
       lhs.isEqual rhs
@@ -584,9 +584,9 @@ class Batman.Set extends Batman.Object
   remove: @event (items...) ->
     results = []
     for item in items
-      result = @_storage.remove item
-      if result?
-        results.push result
+      if @_storage.hasKey(item)
+        @_storage.unset item
+        results.push item
         @set 'length', @length - 1
     results
   each: (iterator) ->

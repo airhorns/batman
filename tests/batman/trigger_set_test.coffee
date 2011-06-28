@@ -69,8 +69,7 @@ test "remove(triggers...) returns an empty array and does not remove anything if
   
 test "remove(triggers...) removes a matching trigger", ->
   @set.add(@trigger)
-  result = @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  ok result[0] is @trigger
+  @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   equal @set.triggers.toArray().length, 0
   
 
