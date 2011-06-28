@@ -202,10 +202,10 @@ class Batman.TriggerSet
   constructor: ->
     @triggers = new Batman.Set
     @oldValues = new Batman.Hash
-  add: (trigger) ->
-    @triggers.add trigger
-  remove: (trigger) ->
-    @triggers.remove(trigger)
+  add: ->
+    @triggers.add.apply @triggers, arguments
+  remove: ->
+    @triggers.remove.apply @triggers, arguments
   keypaths: ->
     result = new Batman.Set
     @triggers.each (trigger) ->
@@ -567,23 +567,24 @@ class Batman.Hash extends Batman.Object
 ###
 
 class Batman.Set extends Batman.Object
-  constructor: (items...) ->
+  constructor: ->
     @_storage = new Batman.Hash
     @length = 0
-    
-    for item in items
-      @add item
-  
+    @add.apply @, arguments
   has: (item) ->
     @_storage.hasKey item
-  add: @event (item) ->
-    @_storage.set item, true
-    @set 'length', @length + 1
-    item
-  remove: @event (item) ->
-    result = @_storage.remove item
-    @set 'length', @length - 1
-    result
+  add: @event (items...) ->
+    for item in items
+      @_storage.set item, true
+      @set 'length', @length + 1
+    items
+  remove: @event (items...) ->
+    results = []
+    for item in items
+      result = @_storage.remove item
+      @set 'length', @length - 1
+      results.push result if result?
+    results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
   empty: @property ->

@@ -5,21 +5,26 @@ QUnit.module 'Batman.Set',
 test "has(item) on an empty set returns false", ->
   equal @set.has('foo'), false
 
-test "add(item) adds the item to the set, such that has(item) returns true", ->
-  equal @set.add('foo'), 'foo'
+test "add(items...) adds the items to the set, such that has(item) returns true for each item, and increments the set's length accordingly", ->
+  deepEqual @set.add('foo', 'bar'), ['foo', 'bar']
+  equal @set.length, 2
   equal @set.has('foo'), true
+  equal @set.has('bar'), true
 
-test "remove(item) removes an item from the set, returning the item and not touching any others", ->
-  @set.add('foo')
-  @set.add(o1 = {})
-  @set.add(o2 = {})
-  @set.add(o3 = {})
-  equal @set.remove(o2), o2
+test "remove(items...) removes the items from the set, returning the item and not touching any others", ->
+  @set.add('foo', o1={}, o2={}, o3={})
+  
+  deepEqual @set.remove(o2, o3), [o2, o3]
+  
+  equal @set.length, 2
   equal @set.has('foo'), true
   equal @set.has(o1), true
   equal @set.has(o2), false
-  equal @set.has(o3), true
+  equal @set.has(o3), false
 
-test "remove(item) returns undefined if the item wasn't there", ->
-  equal typeof @set.remove('foo'), 'undefined'
-
+test "remove(items...) returns an array of only the items that were there in the first place", ->
+  @set.add('foo')
+  @set.add('baz')
+  
+  deepEqual @set.remove('foo', 'bar'), ['foo']
+  deepEqual @set.remove('foo'), []

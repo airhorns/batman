@@ -59,18 +59,18 @@ test "keypaths() returns a Batman.Set of the triggers' target keypaths", ->
 ###
 # remove(trigger)
 ###
-test "remove(trigger) returns undefined and does not remove anything if there is no matching trigger in the set", ->
+test "remove(triggers...) returns an empty array and does not remove anything if there is no matching trigger in the set", ->
   @set.add(@trigger)
   result = @set.remove(new Batman.Trigger(@obj.foo.bar, 'baz', @keypath, @callback))
-  equal typeof(result), 'undefined'
+  deepEqual result, []
   equal @set.triggers.toArray().length, 1
   ok @set.triggers.has(@trigger)
   
   
-test "remove(trigger) removes a matching trigger", ->
+test "remove(triggers...) removes a matching trigger", ->
   @set.add(@trigger)
   result = @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  ok result is @trigger
+  ok result[0] is @trigger
   equal @set.triggers.toArray().length, 0
   
 
