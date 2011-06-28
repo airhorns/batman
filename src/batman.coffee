@@ -581,8 +581,9 @@ class Batman.Set extends Batman.Object
     @set 'length', @length + 1
     item
   remove: @event (item) ->
-    @_storage.remove item
+    result = @_storage.remove item
     @set 'length', @length - 1
+    result
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
   empty: @property ->
