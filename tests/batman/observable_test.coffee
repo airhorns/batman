@@ -152,6 +152,21 @@ test "unset(key) with a deep keypath should use the existing value's remove() me
   equal someProperty.remove.called, true
   equal someProperty.remove.lastCallContext, @obj.foo
 
+test "unset(key) with a simple key uses _unset(key, val) if present", ->
+  fancyObj =
+    _unset: (key) -> @[key] = key+' has been _unset!'
+  Batman.Observable.unset.call(fancyObj, 'foo')
+  equal fancyObj.foo, 'foo has been _unset!'
+
+test "unset(key) with a deep keypath uses _unset(key, val) if present", ->
+  fancyObj =
+    _unset: (key) -> @[key] = key+' has been _unset!'
+  wrapper =
+    fancy: fancyObj
+  Batman.Observable.unset.call(wrapper, 'fancy.foo')
+  equal fancyObj.foo, 'foo has been _unset!'
+  
+
 
 ###
 # observe(key [, fireImmediately], callback)

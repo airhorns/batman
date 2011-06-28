@@ -289,7 +289,7 @@ Batman.Observable =
       if unresolvedOldValue?.isProperty
         unresolvedOldValue.assignOnObject @, val
       else if typeof @_set is 'function'
-        @_set(key, val)
+        @_set key, val
       else
         @[key] = val
       @fire?(key, val, resolvedOldValue)
@@ -308,6 +308,8 @@ Batman.Observable =
     Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
       if unresolvedOldValue?.isProperty
         unresolvedOldValue.removeOnObject @
+      else if typeof @_unset is 'function'
+        @_unset key
       else
         @[key] = null
         delete @[key]
