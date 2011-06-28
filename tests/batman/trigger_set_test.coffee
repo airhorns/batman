@@ -7,7 +7,7 @@ QUnit.module 'Batman.TriggerSet',
           baz: observable
             qux: 'quxVal'
     @keypath = new Batman.Keypath(@obj, 'foo.bar.baz.qux')
-    @set = new Batman.TriggerSet(@obj.foo, 'bar')
+    @set = new Batman.TriggerSet
     @callback = createSpy()
     @trigger = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback)
 
@@ -16,7 +16,7 @@ QUnit.module 'Batman.TriggerSet',
 # constructor
 ###
 test "initializes with an empty set of triggers", ->
-  deepEqual @set.triggers, new Batman.Set
+  deepEqual @set.toArray(), []
 
 
 ###
@@ -24,22 +24,21 @@ test "initializes with an empty set of triggers", ->
 ###
 test "add(trigger) adds a trigger to the set", ->
   @set.add(@trigger)
-  equal @set.triggers.toArray().length, 1
-  ok @set.triggers.has(@trigger)
+  equal @set.toArray().length, 1
+  ok @set.has(@trigger)
   
 test "add(trigger) does not add duplicate triggers", ->
   @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  equal @set.triggers.toArray().length, 1
-  ok @set.triggers.has(@trigger)
+  equal @set.toArray().length, 1
+  ok @set.has(@trigger)
   
 test "add(trigger) does not add duplicate keypaths", ->
   @set.add(trigger1 = new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
   @set.add(trigger2 = new Batman.Trigger(@obj.foo, 'bar', new Batman.Keypath(@obj, 'foo.bar.baz.qux'), ->))
-  equal @set.triggers.toArray().length, 2
-  ok @set.triggers.has(trigger1)
-  ok @set.triggers.has(trigger2)
-
+  equal @set.toArray().length, 2
+  ok @set.has(trigger1)
+  ok @set.has(trigger2)
 
 
 ###
@@ -63,14 +62,14 @@ test "remove(triggers...) returns an empty array and does not remove anything if
   @set.add(@trigger)
   result = @set.remove(new Batman.Trigger(@obj.foo.bar, 'baz', @keypath, @callback))
   deepEqual result, []
-  equal @set.triggers.toArray().length, 1
-  ok @set.triggers.has(@trigger)
+  equal @set.toArray().length, 1
+  ok @set.has(@trigger)
   
   
 test "remove(triggers...) removes a matching trigger", ->
   @set.add(@trigger)
   @set.remove(new Batman.Trigger(@obj.foo, 'bar', @keypath, @callback))
-  equal @set.triggers.toArray().length, 0
+  equal @set.toArray().length, 0
   
 
 ###

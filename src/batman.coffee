@@ -114,9 +114,9 @@ class Batman.Property
   removeOnObject: (obj) -> @remove.call obj
 
 class Batman.AutonomousProperty extends Batman.Property
-  resolveOnObject: -> @resolve.call @
-  assignOnObject: (obj, val) -> @assign.call @, val
-  removeOnObject: -> @remove.call @
+  resolveOnObject: -> @resolve()
+  assignOnObject: (obj, val) -> @assign(val)
+  removeOnObject: -> @remove()
   
 ###
 # Batman.Keypath
@@ -196,37 +196,6 @@ class Batman.Trigger
       outboundSet.remove @
     if inboundSet = @targetKeypath.base._batman?.inboundTriggers[@targetKeypath.path()]
       inboundSet.remove @
-
-
-class Batman.TriggerSet
-  constructor: ->
-    @triggers = new Batman.Set
-    @oldValues = new Batman.Hash
-  add: ->
-    @triggers.add.apply @triggers, arguments
-  remove: ->
-    @triggers.remove.apply @triggers, arguments
-  keypaths: ->
-    result = new Batman.Set
-    @triggers.each (trigger) ->
-      result.add trigger.targetKeypath
-    result
-  rememberOldValues: ->
-    oldValues = @oldValues = new Batman.Hash
-    @keypaths().each (keypath) ->
-      oldValues.set keypath, keypath.resolve()
-  fireAll: ->
-    @oldValues.each (keypath, oldValue) ->
-      keypath.base.fire keypath.path(), keypath.resolve(), oldValue
-  refreshKeypathsWithTriggers: ->
-    @triggers.each (trigger) ->
-      Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
-  removeTriggersNotInKeypath: ->
-    for trigger in @triggers.toArray()
-      trigger.remove() unless trigger.isInKeypath()
-  removeTriggersWithInactiveObservers: ->
-    for trigger in @triggers.toArray()
-      trigger.remove() unless trigger.hasActiveObserver()
     
 ###
 # Batman.Observable
@@ -631,6 +600,33 @@ class Batman.SortableSet extends Batman.Set
         if valueA < valueB then -1 else if valueA > valueB then 1 else 0
     else
       @_reIndex(index) for index of @_indexes
+
+
+class Batman.TriggerSet extends Batman.Set
+  constructor: ->
+    super
+    @oldValues = new Batman.Hash
+  keypaths: ->
+    result = new Batman.Set
+    @each (trigger) ->
+      result.add trigger.targetKeypath
+    result
+  rememberOldValues: ->
+    oldValues = @oldValues = new Batman.Hash
+    @keypaths().each (keypath) ->
+      oldValues.set keypath, keypath.resolve()
+  fireAll: ->
+    @oldValues.each (keypath, oldValue) ->
+      keypath.base.fire keypath.path(), keypath.resolve(), oldValue
+  refreshKeypathsWithTriggers: ->
+    @each (trigger) ->
+      Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
+  removeTriggersNotInKeypath: ->
+    for trigger in @toArray()
+      trigger.remove() unless trigger.isInKeypath()
+  removeTriggersWithInactiveObservers: ->
+    for trigger in @toArray()
+      trigger.remove() unless trigger.hasActiveObserver()
 
 ###
 # Batman.Request

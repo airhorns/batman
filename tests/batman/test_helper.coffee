@@ -35,7 +35,7 @@ class Spy
 #    deepEqual observer.lastCallArguments, [{foo: 'bar'}]
 #
 createSpy = (original) ->
-  spy = new Spy
+  spy = new Spy(original)
 
   f = (args...) ->
     f.called = true
@@ -47,7 +47,7 @@ createSpy = (original) ->
     f.lastCallArguments = f.lastCall.arguments
     f.lastCallContext = f.lastCall.context
     f.calls.push f.lastCall
-
+    
     unless f.fixedReturn
       f.original?.call(this, args...)
     else

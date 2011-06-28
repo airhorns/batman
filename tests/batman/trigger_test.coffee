@@ -16,11 +16,11 @@ QUnit.module 'Batman.Trigger',
 # constructor
 ###
 test "initialize adds the trigger to the appropriate trigger sets", ->
-  outboundTriggers = @obj.foo._batman.outboundTriggers['bar'].triggers
+  outboundTriggers = @obj.foo._batman.outboundTriggers['bar']
   equal outboundTriggers.toArray().length, 1
   ok outboundTriggers.has(@trigger)
   
-  inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux'].triggers
+  inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux']
   equal inboundTriggers.toArray().length, 1
   ok inboundTriggers.has(@trigger)
 
@@ -85,8 +85,8 @@ test "hasActiveObserver() returns false if the trigger's callback is not actuall
 test "remove() removes the trigger from the inbound and outbound trigger sets which reference it", ->
   @trigger.remove()
 
-  outboundTriggers = @obj.foo._batman.outboundTriggers['bar'].triggers
+  outboundTriggers = @obj.foo._batman.outboundTriggers['bar']
   equal outboundTriggers.toArray().length, 0
   
-  inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux'].triggers
+  inboundTriggers = @obj._batman.inboundTriggers['foo.bar.baz.qux']
   equal inboundTriggers.toArray().length, 0
