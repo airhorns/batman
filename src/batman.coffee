@@ -101,47 +101,6 @@ Batman._block = $block = (fn) ->
       f(args.pop())
     else
       f
-
-class Batman.Hash
-  constructor: ->
-    @_storage = {}
-  hasKey: (key) ->
-    typeof @get(key) isnt 'undefined'
-  get: (key) ->
-    if matches = @_storage[key]
-      for [obj,v] in matches
-        return v if @equality(obj, key)
-  set: (key, val) ->
-    matches = @_storage[key] ||= []
-    for match in matches
-      pair = match if @equality(match[0], key)
-    unless pair
-      pair = [key]
-      matches.push(pair)
-    pair[1] = val
-  remove: (key) ->
-    if matches = @_storage[key]
-      for [obj,v], index in matches
-        if @equality(obj, key)
-          matches.splice(index,1)
-          return obj
-  equality: (lhs, rhs) ->
-    if typeof lhs.isEqual is 'function'
-      lhs.isEqual rhs
-    else if typeof rhs.isEqual is 'function'
-      rhs.isEqual lhs
-    else
-      lhs is rhs
-  each: (iterator) ->
-    for key, values of @_storage
-      iterator(obj, value) for [obj, value] in values
-  keys: ->
-    result = []
-    @each (obj) -> result.push obj
-    result
-    
-
-
       
 class Batman.Property
   constructor: (opts) ->
@@ -304,7 +263,7 @@ Batman.Observable =
     Batman.Observable._resolveObjectIfPossible.call @, result
   
   getWithoutResolution: (key) ->
-    if key.indexOf('.') is -1
+    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
       Batman.Observable.getWithoutKeypaths.apply(@, arguments)
     else
       new Batman.Keypath @, key
@@ -316,7 +275,7 @@ Batman.Observable =
       @[key]
   
   set: (key, val) ->
-    if key.indexOf('.') is -1
+    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
       Batman.Observable.setWithoutKeypaths.apply(@, arguments)
     else
       new Batman.Keypath(@, key).assign(val)
@@ -562,6 +521,46 @@ class Batman.Object
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
+
+
+class Batman.Hash extends Batman.Object
+  constructor: ->
+    @_storage = {}
+  hasKey: (key) ->
+    typeof @get(key) isnt 'undefined'
+  _get: (key) ->
+    if matches = @_storage[key]
+      for [obj,v] in matches
+        return v if @equality(obj, key)
+  _set: (key, val) ->
+    matches = @_storage[key] ||= []
+    for match in matches
+      pair = match if @equality(match[0], key)
+    unless pair
+      pair = [key]
+      matches.push(pair)
+    pair[1] = val
+  remove: (key) ->
+    if matches = @_storage[key]
+      for [obj,v], index in matches
+        if @equality(obj, key)
+          matches.splice(index,1)
+          return obj
+  equality: (lhs, rhs) ->
+    if typeof lhs.isEqual is 'function'
+      lhs.isEqual rhs
+    else if typeof rhs.isEqual is 'function'
+      rhs.isEqual lhs
+    else
+      lhs is rhs
+  each: (iterator) ->
+    for key, values of @_storage
+      iterator(obj, value) for [obj, value] in values
+  keys: ->
+    result = []
+    @each (obj) -> result.push obj
+    result
+
 
 ###
 # Batman.Set
