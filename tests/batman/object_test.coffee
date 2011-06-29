@@ -1,4 +1,18 @@
-QUnit.module "Batman.Object sub-classes and sub-sub-classes"
+QUnit.module "Batman.Object"
+
+test "@::accessor adds instance-level accessors to the prototype", ->
+  defaultAccessor = {}
+  keyAccessor = {}
+  class Thing extends Batman.Object
+    @::accessor defaultAccessor
+    @::accessor 'foo', 'bar', keyAccessor
+  
+  equal Thing::_batman.defaultAccessor, defaultAccessor
+  equal Thing::_batman.keyAccessors.foo, keyAccessor
+  equal Thing::_batman.keyAccessors.bar, keyAccessor
+  
+  
+QUnit.module "Batman.Object sub-classes and sub-sub-classes",
   setup: ->
     @subClass = class SubClass extends Batman.Object
     @subSubClass = class SubSubClass extends SubClass
@@ -75,7 +89,7 @@ test "it should allow observation via the class", ->
   a = createSpy()
   class Custom extends Batman.Object
     @::observe 'foo', a
-
+  
   @obj = new Custom
   @obj2 = new Custom
 
@@ -83,5 +97,5 @@ test "it should allow observation via the class", ->
   equal a.callCount, 1
   @obj2.set("foo", "qux")
   equal a.callCount, 2
-
+  
 QUnit.module "Batman (the function)"

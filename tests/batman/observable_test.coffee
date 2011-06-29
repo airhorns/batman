@@ -3,33 +3,35 @@ QUnit.module 'Batman.Observable',
     # spyOn Batman.TriggerSet.prototype, 'add'
     # spyOn Batman.TriggerSet.prototype, 'remove'
     @obj = Batman
-      someProperty: new Batman.Property
-        resolve: createSpy()
-        assign: createSpy()
-        remove: createSpy()
       foo: Batman
-        someProperty: new Batman.Property
-          resolve: createSpy()
-          assign: createSpy()
-          remove: createSpy()
         bar: Batman
           baz: Batman
             qux: 'quxVal'
+    @objPropertyAccessor =
+      get: createSpy()
+      set: createSpy()
+      unset: createSpy()
+    @fooPropertyAccessor =
+      get: createSpy()
+      set: createSpy()
+      unset: createSpy()
+    @obj.accessor 'someProperty', @objPropertyAccessor
+    @obj.foo.accessor 'someProperty', @fooPropertyAccessor
 
 ###
 # keypath(key)
 ###
-test 'keypath(key) returns a keypath of this object with the given key', ->
-  keypath = @obj.keypath('foo.bar.baz')
-  equal keypath.base, @obj
-  deepEqual keypath.segments, ['foo', 'bar', 'baz']
+test 'property(key) returns a keypath of this object with the given key', ->
+  keypath = @obj.property('foo.bar.baz')
+  ok keypath.base is @obj
+  equal keypath.key, 'foo.bar.baz'
 
 
 ###
 # get(key)
 ###
 test 'get(key) with a simple key returns the value of that property', ->
-  equal @obj.get('foo'), @obj.foo
+  ok @obj.get('foo') is @obj.foo
   
 test 'get(key) with a deep keypath returns the value of the property at the end of the keypath', ->
   equal @obj.get('foo.bar.baz.qux'), 'quxVal'
@@ -41,29 +43,16 @@ test "get(key) with an unresolvable keypath returns undefined", ->
   equal typeof(@obj.get('foo.bar.nothing')), 'undefined'
 
 test "get(key) with a simple key calls resolve() on the result if it is a Batman.Property and returns that instead", ->
-  @obj.someProperty.resolve.whichReturns('resolvedValue')
+  @objPropertyAccessor.get.whichReturns('resolvedValue')
   equal @obj.get('someProperty'), 'resolvedValue'
-  equal @obj.someProperty.resolve.lastCallContext, @obj
+  deepEqual @objPropertyAccessor.get.lastCallArguments, ['someProperty']
+  ok @objPropertyAccessor.get.lastCallContext is @obj
 
 test "get(key) with a deep keypath calls resolve() on the result if it is a Batman.Property and returns that instead", ->
-  @obj.foo.someProperty.resolve.whichReturns('resolvedValue')
+  @fooPropertyAccessor.get.whichReturns('resolvedValue')
   equal @obj.get('foo.someProperty'), 'resolvedValue'
-  equal @obj.foo.someProperty.resolve.lastCallContext, @obj.foo
-  
-test "get(key) with a simple key uses _get(key) if present", ->
-  fancyObj =
-    _get: (key) -> 'fancy '+key
-  result = Batman.Observable.get.call(fancyObj, 'foo')
-  equal result, 'fancy foo'
-  
-test "get(key) with a deep keypath uses _get(key) if present", ->
-  fancyObj =
-    _get: (key) -> 'fancy '+key
-  wrapper =
-    fancy: fancyObj
-  result = Batman.Observable.get.call(wrapper, 'fancy.foo')
-  equal result, 'fancy foo'
-
+  deepEqual @fooPropertyAccessor.get.lastCallArguments, ['someProperty']
+  ok @fooPropertyAccessor.get.lastCallContext is @obj.foo
 
 ###
 # set(key)
@@ -77,43 +66,26 @@ test "set(key, val) with a deep keypath stores the value in the property at the 
   equal @obj.foo.bar.baz.qux, 'newVal'
   
 test "set(key, val) with a simple key calls fire(key, val, oldValue)", ->
-  spyOn(@obj, 'fire')
+  fooProperty = @obj.property('foo')
+  spyOn(fooProperty, 'fire')
   foo = @obj.foo
-  @obj.set 'foo', 'newVal'
-  deepEqual @obj.fire.lastCallArguments, ['foo', 'newVal', foo]
+  @obj.observe 'foo', ->
   
-test "set(key, val) with a deep keypath does not call fire() directly", ->
-  spyOn(@obj, 'fire')
-  @obj.set 'foo.bar.baz.qux', 'newVal'
-  equal @obj.fire.called, false
+  @obj.set 'foo', 'newVal'
+  
+  equal fooProperty.fire.lastCallArguments.length, 2
+  equal fooProperty.fire.lastCallArguments[0], 'newVal'
+  ok fooProperty.fire.lastCallArguments[1] is foo
 
 test "set(key, val) with a simple key should use the existing value's assign() method if the value is a Batman.Property", ->
-  someProperty = @obj.someProperty
   @obj.set 'someProperty', 'newVal'
-  equal someProperty, @obj.someProperty
-  deepEqual someProperty.assign.lastCallArguments, ['newVal']
-  equal someProperty.assign.lastCallContext, @obj
+  deepEqual @objPropertyAccessor.set.lastCallArguments, ['someProperty', 'newVal']
+  ok @objPropertyAccessor.set.lastCallContext is @obj
 
 test "set(key, val) with a deep keypath should use the existing value's assign() method if the value is a Batman.Property", ->
-  someProperty = @obj.foo.someProperty
   @obj.set 'foo.someProperty', 'newVal'
-  equal someProperty, @obj.foo.someProperty
-  deepEqual someProperty.assign.lastCallArguments, ['newVal']
-  equal someProperty.assign.lastCallContext, @obj.foo
-
-test "set(key, val) with a simple key uses _set(key, val) if present", ->
-  fancyObj =
-    _set: (key, val) -> @[key] = 'fancy '+val
-  Batman.Observable.set.call(fancyObj, 'foo', 'bar')
-  equal fancyObj.foo, 'fancy bar'
-
-test "set(key, val) with a deep keypath uses _set(key, val) if present", ->
-  fancyObj =
-    _set: (key, val) -> @[key] = 'fancy '+val
-  wrapper =
-    fancy: fancyObj
-  Batman.Observable.set.call(wrapper, 'fancy.foo', 'bar')
-  equal fancyObj.foo, 'fancy bar'
+  deepEqual @fooPropertyAccessor.set.lastCallArguments, ['someProperty', 'newVal']
+  ok @fooPropertyAccessor.set.lastCallContext is @obj.foo
   
 
 
@@ -125,47 +97,28 @@ test "unset(key) removes the referenced property", ->
   equal typeof(@obj.foo.bar.baz.qux), 'undefined'
 
 test "unset(key) with a simple key calls fire(key, undefined, oldValue)", ->
-  spyOn(@obj, 'fire')
+  fooProperty = @obj.property('foo')
+  spyOn(fooProperty, 'fire')
   foo = @obj.foo
+  @obj.observe 'foo', ->
+  
   @obj.unset 'foo'
-  [key, newVal, oldVal] = @obj.fire.lastCallArguments
-  equal key, 'foo'
+  
+  [newVal, oldVal] = fooProperty.fire.lastCallArguments
   equal typeof(newVal), 'undefined'
-  equal oldVal, foo
-
-test "unset(key) with a deep keypath does not call fire() directly", ->
-  spyOn(@obj, 'fire')
-  @obj.unset 'foo.bar.baz.qux'
-  equal @obj.fire.called, false
+  ok oldVal is foo
 
 test "unset(key) with a simple key should use the existing value's remove() method if the value is a Batman.Property", ->
-  someProperty = @obj.someProperty
+  someProperty = @objPropertyAccessor
   @obj.unset 'someProperty'
-  equal someProperty, @obj.someProperty
-  equal someProperty.remove.called, true
-  equal someProperty.remove.lastCallContext, @obj
+  equal someProperty, @objPropertyAccessor
+  equal @objPropertyAccessor.unset.called, true
+  ok @objPropertyAccessor.unset.lastCallContext is @obj
 
 test "unset(key) with a deep keypath should use the existing value's remove() method if the value is a Batman.Property", ->
-  someProperty = @obj.foo.someProperty
   @obj.unset 'foo.someProperty'
-  equal someProperty, @obj.foo.someProperty
-  equal someProperty.remove.called, true
-  equal someProperty.remove.lastCallContext, @obj.foo
-
-test "unset(key) with a simple key uses _unset(key, val) if present", ->
-  fancyObj =
-    _unset: (key) -> @[key] = key+' has been _unset!'
-  Batman.Observable.unset.call(fancyObj, 'foo')
-  equal fancyObj.foo, 'foo has been _unset!'
-
-test "unset(key) with a deep keypath uses _unset(key, val) if present", ->
-  fancyObj =
-    _unset: (key) -> @[key] = key+' has been _unset!'
-  wrapper =
-    fancy: fancyObj
-  Batman.Observable.unset.call(wrapper, 'fancy.foo')
-  equal fancyObj.foo, 'foo has been _unset!'
-  
+  equal @fooPropertyAccessor.unset.called, true
+  ok @fooPropertyAccessor.unset.lastCallContext is @obj.foo
 
 
 ###
@@ -173,11 +126,13 @@ test "unset(key) with a deep keypath uses _unset(key, val) if present", ->
 ###
 test "observe(key, callback) stores the callback such that it is called with (value, oldValue) when the value of the key changes", ->
   callback = createSpy()
-  equal @obj.observe('foo', callback), @obj
+  ok @obj.observe('foo', callback) is @obj
   equal callback.called, false
   foo = @obj.foo
   @obj.set 'foo', 'newVal'
-  deepEqual callback.lastCallArguments, ['newVal', foo]
+  [newValue, oldValue] = callback.lastCallArguments
+  equal newValue, 'newVal'
+  ok oldValue is foo
 
 test "observe(key, fireImmediately, callback) calls the callback immediately if fireImmediately is true", ->
   callback = createSpy()
@@ -305,19 +260,6 @@ test "observe(key, callback) will only fire once and will not break when there's
   [newVal, oldVal] = callback.lastCallArguments
   equal newVal, 'newVal'
   ok oldVal == oldBar, "oldVal is not oldBar"
-  
-
-###
-# observesKeyWithObserver(key, observer)
-###
-test "observesKeyWithObserver(key, observer) returns false when the given key is not observed by the given observer", ->
-  @obj.observe 'foo', ->
-  equal false, @obj.observesKeyWithObserver('foo', ->)
-
-test "observesKeyWithObserver(key, observer) returns true when the given key is observed by the given observer", ->
-  observer = ->
-  @obj.observe 'foo', observer
-  equal true, @obj.observesKeyWithObserver('foo', observer)
 
 
 ###
@@ -374,7 +316,7 @@ test "forget() without any arguments removes all observers from all of this obje
   equal callback3.callCount, 0
   
   
-test "forget(key) for a deep keypath will remove all triggers for that callback on other objects", ->
+test "forget(key) for a deep keypath not remove any triggers when there are still observers present on the keypath", ->
   callback1 = createSpy()
   callback2 = createSpy()
   
@@ -383,17 +325,30 @@ test "forget(key) for a deep keypath will remove all triggers for that callback 
   
   @obj.forget 'foo.bar.baz', callback2
   
-  equal @obj._batman.outboundTriggers['foo'].toArray().length, 1
-  equal @obj.foo._batman.outboundTriggers['bar'].toArray().length, 1
-  equal @obj.foo.bar._batman.outboundTriggers['baz'].toArray().length, 1
+  equal @obj.property('foo').dependents.length, 1
+  equal @obj.foo.property('bar').dependents.length, 1
+  equal @obj.foo.bar.property('baz').dependents.length, 1
   
-  equal @obj._batman.inboundTriggers['foo.bar.baz'].toArray().length, 3
+  equal @obj.property('foo.bar.baz').triggers.length, 4 #including itself
   
   @obj.foo.bar.set 'baz', 'newBaz'
   @obj.foo.set 'bar', 'newBar'
   @obj.set 'foo', 'newFoo'
   equal callback1.callCount, 3
   equal callback2.callCount, 0
+
+test "forget(key) for a deep keypath will remove the keypath's triggers if there are no more observers present on the keypath", ->
+  @obj.observe 'foo.bar.baz', observer = createSpy()
+  
+  @obj.forget 'foo.bar.baz', observer
+  
+  equal @obj.property('foo').dependents.length, 0
+  equal @obj.foo.property('bar').dependents.length, 0
+  equal @obj.foo.bar.property('baz').dependents.length, 0
+  
+  equal @obj.property('foo.bar.baz').triggers.length, 0
+  
+  
 
 
 QUnit.module "Batman.Observable mixed in at class and instance level",

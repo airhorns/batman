@@ -25,43 +25,43 @@ test "addIndex(keypath) adds an index to be maintained and makes it the default 
   
   ary = @set.toArray()
   equal ary.length, 3
-  equal ary[0], @freds
-  equal ary[1], @marys
-  equal ary[2], @zekes
+  ok ary[0] is @freds
+  ok ary[1] is @marys
+  ok ary[2] is @zekes
   
   @set.addIndex 'id'
   
   ary = @set.toArray()
   equal ary.length, 3
-  equal ary[0], @zekes
-  equal ary[1], @marys
-  equal ary[2], @freds
+  ok ary[0] is @zekes
+  ok ary[1] is @marys
+  ok ary[2] is @freds
 
 test "addIndex('keypath DESC') adds an index in descending order", ->
   @set.addIndex 'owner.name ASC'
   
   ary = @set.toArray()
   equal ary.length, 3
-  equal ary[0], @freds
-  equal ary[1], @marys
-  equal ary[2], @zekes
+  ok ary[0] is @freds
+  ok ary[1] is @marys
+  ok ary[2] is @zekes
   
   @set.addIndex 'owner.name DESC'
   
   ary = @set.toArray()
   equal ary.length, 3
-  equal ary[0], @zekes
-  equal ary[1], @marys
-  equal ary[2], @freds
+  ok ary[0] is @zekes
+  ok ary[1] is @marys
+  ok ary[2] is @freds
   
 test "addIndex(keypath) sorts by date", ->
   @set.addIndex 'updated_at'
   
   ary = @set.toArray()
   equal ary.length, 3
-  equal ary[0], @marys
-  equal ary[1], @zekes
-  equal ary[2], @freds
+  ok ary[0] is @marys
+  ok ary[1] is @zekes
+  ok ary[2] is @freds
 
 test "add(item) updates the indexes", ->
   @set.addIndex 'owner.name'
@@ -75,10 +75,10 @@ test "add(item) updates the indexes", ->
   
   ary = @set.toArray()
   equal ary.length, 4
-  equal ary[0], @freds
-  equal ary[1], james
-  equal ary[2], @marys
-  equal ary[3], @zekes
+  ok ary[0] is @freds
+  ok ary[1] is james
+  ok ary[2] is @marys
+  ok ary[3] is @zekes
 
 test "remove(item) updates the indexes", ->
   @set.addIndex 'owner.name'
@@ -86,8 +86,8 @@ test "remove(item) updates the indexes", ->
   
   ary = @set.toArray()
   equal ary.length, 2
-  equal ary[0], @freds
-  equal ary[1], @zekes
+  ok ary[0] is @freds
+  ok ary[1] is @zekes
 
 test "undefined values have undefined sort order, but don't explode anything", ->
   noOwner = Batman
@@ -99,8 +99,8 @@ test "undefined values have undefined sort order, but don't explode anything", -
   
   ary = @set.toArray()
   equal ary.length, 4
-  equal ary[0], @freds
-  equal ary[1], @marys
-  equal ary[2], @zekes
-  equal ary[3], noOwner
+  ok ary[0] is @freds
+  ok ary[1] is @marys
+  ok ary[2] is @zekes
+  ok ary[3] is noOwner
   

@@ -104,100 +104,141 @@ Batman._findName = $findName = (f, context) ->
 # ----------
 
 class Batman.Property
-  constructor: (opts) ->
-    $mixin(@, opts) if opts
+  @defaultAccessor:
+    get: (key) -> @[key]
+    set: (key, val) -> @[key] = val
+    unset: (key) ->
+      @[key] = null
+      delete @[key]
+      return
+  @get: (base, key) -> @for(base, key).getValue()
+  @set: (base, key, val) -> @for(base, key).setValue(val)
+  @unset: (base, key) -> @for(base, key).unsetValue()
+  @triggerTracker: null
+  @for: (base, key) ->
+    if base._batman
+      Batman._initializeObject base
+      properties = base._batman.properties ||= new Batman.SimpleHash
+      properties.get(key) or properties.set(key, new @(base, key))
+    else
+      new @(base, key)
+  @pauseTriggerTracking: (callback) ->
+    triggerTracker = Batman.Property.triggerTracker
+    Batman.Property.triggerTracker = null
+    callback()
+    Batman.Property.triggerTracker = triggerTracker
+  constructor: (base, key) ->
+    @base = base
+    @key = key
   isProperty: true
-  resolve: ->
-  assign: (val) ->
-  remove: ->
-  resolveOnObject: (obj) -> @resolve.call obj
-  assignOnObject: (obj, val) -> @assign.call obj, val
-  removeOnObject: (obj) -> @remove.call obj
+  accessor: ->
+    @base._batman?.keyAccessors?[@key] or
+    @base._batman?.defaultAccessor or
+    @base.constructor::_batman?.defaultAccessor or
+    Batman.Property.defaultAccessor
+  registerAsTrigger: ->
+    if tracker = Batman.Property.triggerTracker
+      Batman.Property.pauseTriggerTracking => tracker.add @
+  getValue: ->
+    @registerAsTrigger()
+    @accessor()?.get.call @base, @key
+  setValue: (val) ->
+    @accessor()?.set.call @base, @key, val
+  unsetValue: -> @accessor()?.unset.call @base, @key
+  isEqual: (other) ->
+    @constructor is other.constructor and @base is other.base and @key is other.key
+    
 
-class Batman.AutonomousProperty extends Batman.Property
-  resolveOnObject: -> @resolve()
-  assignOnObject: (obj, val) -> @assign(val)
-  removeOnObject: -> @remove()
- 
+class Batman.ObservableProperty extends Batman.Property
+  constructor: (base, key) ->
+    super
+    @observers = new Batman.SimpleSet
+    @refreshTriggers() if @hasObserversToFire()
+    @_preventCount = 0
+  setValue: (val) ->
+    @cacheDependentValues()
+    super
+    @fireDependents()
+    val
+  unsetValue: ->
+    @cacheDependentValues()
+    super
+    @fireDependents()
+    return
+  cacheDependentValues: ->
+    if @dependents
+      @dependents.each (prop) -> prop.cachedValue = prop.getValue()
+  fireDependents: ->
+    if @dependents
+      @dependents.each (prop) ->
+        prop.fire(prop.getValue(), prop.cachedValue) if prop.hasObserversToFire?()
+  observe: (fireImmediately..., callback) ->
+    fireImmediately = fireImmediately[0] is true
+    currentValue = @getValue()
+    @observers.add callback
+    @refreshTriggers()
+    callback.call(@base, currentValue, currentValue) if fireImmediately
+    @
+  hasObserversToFire: ->
+    return true if @observers.length > 0
+    return false if @base is @base.constructor::
+    @base.constructor::property?(@key).observers.length > 0
+  preventFire: -> @_preventCount++
+  allowFire: -> @_preventCount-- if @_preventCount > 0
+  isAllowedToFire: -> @_preventCount <= 0
+  fire: (args...) ->
+    return unless @hasObserversToFire()
+    for observers in [@observers, @base.constructor::property?(@key).observers]
+      continue unless observers
+      observers.each (callback) =>
+        callback.apply @base, args
+    @refreshTriggers()
+  forget: (observer) ->
+    if observer
+      @observers.remove(observer)
+    else
+      @observers = new Batman.SimpleSet
+    @clearTriggers() unless @hasObserversToFire()
+  refreshTriggers: ->
+    Batman.Property.triggerTracker = new Batman.SimpleSet
+    @getValue()
+    if @triggers
+      @triggers.each (property) =>
+        unless Batman.Property.triggerTracker.has(property)
+          property.dependents?.remove @
+    @triggers = Batman.Property.triggerTracker
+    @triggers.each (property) =>
+      property.dependents ||= new Batman.SimpleSet
+      property.dependents.add @
+    Batman.Property.triggerTracker = null
+  clearTriggers: ->
+    @triggers.each (property) =>
+      property.dependents.remove @
+    @triggers = new Batman.SimpleSet
 
 # Keypaths
 # --------
 
-# Batman.Keypath
-# A keypath has a base object and one or more key segments
-# which represent a path to a target value.
-class Batman.Keypath extends Batman.AutonomousProperty
-  constructor: (@base, @segments) ->
-    @segments = @segments.split('.') if $typeOf(@segments) is 'String'
-  path: ->
-    @segments.join '.'
-  depth: ->
-    @segments.length
+class Batman.Keypath extends Batman.ObservableProperty
+  constructor: (base, key) ->
+    if $typeOf(key) is 'String'
+      @segments = key.split('.')
+      @depth = @segments.length
+    else
+      @segments = [key]
+      @depth = 1
+    super
   slice: (begin, end) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Observable.get.call(base, segment)
-    new Batman.Keypath base, @segments.slice(begin, end)
-  finalPair: ->
-    @slice(-1)
-  eachPair: (callback) ->
-    base = @base
-    for segment, index in @segments
-      return unless nextBase = Batman.Observable.get.call(base, segment)
-      callback(new Batman.Keypath(base, segment), index)
-      base = nextBase
-  resolve: ->
-    switch @depth()
-      when 0 then @base
-      when 1 then Batman.Observable.get.call(@base, @segments[0])
-      else @finalPair()?.resolve()
-  assign: (val) ->
-    switch @depth()
-      when 0 then return
-      when 1 then Batman.Observable.set.call(@base, @segments[0], val)
-      else @finalPair()?.assign(val)
-  remove: ->
-    switch @depth()
-      when 0 then return
-      when 1 then Batman.Observable.unset.call(@base, @segments[0])
-      else @finalPair().remove()
-  isEqual: (other) ->
-    @base is other.base and @path() is other.path()
-    
-
-class Batman.Trigger
-  @populateKeypath: (keypath, callback) ->
-    keypath.eachPair (minimalKeypath, index) ->
-      return unless minimalKeypath.base.observe
-      Batman.Observable.initialize.call minimalKeypath.base
-      new Batman.Trigger(minimalKeypath.base, minimalKeypath.segments[0], keypath, callback)
-  constructor: (@base, @key, @targetKeypath, @callback) ->
-    for base in [@base, @targetKeypath.base]
-      return unless base.observe
-      Batman.Observable.initialize.call base
-    # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
-    (@base._batman.outboundTriggers[@key] ||= new Batman.TriggerSet()).add @
-    (@targetKeypath.base._batman.inboundTriggers[@targetKeypath.path()] ||= new Batman.TriggerSet()).add @
-  isEqual: (other) ->
-    other instanceof Batman.Trigger and
-    @base is other.base and
-    @key is other.key and 
-    @targetKeypath.isEqual(other.targetKeypath) and
-    @callback is other.callback
-  isInKeypath: ->
-    targetBase = @targetKeypath.base
-    for segment in @targetKeypath.segments
-      return true if targetBase is @base and segment is @key
-      targetBase = targetBase?[segment]
-      return false unless targetBase
-  hasActiveObserver: ->
-    @targetKeypath.base.observesKeyWithObserver(@targetKeypath.path(), @callback)
-  remove: ->
-    # FIXME - Batman.Trigger should not interact directly with Observables' TriggerSets
-    if outboundSet = @base._batman?.outboundTriggers[@key]
-      outboundSet.remove @
-    if inboundSet = @targetKeypath.base._batman?.inboundTriggers[@targetKeypath.path()]
-      inboundSet.remove @
+      return unless base? and base = Batman.Keypath.get(base, segment)
+    Batman.Keypath.for base, @segments.slice(begin, end).join('.')
+  terminalProperty: -> @slice -1
+  getValue: ->
+    @registerAsTrigger()
+    if @depth is 1 then super else @terminalProperty()?.getValue()
+  setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
+  unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
  
 
 # Observable
@@ -206,174 +247,46 @@ class Batman.Trigger
 # Batman.Observable is a generic mixin that can be applied to any object to allow it to be bound to.
 # It is applied by default to every instance of `Batman.Object` and subclasses.
 Batman.Observable =
-  initialize: ->
+  isObservable: true
+  property: (key) ->
     Batman._initializeObject @
-    @_batman.observers ||= {}
-    @_batman.outboundTriggers ||= {}
-    @_batman.inboundTriggers ||= {}
-    @_batman.preventCounts ||= {}
-  
-  rememberingOutboundTriggerValues: (key, callback) ->
-    Batman.Observable.initialize.call @
-    if triggers = @_batman.outboundTriggers[key]
-      triggers.rememberOldValues()
-    callback.call @
-  
-  keypath: (string) ->
-    new Batman.Keypath(@, string)
-    
-  _resolveObjectIfPossible: (obj) ->
-    if obj?.isProperty
-      obj.resolveOnObject @
-    else
-      obj
-  
-  get: (key) ->
-    result = Batman.Observable.getWithoutResolution.apply(@, arguments)
-    Batman.Observable._resolveObjectIfPossible.call @, result
-  
-  getWithoutResolution: (key) ->
-    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
-      Batman.Observable.getWithoutKeypaths.apply(@, arguments)
-    else
-      new Batman.Keypath @, key
-      
-  getWithoutKeypaths: (key) ->
-    if typeof @_get is 'function'
-      @_get(key)
-    else
-      @[key]
-  
-  set: (key, val) ->
-    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
-      Batman.Observable.setWithoutKeypaths.apply(@, arguments)
-    else
-      new Batman.Keypath(@, key).assign(val)
-  
-      
-  setWithoutKeypaths: (key, val) ->
-    unresolvedOldValue = Batman.Observable.getWithoutResolution.call(@, key)
-    resolvedOldValue = Batman.Observable._resolveObjectIfPossible(unresolvedOldValue)
-    
-    Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
-      if unresolvedOldValue?.isProperty
-        unresolvedOldValue.assignOnObject @, val
-      else if typeof @_set is 'function'
-        @_set key, val
-      else
-        @[key] = val
-      @fire?(key, val, resolvedOldValue)
-    val
-  
-  unset: (key) ->
-    if $typeOf(key) isnt 'String' or key.indexOf('.') is -1
-      Batman.Observable.unsetWithoutKeypaths.apply(@, arguments)
-    else
-      new Batman.Keypath(@, key).remove()
-  
-  unsetWithoutKeypaths: (key) ->
-    unresolvedOldValue = Batman.Observable.getWithoutResolution.call(@, key)
-    resolvedOldValue = Batman.Observable._resolveObjectIfPossible(unresolvedOldValue)
-    
-    Batman.Observable.rememberingOutboundTriggerValues.call @, key, ->
-      if unresolvedOldValue?.isProperty
-        unresolvedOldValue.removeOnObject @
-      else if typeof @_unset is 'function'
-        @_unset key
-      else
-        @[key] = null
-        delete @[key]
-      @fire?(key, `void 0`, resolvedOldValue)
-    return
-  
+    Batman.Keypath.for(@, key)
+  get: (key) -> @property(key).getValue()
+  set: (key, val) -> @property(key).setValue(val)
+  unset: (key) -> @property(key).unsetValue()
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
-  observe: (key, fireImmediately..., callback) ->
-    Batman.Observable.initialize.call @
-    fireImmediately = fireImmediately[0] is true
-    
-    keypath = @keypath(key)
-    currentVal = keypath.resolve()
-    observers = @_batman.observers[key] ||= []
-    observers.push callback
-    
-    Batman.Trigger.populateKeypath(keypath, callback) if keypath.depth() > 1
-    
-    callback.call(@, currentVal, currentVal) if fireImmediately
+  observe: (key, args...) ->
+    @property(key).observe(args...)
     @
-  
-  # You normally shouldn't call this directly. It will be invoked by `set`
-  # to inform all observers for `key` that `value` has changed.
-  fire: (key, value, oldValue) ->
-    return unless @allowed(key) # We don't need to call Batman.Observable.initialize because @allowed calls it.
-    args = [value]
-    args.push oldValue if typeof oldValue isnt 'undefined'
-    
-    for observers in [@_batman.observers[key], @constructor::_batman?.observers?[key]]
-      continue unless observers
-      for callback in observers
-        callback.apply @, args
-    
-    if outboundTriggers = @_batman.outboundTriggers[key]
-      outboundTriggers.fireAll()
-      outboundTriggers.refreshKeypathsWithTriggers()
-        
-    @_batman.inboundTriggers[key]?.removeTriggersNotInKeypath()
-        
-    @
-  
-  observesKeyWithObserver: (key, observer) ->
-    return false unless @_batman?.observers?[key]
-    for o in @_batman.observers[key]
-      return true if o is observer
-    return false
-  
+  fire: (key, args...) ->
+    @property(key).fire(args...)
   # Forget removes an observer from an object. If the callback is passed in, 
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
-  forget: (key, callback) ->
-    Batman.Observable.initialize.call @
-    
+  forget: (key, observer) ->
     if key
-      if callback
-        if keyObservers = @_batman.observers[key]
-          callbackIndex = keyObservers.indexOf(callback)
-          keyObservers.splice(callbackIndex, 1) if callbackIndex isnt -1
-        if triggersForKey = @_batman.inboundTriggers[key]
-          triggersForKey.removeTriggersWithInactiveObservers()
-      else
-        @forget key, o for o in @_batman.observers[key]
+      @property(key).forget(observer)
     else
-      @forget k for k of @_batman.observers
+      @_batman.properties.each (key, property) -> property.forget()
     @
-  
   # Prevent allows the prevention of a given binding from firing. Prevent counts can be nested,
   # so three calls to prevent means three calls to allow must be made before observers will
   # be fired.
   prevent: (key) ->
-    Batman.Observable.initialize.call @
-    
-    counts = @_batman.preventCounts
-    counts[key] ||= 0
-    counts[key]++
+    @property(key).preventFire()
     @
-  
   # Allow unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow later if observers are to be fired.
   allow: (key) ->
-    Batman.Observable.initialize.call @
-    
-    counts = @_batman.preventCounts
-    counts[key]-- if counts[key] > 0
+    @property(key).allowFire()
     @
-  
   # allowed returns a boolean describing whether or not the key is 
   # currently allowed to fire its observers.
   allowed: (key) ->
-    Batman.Observable.initialize.call @
-    !(@_batman.preventCounts?[key] > 0)
-
-
+    @property(key).isAllowedToFire()
+    
+    
 # Events
 # ------
 
@@ -394,6 +307,7 @@ Batman.EventEmitter =
   event: $block (key, context, callback) ->
     if not callback and typeof context isnt 'undefined'
       callback = context
+      context = null
     if not callback and $typeOf(key) isnt 'String'
       callback = key
       key = null
@@ -401,10 +315,10 @@ Batman.EventEmitter =
     # Return a function which either takes another observer
     # to register or a value to fire the event with.
     f = (observer) ->
-      if not @observe
+      unless @isObservable
         throw "EventEmitter object needs to be observable."
       
-      Batman.Observable.initialize.call @
+      Batman._initializeObject @
       
       key ||= $findName(f, @)
       fired = @_batman._oneShotFired?[key]
@@ -447,6 +361,7 @@ Batman.EventEmitter =
         false
     
     # This could be its own mixin but is kept here for brevity.
+    
     f = f.bind(context) if context
     @[key] = f if key?
     $mixin f,
@@ -507,17 +422,21 @@ class Batman.Object
     return if isGlobal is false
     global[@name] = @
   
-  @property: (foo) ->
-    foo #FIXME
-  
   # Apply mixins to this subclass.
-  @mixin: (mixins...) ->
-    $mixin @, mixins...
+  @mixin: (mixins...) -> $mixin @, mixins...
   
   # Apply mixins to instances of this subclass.
-  mixin: (mixins...) ->
-    $mixin @, mixins...
+  mixin: @mixin
   
+  @accessor: (keys..., accessor) ->
+    Batman._initializeObject @
+    if keys.length is 0
+      @_batman.defaultAccessor = accessor
+    else
+      @_batman.keyAccessors ||= {}
+      @_batman.keyAccessors[key] = accessor for key in keys
+  accessor: @accessor
+    
   constructor: (mixins...) ->
     Batman._initializeObject @
     @mixin mixins...
@@ -525,20 +444,18 @@ class Batman.Object
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
+  
 
-# Storage Primitives
-# ------------------
-
-class Batman.Hash extends Batman.Object
+class Batman.SimpleHash
   constructor: ->
     @_storage = {}
   hasKey: (key) ->
     typeof @get(key) isnt 'undefined'
-  _get: (key) ->
+  get: (key) ->
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
-  _set: (key, val) ->
+  set: (key, val) ->
     matches = @_storage[key] ||= []
     for match in matches
       pair = match if @equality(match[0], key)
@@ -546,7 +463,7 @@ class Batman.Hash extends Batman.Object
       pair = [key]
       matches.push(pair)
     pair[1] = val
-  _unset: (key) ->
+  unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
@@ -566,22 +483,36 @@ class Batman.Hash extends Batman.Object
     result = []
     @each (obj) -> result.push obj
     result
+    
 
+class Batman.Hash extends Batman.Object
+  constructor: Batman.SimpleHash
+  hasKey: Batman.SimpleHash::hasKey
+  @::accessor
+    get: Batman.SimpleHash::get
+    set: Batman.SimpleHash::set
+    unset: Batman.SimpleHash::unset
+  equality: Batman.SimpleHash::equality
+  each: Batman.SimpleHash::each
+  keys: Batman.SimpleHash::keys
 
-class Batman.Set extends Batman.Object
+class Batman.SimpleSet
   constructor: ->
-    @_storage = new Batman.Hash
+    @_storage = new Batman.SimpleHash
     @length = 0
-    @add.apply @, arguments
+    @add.apply @, arguments if arguments.length > 0
   has: (item) ->
     @_storage.hasKey item
-  add: @event (items...) ->
+  get: Batman.Property.defaultAccessor.get
+  set: Batman.Property.defaultAccessor.set
+  unset: Batman.Property.defaultAccessor.unset
+  add: (items...) ->
     for item in items
       unless @_storage.hasKey(item)
         @_storage.set item, true
         @set 'length', @length + 1
     items
-  remove: @event (items...) ->
+  remove: (items...) ->
     results = []
     for item in items
       if @_storage.hasKey(item)
@@ -591,10 +522,18 @@ class Batman.Set extends Batman.Object
     results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
-  empty: @property ->
-    @get('length') is 0
+  empty: -> @get('length') is 0
   toArray: ->
     @_storage.keys()
+    
+class Batman.Set extends Batman.Object
+  constructor: Batman.SimpleSet
+  has: Batman.SimpleSet::has
+  add: @event 'add', Batman.SimpleSet::add
+  remove: @event 'remove', Batman.SimpleSet::remove
+  each: Batman.SimpleSet::each
+  empty: Batman.SimpleSet::empty
+  toArray: Batman.SimpleSet::toArray
 
 class Batman.SortableSet extends Batman.Set
   constructor: (index) ->
@@ -625,40 +564,12 @@ class Batman.SortableSet extends Batman.Set
       [keypath, ordering] = index.split ' '
       ary = Batman.Set.prototype.toArray.call @
       @_indexes[index] = ary.sort (a,b) ->
-        valueA = (new Batman.Keypath(a, keypath)).resolve()?.valueOf()
-        valueB = (new Batman.Keypath(b, keypath)).resolve()?.valueOf()
+        valueA = (Batman.Observable.property.call(a, keypath)).getValue()?.valueOf()
+        valueB = (Batman.Observable.property.call(b, keypath)).getValue()?.valueOf()
         [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
         if valueA < valueB then -1 else if valueA > valueB then 1 else 0
     else
       @_reIndex(index) for index of @_indexes
-
-
-class Batman.TriggerSet extends Batman.Set
-  constructor: ->
-    super
-    @oldValues = new Batman.Hash
-  keypaths: ->
-    result = new Batman.Set
-    @each (trigger) ->
-      result.add trigger.targetKeypath
-    result
-  rememberOldValues: ->
-    oldValues = @oldValues = new Batman.Hash
-    @keypaths().each (keypath) ->
-      oldValues.set keypath, keypath.resolve()
-  fireAll: ->
-    @oldValues.each (keypath, oldValue) ->
-      keypath.base.fire keypath.path(), keypath.resolve(), oldValue
-  refreshKeypathsWithTriggers: ->
-    @each (trigger) ->
-      Batman.Trigger.populateKeypath(trigger.targetKeypath, trigger.callback)
-  removeTriggersNotInKeypath: ->
-    for trigger in @toArray()
-      trigger.remove() unless trigger.isInKeypath()
-  removeTriggersWithInactiveObservers: ->
-    for trigger in @toArray()
-      trigger.remove() unless trigger.hasActiveObserver()
-
 
 # App, Requests, and Routing
 # --------------------------
@@ -1051,13 +962,13 @@ class Batman.Model extends Batman.Object
     else
       Batman.mixin @, mixin
   
-  @all: @property ->
+  @all: ->
     @_makeRecords @dataStore.all()
   
-  @first: @property ->
+  @first: ->
     @_makeRecords(@dataStore.all())[0]
   
-  @last: @property ->
+  @last: ->
     array = @_makeRecords(@dataStore.all())
     array[array.length - 1]
   
