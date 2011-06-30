@@ -71,39 +71,6 @@ test "parent classes shouldn't fire observers on newly created classes", ->
   ok !subSpy.called
 
 
-QUnit.module "Batman.Object properties"
-  setup: ->
-    @get = get = createSpy().whichReturns("")
-    @set = set = createSpy()
-    @klass = class Test extends Batman.Object
-      foo: @property
-        get: get
-        set: set
-    @obj = new Test
-
-test "it should allow creation of properties", ->
-  ok @obj.foo.isProperty
-
-test "it should allow getting and setting via the object", ->
-  @obj.set("foo", "bar")
-  deepEqual @set.lastCallArguments, ["foo", "bar", @obj]
-
-test "it should allow getting and setting via the property", ->
-  @obj.foo("qux")
-  deepEqual @set.lastCallArguments, ["foo", "qux", @obj]
-
-test "it should allow observation via the object", ->
-  a = createSpy()
-  @obj.observe("foo", a)
-
-  b = createSpy()
-  @obj2 = new @klass
-  @obj2.observe("foo", b)
-
-  @obj.set("foo", "baz")
-  ok a.called
-  ok !b.called
-
 test "it should allow observation via the class", ->
   a = createSpy()
   class Custom extends Batman.Object
@@ -116,53 +83,5 @@ test "it should allow observation via the class", ->
   equal a.callCount, 1
   @obj2.set("foo", "qux")
   equal a.callCount, 2
-
-test "it should allow custom getters and setters", ->
-  class Custom extends Batman.Object
-    foo: @property
-      get: (key, context) ->
-        "special"
-      set: (key, value, context) ->
-        context.somethingElse = value
-
-  @obj = new Custom
-  @obj.get("foo")
-  equal @obj.get("foo"), "special"
-
-  @obj.set("foo", "something")
-  equal @obj.somethingElse, "something"
-  
-test "one object should not affect the other", ->
-  @obj2 = new @klass
-
-  @obj.set("foo", "bar")
-  equal @set.lastCallArguments[2], @obj
-
-  @obj2.set("foo", "baz")
-  equal @set.lastCallArguments[2], @obj2
-
-test "property setters should fire observers if the return a changed value", 2, ->
-  class Custom extends Batman.Object
-    foo: @property
-      get: (key, context) -> context.test
-      set: (key, value, context) ->
-        context.test = value * 2
-
-    bar: @property
-      get: (key, context) ->
-        "silly"
-      set: (key, value, context) ->
-        "silly"
-
-  @obj = new Custom
-  @obj.set 'foo', 1
-  @obj.observe 'foo', (value, oldValue) ->
-    equals value, 4
-    equals oldValue, 2
-  @obj.set 'foo', 2
-
-  @obj.observe 'bar', (value, oldValue) ->
-    ok false, "Observer isn't supposed to be called because set doesn't return a different value!"
-  @obj.set 'bar', 'weird'
 
 QUnit.module "Batman (the function)"
