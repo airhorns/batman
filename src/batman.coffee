@@ -1,31 +1,31 @@
-###
-# batman.coffee
-# batman.js
-# 
+#
 # Created by Nicholas Small
+#
 # Copyright 2011, JadedPixel Technologies, Inc.
-###
+#
 
-# The global namespace, the Batman function will also create also create a new
+# The global namespace, the `Batman` function will also create also create a new
 # instance of Batman.Object and mixin all arguments to it.
 Batman = (mixins...) ->
   new Batman.Object mixins...
 
-# Batman.typeOf returns a string that contains the built-in class of an object
-# like String, Array, or Object. Note that only Object will be returned for
+
+# Helpers
+# -------
+
+# `$typeOf` returns a string that contains the built-in class of an object
+# like `String`, `Array`, or `Object`. Note that only `Object` will be returned for
 # the entire prototype chain.
 Batman.typeOf = $typeOf = (object) ->
   _objectToString.call(object).slice(8, -1)
+
 # Cache this function to skip property lookups.
 _objectToString = Object.prototype.toString
 
-###
-# Mixins
-###
 
-# Batman.mixin will apply every key from every argument after the first to the
+# `$mixin` applies every key from every argument after the first to the
 # first argument. If a mixin has an `initialize` method, it will be called in
-# the context of the `to` object and won't be applied.
+# the context of the `to` object, and it's key/values won't be applied.
 Batman.mixin = $mixin = (to, mixins...) ->
   set = to.set
   hasSet = typeof set is 'function'
@@ -39,7 +39,7 @@ Batman.mixin = $mixin = (to, mixins...) ->
   
   to
 
-# Batman.unmixin will remove every key from every argument after the first
+# `$unmixin` removes every key/value from every argument after the first
 # from the first argument. If a mixin has a `deinitialize` method, it will be
 # called in the context of the `from` object and won't be removed.
 Batman.unmixin = $unmixin = (from, mixins...) ->
@@ -55,22 +55,7 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
   
   from
 
-Batman._initializeObject = (object) ->
-  if object.prototype and object._batman?.__initClass__ isnt object
-    object._batman = {__initClass__: object}
-  else unless object.hasOwnProperty '_batman'
-    object._batman = {}
-
-Batman._findName = (f, context) ->
-  if not f.displayName
-    for key, value of context
-      if value is f
-        f.displayName = key
-        break
-  
-  f.displayName
-
-# $block takes in a function and returns a function which can either
+# `$block` takes in a function and returns a function which can either
 #   A) take a callback as its last argument as it would normally, or 
 #   B) accept a callback as a second function application.
 # This is useful so that multiline functions can be passed as callbacks 
@@ -89,7 +74,6 @@ Batman._findName = (f, context) ->
 #  or
 #
 #     ex(2, 3) (x) -> alert(x)
-
 Batman._block = $block = (fn) ->
   callbackEater = (args...) ->
     ctx = @
@@ -101,10 +85,26 @@ Batman._block = $block = (fn) ->
       f(args.pop())
     else
       f
-      
+
+
+# `findName` allows an anonymous function to find out what key it resides
+# in within a context.
+Batman._findName = $findName = (f, context) ->
+  if not f.displayName
+    for key, value of context
+      if value is f
+        f.displayName = key
+        break
+  
+  f.displayName
+
+
+# Properties
+# ----------
+
 class Batman.Property
   constructor: (opts) ->
-    @[key] = val for key, val of opts if opts
+    $mixin(@, opts) if opts
   isProperty: true
   resolve: ->
   assign: (val) ->
@@ -117,13 +117,14 @@ class Batman.AutonomousProperty extends Batman.Property
   resolveOnObject: -> @resolve()
   assignOnObject: (obj, val) -> @assign(val)
   removeOnObject: -> @remove()
-  
-###
+ 
+
+# Keypaths
+# --------
+
 # Batman.Keypath
 # A keypath has a base object and one or more key segments
 # which represent a path to a target value.
-###
-
 class Batman.Keypath extends Batman.AutonomousProperty
   constructor: (@base, @segments) ->
     @segments = @segments.split('.') if $typeOf(@segments) is 'String'
@@ -196,14 +197,13 @@ class Batman.Trigger
       outboundSet.remove @
     if inboundSet = @targetKeypath.base._batman?.inboundTriggers[@targetKeypath.path()]
       inboundSet.remove @
-    
-###
-# Batman.Observable
-# Batman.Observable is a generic mixin that can be applied to any object in
-# order to make that object bindable. It is applied by default to every
-# instance of Batman.Object and subclasses.
-###
+ 
 
+# Observable
+# ----------
+
+# Batman.Observable is a generic mixin that can be applied to any object to allow it to be bound to.
+# It is applied by default to every instance of `Batman.Object` and subclasses.
 Batman.Observable =
   initialize: ->
     Batman._initializeObject @
@@ -304,9 +304,7 @@ Batman.Observable =
   # You normally shouldn't call this directly. It will be invoked by `set`
   # to inform all observers for `key` that `value` has changed.
   fire: (key, value, oldValue) ->
-    return unless @allowed(key)
-    # We don't need to call Batman.Observable.initialize because @allowed calls it.
-    
+    return unless @allowed(key) # We don't need to call Batman.Observable.initialize because @allowed calls it.
     args = [value]
     args.push oldValue if typeof oldValue isnt 'undefined'
     
@@ -348,9 +346,9 @@ Batman.Observable =
       @forget k for k of @_batman.observers
     @
   
-  # Prevent allows you to prevent a given binding from firing. You can
-  # nest prevent counts, so three calls to prevent means you need to
-  # make three calls to allow before you can fire observers again.
+  # Prevent allows the prevention of a given binding from firing. Prevent counts can be nested,
+  # so three calls to prevent means three calls to allow must be made before observers will
+  # be fired.
   prevent: (key) ->
     Batman.Observable.initialize.call @
     
@@ -359,8 +357,8 @@ Batman.Observable =
     counts[key]++
     @
   
-  # Unblocks a property for firing observers. Every call to prevent
-  # must have a matching call to allow.
+  # Allow unblocks a property for firing observers. Every call to prevent
+  # must have a matching call to allow later if observers are to be fired.
   allow: (key) ->
     Batman.Observable.initialize.call @
     
@@ -368,24 +366,30 @@ Batman.Observable =
     counts[key]-- if counts[key] > 0
     @
   
-  # Returns a boolean whether or not the property is currently allowed
-  # to fire its observers.
+  # allowed returns a boolean describing whether or not the key is 
+  # currently allowed to fire its observers.
   allowed: (key) ->
     Batman.Observable.initialize.call @
     !(@_batman.preventCounts?[key] > 0)
 
-###
-# Batman.Event
-# Another generic mixin that simply allows an object to emit events. All events
-# require an object that is observable. If you don't want to use an emitter,
-# you can use the $event functions to create ephemeral objects internally.
-###
+
+# Events
+# ------
+
+
+# `Batman.EventEmitter` is another generic mixin that simply allows an object to 
+# emit events. Batman events use observers to manage the callbacks, so they require that
+# the object emitting the events be observable. If events need to be attached to an object
+# which isn't a `Batman.Object` or doesn't have the `Batman.Observable` and `Batman.EventEmitter`
+# mixins applied, the $event function can be used to create ephemeral event objects which
+# use those mixins internally.
 
 Batman.EventEmitter =
-  # An event is a convenient observer wrapper. Wrap any function in an event.
-  # Whenever you call that function, it will cause this object to fire all
-  # the observers for that event. There is also some syntax sugar so you can
-  # register an observer simply by calling the event with a function argument.
+  # An event is a convenient observer wrapper. Any function can be wrapped in an event, and
+  # when called, it will cause it's object to fire all the observers for that event. There is 
+  # also some syntactical sugar so observers can be registered simply by calling the event with a 
+  # function argument. Notice that the `$block` helper is used here so events can be declared in
+  # class definitions using the second function application syntax and no wrapping brackets.
   event: $block (key, context, callback) ->
     if not callback and typeof context isnt 'undefined'
       callback = context
@@ -393,13 +397,15 @@ Batman.EventEmitter =
       callback = key
       key = null
     
+    # Return a function which either takes another observer
+    # to register or a value to fire the event with.
     f = (observer) ->
       if not @observe
         throw "EventEmitter object needs to be observable."
       
       Batman.Observable.initialize.call @
       
-      key ||= Batman._findName(f, @)
+      key ||= $findName(f, @)
       fired = @_batman._oneShotFired?[key]
       
       # Pass a function to the event to register it as an observer.
@@ -415,6 +421,9 @@ Batman.EventEmitter =
         
         # Observers will only fire if the result of the event is not false.
         if value isnt false
+          # Get and cache the arguments for the event listeners. Add the value if 
+          # its not undefined, and then concat any more arguments passed to this 
+          # event when fired.
           f._firedArgs = if typeof value isnt 'undefined'
               [value].concat arguments...
             else
@@ -423,6 +432,7 @@ Batman.EventEmitter =
               else
                 Array.prototype.slice.call arguments
 
+          # Copy the array and add in the key for `fire`
           args = Array.prototype.slice.call f._firedArgs
           args.unshift key
           @fire(args...)
@@ -443,32 +453,54 @@ Batman.EventEmitter =
       action: callback
       isOneShot: @isOneShot
   
-  # Use a one shot event for something that only fires once. Any observers
-  # added after it has already fired will simply be executed immediately.
-  eventOneShot: (callback) ->
+  # One shot events can be used for something that only fires once. Any observers
+  # added after it has already fired will simply be executed immediately. This is useful
+  # for things like `ready` events on requests or renders, because once ready they always
+  # remain ready. If an AJAX request had a vanilla `ready` event, observers attached after
+  # the ready event fired the first time would never fire, as they would be waiting for
+  # the next time `ready` would fire as is standard with vanilla events. With a one shot
+  # event, any observers attached after the first fire will fire immediately, meaning no logic
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
 
 
-# $event lets you create an ephemeral event without needing an EventEmitter.
+# `$event` lets you create an ephemeral event without needing an EventEmitter.
 # If you already have an EventEmitter object, you should call .event() on it.
 $event = (callback) ->
   context = new Batman.Object
   context.event('_event', context, callback)
 
+# `$eventOneShot` lets you create an ephemeral one-shot event without needing an EventEmitter.
+# If you already have an EventEmitter object, you should call .event() on it.
 $eventOneShot = (callback) ->
   context = new Batman.Object
   context.eventOneShot('_event', context, callback)
 
-###
-# Batman.Object
-# The base class for all other Batman objects. It is not abstract. 
-###
 
+# Objects
+# -------
+
+# `Batman._initializeObject` is called by all the methods in Batman.Object to ensure that the
+# objects `_batman` property is initialized and it's own. Classes extending Batman.Object inherit
+# methods like `get`, `set`, and `observe` by default on the class and prototype levels, such that
+# both instances and the class respond to them and can be bound to. However, CoffeeScript's static
+# class inheritance copies over all class level properties indiscriminately, so a parent class' 
+# `_batman` object will get copied to its subclasses, transferring all the information stored there and 
+# allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
+# which object the `_batman_` object was initialized upon, and reinitializing if that has changed since
+# initialization.
+Batman._initializeObject = (object) ->
+  if object.prototype and object._batman?.__initClass__ isnt object
+    object._batman = {__initClass__: object}
+  else unless object.hasOwnProperty '_batman'
+    object._batman = {}
+
+
+# `Batman.Object` is the base class for all other Batman objects. It is not abstract. 
 class Batman.Object
   # Setting `isGlobal` to true will cause the class name to be defined on the
   # global object. For example, Batman.Model will be aliased to window.Model.
-  # You should use this sparingly; it's mostly useful for debugging.
+  # This should be used sparingly; it's mostly useful for debugging.
   @global: (isGlobal) ->
     return if isGlobal is false
     global[@name] = @
@@ -485,7 +517,6 @@ class Batman.Object
     $mixin @, mixins...
   
   constructor: (mixins...) ->
-
     Batman._initializeObject @
     @mixin mixins...
   
@@ -493,6 +524,8 @@ class Batman.Object
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
 
+# Storage Primitives
+# ------------------
 
 class Batman.Hash extends Batman.Object
   constructor: ->
@@ -532,10 +565,6 @@ class Batman.Hash extends Batman.Object
     @each (obj) -> result.push obj
     result
 
-
-###
-# Batman.Set
-###
 
 class Batman.Set extends Batman.Object
   constructor: ->
@@ -628,11 +657,11 @@ class Batman.TriggerSet extends Batman.Set
     for trigger in @toArray()
       trigger.remove() unless trigger.hasActiveObserver()
 
-###
-# Batman.Request
-# A normalizer for XHR requests.
-###
 
+# App, Requests, and Routing
+# --------------------------
+
+# `Batman.Request` is a normalizer for XHR requests in the Batman world.
 class Batman.Request extends Batman.Object
   url: ''
   data: ''
@@ -657,10 +686,8 @@ class Batman.Request extends Batman.Object
   cancel: ->
     clearTimeout(@_autosendTimeout) if @_autosendTimeout
 
-###
-# Batman.App
-###
-
+# `Batman.App` manages requiring files and acts as a namespace for all code subclassing
+# Batman objects.
 class Batman.App extends Batman.Object
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
@@ -696,14 +723,14 @@ class Batman.App extends Batman.Object
   @view: (names...) ->
     @require 'views', names...
   
-  # Layout is your base view that other views can be yielded into. The
-  # default behavior is that when you call `app.run()`, a new view will
+  # Layout is the base view that other views can be yielded into. The
+  # default behavior is that when `app.run()` is called, a new view will
   # be created for the layout using the `document` node as its content.
-  # User `MyApp.layout = null` to turn off the default behavior.
+  # Use `MyApp.layout = null` to turn off the default behavior.
   @layout: undefined
   
-  # Call `MyApp.run()` to actually start up your app. Batman level
-  # initializers will be run to bootstrap your application.
+  # Call `MyApp.run()` to start up an app. Batman level initializers will 
+  # be run to bootstrap the application.
   @run: @eventOneShot ->
     return false if @hasRun
     Batman.currentApp = @
@@ -714,16 +741,14 @@ class Batman.App extends Batman.Object
     @startRouting()
     @hasRun = yes
 
-###
-# Routing
-###
-
 # route matching courtesy of Backbone
 namedParam = /:([\w\d]+)/g
 splatParam = /\*([\w\d]+)/g
 namedOrSplat = /[:|\*]([\w\d]+)/g
 escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
+# `Batman.Route` is a simple object representing a route
+# which a user might visit in the application.
 Batman.Route = {
   isRoute: yes
   
@@ -753,10 +778,17 @@ Batman.Route = {
     "route: #{@pattern}"
 }
 
+# The `route` and `redirect` methods are mixed in to the top level `Batman` object,
+# so at any point new routes can be added and redirected to.
 $mixin Batman,
   HASH_PATTERN: '#!'
   _routes: []
   
+  # `route` adds a new route to the global routing table. It accepts a pattern of the
+  # Rails/Backbone variety with `:foo` denoting named arguments and `*bar` denoting 
+  # repeated segements. It also accepts a callback to fire when the route is visited.
+  # Note that route uses the `$block` helper, so it can be used in class definitions 
+  # without wrapping brackets 
   route: $block (pattern, callback) ->
     f = (params) ->
       context = f.context || @
@@ -793,15 +825,20 @@ $mixin Batman,
     
     Batman._routes.push f
     f
-  
+   
+  # `redirect` sets the `window.location.hash` to passed string or pattern of the passed route. This will
+  # then trigger any route who's pattern matches the route and thus it's callback.
   redirect: (urlOrFunction) ->
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
     window.location.hash = "#{Batman.HASH_PATTERN}#{url}"
 
+# Add the route and redirect helpers to the class level of all `Batman.Object` subclasses so they can be 
+# used declaratively within class definitions.
 Batman.Object.route = Batman.App.route = $route = Batman.route
 Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
 
 $mixin Batman.App,
+  # `startRouting` starts listening for changes to the window hash and dispatches routes when they change.
   startRouting: ->
     return if typeof window is 'undefined'
     parseUrl = =>
@@ -820,6 +857,7 @@ $mixin Batman.App,
       old = window.location.hash
       @_routeHandler = setInterval parseUrl, 100
   
+  # `stopRouting` stops any hash change listeners from dispatching routes.
   stopRouting: ->
     return unless @_routeHandler?
     if 'onhashchange' of window
@@ -852,6 +890,7 @@ $mixin Batman.App,
     
     params
   
+  # `root` is a shortcut for setting the root route.
   root: (callback) ->
     $route '/', callback
   
@@ -860,9 +899,11 @@ $mixin Batman.App,
       html: '<h1>Page could not be found</h1>'
       contentFor: 'main'
 
-###
-# Batman.Controller
-###
+
+
+# Controllers
+# -----------
+
 
 class Batman.Controller extends Batman.Object
   # FIXME: should these be singletons?
@@ -890,7 +931,7 @@ class Batman.Controller extends Batman.Object
     #$route "/#{base}/:id/edit", "#{name}#edit"
   
   dispatch: (route, params...) ->
-    key = Batman._findName route, @
+    key = $findName route, @
     
     @_actedDuringAction = no
     @_currentAction = key
@@ -924,9 +965,8 @@ class Batman.Controller extends Batman.Object
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
 
-###
-# Batman.DataStore
-###
+# Datastore
+# ---------
 
 class Batman.DataStore extends Batman.Object
   constructor: (model) ->
@@ -966,9 +1006,8 @@ class Batman.DataStore extends Batman.Object
       
     results
 
-###
-# Batman.Model
-###
+# Models
+# ------
 
 class Batman.Model extends Batman.Object
   @_makeRecords: (ids) ->
@@ -1064,12 +1103,12 @@ class Batman.Model extends Batman.Object
   fromJSON: (data) ->
     Batman.mixin @, data
 
-###
-# Batman.View
-# A few can function two ways: a mechanism to load and/or parse html files
-# or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
-###
+# Views
+# -----------
 
+
+# A `Batman.View` can function two ways: a mechanism to load and/or parse html files
+# or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   viewSources = {}
   
@@ -1089,9 +1128,10 @@ class Batman.View extends Batman.Object
   # Fires once a node is parsed.
   ready: @eventOneShot ->
   
-  # Where to look for views
+  # Where to look for views on the server
   prefix: 'views'
 
+  # Whenever the source changes we load it up asynchronously
   @::observe 'source', ->
     setTimeout (=> @reloadSource()), 0
   
@@ -1124,6 +1164,8 @@ class Batman.View extends Batman.Object
     if @_renderer
       @_renderer.forgetAll()
     
+    # We use a renderer with the continuation style rendering engine to not
+    # block user interaction for too long during the render.
     if node
       @_renderer = new Batman.Renderer( node, =>
         content = @contentFor
@@ -1137,17 +1179,16 @@ class Batman.View extends Batman.Object
         @ready node
       , @contexts)
       
+      # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
       @_renderer.contexts.push(@context) if @context
       @_renderer.contextObject.view = @
 
-###
 # DOM Helpers
-###
+# -----------
 
-# Batman.Renderer will take a node and parse all recognized data
-# attributes out of it and its children. It is a continuation
-# style parser, designed not to block for longer than 50ms at a
-# time if the document fragment is particularly long.
+# `Batman.Renderer` will take a node and parse all recognized data attributes out of it and its children. 
+# It is a continuation style parser, designed not to block for longer than 50ms at a time if the document 
+# fragment is particularly long.
 class Batman.Renderer extends Batman.Object
   constructor: (@node, @callback, contexts) ->
     super
@@ -1219,6 +1260,8 @@ class Batman.Renderer extends Batman.Object
     return
     
 
+# `matchContext` is used to find which context in a stack of objects which responds to a sought key.
+# A matching context is returned if found, and if it isn't, the global object is returned.
 matchContext = (contexts, key) ->
   base = key.split('.')[0]
   i = contexts.length
@@ -1230,6 +1273,9 @@ matchContext = (contexts, key) ->
   global
 
 Batman.DOM = {
+  
+  # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
+  # and any other `data-#{name}=""` style DOM directives.
   readers: {
     bind: (node, key, contexts) ->
       context = matchContext contexts, key
@@ -1319,6 +1365,9 @@ Batman.DOM = {
       setTimeout (-> Batman.DOM.contentFor key, node), 0
   }
   
+  # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the `data-dosomething-argument="keypath"` style.
+  # This means things like foreach, binding attributes like disabled or anything arbitrary, descending into a context, binding specific classes, 
+  # or binding to events.
   attrReaders: {
     bind: (node, attr, key, contexts) ->
       filters = key.split(/\s*\|\s*/)
@@ -1430,6 +1479,8 @@ Batman.DOM = {
       false
   }
   
+  # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
+  # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
     click: (node, callback) ->
       Batman.DOM.addEventListener node, 'click', (e) ->
@@ -1460,6 +1511,8 @@ Batman.DOM = {
           e.preventDefault()
   }
   
+  # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
+  # This can be used for abstraction as well as repetition.
   yield: (name, node) ->
     yields = Batman.DOM._yields ||= {}
     yields[name] = node
@@ -1493,16 +1546,15 @@ Batman.DOM = {
       node.attachEvent "on#{eventName}", callback
 }
 
-###
 # Helpers
-# Just a few random Rails-style string helpers. You can add more
-# to the Batman.helpers object.
-###
+# -------
 
 camelize_rx = /(?:^|_)(.)/g
 underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
 underscore_rx2 = /([a-z\d])([A-Z])/g
 
+# Just a few random Rails-style string helpers. You can add more
+# to the Batman.helpers object.
 helpers = Batman.helpers = {
   camelize: (string, firstLetterLower) ->
     string = string.replace camelize_rx, (str, p1) -> p1.toUpperCase()
@@ -1531,17 +1583,12 @@ helpers = Batman.helpers = {
       "#{string}s"
 }
 
-###
 # Filters
-###
+# -------
+filters = Batman.filters = {}
 
-filters = Batman.filters = {
-  
-}
-
-###
 # Mixins
-###
+# ------
 mixins = Batman.mixins = new Batman.Object
 
 # Export a few globals.

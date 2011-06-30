@@ -6,7 +6,7 @@ CoffeeScript  = require 'coffee-script'
 fs            = require 'fs'
 path          = require 'path'
 glob          = require 'glob'
-{exec}        = require 'child_process'
+{spawn, exec} = require 'child_process'
 
 class SerialJobProcessor
   constructor: ->
@@ -115,6 +115,21 @@ copyFile = (source, target, options) ->
     writeFile target, contents, options, ->
       notify source, "Moved #{source} to #{target} successfully"
 
+doccoFile = (source, options) ->
+  docco = spawn 'docco', [source]
+  docco.stderr.addListener 'data',  (error)  ->
+    console.error error.toString() if error
+  docco.stdout.addListener 'data', (result) ->
+    console.log result.toString() if result
+  true
+  
+task 'doc', 'build the Docco documentation', (options) ->
+  runActions
+    files: glob.globSync './src/**/*'
+    options: options
+    map:
+      'src/(.+).coffee': (matches) -> 
+
 compileMap = (map) ->
   for pattern, action of map
     {pattern: new RegExp(pattern), action: action}
@@ -151,6 +166,13 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       'src/tools/batman.coffee' : (matches) -> copyFile(matches[0], "tools/batman", $extend(options, {mode: 0755}))
       'src/tools/(.+)\.coffee'  : (matches) -> compileScript(matches[0], "tools/#{matches[1]}.js", options)
   console.log "Watching src..." if options.watch
+
+task 'doc', 'build the Docco documentation', (options) ->
+  runActions
+    files: glob.globSync './src/**/*'
+    options: options
+    map:
+      'src/batman.coffee': (matches) -> doccoFile(matches[0], options)
 
 task 'test', 'compile Batman.js and the tests and run them on the command line', (options) ->
   temp    = require 'temp'
