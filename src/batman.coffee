@@ -384,6 +384,57 @@ $eventOneShot = (callback) ->
   context = new Batman.Object
   context.eventOneShot('_event', context, callback)
 
+###
+# Batman.StateMachine
+###
+
+Batman.StateMachine = {
+  initialize: ->
+    Batman._initializeObject @
+    @_batman.states ||= {}
+    @_batman.transitions ||= {}
+  
+  state: (name, callback) ->
+    Batman.StateMachine.initialize.call @
+    states = @_batman.states
+    callbacks = states[name] ||= []
+    callbacks.push(callback) if callbacks.indexOf(callback) is -1
+  
+  transition: (from, to, callback) ->
+    Batman.StateMachine.initialize.call @
+    transitions = @_batman.transitions
+    fromIndex = transitions[from] ||= {}
+    callbacks = fromIndex[to] ||= []
+    callbacks.push(callback) if callbacks.indexOf(callback) is -1
+  
+  setState: (name) ->
+    Batman.StateMachine.initialize.call @
+    
+    if @_batman.isTransitioning
+      return (@_batman.nextState ||= []).push(name)
+    
+    @_batman.isTransitioning = yes
+    @_batman.nextState ||= []
+    
+    oldName = @_batman.currentState
+    @_batman.currentState = name
+    
+    callbacks = @_batman.transitions[oldName]?[name]
+    if callbacks
+      for callback in callbacks
+        callback.call @, name, oldName, @
+    
+    callbacks = @_batman.states[name]
+    if callbacks
+      for callback in callbacks
+        callback.call @, name, @
+    
+    @_batman.isTransitioning = no
+    @setState @_batman.nextState.pop() if @_batman.nextState.length
+  
+  currentState: ->
+    @_batman.currentState
+}
 
 # Objects
 # -------

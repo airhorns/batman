@@ -225,3 +225,31 @@ test "should allow the callback to be passed as the last argument", 1, ->
       equal true, arg
   
   (new Test).method(true, ->)
+
+QUnit.module "Batman.StateMachine",
+  setup: ->
+    $mixin @, Batman.StateMachine
+
+test "should fire state callback", 1, ->
+  @state 'new', (state) ->
+    equal(state, 'new', 'new called')
+  
+  @setState 'new'
+
+test "should fire transition callback", 2, ->
+  @transition 'new', 'old', (state, oldState) ->
+    equal state, 'old', 'new state set'
+    equal oldState, 'new', 'old state removed'
+  
+  @setState 'new'
+  @setState 'old'
+
+test "should pause subsequent state changes", 2, ->
+  @state 'new', ->
+    @setState 'old'
+    equal(@currentState(), 'new')
+  
+  @state 'old', ->
+    equal(@currentState(), 'old')
+  
+  @setState 'new'
