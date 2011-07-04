@@ -1,3 +1,5 @@
+Batman.exportHelpers(this)
+
 QUnit.module "$mixin"
   setup: ->
     @base = {x: "x"}

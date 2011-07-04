@@ -2,7 +2,7 @@ if window?
   exports = window
 else
   exports = global
-  exports.window = w = jsdom().createWindow()
+  exports.window = w = jsdom("<html><head><script></script></head><body></body></html>").createWindow()
   exports.document = w.document
 
 exports.ASYNC_TEST_DELAY = 20

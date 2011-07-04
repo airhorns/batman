@@ -1,10 +1,10 @@
-###
+#
 # batman.jquery.coffee
 # batman.js
 # 
 # Created by Nicholas Small
 # Copyright 2011, JadedPixel Technologies, Inc.
-###
+#
 
 # Include this file instead of batman.nodep if your
 # project already uses jQuery. It will map a few

@@ -1,4 +1,6 @@
 #
+# Batman.js
+#
 # Created by Nicholas Small
 #
 # Copyright 2011, JadedPixel Technologies, Inc.
@@ -9,8 +11,7 @@
 Batman = (mixins...) ->
   new Batman.Object mixins...
 
-
-# Helpers
+# Global Helpers
 # -------
 
 # `$typeOf` returns a string that contains the built-in class of an object
@@ -460,6 +461,7 @@ Batman.EventEmitter =
   # the ready event fired the first time would never fire, as they would be waiting for
   # the next time `ready` would fire as is standard with vanilla events. With a one shot
   # event, any observers attached after the first fire will fire immediately, meaning no logic
+  eventOneShot: (callback) ->
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
 
@@ -471,7 +473,7 @@ $event = (callback) ->
   context.event('_event', context, callback)
 
 # `$eventOneShot` lets you create an ephemeral one-shot event without needing an EventEmitter.
-# If you already have an EventEmitter object, you should call .event() on it.
+# If you already have an EventEmitter object, you should call .eventOneShot() on it.
 $eventOneShot = (callback) ->
   context = new Batman.Object
   context.eventOneShot('_event', context, callback)
@@ -681,7 +683,7 @@ class Batman.Request extends Batman.Object
   success: @event ->
   error: @event ->
   
-  send: (data) -> # Defined in your dependency file
+  send: () -> throw "Please source a dependency file for a request implementation" 
   
   cancel: ->
     clearTimeout(@_autosendTimeout) if @_autosendTimeout
@@ -1592,17 +1594,22 @@ filters = Batman.filters = {}
 mixins = Batman.mixins = new Batman.Object
 
 # Export a few globals.
-global = exports ? this
-global.Batman = Batman
+global = if window? then window else global
 
 $mixin global, Batman.Observable
 
+if exports?
+  exports.Batman = Batman
+
 # Optionally export global sugar. Not sure what to do with this.
-Batman.exportGlobals = ->
-  global.$typeOf = $typeOf
-  global.$mixin = $mixin
-  global.$unmixin = $unmixin
-  global.$route = $route
-  global.$redirect = $redirect
-  global.$event = $event
-  global.$eventOneShot = $eventOneShot
+Batman.exportHelpers = (onto) ->
+  onto.$typeOf = $typeOf
+  onto.$mixin = $mixin
+  onto.$unmixin = $unmixin
+  onto.$route = $route
+  onto.$redirect = $redirect
+  onto.$event = $event
+  onto.$eventOneShot = $eventOneShot
+
+Batman.exportGlobals = () ->
+  Batman.exportHelpers(global)
