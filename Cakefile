@@ -8,7 +8,6 @@ q      = require 'q'
 glob   = require 'glob'
 path   = require 'path'
 
-task 'stats', 'compile the files and report on their final size', (options) ->
 
 option '-w', '--watch',  'continue to watch the files and rebuild them when they change'
 option '-c', '--commit', 'operate on the git index instead of the working tree'
@@ -77,3 +76,6 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         code:  "#{tmpdir}/batman.js"
         deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
         tests: glob.globSync("#{tmpdir}/*_test.js")
+
+task 'stats', 'compile the files and report on their final size', (options) ->
+  muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')))
