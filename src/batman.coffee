@@ -1594,12 +1594,14 @@ filters = Batman.filters = {}
 mixins = Batman.mixins = new Batman.Object
 
 # Export a few globals.
-global = if window? then window else global
-
-$mixin global, Batman.Observable
-
 if exports?
+  container = global
   exports.Batman = Batman
+else
+  container = window
+  window.Batman = Batman
+
+$mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
@@ -1612,4 +1614,4 @@ Batman.exportHelpers = (onto) ->
   onto.$eventOneShot = $eventOneShot
 
 Batman.exportGlobals = () ->
-  Batman.exportHelpers(global)
+  Batman.exportHelpers(container)

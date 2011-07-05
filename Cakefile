@@ -33,6 +33,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       options: options
       map:
         'src/batman\.(.+)\.coffee' : (matches) ->
+          return if matches[1] == 'node'
           joinedCoffeePath = "#{tmpdir}/batman.#{matches[1]}.coffee"
 
           # Read the platform specific code
