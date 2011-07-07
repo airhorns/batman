@@ -228,28 +228,30 @@ test "should allow the callback to be passed as the last argument", 1, ->
 
 QUnit.module "Batman.StateMachine",
   setup: ->
-    $mixin @, Batman.StateMachine
+    @sm = new Batman.Object Batman.StateMachine
 
 test "should fire state callback", 1, ->
-  @state 'new', (state) ->
-    equal(state, 'new', 'new called')
+  @sm.state 'test', (state) ->
+    equal(state, 'test', 'new called')
   
-  @setState 'new'
+  @sm.test()
 
-test "should fire transition callback", 2, ->
-  @transition 'new', 'old', (state, oldState) ->
-    equal state, 'old', 'new state set'
-    equal oldState, 'new', 'old state removed'
+asyncTest "should fire transition callback", 2, ->
+  @sm.transition 'test', 'test2', (state, oldState) ->
+    equal state, 'test2', 'new state set'
+    equal oldState, 'test', 'old state removed'
+    start()
   
-  @setState 'new'
-  @setState 'old'
+  @sm.test()
+  @sm.test2()
 
-test "should pause subsequent state changes", 2, ->
-  @state 'new', ->
-    @setState 'old'
-    equal(@currentState(), 'new')
+asyncTest "should pause subsequent state changes", 2, ->
+  @sm.state 'newState', =>
+    @sm.oldState()
+    equal(@sm.currentState(), 'newState')
   
-  @state 'old', ->
-    equal(@currentState(), 'old')
+  @sm.state 'oldState', =>
+    equal(@sm.currentState(), 'oldState')
+    start()
   
-  @setState 'new'
+  @sm.newState()

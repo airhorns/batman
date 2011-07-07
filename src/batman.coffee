@@ -306,8 +306,8 @@ Batman.EventEmitter =
     # Return a function which either takes another observer
     # to register or a value to fire the event with.
     f = (observer) ->
-      unless @isObservable
-        throw "EventEmitter object needs to be observable."
+      if not @observe
+        throw "EventEmitter requires Observable"
       
       Batman._initializeObject @
       
@@ -392,48 +392,55 @@ Batman.StateMachine = {
   initialize: ->
     Batman._initializeObject @
     @_batman.states ||= {}
-    @_batman.transitions ||= {}
   
   state: (name, callback) ->
-    Batman.StateMachine.initialize.call @
-    states = @_batman.states
-    callbacks = states[name] ||= []
-    callbacks.push(callback) if callbacks.indexOf(callback) is -1
+    if not @event
+      throw "StateMachine requires EventEmitter"
+    
+    event = @[name] || @event name, @, => @setState(name)
+    event(callback) if typeof callback is 'function'
+    event
   
   transition: (from, to, callback) ->
     Batman.StateMachine.initialize.call @
-    transitions = @_batman.transitions
-    fromIndex = transitions[from] ||= {}
-    callbacks = fromIndex[to] ||= []
-    callbacks.push(callback) if callbacks.indexOf(callback) is -1
+    
+    @state from
+    @state to
+    
+    name = "#{from}->#{to}"
+    transitions = @_batman.states
+    
+    event = transitions[name] ||= $event ->
+    event(callback) if callback
+    event
   
-  setState: (name) ->
+  setState: (newState) ->
     Batman.StateMachine.initialize.call @
     
     if @_batman.isTransitioning
-      return (@_batman.nextState ||= []).push(name)
+      (@_batman.nextState ||= []).push(newState)
+      return false
     
     @_batman.isTransitioning = yes
-    @_batman.nextState ||= []
     
-    oldName = @_batman.currentState
-    @_batman.currentState = name
+    oldState = @_batman.state
+    @_batman.state = newState
     
-    callbacks = @_batman.transitions[oldName]?[name]
-    if callbacks
-      for callback in callbacks
-        callback.call @, name, oldName, @
+    if newState and oldState
+      name = "#{oldState}->#{newState}"
+      for event in [@_batman.states[name], @constructor::_batman?.states?[name]]
+        if event
+          event newState, oldState
     
-    callbacks = @_batman.states[name]
-    if callbacks
-      for callback in callbacks
-        callback.call @, name, @
+    setTimeout (=>
+      @_batman.isTransitioning = no
+      @[@_batman.nextState.shift()]() if @_batman.nextState?.length
+    ), 0
     
-    @_batman.isTransitioning = no
-    @setState @_batman.nextState.pop() if @_batman.nextState.length
+    newState
   
   currentState: ->
-    @_batman.currentState
+    @_batman.state
 }
 
 # Objects
