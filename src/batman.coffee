@@ -111,9 +111,6 @@ class Batman.Property
       @[key] = null
       delete @[key]
       return
-  @get: (base, key) -> @for(base, key).getValue()
-  @set: (base, key, val) -> @for(base, key).setValue(val)
-  @unset: (base, key) -> @for(base, key).unsetValue()
   @triggerTracker: null
   @for: (base, key) ->
     if base._batman
@@ -122,11 +119,6 @@ class Batman.Property
       properties.get(key) or properties.set(key, new @(base, key))
     else
       new @(base, key)
-  @pauseTriggerTracking: (callback) ->
-    triggerTracker = Batman.Property.triggerTracker
-    Batman.Property.triggerTracker = null
-    callback()
-    Batman.Property.triggerTracker = triggerTracker
   constructor: (base, key) ->
     @base = base
     @key = key
@@ -137,8 +129,7 @@ class Batman.Property
     @base.constructor::_batman?.defaultAccessor or
     Batman.Property.defaultAccessor
   registerAsTrigger: ->
-    if tracker = Batman.Property.triggerTracker
-      Batman.Property.pauseTriggerTracking => tracker.add @
+    tracker.add @ if tracker = Batman.Property.triggerTracker
   getValue: ->
     @registerAsTrigger()
     @accessor()?.get.call @base, @key
@@ -231,7 +222,7 @@ class Batman.Keypath extends Batman.ObservableProperty
   slice: (begin, end) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Keypath.get(base, segment)
+      return unless base? and base = Batman.Keypath.for(base, segment).getValue()
     Batman.Keypath.for base, @segments.slice(begin, end).join('.')
   terminalProperty: -> @slice -1
   getValue: ->
@@ -529,8 +520,8 @@ class Batman.SimpleSet
 class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
   has: Batman.SimpleSet::has
-  add: @event 'add', Batman.SimpleSet::add
-  remove: @event 'remove', Batman.SimpleSet::remove
+  add: @event Batman.SimpleSet::add
+  remove: @event Batman.SimpleSet::remove
   each: Batman.SimpleSet::each
   empty: Batman.SimpleSet::empty
   toArray: Batman.SimpleSet::toArray
@@ -540,14 +531,14 @@ class Batman.SortableSet extends Batman.Set
     super
     @_indexes = {}
     @addIndex(index)
-  add: (item) ->
-    super
+  add: @event ->
+    results = Batman.SimpleSet::add.apply @, arguments
     @_reIndex()
-    item
-  remove: (item) ->
-    super
+    results
+  remove: @event ->
+    results = Batman.SimpleSet::remove.apply @, arguments
     @_reIndex()
-    item
+    results
   addIndex: (keypath) ->
     @_reIndex(keypath)
     @activeIndex = keypath
