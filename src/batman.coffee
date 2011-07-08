@@ -124,7 +124,8 @@ class Batman.Property
     @key = key
   isProperty: true
   accessor: ->
-    @base._batman?.keyAccessors?[@key] or
+    @base._batman?.keyAccessors?.get(@key) or
+    @base.constructor::_batman?.keyAccessors?.get(@key) or
     @base._batman?.defaultAccessor or
     @base.constructor::_batman?.defaultAccessor or
     Batman.Property.defaultAccessor
@@ -482,8 +483,8 @@ class Batman.Object
     if keys.length is 0
       @_batman.defaultAccessor = accessor
     else
-      @_batman.keyAccessors ||= {}
-      @_batman.keyAccessors[key] = accessor for key in keys
+      @_batman.keyAccessors ||= new Batman.SimpleHash
+      @_batman.keyAccessors.set(key, accessor) for key in keys
   accessor: @accessor
     
   constructor: (mixins...) ->

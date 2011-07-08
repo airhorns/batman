@@ -16,17 +16,30 @@
 
 QUnit.module 'Batman.Property',
   setup: ->
-    @customKeyAccessor = 
+    @customKeyAccessor =
       get: createSpy().whichReturns('customKeyValue')
       set: createSpy().whichReturns('customKeyValue')
       unset: createSpy()
+    
+    @prototypeKeyAccessor =
+      get: createSpy().whichReturns('customKeyValue')
+      set: createSpy().whichReturns('customKeyValue')
+      unset: createSpy()
+    
     @customBaseAccessor = 
       get: createSpy().whichReturns('customBaseValue')
-    @base =
-      _batman:
-        defaultAccessor: @customBaseAccessor
-        keyAccessors:
-          foo: @customKeyAccessor
+      
+    
+    @prototypeBaseAccessor =
+      get: createSpy().whichReturns('customKeyValue')
+      set: createSpy().whichReturns('customKeyValue')
+      unset: createSpy()
+      
+    @base = Batman()
+    @base.accessor @customBaseAccessor
+    @base.accessor 'foo', @customKeyAccessor
+    @base.constructor::accessor @prototypeBaseAccessor
+    @base.constructor::accessor 'baz', @prototypeKeyAccessor
     @property = new Batman.Property(@base, 'foo')
     @customBaseAccessorProperty = new Batman.Property(@base, 'bar')
 
@@ -46,13 +59,19 @@ test "Property.defaultAccessor does vanilla JS property access", ->
 test "accessor() returns the accessor specified on the base for that key, if present", ->
   equal @property.accessor(), @customKeyAccessor
   
+test "accessor() returns the accessor specified on the base's prototype for that key, if present", ->
+  equal new Batman.Property(@base, 'baz').accessor(), @prototypeKeyAccessor
     
 test "accessor() returns the base's default accessor if none is specified for the key", ->
   equal @customBaseAccessorProperty.accessor(), @customBaseAccessor
+  
+test "accessor() returns the base's prototype's default accessor if none is specified for key or base instance", ->
+  @base._batman.defaultAccessor = null
+  equal new Batman.Property(@base, 'bar').accessor(), @prototypeBaseAccessor
 
 test "accessor() returns Property.defaultAccessor if none is specified for key or base", ->
   equal new Batman.Property({}, 'foo').accessor(), Batman.Property.defaultAccessor
-  
+
 test "getValue() calls the accessor's get(key) method in the context of the property's base", ->
   equal @property.getValue(), 'customKeyValue'
   deepEqual @customKeyAccessor.get.lastCallArguments, ['foo']

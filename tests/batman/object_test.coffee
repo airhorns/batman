@@ -8,8 +8,8 @@ test "@::accessor adds instance-level accessors to the prototype", ->
     @::accessor 'foo', 'bar', keyAccessor
   
   equal Thing::_batman.defaultAccessor, defaultAccessor
-  equal Thing::_batman.keyAccessors.foo, keyAccessor
-  equal Thing::_batman.keyAccessors.bar, keyAccessor
+  equal Thing::_batman.keyAccessors.get('foo'), keyAccessor
+  equal Thing::_batman.keyAccessors.get('bar'), keyAccessor
   
   
 QUnit.module "Batman.Object sub-classes and sub-sub-classes",

@@ -18,11 +18,12 @@ QUnit.module 'Batman.ObservableProperty',
   setup: ->
 
 test "refreshTriggers() sets this.triggers to all properties that this one is dependent on, and maintains the inverse 'dependents' on other Properties", ->
+  fullNameAccessor = get: (key) -> firstNameProp.getValue()+' '+lastNameProp.getValue()
+  keyAccessors = new Batman.SimpleHash
+  keyAccessors.set('fullName', fullNameAccessor)
   person =
     _batman:
-      keyAccessors:
-        fullName:
-          get: (key) -> firstNameProp.getValue()+' '+lastNameProp.getValue()
+      keyAccessors: keyAccessors
     firstName: 'James'
     lastName: 'MacAulay'
   firstNameProp = new Batman.ObservableProperty(person, 'firstName')
