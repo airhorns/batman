@@ -47,6 +47,17 @@ asyncTest "should match splat routes", 1, ->
       last: 'foo/bar'
     }]
 
+asyncTest "should match routes even if query parameters are passed", 1, ->
+  @app.route "/orders/:id", @controller.complex
+  @app.redirect url = "/orders/1?bar=foo&x=true"
+  delay =>
+    deepEqual @controller.complex.lastCallArguments, [{
+      url: "/orders/1"
+      id: '1'
+      bar: 'foo'
+      x: 'true'
+    }]
+
 asyncTest "should match a root route", 1, ->
   Batman._routes = []
   @app.root @controller.root

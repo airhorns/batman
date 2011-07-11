@@ -66,15 +66,17 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 # Example:
 #  With a function that accepts a callback as its last argument
 #
-#     ex = (a, b, callback) -> callback(a + b)
+#     f = (a, b, callback) -> callback(a + b)
+#     ex = $block f
 #
 #  We can use $block to make it accept the callback in both ways:   
 #
-#     ex(2, 3, (x) -> alert(x))
+#     ex(2, 3, (x) -> alert(x))  # alerts 5
 #
 #  or
 #
 #     ex(2, 3) (x) -> alert(x)
+#
 Batman._block = $block = (fn) ->
   callbackEater = (args...) ->
     ctx = @
@@ -707,8 +709,10 @@ class Batman.App extends Batman.Object
 # route matching courtesy of Backbone
 namedParam = /:([\w\d]+)/g
 splatParam = /\*([\w\d]+)/g
+queryParam = '(?:\\?.+)?'
 namedOrSplat = /[:|\*]([\w\d]+)/g
 escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
+
 
 # `Batman.Route` is a simple object representing a route
 # which a user might visit in the application.
@@ -773,7 +777,7 @@ $mixin Batman,
         f.fire arguments, context
       
     match = pattern.replace(escapeRegExp, '\\$&')
-    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + '$')
+    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
     
     namedArguments = []
     while (array = namedOrSplat.exec(match))?
@@ -845,12 +849,18 @@ $mixin Batman.App,
     null
   
   _extractParams: (url, route) ->
+    [url, query] = url.split('?')
     array = route.regexp.exec(url).slice(1)
     params = url: url
     
     for param, index in array
       params[route.namedArguments[index]] = param
     
+    if query?
+      for s in query.split('&')
+        [k, v] = s.split('=')
+        params[k] = v
+
     params
   
   # `root` is a shortcut for setting the root route.
