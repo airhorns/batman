@@ -67,6 +67,14 @@ asyncTest "should match a root route", 1, ->
       url: '/'
     }]
 
+asyncTest "should allow routes to be defined within class definitions", 1, ->
+  class TestDefinitionController extends Batman.Controller
+    testing: @route('/blech/:id', (params) ->
+      deepEqual params, {url: '/blech/42', id: '42'}
+      start()
+    )
+  @app.redirect "/blech/42"
+
 asyncTest "should start routing for aribtrary routes", 1, ->
   @app.stopRouting()
   window.location.hash = "#!/products/1"

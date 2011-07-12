@@ -772,7 +772,7 @@ $mixin Batman,
         window.location.hash = Batman.HASH_PATTERN + pattern
         
       if context and context.dispatch
-        context.dispatch f, args...
+        context.dispatch f, params
       else
         f.fire arguments, context
       
