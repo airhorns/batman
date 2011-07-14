@@ -1088,10 +1088,11 @@ class Batman.Model extends Batman.Object
   
   @beforeLoad: @event -> @get('all').clear()
   @afterLoad: @event ->
-  @load: ->
+  @load: (callback) ->
     do @beforeLoad
     
-    callback = =>
+    afterLoad = =>
+      callback?.call @
       do @afterLoad
     
     allMechanisms = Batman._lookupAllBatmanKeys @prototype, 'storage'
@@ -1100,16 +1101,17 @@ class Batman.Model extends Batman.Object
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
-        m.readAllFromStorage @, callback
+        m.readAllFromStorage @, afterLoad
     
-    do callback if fireImmediately
+    do afterLoad if fireImmediately
     
   beforeLoad: @event -> @loading(); true
   afterLoad: @event -> @loaded(); true
-  load: ->
+  load: (callback) ->
     do @beforeLoad
     
-    callback = =>
+    afterLoad = =>
+      callback?.call @
       do @afterLoad
     
     allMechanisms = Batman._lookupAllBatmanKeys @, 'storage'
@@ -1117,22 +1119,23 @@ class Batman.Model extends Batman.Object
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
-        m.readFromStorage @, callback
+        m.readFromStorage @, afterLoad
     
-    do callback if fireImmediately
+    do afterLoad if fireImmediately
   
   beforeCreate: @event ->
   afterCreate: @event ->
   beforeSave: @event -> @saving(); true
   afterSave: @event -> @saved(); true
-  save: ->
+  save: (callback) ->
     return if not @isValid()
     do @beforeSave
     
     creating = !@id
     do @beforeCreate if creating
     
-    callback = =>
+    afterSave = =>
+      callback?.call @
       do @afterCreate if creating
       do @afterSave
     
@@ -1141,9 +1144,9 @@ class Batman.Model extends Batman.Object
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
-        m.writeToStorage @, callback
+        m.writeToStorage @, afterSave
     
-    do callback if fireImmediately
+    do afterSave if fireImmediately
   
   beforeValidation: @event ->
   afterValidation: @event ->

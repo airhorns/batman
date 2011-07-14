@@ -50,11 +50,11 @@ test "record lifecycle", ->
   product.afterValidation -> callOrder.push(2)
   product.beforeSave -> callOrder.push(3)
   product.beforeCreate -> callOrder.push(4)
-  product.afterCreate -> callOrder.push(5)
-  product.afterSave -> callOrder.push(6)
+  product.afterCreate -> callOrder.push(6)
+  product.afterSave -> callOrder.push(7)
   
-  product.save()
-  deepEqual(callOrder, [1,2,3,4,5,6])
+  product.save(-> callOrder.push(5))
+  deepEqual(callOrder, [1,2,3,4,5,6,7])
 
 
 
