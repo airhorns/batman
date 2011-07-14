@@ -232,26 +232,31 @@ QUnit.module "Batman.StateMachine",
 
 test "should fire state callback", 1, ->
   @sm.state 'test', (state) ->
-    equal(state, 'test', 'new called')
+    equal(state, 'test', 'test called')
   
   @sm.test()
 
-asyncTest "should fire transition callback", 2, ->
+test "should fire transition callback", 2, ->
   @sm.transition 'test', 'test2', (state, oldState) ->
     equal state, 'test2', 'new state set'
     equal oldState, 'test', 'old state removed'
-    start()
   
   @sm.test()
   @sm.test2()
 
-asyncTest "should pause subsequent state changes", 2, ->
+test "should pause subsequent state changes", 2, ->
   @sm.state 'newState', =>
     @sm.oldState()
-    equal(@sm.currentState(), 'newState')
+    equal(@sm.state(), 'newState')
   
   @sm.state 'oldState', =>
-    equal(@sm.currentState(), 'oldState')
-    start()
+    equal(@sm.state(), 'oldState')
   
   @sm.newState()
+
+test "state machine has accessors", 2, ->
+  @sm.state 'test', ->
+    ok(true, 'state called')
+  
+  @sm.set 'state', 'test'
+  equal @sm.get('state'), 'test'

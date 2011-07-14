@@ -398,14 +398,23 @@ $eventOneShot = (callback) ->
 Batman.StateMachine = {
   initialize: ->
     Batman._initializeObject @
-    @_batman.states ||= {}
+    if not @_batman.states
+      @_batman.states = {}
+      @accessor 'state',
+        get: -> @state()
+        set: (key, value) -> _stateMachine_setState.call(@, value)
   
   state: (name, callback) ->
+    Batman.StateMachine.initialize.call @
+    
+    if not name
+      return Batman._lookupBatmanKey(@, 'state')
+    
     if not @event
       throw "StateMachine requires EventEmitter"
     
-    event = @[name] || @event name, @, => @setState(name)
-    event(callback) if typeof callback is 'function'
+    event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
+    event.call(@, callback) if typeof callback is 'function'
     event
   
   transition: (from, to, callback) ->
@@ -420,35 +429,34 @@ Batman.StateMachine = {
     event = transitions[name] ||= $event ->
     event(callback) if callback
     event
-  
-  setState: (newState) ->
-    Batman.StateMachine.initialize.call @
-    
-    if @_batman.isTransitioning
-      (@_batman.nextState ||= []).push(newState)
-      return false
-    
-    @_batman.isTransitioning = yes
-    
-    oldState = @_batman.state
-    @_batman.state = newState
-    
-    if newState and oldState
-      name = "#{oldState}->#{newState}"
-      for event in [@_batman.states[name], @constructor::_batman?.states?[name]]
-        if event
-          event newState, oldState
-    
-    setTimeout (=>
-      @_batman.isTransitioning = no
-      @[@_batman.nextState.shift()]() if @_batman.nextState?.length
-    ), 0
-    
-    newState
-  
-  currentState: ->
-    @_batman.state
 }
+
+# this is cached here so it doesn't need to be recompiled for every setter
+_stateMachine_setState = (newState) ->
+  Batman.StateMachine.initialize.call @
+  
+  if @_batman.isTransitioning
+    (@_batman.nextState ||= []).push(newState)
+    return false
+  
+  @_batman.isTransitioning = yes
+  
+  oldState = @state()
+  @_batman.state = newState
+  
+  if newState and oldState
+    name = "#{oldState}->#{newState}"
+    for event in Batman._lookupAllBatmanKeys(@, 'states', name)
+      if event
+        event newState, oldState
+  
+  if newState
+    @fire newState, newState, oldState
+  
+  @_batman.isTransitioning = no
+  @[@_batman.nextState.shift()]() if @_batman.nextState?.length
+  
+  newState
 
 # Objects
 # -------
