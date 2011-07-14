@@ -1,7 +1,7 @@
 QUnit.module "Batman.Object"
 
 test "@::accessor adds instance-level accessors to the prototype", ->
-  defaultAccessor = {}
+  defaultAccessor = {get: ->}
   keyAccessor = {}
   class Thing extends Batman.Object
     @::accessor defaultAccessor

@@ -126,10 +126,11 @@ class Batman.Property
     @key = key
   isProperty: true
   accessor: ->
-    @base._batman?.keyAccessors?.get(@key) or
-    @base.constructor::_batman?.keyAccessors?.get(@key) or
-    @base._batman?.defaultAccessor or
-    @base.constructor::_batman?.defaultAccessor or
+    key = @key
+    for result in Batman._lookupAllBatmanKeys(@base, 'keyAccessors')
+      return val if (val = result.get(key))
+    
+    Batman._lookupBatmanKey(@base, 'defaultAccessor') or
     Batman.Property.defaultAccessor
   registerAsTrigger: ->
     tracker.add @ if tracker = Batman.Property.triggerTracker
@@ -182,10 +183,13 @@ class Batman.ObservableProperty extends Batman.Property
   isAllowedToFire: -> @_preventCount <= 0
   fire: (args...) ->
     return unless @hasObserversToFire()
-    for observers in [@observers, @base.constructor::property?(@key).observers]
-      continue unless observers
-      observers.each (callback) =>
-        callback.apply @base, args
+    key = @key
+    base = @base
+    properties = Batman._lookupAllBatmanKeys(@base)
+    propertyObservers = [@observers].concat(properties.map((property) -> property?.property?(key).observers))
+    for observers in propertyObservers
+      observers?.each (callback) ->
+        callback?.apply base, args
     @refreshTriggers()
   forget: (observer) ->
     if observer
@@ -464,6 +468,33 @@ Batman._initializeObject = (object) ->
   else unless object.hasOwnProperty '_batman'
     object._batman = {}
 
+Batman._lookupBatmanKey = (object, key) ->
+  return val if (val = object._batman?[key])
+  
+  nextClass = object.constructor
+  while nextClass
+    return val if (val = nextClass.prototype?._batman?[key])
+    nextClass = nextClass.__super__?.constructor
+  
+  return
+
+Batman._lookupAllBatmanKeys = (object, key, subkey) ->
+  results = []
+  results.push(val) if (val = object._batman?[key])
+  
+  isClass = !!object.prototype
+  nextClass = if isClass then object.__super__?.constructor else object.constructor
+  while nextClass
+    if not key
+      results.push nextClass.prototype
+    else if isClass and (val = nextClass._batman?[key])
+      results.push(val)
+    else if !isClass and (val = nextClass.prototype?._batman?[key])
+      results.push(val)
+      
+    nextClass = nextClass.__super__?.constructor
+  
+  if subkey then results.map((result) -> result[subkey]) else results
 
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract. 
 class Batman.Object
@@ -483,7 +514,13 @@ class Batman.Object
   @accessor: (keys..., accessor) ->
     Batman._initializeObject @
     if keys.length is 0
-      @_batman.defaultAccessor = accessor
+      if accessor.get or accessor.set
+        @_batman.defaultAccessor = accessor
+      else
+        @_batman.keyAccessors ||= new Batman.SimpleHash
+        for key, value of accessor
+          @_batman.keyAccessors.set(key, {get: value, set: value})
+          @[key] = value
     else
       @_batman.keyAccessors ||= new Batman.SimpleHash
       @_batman.keyAccessors.set(key, accessor) for key in keys
@@ -501,9 +538,11 @@ class Batman.Object
 class Batman.SimpleHash
   constructor: ->
     @_storage = {}
+    @length = 0
   hasKey: (key) ->
     typeof @get(key) isnt 'undefined'
   get: (key) ->
+    return @length if key is 'length' # FIXME: tries to call getValue
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
@@ -514,12 +553,14 @@ class Batman.SimpleHash
     unless pair
       pair = [key]
       matches.push(pair)
+      # @length++
     pair[1] = val
   unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
           matches.splice(index,1)
+          # @length--
           return
   equality: (lhs, rhs) ->
     if typeof lhs.isEqual is 'function'
@@ -535,6 +576,10 @@ class Batman.SimpleHash
     result = []
     @each (obj) -> result.push obj
     result
+  clear: ->
+    @each (obj) -> @unset obj
+  isEmpty: ->
+    @keys().length is 0
     
 
 class Batman.Hash extends Batman.Object
@@ -547,6 +592,9 @@ class Batman.Hash extends Batman.Object
   equality: Batman.SimpleHash::equality
   each: Batman.SimpleHash::each
   keys: Batman.SimpleHash::keys
+  clear: Batman.SimpleHash::clear
+  isEmpty: Batman.SimpleHash::isEmpty
+  @::accessor 'isEmpty', get: -> @isEmpty()
 
 class Batman.SimpleSet
   constructor: ->
@@ -563,6 +611,7 @@ class Batman.SimpleSet
       unless @_storage.hasKey(item)
         @_storage.set item, true
         @set 'length', @length + 1
+        @set 'isEmpty', true
     items
   remove: (items...) ->
     results = []
@@ -571,10 +620,12 @@ class Batman.SimpleSet
         @_storage.unset item
         results.push item
         @set 'length', @length - 1
+        @set 'isEmpty', true
     results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
-  empty: -> @get('length') is 0
+  isEmpty: -> @get('length') is 0
+  clear: -> @remove @toArray()
   toArray: ->
     @_storage.keys()
     
@@ -584,7 +635,9 @@ class Batman.Set extends Batman.Object
   add: @event Batman.SimpleSet::add
   remove: @event Batman.SimpleSet::remove
   each: Batman.SimpleSet::each
-  empty: Batman.SimpleSet::empty
+  isEmpty: Batman.SimpleSet::isEmpty
+  @::accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
+  clear: Batman.SimpleHash::clear
   toArray: Batman.SimpleSet::toArray
 
 class Batman.SortableSet extends Batman.Set
@@ -1565,6 +1618,8 @@ filters = Batman.filters = {}
 mixins = Batman.mixins = new Batman.Object
 
 # Export a few globals.
+global = window ? exports
+
 if exports?
   container = global
   exports.Batman = Batman

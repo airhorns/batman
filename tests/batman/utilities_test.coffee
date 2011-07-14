@@ -89,7 +89,7 @@ test "should fire observers attached to the prototype", ->
   equal @twoMethodObserver.callCount, 0
 
   @two.method("foo")
-  equal @oneMethodObserver.callCount, 1
+  equal @oneMethodObserver.callCount, 2
   equal @twoMethodObserver.callCount, 1
 
 test "should fire observers for redeclared methods", ->
@@ -98,7 +98,7 @@ test "should fire observers for redeclared methods", ->
   equal @twoRedeclaredObserver.callCount, 0
 
   @two.redeclaredMethod("foo")
-  equal @oneRedeclaredObserver.callCount, 1
+  equal @oneRedeclaredObserver.callCount, 2
   equal @twoRedeclaredObserver.callCount, 1
 
 QUnit.module "$events on Batman.Object: class events"
