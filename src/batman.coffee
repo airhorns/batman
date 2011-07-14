@@ -1508,6 +1508,7 @@ Batman.DOM = {
           shouldSet = no
           context.set key, node.value
           shouldSet = yes
+      
       context.observe key, yes, (value) ->
         if shouldSet
           Batman.DOM.valueForNode node, value
@@ -1596,8 +1597,16 @@ Batman.DOM = {
       key = filters.shift()
       if filters.length
         while filterName = filters.shift()
+          args = filterName.split(' ')
+          filterName = args.shift()
+          
           filter = Batman.filters[filterName] || Batman.helpers[filterName]
           continue if not filter
+          
+          if key.substr(0,1) is '@'
+            key = key.substr(1)
+            context = matchContext contexts, key
+            key = context.get(key)
           
           value = filter(key, args..., node)
           node.setAttribute attr, value
@@ -1670,33 +1679,34 @@ Batman.DOM = {
       context = matchContext contexts, key
       collection = context.get key
       
-      collection.observe 'add', add = (item) ->
-        newNode = prototype.cloneNode true
-        nodeMap.set item, newNode
+      if collection?.observe
+        collection.observe 'add', add = (item) ->
+          newNode = prototype.cloneNode true
+          nodeMap.set item, newNode
+          
+          renderer = new Batman.Renderer newNode, ->
+            parent.appendChild newNode
+            parentRenderer.allow 'ready'
+          
+          renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
+          renderer.contextObject = Batman localClone[1]
+          
+          iteratorContext = new Batman.Object
+          iteratorContext[iteratorName] = item
+          localClone.push iteratorContext
+          localClone.push item
         
-        renderer = new Batman.Renderer newNode, ->
-          parent.appendChild newNode
-          parentRenderer.allow 'ready'
+        collection.observe 'remove', remove = (item) ->
+          oldNode = nodeMap.get item
+          oldNode?.parentNode?.removeChild oldNode
         
-        renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
-        renderer.contextObject = Batman localClone[1]
+        collection.observe 'sort', ->
+          collection.each remove
+          setTimeout (-> collection.each add), 0
         
-        iteratorContext = new Batman.Object
-        iteratorContext[iteratorName] = item
-        localClone.push iteratorContext
-        localClone.push item
-      
-      collection.observe 'remove', remove = (item) ->
-        oldNode = nodeMap.get item
-        oldNode?.parentNode?.removeChild oldNode
-      
-      collection.observe 'sort', ->
-        collection.each remove
-        setTimeout (-> collection.each add), 0
-      
-      collection.each (item) ->
-        parentRenderer.prevent 'ready'
-        add(item)
+        collection.each (item) ->
+          parentRenderer.prevent 'ready'
+          add(item)
       
       false
   }
