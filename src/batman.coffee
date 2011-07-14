@@ -252,13 +252,17 @@ Batman.Observable =
   get: (key) -> @property(key).getValue()
   set: (key, val) -> @property(key).setValue(val)
   unset: (key) -> @property(key).unsetValue()
+
   # Pass a key and a callback. Whenever the value for that key changes, your
   # callback will be called in the context of the original object.
   observe: (key, args...) ->
     @property(key).observe(args...)
     @
+  
+  # Tell any observers attached to a key to fire, manually. 
   fire: (key, args...) ->
     @property(key).fire(args...)
+
   # Forget removes an observer from an object. If the callback is passed in, 
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
@@ -268,26 +272,27 @@ Batman.Observable =
     else
       @_batman.properties.each (key, property) -> property.forget()
     @
+
   # Prevent allows the prevention of a given binding from firing. Prevent counts can be nested,
   # so three calls to prevent means three calls to allow must be made before observers will
   # be fired.
   prevent: (key) ->
     @property(key).preventFire()
     @
+
   # Allow unblocks a property for firing observers. Every call to prevent
   # must have a matching call to allow later if observers are to be fired.
   allow: (key) ->
     @property(key).allowFire()
     @
+
   # allowed returns a boolean describing whether or not the key is 
   # currently allowed to fire its observers.
   allowed: (key) ->
     @property(key).isAllowedToFire()
-    
-    
+
 # Events
 # ------
-
 
 # `Batman.EventEmitter` is another generic mixin that simply allows an object to 
 # emit events. Batman events use observers to manage the callbacks, so they require that
@@ -359,7 +364,6 @@ Batman.EventEmitter =
         false
     
     # This could be its own mixin but is kept here for brevity.
-    
     f = f.bind(context) if context
     @[key] = f if key?
     $mixin f,
@@ -511,7 +515,7 @@ class Batman.Object
   # This should be used sparingly; it's mostly useful for debugging.
   @global: (isGlobal) ->
     return if isGlobal is false
-    global[@name] = @
+    container[@name] = @
   
   # Apply mixins to this subclass.
   @mixin: (mixins...) -> $mixin @, mixins...
@@ -592,17 +596,15 @@ class Batman.SimpleHash
 
 class Batman.Hash extends Batman.Object
   constructor: Batman.SimpleHash
-  hasKey: Batman.SimpleHash::hasKey
+
   @::accessor
     get: Batman.SimpleHash::get
     set: Batman.SimpleHash::set
     unset: Batman.SimpleHash::unset
-  equality: Batman.SimpleHash::equality
-  each: Batman.SimpleHash::each
-  keys: Batman.SimpleHash::keys
-  clear: Batman.SimpleHash::clear
-  isEmpty: Batman.SimpleHash::isEmpty
+
   @::accessor 'isEmpty', get: -> @isEmpty()
+  for k in ['hasKey', 'equality', 'each', 'keys']
+    @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
   constructor: ->
@@ -611,9 +613,10 @@ class Batman.SimpleSet
     @add.apply @, arguments if arguments.length > 0
   has: (item) ->
     @_storage.hasKey item
-  get: Batman.Property.defaultAccessor.get
-  set: Batman.Property.defaultAccessor.set
-  unset: Batman.Property.defaultAccessor.unset
+
+  for k in ['get', 'set', 'unset']
+   @::[k] = Batman.Property.defaultAccessor[k]
+
   add: (items...) ->
     for item in items
       unless @_storage.hasKey(item)
@@ -639,14 +642,14 @@ class Batman.SimpleSet
     
 class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
-  has: Batman.SimpleSet::has
-  add: @event Batman.SimpleSet::add
-  remove: @event Batman.SimpleSet::remove
-  each: Batman.SimpleSet::each
-  isEmpty: Batman.SimpleSet::isEmpty
+
+  for k in ['add', 'remove']
+    @::[k] = @event Batman.SimpleSet::[k]
+
+  for k in ['has', 'each', 'isEmpty', 'toArray', 'clear']
+    @::[k] = Batman.SimpleSet::[k]
+
   @::accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
-  clear: Batman.SimpleHash::clear
-  toArray: Batman.SimpleSet::toArray
 
 class Batman.SortableSet extends Batman.Set
   constructor: (index) ->
@@ -1016,11 +1019,8 @@ class Batman.Model extends Batman.Object
   
   @::mixin Batman.StateMachine
   
-  @::state 'empty'
-  @::state 'dirty'
-  @::state 'loading'
-  @::state 'loaded'
-  @::state 'saving'
+  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
+    @::state k
   @::state 'saved', -> @dirtyKeys.clear()
   
   constructor: (id) ->
@@ -1331,7 +1331,6 @@ class Batman.RestStorage extends Batman.StorageMechanism
 # Views
 # -----------
 
-
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
@@ -1495,7 +1494,7 @@ matchContext = (contexts, key) ->
     if (context.get? && context.get(base)?) || (context[base])?
       return context
 
-  global
+  return container
 
 Batman.DOM = {
   
@@ -1713,6 +1712,7 @@ Batman.DOM = {
       
       false
   }
+
   
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
@@ -1826,15 +1826,14 @@ filters = Batman.filters = {}
 # ------
 mixins = Batman.mixins = new Batman.Object
 
-# Export a few globals.
-global = window ? exports
-
-if exports?
-  container = global
+# Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
+# In node, the container is the `global` object, and in the browser, the container is the window object.
+container = if exports?
   exports.Batman = Batman
+  global
 else
-  container = window
   window.Batman = Batman
+  window
 
 $mixin container, Batman.Observable
 

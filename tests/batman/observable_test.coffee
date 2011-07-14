@@ -1,22 +1,20 @@
+getPropertyAccessor = ->
+  get: createSpy()
+  set: createSpy()
+  unset: createSpy()
+
 QUnit.module 'Batman.Observable',
   setup: ->
-    # spyOn Batman.TriggerSet.prototype, 'add'
-    # spyOn Batman.TriggerSet.prototype, 'remove'
+
     @obj = Batman
       foo: Batman
         bar: Batman
           baz: Batman
             qux: 'quxVal'
-    @objPropertyAccessor =
-      get: createSpy()
-      set: createSpy()
-      unset: createSpy()
-    @fooPropertyAccessor =
-      get: createSpy()
-      set: createSpy()
-      unset: createSpy()
-    @obj.accessor 'someProperty', @objPropertyAccessor
-    @obj.foo.accessor 'someProperty', @fooPropertyAccessor
+    
+    @obj.foo.bar.baz.event('corge', @corgeEventSpy = createSpy())
+    @obj.accessor 'someProperty',     (@objPropertyAccessor = getPropertyAccessor())
+    @obj.foo.accessor 'someProperty', (@fooPropertyAccessor = getPropertyAccessor())
 
 ###
 # keypath(key)
@@ -158,7 +156,6 @@ test "observe(key, callback) with a deep keypath will fire with the new value wh
   [newVal, oldVal] = callback.lastCallArguments
   equal newVal, 'newVal'
   equal oldVal, 'quxVal'
-
 test "observe(key, callback) with a deep keypath will fire with the new value when the final key value is changed via an equivalent subset of that deep keypath", ->
   @obj.observe 'foo.bar.baz.qux', callback = createSpy()
   
@@ -243,6 +240,31 @@ test "observe(key, callback) called twice to attach two different observers on t
   
   equal callback1.callCount, 1
   equal callback2.callCount, 1
+
+test "observe(key, callback) will attach event listeners when given a simple key", ->
+  @obj.foo.bar.baz.observe 'corge', observer = createSpy()
+  @obj.foo.bar.baz.corge('x', true)
+  deepEqual observer.lastCallArguments, ['x', true]
+
+test "observe(key, callback) will attach event listeners when given a deep key", ->
+  @obj.foo.observe 'bar.baz.corge', observer = createSpy()
+  @obj.foo.bar.baz.corge('x', true)
+  deepEqual observer.lastCallArguments, ['x', true]
+
+test "observe(key, callback) will attach event listeners when given a deep key and still fire them if an intermediate key changes", ->
+  @obj.foo.observe 'bar.baz.corge', observer = createSpy()
+
+  baz = Batman
+    qux: "something else"
+  baz.event('corge', ->)
+  
+  @obj.foo.bar.set('baz', baz)
+
+  ok !observer.called, "The observer shouldn't fire when the event instance changes, only when the event fires."
+
+  @obj.foo.bar.baz.corge('x', false)
+  deepEqual observer.lastCallArguments, ['x', false]
+
 
 test "observe(key, callback) will only fire once and will not break when there's an object cycle", ->
   @obj.foo.bar.baz.foo = @obj.foo
@@ -348,9 +370,6 @@ test "forget(key) for a deep keypath will remove the keypath's triggers if there
   
   equal @obj.property('foo.bar.baz').triggers.length, 0
   
-  
-
-
 QUnit.module "Batman.Observable mixed in at class and instance level",
   setup: ->
     @classLevel = c = createSpy()
