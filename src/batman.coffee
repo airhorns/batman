@@ -999,144 +999,332 @@ class Batman.Controller extends Batman.Object
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
 
-# Datastore
-# ---------
-
-class Batman.DataStore extends Batman.Object
-  constructor: (model) ->
-    @model = model
-    @_data = {}
-  
-  set: (id, json) ->
-    if not id
-      id = model.getNewId()
-    
-    @_data[''+id] = json
-  
-  get: (id) ->
-    record = @_data[''+id]
-    
-    response = {}
-    response[record.id] = record
-    
-    response
-  
-  all: ->
-    Batman.mixin {}, @_data
-  
-  query: (params) ->
-    results = {}
-    
-    for id, json of @_data
-      match = yes
-      
-      for key, value of params
-        if json[key] isnt value
-          match = no
-          break
-      
-      if match
-        results[id] = json
-      
-    results
-
 # Models
 # ------
 
 class Batman.Model extends Batman.Object
-  @_makeRecords: (ids) ->
-    for id, json of ids
-      r = new @ {id: id}
-      $mixin r, json
-
-  @hasMany: (relation) ->
-    model = helpers.camelize(helpers.singularize(relation))
-    inverse = helpers.camelize(@name, yes)
-
-    @::[relation] = Batman.Object.property ->
-      query = model: model
-      query[inverse + 'Id'] = ''+@id
-
-      App.constructor[model]._makeRecords(App.dataStore.query(query))
-
-  @hasOne: (relation) ->
-
-
-  @belongsTo: (relation) ->
-    model = helpers.camelize(helpers.singularize(relation))
-    key = helpers.camelize(model, yes) + 'Id'
-
-    @::[relation] = Batman.Object.property (value) ->
-      if arguments.length
-        @set key, if value and value.id then ''+value.id else ''+value
-
-      App.constructor[model]._makeRecords(App.dataStore.query({model: model, id: @[key]}))[0]
+  @persist: (mechanisms...) ->
+    Batman._initializeObject @prototype
+    storage = @::_batman.storage ||= []
+    for m in mechanisms
+      storage.push new m(@)
+    @
   
-  @persist: (mixin) ->
-    return if mixin is false
-
-    if not @dataStore
-      @dataStore = new Batman.DataStore @
-
-    if mixin is Batman
-      # FIXME
-    else
-      Batman.mixin @, mixin
+  @accessor 'all', {get: -> @all ||= new Batman.Set}
+  @accessor 'first', {get: -> @first = @get('all')[0]}
+  @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
   
-  @all: ->
-    @_makeRecords @dataStore.all()
+  @::mixin Batman.StateMachine
   
-  @first: ->
-    @_makeRecords(@dataStore.all())[0]
+  @::state 'empty'
+  @::state 'dirty'
+  @::state 'loading'
+  @::state 'loaded'
+  @::state 'saving'
+  @::state 'saved', -> @dirtyKeys.clear()
   
-  @last: ->
-    array = @_makeRecords(@dataStore.all())
-    array[array.length - 1]
+  constructor: (id) ->
+    # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
+    @dirtyKeys = new Batman.Hash
+    @errors = new Batman.Set
+    
+    super
+    @empty() if not @state()
+    
+    if $typeOf(id) is 'String'
+      @id = id
+      @constructor.get('all').add(@)
   
   @find: (id) ->
-    @_makeRecords(@dataStore.get(id))[0]
-  
-  @create: Batman.Object.property ->
-    new @
-  
-  @destroyAll: ->
-    all = @get 'all'
-    for r in all
-      r.destroy()
-  
-  constructor: ->
-    @_data = {}
-    super
-  
-  id: ''
-  
-  isEqual: (rhs) ->
-    @id is rhs.id
+    return record if (record = @get('all').get(id))
+    record = new @(''+id)
+    setTimeout (-> record.load()), 0
+    record
   
   set: (key, value) ->
-    @_data[key] = super
-  
-  save: ->
-    model = @constructor
-    model.dataStore.set(@id, @toJSON())
-    # model.dataStore.needsSync()
+    oldValue = @[key]
+    return if oldValue is value
     
-    @
-  
-  destroy: =>
-    return if typeof @id is 'undefined'
-    App.dataStore.unset(@id)
-    App.dataStore.needsSync()
+    super
+    @dirtyKeys.set(key, oldValue)
     
-    @constructor.fire('all', @constructor.get('all'))
-    @
+    @dirty() if @state() isnt 'dirty'
+  
+  @::accessor 'dirtyKeys',
+    get: -> @dirtyKeys
   
   toJSON: ->
-    @_data
+    obj = {}
+    for encoders in Batman._lookupAllBatmanKeys(@, 'encoders')
+      for key, encoder of encoders
+        obj[key] = encoder(@[key])
+    
+    obj
   
   fromJSON: (data) ->
-    Batman.mixin @, data
+    obj = {}
+    allDecoders = Batman._lookupAllBatmanKeys(@, 'decoders')
+    if not allDecoders.length
+      for key, value of data
+        obj[helpers.camelize(key, yes)] = value
+    else
+      for decoders in allDecoders
+        for key, decoder of decoders
+          obj[key] = decoder(data[key])
+    
+    @mixin obj
+  
+  @encode: (keys...) ->
+    Batman._initializeObject @prototype
+    @::_batman.encoders ||= {}
+    @::_batman.decoders ||= {}
+    
+    for key in keys
+      @::_batman.encoders[key] = (value) ->
+        ''+value
+      
+      @::_batman.decoders[key] = (value) ->
+        value
+  
+  @beforeLoad: @event -> @get('all').clear()
+  @afterLoad: @event ->
+  @load: ->
+    do @beforeLoad
+    
+    callback = =>
+      do @afterLoad
+    
+    allMechanisms = Batman._lookupAllBatmanKeys @prototype, 'storage'
+    fireImmediately = !allMechanisms.length
+    allMechanisms.shift() if not fireImmediately
+    for mechanisms in allMechanisms
+      fireImmediately = fireImmediately || !mechanisms.length
+      for m in mechanisms
+        m.readAllFromStorage @, callback
+    
+    do callback if fireImmediately
+    
+  beforeLoad: @event -> @loading(); true
+  afterLoad: @event -> @loaded(); true
+  load: ->
+    do @beforeLoad
+    
+    callback = =>
+      do @afterLoad
+    
+    allMechanisms = Batman._lookupAllBatmanKeys @, 'storage'
+    fireImmediately = !allMechanisms.length
+    for mechanisms in allMechanisms
+      fireImmediately = fireImmediately || !mechanisms.length
+      for m in mechanisms
+        m.readFromStorage @, callback
+    
+    do callback if fireImmediately
+  
+  beforeCreate: @event ->
+  afterCreate: @event ->
+  beforeSave: @event -> @saving(); true
+  afterSave: @event -> @saved(); true
+  save: ->
+    return if not @isValid()
+    do @beforeSave
+    
+    creating = !@id
+    do @beforeCreate if creating
+    
+    callback = =>
+      do @afterCreate if creating
+      do @afterSave
+    
+    allMechanisms = Batman._lookupAllBatmanKeys @, 'storage'
+    fireImmediately = !allMechanisms.length
+    for mechanisms in allMechanisms
+      fireImmediately = fireImmediately || !mechanisms.length
+      for m in mechanisms
+        m.writeToStorage @, callback
+    
+    do callback if fireImmediately
+  
+  beforeValidation: @event ->
+  afterValidation: @event ->
+  validate: ->
+    do @beforeValidation
+    async = no
+    for allValidators in Batman._lookupAllBatmanKeys(@, 'validators')
+      for validator in allValidators
+        v = validator.validator
+        for key in validator.keys
+          promise = new Batman.ValidatorPromise @
+          if v then v.validateEach promise, @, key, @get key else validator.callback promise, @, key, @get key
+          
+          if promise.paused
+            @prevent 'afterValidation'
+            promise.resume => @allow('afterValidation'); @afterValidation()
+            async = yes
+          else
+            promise.success() if promise.canSucceed
+    
+    if async then return no else do @afterValidation
+  
+  @::accessor
+    isValid: ->
+      @errors.clear()
+      return no if @validate() is no
+      @errors.isEmpty()
+  
+  @validate: (keys..., options) ->
+    Batman._initializeObject @prototype
+    myValidators = @::_batman.validators ||= []
+    
+    if typeof options is 'function'
+      myValidators.push({keys: keys, callback: options})
+    else
+      for validator in validators
+        if (matches = validator.matches(options))
+          delete options[match] for match of matches
+          myValidators.push({keys: keys, validator: new validator(matches)})
 
+class Batman.ValidatorPromise extends Batman.Object
+  constructor: (@record) ->
+    @canSucceed = yes
+  
+  error: (err) ->
+    @record.errors.add err
+    @canSucceed = no
+  
+  wait: ->
+    @paused = yes
+    @canSucceed = no
+  
+  resume: @event ->
+    @paused = no
+    true
+  
+  success: ->
+    @canSucceed = no
+
+class Batman.Validator extends Batman.Object
+  constructor: (@options, mixins...) ->
+    super mixins...
+  
+  validate: (record) ->
+    throw "You must override -validate in Batman.Validator subclasses."
+  
+  @kind: -> helpers.underscore(@name).replace('_validator', '')
+  kind: -> @constructor.kind()
+  
+  @options: (options...) ->
+    Batman._initializeObject @
+    if @_batman.options then @_batman.options.concat(options) else @_batman.options = options
+  
+  @matches: (options) ->
+    results = {}
+    shouldReturn = no
+    for key, value of options
+      if ~@_batman?.options?.indexOf(key)
+        results[key] = value
+        shouldReturn = yes
+    return results if shouldReturn
+
+validators = Batman.validators = [
+  class Batman.LengthValidator extends Batman.Validator
+    @options 'minLength', 'maxLength', 'length', 'lengthWithin', 'lengthIn'
+    constructor: (options) ->
+      if range = (options.lengthIn or options.lengthWithin)
+        options.minLength = range[0]
+        options.maxLength = range[1] || -1
+        delete options.lengthWithin
+        delete options.lengthIn
+      
+      super
+      
+    validateEach: (validator, record, key, value) ->
+      options = @options
+      if options.minLength and value.length < options.minLength
+        validator.error "#{key} must be at least #{options.minLength} characters"
+      if options.maxLength and value.length > options.maxLength
+        validator.error "#{key} must be less than #{options.maxLength} characters"
+      if options.length and value.length isnt options.length
+        validator.error "#{key} must be #{options.length} characters"
+  
+  class Batman.PresenceValidator extends Batman.Validator
+    @options 'presence'
+    validateEach: (validator, record, key, value) ->
+      options = @options
+      if options.presence and !value?
+        validator.error "#{key} must be present"
+]
+
+class Batman.StorageMechanism
+  constructor: (@model) ->
+    @modelKey = helpers.pluralize(helpers.underscore(@model.name))
+
+class Batman.LocalStorage extends Batman.StorageMechanism
+  constructor: ->
+    return null if not 'localStorage' in window
+    @id = 0
+    super
+  
+  writeToStorage: (record, callback) ->
+    key = @modelKey
+    id = record.id ||= ++@id
+    localStorage[key + id] = JSON.stringify(record) if key and id
+    callback()
+  
+  readFromStorage: (record, callback) ->
+    key = @modelKey
+    id = record.id
+    json = localStorage[key + id] if key and id
+    record.fromJSON JSON.parse json
+    callback()
+    
+class Batman.RestStorage extends Batman.StorageMechanism
+  writeToStorage: (record, callback) ->
+    key = @modelKey
+    id = record.id
+    new Batman.Request
+      url: "/#{key}/#{id}"
+      method: if id then 'put' else 'post'
+      data: JSON.stringify record
+      success: ->
+        callback()
+      error: (error) ->
+        callback(error)
+  
+  readFromStorage: (record, callback) ->
+    id = record.id
+    return if not id
+    new Batman.Request
+      url: (@model.url || "/#{@modelKey}") + "/#{id}"
+      type: 'json'
+      success: (data) ->
+        data = JSON.parse(data) if typeof data is 'string'
+        for key of data
+          data = data[key]
+          break
+        
+        record.fromJSON data
+        callback()
+        
+  readAllFromStorage: (model, callback) ->
+    key = @modelKey
+    r = new Batman.Request
+      url: model.url || "/#{key}"
+      type: 'json'
+      success: (data) ->
+        data = JSON.parse(data) if typeof data is 'string'
+        if !Array.isArray(data)
+          for key of data
+            data = data[key]
+            break
+        
+        for obj in data
+          record = new model ''+obj.id
+          record.fromJSON obj
+        
+        callback()
+        return
+    
 # Views
 # -----------
 
