@@ -1005,35 +1005,23 @@ class Batman.Controller extends Batman.Object
 # Models
 # ------
 
+
 class Batman.Model extends Batman.Object
+  
+  # ## Model API
+  # Pick one or many mechanisms with which this model should be persisted. The mechanisms
+  # can be already instantiated or just the class defining them.
   @persist: (mechanisms...) ->
     Batman._initializeObject @prototype
     storage = @::_batman.storage ||= []
-    for m in mechanisms
-      storage.push new m(@)
+    for mechanism in mechanisms
+      storage.push if mechanism.isStorageAdapter then mechanism else new mechanism(@)
     @
   
+  # ### Query methods
   @accessor 'all', {get: -> @all ||= new Batman.Set}
   @accessor 'first', {get: -> @first = @get('all')[0]}
   @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
-  
-  @::mixin Batman.StateMachine
-  
-  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
-    @::state k
-  @::state 'saved', -> @dirtyKeys.clear()
-  
-  constructor: (id) ->
-    # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
-    @dirtyKeys = new Batman.Hash
-    @errors = new Batman.Set
-    
-    super
-    @empty() if not @state()
-    
-    if $typeOf(id) is 'String'
-      @id = id
-      @constructor.get('all').add(@)
   
   @find: (id) ->
     return record if (record = @get('all').get(id))
@@ -1041,53 +1029,14 @@ class Batman.Model extends Batman.Object
     setTimeout (-> record.load()), 0
     record
   
-  set: (key, value) ->
-    oldValue = @[key]
-    return if oldValue is value
+  # ### Transport methods
     
-    super
-    @dirtyKeys.set(key, oldValue)
-    
-    @dirty() if @state() isnt 'dirty'
-  
-  @::accessor 'dirtyKeys',
-    get: -> @dirtyKeys
-  
-  toJSON: ->
-    obj = {}
-    for encoders in Batman._lookupAllBatmanKeys(@, 'encoders')
-      for key, encoder of encoders
-        obj[key] = encoder(@[key])
-    
-    obj
-  
-  fromJSON: (data) ->
-    obj = {}
-    allDecoders = Batman._lookupAllBatmanKeys(@, 'decoders')
-    if not allDecoders.length
-      for key, value of data
-        obj[helpers.camelize(key, yes)] = value
-    else
-      for decoders in allDecoders
-        for key, decoder of decoders
-          obj[key] = decoder(data[key])
-    
-    @mixin obj
-  
-  @encode: (keys...) ->
-    Batman._initializeObject @prototype
-    @::_batman.encoders ||= {}
-    @::_batman.decoders ||= {}
-    
-    for key in keys
-      @::_batman.encoders[key] = (value) ->
-        ''+value
-      
-      @::_batman.decoders[key] = (value) ->
-        value
-  
+  # Create a before load event. Clear the `all` set.
   @beforeLoad: @event -> @get('all').clear()
+  # Create an after load event.
   @afterLoad: @event ->
+  
+  # `load` fetches the record from all sources possible
   @load: (callback) ->
     do @beforeLoad
     
@@ -1104,9 +1053,137 @@ class Batman.Model extends Batman.Object
         m.readAllFromStorage @, afterLoad
     
     do afterLoad if fireImmediately
+  
+  # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their 
+  # storage representations. Encoders do things like stringifying dates and parsing them back out again,
+  # pulling out nested model collections and instantiating them (and JSON.stringifying them back again),
+  # and marshalling otherwise un-storable object.
+  @encode: (keys...) ->
+    Batman._initializeObject @prototype
+    @::_batman.encoders ||= {}
+    @::_batman.decoders ||= {}
     
+    for key in keys
+      @::_batman.encoders[key] = (value) ->
+        ''+value
+      
+      @::_batman.decoders[key] = (value) ->
+        value
+  
+  # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
+  # By validating our data before it gets to the server we can provide immediate feedback to the user about
+  # what they have entered and forgo waiting on a round trip to the server.
+  # `validate` allows the attachment of validations to the model on particular keys, where the validation is
+  # either a built in one (by use of options to pass to them) or a cusom one (by use of a custom function as
+  # the second argument).
+  @validate: (keys..., optionsOrFunction) ->
+    Batman._initializeObject @prototype
+    validators = @::_batman.validators ||= []
+    
+    if typeof optionsOrFunction is 'function'
+      # Given a function, use that as the actual validator, expecting it to conform to the API
+      # the built in validators do.
+      validators.push
+        keys: keys
+        callback: optionsOrFunction
+    else
+      # Given options, find the validations which match the given options, and add them to the validators
+      # array.
+      options = optionsOrFunction
+      for validator in Validators
+        if (matches = validator.matches(options))
+          delete options[match] for match in matches
+          validators.push
+            keys: keys
+            validator: new validator(matches)
+
+  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various 
+  # operations on the model are asynchronous, these states are used to indicate exactly what point the 
+  # record is at in it's lifetime, which can often be during a save or load operation.
+  @::mixin Batman.StateMachine
+  
+  # Add the various states to the model.
+  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
+    @::state k
+  @::state 'saved', -> @dirtyKeys.clear()
+  
+  # ### Record API
+
+  # New records can be constructed by passing either an ID or a hash of attributes (potentially
+  # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
+  constructor: (idOrAttributes = {}) ->
+    # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
+    @dirtyKeys = new Batman.Hash
+    @errors = new Batman.Set
+    
+    super
+    @empty() if not @state()
+    
+    # Find the ID from either the first argument or the attributes.
+    id = if $typeOf(idOrAttributes) is 'String' then idOrAttributes else idOrAttributes.id
+    if id?
+      @id = "#{id}"
+      @constructor.get('all').add(@)
+  
+  # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
+  set: (key, value) ->
+    
+    # Optimize setting where the value is the same as what's already been set.
+    oldValue = @[key]
+    return if oldValue is value
+    
+    # Actually set the value and note what the old value was in the tracking array.
+    super
+    @dirtyKeys.set(key, oldValue)
+    
+    # Mark the model as dirty if isn't already.
+    @dirty() if @state() isnt 'dirty'
+  
+  # FIXME: Is this really needed?
+  @::accessor 'dirtyKeys',
+    get: -> @dirtyKeys
+  
+  # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
+  toJSON: ->
+    obj = {}
+    # Encode each key into a new object
+    for encoders in Batman._lookupAllBatmanKeys(@, 'encoders')
+      for key, encoder of encoders
+        obj[key] = encoder(@[key])
+    
+    obj
+  
+  # `fromJSON` uses the various decoders for each key to generate a record instance from the JSON 
+  # stored in whichever storage mechanism.
+  fromJSON: (data) ->
+    obj = {}
+    allDecoders = Batman._lookupAllBatmanKeys(@, 'decoders')
+
+    # If no decoders were specified, do the best we can to interpret the given JSON by camelizing 
+    # each key and just setting the values.
+    if not allDecoders.length
+      for key, value of data
+        obj[helpers.camelize(key, yes)] = value
+    else
+      # If we do have decoders, use them to get the data.
+      for decoders in allDecoders
+        for key, decoder of decoders
+          obj[key] = decoder(data[key])
+    
+    # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
+    @mixin obj
+  
+  # Set up the lifecycle events for a record.
   beforeLoad: @event -> @loading(); true
   afterLoad: @event -> @loaded(); true
+  beforeCreate: @event ->
+  afterCreate: @event ->
+  beforeSave: @event -> @saving(); true
+  afterSave: @event -> @saved(); true
+  beforeValidation: @event ->
+  afterValidation: @event ->
+  
+  # `load` fetches the record from all sources possible    
   load: (callback) ->
     do @beforeLoad
     
@@ -1123,10 +1200,8 @@ class Batman.Model extends Batman.Object
     
     do afterLoad if fireImmediately
   
-  beforeCreate: @event ->
-  afterCreate: @event ->
-  beforeSave: @event -> @saving(); true
-  afterSave: @event -> @saved(); true
+  # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
+  # a model if it is valid.
   save: (callback) ->
     return if not @isValid()
     do @beforeSave
@@ -1148,18 +1223,30 @@ class Batman.Model extends Batman.Object
     
     do afterSave if fireImmediately
   
-  beforeValidation: @event ->
-  afterValidation: @event ->
+  # `validate` performs the record level validations determining the record's validity. These may be asynchronous, 
+  # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
+  # listening to the `afterValidation` lifecycle callback.
   validate: ->
     do @beforeValidation
+
+    # Start off assuming the validation is synchronous, and as they are each run, ensure each in fact is.
     async = no
-    for allValidators in Batman._lookupAllBatmanKeys(@, 'validators')
-      for validator in allValidators
+
+    for validators in Batman._lookupAllBatmanKeys(@, 'validators')
+      for validator in validators
         v = validator.validator
+
+        # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
+        # and passing it to the appropriate function along with the key and the value to be validated.
         for key in validator.keys
           promise = new Batman.ValidatorPromise @
-          if v then v.validateEach promise, @, key, @get key else validator.callback promise, @, key, @get key
+          if v 
+            v.validateEach promise, @, key, @get key 
+          else 
+            validator.callback promise, @, key, @get key
           
+          # In the event the validation is async (marked this way because the promise is paused), then
+          # prevent the after callback from running, and run it only after all the promises have resolved.
           if promise.paused
             @prevent 'afterValidation'
             promise.resume => @allow('afterValidation'); @afterValidation()
@@ -1167,6 +1254,8 @@ class Batman.Model extends Batman.Object
           else
             promise.success() if promise.canSucceed
     
+    # Return the result of the validation if synchronous, otherwise call the validation callback.
+    # FIXME: Is this really right?
     if async then return no else do @afterValidation
   
   @::accessor
@@ -1175,17 +1264,6 @@ class Batman.Model extends Batman.Object
       return no if @validate() is no
       @errors.isEmpty()
   
-  @validate: (keys..., options) ->
-    Batman._initializeObject @prototype
-    myValidators = @::_batman.validators ||= []
-    
-    if typeof options is 'function'
-      myValidators.push({keys: keys, callback: options})
-    else
-      for validator in validators
-        if (matches = validator.matches(options))
-          delete options[match] for match of matches
-          myValidators.push({keys: keys, validator: new validator(matches)})
 
 class Batman.ValidatorPromise extends Batman.Object
   constructor: (@record) ->
@@ -1211,7 +1289,7 @@ class Batman.Validator extends Batman.Object
     super mixins...
   
   validate: (record) ->
-    throw "You must override -validate in Batman.Validator subclasses."
+    throw "You must override validate in Batman.Validator subclasses."
   
   @kind: -> helpers.underscore(@name).replace('_validator', '')
   kind: -> @constructor.kind()
@@ -1229,7 +1307,7 @@ class Batman.Validator extends Batman.Object
         shouldReturn = yes
     return results if shouldReturn
 
-validators = Batman.validators = [
+Validators = Batman.Validators = [
   class Batman.LengthValidator extends Batman.Validator
     @options 'minLength', 'maxLength', 'length', 'lengthWithin', 'lengthIn'
     constructor: (options) ->
@@ -1261,6 +1339,8 @@ validators = Batman.validators = [
 class Batman.StorageMechanism
   constructor: (@model) ->
     @modelKey = helpers.pluralize(helpers.underscore(@model.name))
+  isStorageAdapter: true
+  @makesStorageAdapters: true
 
 class Batman.LocalStorage extends Batman.StorageMechanism
   constructor: ->
