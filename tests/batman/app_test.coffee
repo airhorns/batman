@@ -70,6 +70,11 @@ asyncTest "should match a root route", 1, ->
 asyncTest "should allow routes to be defined within class definitions", 1, ->
   class TestDefinitionController extends Batman.Controller
     testing: @route('/blech/:id', (params) ->
+      # Pass a super simple view mock to the controller so it doesn't try and render a Batman.View.
+      @render
+        view: 
+          ready: ->
+
       deepEqual params, {url: '/blech/42', id: '42'}
       start()
     )
