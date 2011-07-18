@@ -84,7 +84,7 @@ in within a context.</p>             </td>             <td class="code">        
   <span class="vi">@triggerTracker: </span><span class="kc">null</span>
   <span class="vi">@for: </span><span class="nf">(base, key) -&gt;</span>
     <span class="k">if</span> <span class="nx">base</span><span class="p">.</span><span class="nx">_batman</span>
-      <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="nx">base</span>
+      <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="nx">base</span>
       <span class="nv">properties = </span><span class="nx">base</span><span class="p">.</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">properties</span> <span class="o">||=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleHash</span>
       <span class="nx">properties</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span> <span class="o">or</span> <span class="nx">properties</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="k">new</span> <span class="err">@</span><span class="p">(</span><span class="nx">base</span><span class="p">,</span> <span class="nx">key</span><span class="p">))</span>
     <span class="k">else</span>
@@ -204,7 +204,7 @@ in within a context.</p>             </td>             <td class="code">        
 It is applied by default to every instance of <code>Batman.Object</code> and subclasses.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman.Observable =</span>
   <span class="nv">isObservable: </span><span class="kc">true</span>
   <span class="nv">property: </span><span class="nf">(key) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="err">@</span>
     <span class="nx">Batman</span><span class="p">.</span><span class="nx">Keypath</span><span class="p">.</span><span class="k">for</span><span class="p">(</span><span class="err">@</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
   <span class="nv">get: </span><span class="nf">(key) -&gt;</span> <span class="nx">@property</span><span class="p">(</span><span class="nx">key</span><span class="p">).</span><span class="nx">getValue</span><span class="p">()</span>
   <span class="nv">set: </span><span class="nf">(key, val) -&gt;</span> <span class="nx">@property</span><span class="p">(</span><span class="nx">key</span><span class="p">).</span><span class="nx">setValue</span><span class="p">(</span><span class="nx">val</span><span class="p">)</span>
@@ -250,7 +250,7 @@ to register or a value to fire the event with.</p>             </td>            
       <span class="k">if</span> <span class="o">not</span> <span class="nx">@observe</span>
         <span class="k">throw</span> <span class="s2">&quot;EventEmitter requires Observable&quot;</span>
       
-      <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+      <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="err">@</span>
       
       <span class="nx">key</span> <span class="o">||=</span> <span class="nx">$findName</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span> <span class="err">@</span><span class="p">)</span>
       <span class="nv">fired = </span><span class="nx">@_batman</span><span class="p">.</span><span class="nx">_oneShotFired</span><span class="o">?</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span>
@@ -306,7 +306,7 @@ If you already have an EventEmitter object, you should call .eventOneShot() on i
 
 <h1>#</h1>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman.StateMachine = </span><span class="p">{</span>
   <span class="nv">initialize: </span><span class="o">-&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="err">@</span>
     <span class="k">if</span> <span class="o">not</span> <span class="nx">@_batman</span><span class="p">.</span><span class="nx">states</span>
       <span class="vi">@_batman.states = </span><span class="p">{}</span>
       <span class="nx">@accessor</span> <span class="s1">&#39;state&#39;</span><span class="p">,</span>
@@ -362,19 +362,11 @@ If you already have an EventEmitter object, you should call .eventOneShot() on i
   <span class="vi">@_batman.isTransitioning = </span><span class="kc">no</span>
   <span class="err">@</span><span class="p">[</span><span class="nx">@_batman</span><span class="p">.</span><span class="nx">nextState</span><span class="p">.</span><span class="nx">shift</span><span class="p">()]()</span> <span class="k">if</span> <span class="nx">@_batman</span><span class="p">.</span><span class="nx">nextState</span><span class="o">?</span><span class="p">.</span><span class="nx">length</span>
   
-  <span class="nx">newState</span></pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <h2>Objects</h2>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p><code>Batman._initializeObject</code> is called by all the methods in Batman.Object to ensure that the
-objects <code>_batman</code> property is initialized and it's own. Classes extending Batman.Object inherit
-methods like <code>get</code>, <code>set</code>, and <code>observe</code> by default on the class and prototype levels, such that
-both instances and the class respond to them and can be bound to. However, CoffeeScript's static
-class inheritance copies over all class level properties indiscriminately, so a parent class' 
-<code>_batman</code> object will get copied to its subclasses, transferring all the information stored there and 
-allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
-which object the <code>_batman_</code> object was initialized upon, and reinitializing if that has changed since
-initialization.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman._initializeObject = </span><span class="nf">(object) -&gt;</span>
-  <span class="k">if</span> <span class="nx">object</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">and</span> <span class="nx">object</span><span class="p">.</span><span class="nx">_batman</span><span class="o">?</span><span class="p">.</span><span class="nx">__initClass__</span> <span class="o">isnt</span> <span class="nx">object</span>
-    <span class="nv">object._batman = </span><span class="p">{</span><span class="nv">__initClass__: </span><span class="nx">object</span><span class="p">}</span>
-  <span class="k">else</span> <span class="nx">unless</span> <span class="nx">object</span><span class="p">.</span><span class="nx">hasOwnProperty</span> <span class="s1">&#39;_batman&#39;</span>
-    <span class="nv">object._batman = </span><span class="p">{}</span>
+  <span class="nx">newState</span></pre></div>             </td>           </tr>                               <tr id="section-35">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-35">&#182;</a>               </div>               <h2>Objects</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman.initializeObject = </span><span class="nf">(object) -&gt;</span>
+  <span class="k">if</span> <span class="nx">object</span><span class="p">.</span><span class="nx">_batman</span><span class="o">?</span>
+    <span class="nx">object</span><span class="p">.</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">check</span><span class="p">(</span><span class="nx">object</span><span class="p">)</span>
+  <span class="k">else</span>
+    <span class="nv">object._batman = </span><span class="k">new</span> <span class="nx">_Batman</span><span class="p">(</span><span class="nx">object</span><span class="p">)</span>
 
 <span class="nv">Batman._lookupBatmanKey = </span><span class="nf">(object, key) -&gt;</span>
   <span class="k">return</span> <span class="nx">val</span> <span class="k">if</span> <span class="p">(</span><span class="nv">val = </span><span class="nx">object</span><span class="p">.</span><span class="nx">_batman</span><span class="o">?</span><span class="p">[</span><span class="nx">key</span><span class="p">])</span>
@@ -402,7 +394,26 @@ initialization.</p>             </td>             <td class="code">             
       
     <span class="nv">nextClass = </span><span class="nx">nextClass</span><span class="p">.</span><span class="nx">__super__</span><span class="o">?</span><span class="p">.</span><span class="nx">constructor</span>
   
-  <span class="k">if</span> <span class="nx">subkey</span> <span class="k">then</span> <span class="nx">results</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nf">(result) -&gt;</span> <span class="nx">result</span><span class="p">[</span><span class="nx">subkey</span><span class="p">])</span> <span class="k">else</span> <span class="nx">results</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p><code>Batman.Object</code> is the base class for all other Batman objects. It is not abstract. </p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span></pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Setting <code>isGlobal</code> to true will cause the class name to be defined on the
+  <span class="k">if</span> <span class="nx">subkey</span> <span class="k">then</span> <span class="nx">results</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nf">(result) -&gt;</span> <span class="nx">result</span><span class="p">[</span><span class="nx">subkey</span><span class="p">])</span> <span class="k">else</span> <span class="nx">results</span>
+
+<span class="k">class</span> <span class="nx">_Batman</span>
+  <span class="nv">constructor: </span><span class="nf">(@initObject, mixins...) -&gt;</span>
+    <span class="nx">$mixin</span><span class="p">(</span><span class="err">@</span><span class="p">,</span> <span class="nx">mixins</span><span class="p">...)</span> <span class="k">if</span> <span class="nx">mixins</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-36">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-36">&#182;</a>               </div>               <p><code>Batman.initializeObject</code> is called by all the methods in Batman.Object to ensure that the
+objects <code>_batman</code> property is initialized and it's own. Classes extending Batman.Object inherit
+methods like <code>get</code>, <code>set</code>, and <code>observe</code> by default on the class and prototype levels, such that
+both instances and the class respond to them and can be bound to. However, CoffeeScript's static
+class inheritance copies over all class level properties indiscriminately, so a parent class' 
+<code>_batman</code> object will get copied to its subclasses, transferring all the information stored there and 
+allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
+which object the <code>_batman_</code> object was initialized upon, and reinitializing if that has changed since
+initialization.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">check: </span><span class="nf">(object) -&gt;</span>
+    <span class="k">if</span> <span class="nx">object</span> <span class="o">!=</span> <span class="nx">@initObject</span>
+      <span class="nv">object._batman = </span><span class="k">new</span> <span class="nx">_Batman</span><span class="p">(</span><span class="nx">object</span><span class="p">)</span>
+
+  <span class="nv">get: </span><span class="nf">(key) -&gt;</span>
+    
+  <span class="nv">set: </span><span class="nf">(key, value) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-37">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-37">&#182;</a>               </div>               <p><code>Batman.Object</code> is the base class for all other Batman objects. It is not abstract. </p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span></pre></div>             </td>           </tr>                               <tr id="section-38">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-38">&#182;</a>               </div>               <p>Setting <code>isGlobal</code> to true will cause the class name to be defined on the
 global object. For example, Batman.Model will be aliased to window.Model.
 This should be used sparingly; it's mostly useful for debugging.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="vi">@global: </span><span class="nf">(isGlobal) -&gt;</span>
     <span class="k">return</span> <span class="k">if</span> <span class="nx">isGlobal</span> <span class="o">is</span> <span class="kc">false</span>
@@ -411,7 +422,7 @@ This should be used sparingly; it's mostly useful for debugging.</p>            
   </pre></div>             </td>           </tr>                               <tr id="section-40">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-40">&#182;</a>               </div>               <p>Apply mixins to instances of this subclass.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">mixin: </span><span class="nx">@mixin</span>
   
   <span class="vi">@accessor: </span><span class="nf">(keys..., accessor) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="err">@</span>
     <span class="k">if</span> <span class="nx">keys</span><span class="p">.</span><span class="nx">length</span> <span class="o">is</span> <span class="mi">0</span>
       <span class="k">if</span> <span class="nx">accessor</span><span class="p">.</span><span class="nx">get</span> <span class="o">or</span> <span class="nx">accessor</span><span class="p">.</span><span class="nx">set</span>
         <span class="vi">@_batman.defaultAccessor = </span><span class="nx">accessor</span>
@@ -426,7 +437,7 @@ This should be used sparingly; it's mostly useful for debugging.</p>            
   <span class="nv">accessor: </span><span class="nx">@accessor</span>
     
   <span class="nv">constructor: </span><span class="nf">(mixins...) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+    <span class="vi">@_batman = </span><span class="k">new</span> <span class="nx">_Batman</span><span class="p">(</span><span class="err">@</span><span class="p">)</span>
     <span class="nx">@mixin</span> <span class="nx">mixins</span><span class="p">...</span>
   </pre></div>             </td>           </tr>                               <tr id="section-41">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-41">&#182;</a>               </div>               <p>Make every subclass and their instances observable.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nx">@mixin</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Observable</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span>
   <span class="err">@</span><span class="o">::</span><span class="nx">mixin</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Observable</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span>
@@ -824,7 +835,7 @@ $route "/#{base}/:id/edit", "#{name}#edit"</p>             </td>             <td
 
 <p>Pick one or many mechanisms with which this model should be persisted. The mechanisms
 can be already instantiated or just the class defining them.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="vi">@persist: </span><span class="nf">(mechanisms...) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="nx">@prototype</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="nx">@prototype</span>
     <span class="nv">storage = </span><span class="err">@</span><span class="o">::</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">storage</span> <span class="o">||=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="nx">mechanism</span> <span class="k">in</span> <span class="nx">mechanisms</span>
       <span class="nx">storage</span><span class="p">.</span><span class="nx">push</span> <span class="k">if</span> <span class="nx">mechanism</span><span class="p">.</span><span class="nx">isStorageAdapter</span> <span class="k">then</span> <span class="nx">mechanism</span> <span class="k">else</span> <span class="k">new</span> <span class="nx">mechanism</span><span class="p">(</span><span class="err">@</span><span class="p">)</span>
@@ -859,7 +870,7 @@ can be already instantiated or just the class defining them.</p>             </t
 storage representations. Encoders do things like stringifying dates and parsing them back out again,
 pulling out nested model collections and instantiating them (and JSON.stringifying them back again),
 and marshalling otherwise un-storable object.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="vi">@encode: </span><span class="nf">(keys...) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="nx">@prototype</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="nx">@prototype</span>
     <span class="err">@</span><span class="o">::</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">encoders</span> <span class="o">||=</span> <span class="p">{}</span>
     <span class="err">@</span><span class="o">::</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">decoders</span> <span class="o">||=</span> <span class="p">{}</span>
     
@@ -875,7 +886,7 @@ what they have entered and forgo waiting on a round trip to the server.
 <code>validate</code> allows the attachment of validations to the model on particular keys, where the validation is
 either a built in one (by use of options to pass to them) or a cusom one (by use of a custom function as
 the second argument).</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="vi">@validate: </span><span class="nf">(keys..., optionsOrFunction) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="nx">@prototype</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="nx">@prototype</span>
     <span class="nv">validators = </span><span class="err">@</span><span class="o">::</span><span class="nx">_batman</span><span class="p">.</span><span class="nx">validators</span> <span class="o">||=</span> <span class="p">[]</span>
     
     <span class="k">if</span> <span class="k">typeof</span> <span class="nx">optionsOrFunction</span> <span class="o">is</span> <span class="s1">&#39;function&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-77">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-77">&#182;</a>               </div>               <p>Given a function, use that as the actual validator, expecting it to conform to the API
@@ -883,7 +894,8 @@ the built in validators do.</p>             </td>             <td class="code"> 
         <span class="nv">keys: </span><span class="nx">keys</span>
         <span class="nv">callback: </span><span class="nx">optionsOrFunction</span>
     <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-78">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-78">&#182;</a>               </div>               <p>Given options, find the validations which match the given options, and add them to the validators
-array.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">for</span> <span class="nx">validator</span> <span class="k">in</span> <span class="nx">Validators</span>
+array.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">options = </span><span class="nx">optionsOrFunction</span>
+      <span class="k">for</span> <span class="nx">validator</span> <span class="k">in</span> <span class="nx">Validators</span>
         <span class="k">if</span> <span class="p">(</span><span class="nv">matches = </span><span class="nx">validator</span><span class="p">.</span><span class="nx">matches</span><span class="p">(</span><span class="nx">options</span><span class="p">))</span>
           <span class="k">delete</span> <span class="nx">options</span><span class="p">[</span><span class="nx">match</span><span class="p">]</span> <span class="k">for</span> <span class="nx">match</span> <span class="k">in</span> <span class="nx">matches</span>
           <span class="nx">validators</span><span class="p">.</span><span class="nx">push</span>
@@ -895,7 +907,7 @@ record is at in it's lifetime, which can often be during a save or load operatio
     <span class="err">@</span><span class="o">::</span><span class="nx">state</span> <span class="nx">k</span>
   <span class="err">@</span><span class="o">::</span><span class="nx">state</span> <span class="s1">&#39;saved&#39;</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="nx">@dirtyKeys</span><span class="p">.</span><span class="nx">clear</span><span class="p">()</span>
   </pre></div>             </td>           </tr>                               <tr id="section-81">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-81">&#182;</a>               </div>               <h3>Record API</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-82">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-82">&#182;</a>               </div>               <p>New records can be constructed by passing either an ID or a hash of attributes (potentially
-containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">constructor: </span><span class="nf">(idOrAttributes) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-83">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-83">&#182;</a>               </div>               <p>We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@dirtyKeys = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Hash</span>
+containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">constructor: </span><span class="nf">(idOrAttributes = {}) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-83">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-83">&#182;</a>               </div>               <p>We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@dirtyKeys = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Hash</span>
     <span class="vi">@errors = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span>
     
     <span class="k">super</span>
@@ -1034,7 +1046,7 @@ FIXME: Is this really right?</p>             </td>             <td class="code">
   <span class="nv">kind: </span><span class="o">-&gt;</span> <span class="nx">@constructor</span><span class="p">.</span><span class="nx">kind</span><span class="p">()</span>
   
   <span class="vi">@options: </span><span class="nf">(options...) -&gt;</span>
-    <span class="nx">Batman</span><span class="p">.</span><span class="nx">_initializeObject</span> <span class="err">@</span>
+    <span class="nx">Batman</span><span class="p">.</span><span class="nx">initializeObject</span> <span class="err">@</span>
     <span class="k">if</span> <span class="nx">@_batman</span><span class="p">.</span><span class="nx">options</span> <span class="k">then</span> <span class="nx">@_batman</span><span class="p">.</span><span class="nx">options</span><span class="p">.</span><span class="nx">concat</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span> <span class="k">else</span> <span class="vi">@_batman.options = </span><span class="nx">options</span>
   
   <span class="vi">@matches: </span><span class="nf">(options) -&gt;</span>

@@ -116,7 +116,7 @@ class Batman.Property
   @triggerTracker: null
   @for: (base, key) ->
     if base._batman
-      Batman._initializeObject base
+      Batman.initializeObject base
       properties = base._batman.properties ||= new Batman.SimpleHash
       properties.get(key) or properties.set(key, new @(base, key))
     else
@@ -247,7 +247,7 @@ class Batman.Keypath extends Batman.ObservableProperty
 Batman.Observable =
   isObservable: true
   property: (key) ->
-    Batman._initializeObject @
+    Batman.initializeObject @
     Batman.Keypath.for(@, key)
   get: (key) -> @property(key).getValue()
   set: (key, val) -> @property(key).setValue(val)
@@ -321,7 +321,7 @@ Batman.EventEmitter =
       if not @observe
         throw "EventEmitter requires Observable"
       
-      Batman._initializeObject @
+      Batman.initializeObject @
       
       key ||= $findName(f, @)
       fired = @_batman._oneShotFired?[key]
@@ -401,7 +401,7 @@ $eventOneShot = (callback) ->
 
 Batman.StateMachine = {
   initialize: ->
-    Batman._initializeObject @
+    Batman.initializeObject @
     if not @_batman.states
       @_batman.states = {}
       @accessor 'state',
@@ -465,20 +465,11 @@ _stateMachine_setState = (newState) ->
 # Objects
 # -------
 
-# `Batman._initializeObject` is called by all the methods in Batman.Object to ensure that the
-# objects `_batman` property is initialized and it's own. Classes extending Batman.Object inherit
-# methods like `get`, `set`, and `observe` by default on the class and prototype levels, such that
-# both instances and the class respond to them and can be bound to. However, CoffeeScript's static
-# class inheritance copies over all class level properties indiscriminately, so a parent class' 
-# `_batman` object will get copied to its subclasses, transferring all the information stored there and 
-# allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
-# which object the `_batman_` object was initialized upon, and reinitializing if that has changed since
-# initialization.
-Batman._initializeObject = (object) ->
-  if object.prototype and object._batman?.__initClass__ isnt object
-    object._batman = {__initClass__: object}
-  else unless object.hasOwnProperty '_batman'
-    object._batman = {}
+Batman.initializeObject = (object) ->
+  if object._batman?
+    object._batman.check(object)
+  else
+    object._batman = new _Batman(object)
 
 Batman._lookupBatmanKey = (object, key) ->
   return val if (val = object._batman?[key])
@@ -508,6 +499,27 @@ Batman._lookupAllBatmanKeys = (object, key, subkey) ->
   
   if subkey then results.map((result) -> result[subkey]) else results
 
+class _Batman
+  constructor: (@initObject, mixins...) ->
+    $mixin(@, mixins...) if mixins.length > 0
+  
+  # `Batman.initializeObject` is called by all the methods in Batman.Object to ensure that the
+  # objects `_batman` property is initialized and it's own. Classes extending Batman.Object inherit
+  # methods like `get`, `set`, and `observe` by default on the class and prototype levels, such that
+  # both instances and the class respond to them and can be bound to. However, CoffeeScript's static
+  # class inheritance copies over all class level properties indiscriminately, so a parent class' 
+  # `_batman` object will get copied to its subclasses, transferring all the information stored there and 
+  # allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
+  # which object the `_batman_` object was initialized upon, and reinitializing if that has changed since
+  # initialization.
+  check: (object) ->
+    if object != @initObject
+      object._batman = new _Batman(object)
+
+  get: (key) ->
+    
+  set: (key, value) ->
+
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract. 
 class Batman.Object
   # Setting `isGlobal` to true will cause the class name to be defined on the
@@ -524,7 +536,7 @@ class Batman.Object
   mixin: @mixin
   
   @accessor: (keys..., accessor) ->
-    Batman._initializeObject @
+    Batman.initializeObject @
     if keys.length is 0
       if accessor.get or accessor.set
         @_batman.defaultAccessor = accessor
@@ -539,7 +551,7 @@ class Batman.Object
   accessor: @accessor
     
   constructor: (mixins...) ->
-    Batman._initializeObject @
+    @_batman = new _Batman(@)
     @mixin mixins...
   
   # Make every subclass and their instances observable.
@@ -1012,7 +1024,7 @@ class Batman.Model extends Batman.Object
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
   @persist: (mechanisms...) ->
-    Batman._initializeObject @prototype
+    Batman.initializeObject @prototype
     storage = @::_batman.storage ||= []
     for mechanism in mechanisms
       storage.push if mechanism.isStorageAdapter then mechanism else new mechanism(@)
@@ -1059,7 +1071,7 @@ class Batman.Model extends Batman.Object
   # pulling out nested model collections and instantiating them (and JSON.stringifying them back again),
   # and marshalling otherwise un-storable object.
   @encode: (keys...) ->
-    Batman._initializeObject @prototype
+    Batman.initializeObject @prototype
     @::_batman.encoders ||= {}
     @::_batman.decoders ||= {}
     
@@ -1077,7 +1089,7 @@ class Batman.Model extends Batman.Object
   # either a built in one (by use of options to pass to them) or a cusom one (by use of a custom function as
   # the second argument).
   @validate: (keys..., optionsOrFunction) ->
-    Batman._initializeObject @prototype
+    Batman.initializeObject @prototype
     validators = @::_batman.validators ||= []
     
     if typeof optionsOrFunction is 'function'
@@ -1297,7 +1309,7 @@ class Batman.Validator extends Batman.Object
   kind: -> @constructor.kind()
   
   @options: (options...) ->
-    Batman._initializeObject @
+    Batman.initializeObject @
     if @_batman.options then @_batman.options.concat(options) else @_batman.options = options
   
   @matches: (options) ->
