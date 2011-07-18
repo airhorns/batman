@@ -43,4 +43,15 @@ test "remove(items...) only decrements length for items that are there to be rem
   
   equal @set.length, 1
   
-  
+test "merge(other) returns a merged set without changing the original", ->
+  @set.add('foo', 'bar', 'baz')
+  other = new Batman.Set
+  other.add('qux', 'buzz')
+  merged = @set.merge(other)
+
+  for v in ['foo', 'bar', 'baz', 'qux', 'buzz']
+    ok merged.has(v)
+  equal merged.get('length'), 5
+
+  ok !@set.has('qux')
+  ok !@set.has('buzz')

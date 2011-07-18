@@ -70,4 +70,26 @@ test "keys() returns an array of the hash's keys", ->
   notEqual keys.indexOf(o2), -1
   notEqual keys.indexOf('bar'), -1
   
-  
+test "merge(other) returns a new hash without modifying the original", ->
+  key1 = {}
+  key2 = {}
+  @hash.set key1, 1
+  @hash.set key2, 2
+  @hash.set 'foo', 'baz'
+  @hash.set 'bar', 'buzz'
+
+  other = new Batman.Hash
+  other.set key1, 3
+  other.set key3 = {}, 4
+
+  merged = @hash.merge other
+
+  ok merged.hasKey 'foo'
+  ok merged.hasKey 'bar'
+  ok merged.hasKey key1
+  ok merged.hasKey key2
+  ok merged.hasKey key3
+  equal merged.get(key1), 3
+
+  ok !@hash.hasKey(key3)
+  equal @hash.get(key1), 1

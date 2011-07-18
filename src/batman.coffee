@@ -500,7 +500,7 @@ Batman._lookupAllBatmanKeys = (object, key, subkey) ->
   if subkey then results.map((result) -> result[subkey]) else results
 
 class _Batman
-  constructor: (@initObject, mixins...) ->
+  constructor: (@object, mixins...) ->
     $mixin(@, mixins...) if mixins.length > 0
   
   # `Batman.initializeObject` is called by all the methods in Batman.Object to ensure that the
@@ -513,12 +513,45 @@ class _Batman
   # which object the `_batman_` object was initialized upon, and reinitializing if that has changed since
   # initialization.
   check: (object) ->
-    if object != @initObject
+    if object != @object
       object._batman = new _Batman(object)
 
   get: (key) ->
+    getter = (ancestor) -> ancestor._batman?[key]
     
+    results = @ancestors(getter)
+
+    if @[key]?
+      results.unshift @[key]
+    
+    if results[0].concat?
+      results = results.reduce (a, b) -> a.concat(b)
+    else if results[0].merge?
+      results = results.reduce (a, b) -> a.merge(b)
+    results
+
+  ancestors: (getter = (x) -> x) ->
+    results = []
+    # Decide if the object is a class or not, and pull out the first ancestor
+    isClass = !!@object.prototype
+    parent = if isClass 
+      @object.__super__?.constructor 
+    else 
+      if (cons = @object.constructor):: == @object
+        cons.__super__
+      else
+        cons::
+
+    # Call _batman.get on the ancestor which will take the next step up the chain
+    if parent?
+      val = getter(parent)
+      results.push(val) if val?
+      results = results.concat parent._batman.ancestors(getter) if parent._batman?
+    
+    results
+
   set: (key, value) ->
+    @[key] = value
 
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract. 
 class Batman.Object
@@ -577,14 +610,14 @@ class Batman.SimpleHash
     unless pair
       pair = [key]
       matches.push(pair)
-      # @length++
+      @length++
     pair[1] = val
   unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
           matches.splice(index,1)
-          # @length--
+          @length--
           return
   equality: (lhs, rhs) ->
     if typeof lhs.isEqual is 'function'
@@ -604,7 +637,13 @@ class Batman.SimpleHash
     @each (obj) -> @unset obj
   isEmpty: ->
     @keys().length is 0
-    
+  merge: (others...) ->
+    merged = new @constructor
+    others.unshift(@)
+    for hash in others      
+      hash.each (obj, value) ->
+        merged.set obj, value
+    merged
 
 class Batman.Hash extends Batman.Object
   constructor: Batman.SimpleHash
@@ -615,7 +654,7 @@ class Batman.Hash extends Batman.Object
     unset: Batman.SimpleHash::unset
 
   @::accessor 'isEmpty', get: -> @isEmpty()
-  for k in ['hasKey', 'equality', 'each', 'keys']
+  for k in ['hasKey', 'equality', 'each', 'keys', 'merge']
     @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
@@ -651,14 +690,21 @@ class Batman.SimpleSet
   clear: -> @remove @toArray()
   toArray: ->
     @_storage.keys()
-    
+
+  merge: (others...) ->
+    merged = new @constructor
+    others.unshift(@)
+    for set in others
+      set.each (v) -> merged.add v
+    merged
+
 class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
 
   for k in ['add', 'remove']
     @::[k] = @event Batman.SimpleSet::[k]
 
-  for k in ['has', 'each', 'isEmpty', 'toArray', 'clear']
+  for k in ['has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
     @::[k] = Batman.SimpleSet::[k]
 
   @::accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
@@ -1072,14 +1118,14 @@ class Batman.Model extends Batman.Object
   # and marshalling otherwise un-storable object.
   @encode: (keys...) ->
     Batman.initializeObject @prototype
-    @::_batman.encoders ||= {}
-    @::_batman.decoders ||= {}
+    @::_batman.encoders ||= new Batman.SimpleHash
+    @::_batman.decoders ||= new Batman.SimpleHash
     
     for key in keys
-      @::_batman.encoders[key] = (value) ->
+      @::_batman.encoders.set key, (value) ->
         ''+value
       
-      @::_batman.decoders[key] = (value) ->
+      @::_batman.decoders.set key, (value) ->
         value
   
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
@@ -1159,8 +1205,9 @@ class Batman.Model extends Batman.Object
   toJSON: ->
     obj = {}
     # Encode each key into a new object
-    for encoders in Batman._lookupAllBatmanKeys(@, 'encoders')
-      for key, encoder of encoders
+    encoders = @_batman.get('encoders')
+    if encoders.length > 0
+      encoders.each (key, encoder) ->
         obj[key] = encoder(@[key])
     
     obj
@@ -1169,18 +1216,17 @@ class Batman.Model extends Batman.Object
   # stored in whichever storage mechanism.
   fromJSON: (data) ->
     obj = {}
-    allDecoders = Batman._lookupAllBatmanKeys(@, 'decoders')
+    decoders = @_batman.get('decoders')
 
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing 
     # each key and just setting the values.
-    if not allDecoders.length
+    if decoders.get('length') is 0
       for key, value of data
         obj[helpers.camelize(key, yes)] = value
     else
       # If we do have decoders, use them to get the data.
-      for decoders in allDecoders
-        for key, decoder of decoders
-          obj[key] = decoder(data[key])
+      decoders.each (key, decoder) ->
+        obj[key] = decoder(data[key])
     
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
