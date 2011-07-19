@@ -15,7 +15,8 @@ Batman.Request::send = (data) ->
     type: @get 'method'
     dataType: @get 'type'
     data: data || @get 'data'
-    
+    username: @get 'username'
+    password: @get 'password'
     beforeSend: =>
       @loading yes
     
