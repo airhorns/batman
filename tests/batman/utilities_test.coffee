@@ -319,16 +319,32 @@ test "hash keys are traversed and merged in _batman lookups", ->
   
   for k, v of {wibble: 'wobble', baz: 'qux', foo: 'bar'}
     equal @mamba._batman.get('hash_key').get(k), v
-  #equal @mamba._batman.get('hash_key').length, 3
 
   @mamba._batman.set 'hash_key', new Batman.SimpleHash
-  #equal @mamba._batman.get('hash_key').length, 3
 
   @mamba._batman.hash_key.set 'winnie', 'pooh'
-  #equal @mamba._batman.get('hash_key').length, 4
+  ok !@mamba._batman.get('hash_key').isEmpty()
   for k, v of {wibble: 'wobble', baz: 'qux', foo: 'bar', winnie:'pooh'}
     equal @mamba._batman.get('hash_key').get(k), v
 
+test "hash keys from closer ancestors replace those from further ancestors", ->
+  @Animal::_batman.set 'hash_key', new Batman.SimpleHash
+  @Animal::_batman.hash_key.set 'foo', 'bar'
+
+  @Snake::_batman.set 'hash_key', new Batman.SimpleHash
+  @Snake::_batman.hash_key.set 'foo', 'baz'
+
+  @BlackMamba::_batman.set 'hash_key', new Batman.SimpleHash
+  @BlackMamba::_batman.hash_key.set 'foo', 'qux'
+
+  equal @snake._batman.get('hash_key').get('foo'), 'baz'
+  equal @mamba._batman.get('hash_key').get('foo'), 'qux'
+  
+  for obj in [@snake, @mamba]
+    obj._batman.hash_key = new Batman.SimpleHash
+    obj._batman.hash_key.set('foo', 'corge')
+    equal obj._batman.get('hash_key').get('foo'), 'corge'
+  
 test "set keys are traversed and merged in _batman lookups", ->
   @Animal::_batman.set 'set_key', new Batman.SimpleSet
   @Animal::_batman.set_key.add 'foo', 'bar'
