@@ -21,11 +21,11 @@ test "refreshTriggers() sets this.triggers to all properties that this one is de
   fullNameAccessor = get: (key) -> firstNameProp.getValue()+' '+lastNameProp.getValue()
   keyAccessors = new Batman.SimpleHash
   keyAccessors.set('fullName', fullNameAccessor)
-  person =
-    _batman:
-      keyAccessors: keyAccessors
+  person = Batman
     firstName: 'James'
     lastName: 'MacAulay'
+  person._batman.keyAccessors = keyAccessors
+
   firstNameProp = new Batman.ObservableProperty(person, 'firstName')
   lastNameProp = new Batman.ObservableProperty(person, 'lastName')
   fullNameProp = new Batman.ObservableProperty(person, 'fullName')

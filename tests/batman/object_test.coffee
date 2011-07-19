@@ -52,26 +52,26 @@ test "classes shouldn't share attributes", ->
   equal @subSubClass.get("foo"), "bar"
   equal @subClass.get("foo"), undefined
 
-test "classes shouldn't share observables", ->
+test "classes should share observables", ->
   @subClass.observe 'foo', spy = createSpy()
   @subSubClass.observe 'foo', subSpy = createSpy()
   @subSubClass.set 'foo', 'bar'
   Batman.Object.set 'foo', 'bar'
 
-  ok !spy.called
+  ok spy.called
   ok subSpy.called
 
   @subClass.set 'foo', 'bar'
   ok spy.called
 
-test "newly created classes shouldn't fire observers on parent classes", ->
+test "newly created classes shouldn fire observers on parent classes", ->
   @subClass.observe 'foo', spy = createSpy()
 
   newSubClass = class TestSubClass extends @subClass
   newSubClass.observe 'foo', subSpy = createSpy()
 
   newSubClass.set 'foo', 'bar'
-  ok !spy.called
+  ok spy.called
   ok subSpy.called
 
 test "parent classes shouldn't fire observers on newly created classes", ->

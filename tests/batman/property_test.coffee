@@ -35,14 +35,15 @@ QUnit.module 'Batman.Property',
       set: createSpy().whichReturns('customKeyValue')
       unset: createSpy()
       
-    @base = Batman()
+    class TestSubclass  extends Batman.Object
+    @base = new TestSubclass
     @base.accessor @customBaseAccessor
     @base.accessor 'foo', @customKeyAccessor
     @base.constructor::accessor @prototypeBaseAccessor
     @base.constructor::accessor 'baz', @prototypeKeyAccessor
     @property = new Batman.Property(@base, 'foo')
     @customBaseAccessorProperty = new Batman.Property(@base, 'bar')
-
+    
 test "Property.defaultAccessor does vanilla JS property access", ->
   obj = {}
   
