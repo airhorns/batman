@@ -1206,7 +1206,7 @@ class Batman.Model extends Batman.Object
     return if not @isValid()
     do @beforeSave
     
-    creating = !@id
+    creating = @isNew()
     do @beforeCreate if creating
     
     afterSave = =>
@@ -1258,6 +1258,8 @@ class Batman.Model extends Batman.Object
     # FIXME: Is this really right?
     if async then return no else do @afterValidation
   
+  isNew: -> !@id?
+
   @::accessor
     isValid: ->
       @errors.clear()
@@ -1340,7 +1342,6 @@ class Batman.StorageMechanism
   constructor: (@model) ->
     @modelKey = helpers.pluralize(helpers.underscore(@model.name))
   isStorageAdapter: true
-  @makesStorageAdapters: true
 
 class Batman.LocalStorage extends Batman.StorageMechanism
   constructor: ->
@@ -1362,24 +1363,35 @@ class Batman.LocalStorage extends Batman.StorageMechanism
     callback()
     
 class Batman.RestStorage extends Batman.StorageMechanism
+  optionsForRecord: (record) ->
+    options =
+      type: 'JSON'
+
+    for thing in [record, @model]
+      if thing.url
+        if typeof thing.url is 'function'
+          options.url = thing.url()
+        else
+          options.url = thing.url
+      else
+        options.url = "/#{@modelKey}/#{record.id}"
+      break if options.url
+    options
+
   writeToStorage: (record, callback) ->
-    key = @modelKey
-    id = record.id
-    new Batman.Request
-      url: "/#{key}/#{id}"
+    options = $mixin @optionsForRecord(record),
       method: if id then 'put' else 'post'
       data: JSON.stringify record
       success: ->
         callback()
       error: (error) ->
         callback(error)
+
+    new Batman.Request(options)
   
   readFromStorage: (record, callback) ->
-    id = record.id
-    return if not id
-    new Batman.Request
-      url: (@model.url || "/#{@modelKey}") + "/#{id}"
-      type: 'json'
+    options = $mixin @optionsForRecord(record), 
+      method: 'GET'
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         for key of data
@@ -1388,12 +1400,11 @@ class Batman.RestStorage extends Batman.StorageMechanism
         
         record.fromJSON data
         callback()
+      
+    new Batman.Request(options)
         
   readAllFromStorage: (model, callback) ->
-    key = @modelKey
-    r = new Batman.Request
-      url: model.url || "/#{key}"
-      type: 'json'
+    options = $mixin @optionsForRecord(record), 
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         if !Array.isArray(data)
@@ -1407,7 +1418,9 @@ class Batman.RestStorage extends Batman.StorageMechanism
         
         callback()
         return
-    
+
+    new Batman.Request options
+
 # Views
 # -----------
 
@@ -1919,7 +1932,6 @@ $mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
-  onto.$typeOf = $typeOf
   onto.$mixin = $mixin
   onto.$unmixin = $unmixin
   onto.$route = $route

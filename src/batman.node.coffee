@@ -12,22 +12,24 @@
 url = require 'url'
 querystring = require 'querystring'
 
-applyImplementation = (onto) ->
-  onto.Request::send = (data) ->
-    
+{Batman} = require './batman'
+
+Batman.Request::getModule = (protocol) ->
+  requestModule = switch protocol
+    when 'http:', 'https:'
+      require protocol.slice(0,-1)
+    else
+      throw "Unrecognized request protocol #{protocol}"
+
+Batman.Request::send = (data) ->
     requestURL = url.parse(@get 'url', true)
     protocol = requestURL.protocol
     # Figure out which module to use
-    requestModule = switch protocol
-      when 'http:', 'https:'
-        require protocol.slice(0,-1)
-      else
-        throw "Unrecognized request protocol #{protocol}"
-
+    requestModule = @getModule(protocol)
     path = requestURL.pathname
     
     if @get('method') is 'GET'
-      path += querystring.stringify onto.extend({}, requestURL.query, @get 'data')
+      path += querystring.stringify Batman.mixin({}, requestURL.query, @get 'data')
 
     # Make the request and grab the ClientRequest object
     options = 
@@ -36,6 +38,7 @@ applyImplementation = (onto) ->
       port: requestURL.port
       host: requestURL.hostname      
 
+    console.log options
     request = requestModule.request options, (response) =>
       
       # Buffer all the chunks of data into an array
@@ -50,13 +53,20 @@ applyImplementation = (onto) ->
         
         # Dispatch the appropriate event based on the status code
         status = response.statusCode
+        console.log status, data
         if (status >= 200 and status < 300) or status is 304      
           @success data
         else
           @error data
     
     # Set auth if its given
-    request.setHeader("Authorization", new Buffer(requestURL.auth).toString('base64')) if requestURL.auth
+    auth = if @get 'username'
+      "#{@get 'username'}:#{@get 'password'}"
+    else if requestURL.auth
+      requestURL.auth
+    
+    if auth
+      request.setHeader("Authorization", new Buffer(auth).toString('base64')) 
 
     if @get 'method' is 'POST'
       request.write JSON.stringify(@get 'data')
@@ -68,10 +78,4 @@ applyImplementation = (onto) ->
     
     request
 
-if Batman?
-  applyImplementation(Batman)
-
-if global.Batman?
-  applyImplementation(global.Batman)
-
-exports.apply = applyImplementation
+exports.Batman = Batman

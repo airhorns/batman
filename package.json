@@ -8,7 +8,7 @@
     "type": "git",
     "url": "git://github.com/Shopify/batman.git"
   },
-  "main": "./lib/batman.js",
+  "main": "./lib/batman.node.js",
   "bin" : {
     "batman" : "./tools/batman"
   },

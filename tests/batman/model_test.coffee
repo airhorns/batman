@@ -3,7 +3,6 @@ QUnit.module "Batman.Model",
     class @Product extends Batman.Model
       isProduct: true
       
-      
 test "is state machine", ->
   product = new @Product
   equal product.state(), 'empty'
@@ -109,7 +108,6 @@ test "models without any decoders should decode all keys with camelization", ->
   
   equal p.get 'name', "Cool Snowboard"
   equal p.get 'cost', 12.99
-
 
 QUnit.module "Batman.Model: validations"
 
