@@ -127,11 +127,12 @@ class Batman.Property
   isProperty: true
   accessor: ->
     key = @key
-    for result in Batman._lookupAllBatmanKeys(@base, 'keyAccessors')
-      return val if (val = result.get(key))
-    
-    Batman._lookupBatmanKey(@base, 'defaultAccessor') or
-    Batman.Property.defaultAccessor
+    accessors = @base._batman?.get('keyAccessors')
+    if accessors && (val = accessors.get(key))
+      return val 
+    else
+      @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
+
   registerAsTrigger: ->
     tracker.add @ if tracker = Batman.Property.triggerTracker
   getValue: ->
@@ -185,11 +186,9 @@ class Batman.ObservableProperty extends Batman.Property
     return unless @hasObserversToFire()
     key = @key
     base = @base
-    properties = Batman._lookupAllBatmanKeys(@base)
-    propertyObservers = [@observers].concat(properties.map((property) -> property?.property?(key).observers))
-    for observers in propertyObservers
-      observers?.each (callback) ->
-        callback?.apply base, args
+    observers = [@observers].concat(@base._batman.ancestors((ancestor) -> ancestor.property?(key).observers)).reduce((a, b) -> a.merge(b))
+    observers.each (callback) ->
+      callback?.apply base, args
     @refreshTriggers()
   forget: (observer) ->
     if observer
@@ -403,7 +402,7 @@ Batman.StateMachine = {
   initialize: ->
     Batman.initializeObject @
     if not @_batman.states
-      @_batman.states = {}
+      @_batman.states = new Batman.SimpleHash
       @accessor 'state',
         get: -> @state()
         set: (key, value) -> _stateMachine_setState.call(@, value)
@@ -412,7 +411,7 @@ Batman.StateMachine = {
     Batman.StateMachine.initialize.call @
     
     if not name
-      return Batman._lookupBatmanKey(@, 'state')
+      return @_batman.getFirst 'state'
     
     if not @event
       throw "StateMachine requires EventEmitter"
@@ -430,7 +429,7 @@ Batman.StateMachine = {
     name = "#{from}->#{to}"
     transitions = @_batman.states
     
-    event = transitions[name] ||= $event ->
+    event = transitions.get(name) || transitions.set(name, $event ->)
     event(callback) if callback
     event
 }
@@ -450,7 +449,7 @@ _stateMachine_setState = (newState) ->
   
   if newState and oldState
     name = "#{oldState}->#{newState}"
-    for event in Batman._lookupAllBatmanKeys(@, 'states', name)
+    for event in @_batman.getAll((ancestor) -> ancestor._batman?.get('states')?.get(name))
       if event
         event newState, oldState
   
@@ -471,35 +470,7 @@ Batman.initializeObject = (object) ->
   else
     object._batman = new _Batman(object)
 
-Batman._lookupBatmanKey = (object, key) ->
-  return val if (val = object._batman?[key])
-  
-  nextClass = object.constructor
-  while nextClass
-    return val if (val = nextClass.prototype?._batman?[key])
-    nextClass = nextClass.__super__?.constructor
-  
-  return
-
-Batman._lookupAllBatmanKeys = (object, key, subkey) ->
-  results = []
-  results.push(val) if (val = object._batman?[key])
-  
-  isClass = !!object.prototype
-  nextClass = if isClass then object.__super__?.constructor else object.constructor
-  while nextClass
-    if not key
-      results.push nextClass.prototype
-    else if isClass and (val = nextClass._batman?[key])
-      results.push(val)
-    else if !isClass and (val = nextClass.prototype?._batman?[key])
-      results.push(val)
-      
-    nextClass = nextClass.__super__?.constructor
-  
-  if subkey then results.map((result) -> result[subkey]) else results
-
-class _Batman
+Batman._Batman = class _Batman
   constructor: (@object, mixins...) ->
     $mixin(@, mixins...) if mixins.length > 0
   
@@ -517,17 +488,32 @@ class _Batman
       object._batman = new _Batman(object)
 
   get: (key) ->
-    getter = (ancestor) -> ancestor._batman?[key]
-    
-    results = @ancestors(getter)
+    results = @getAll(key)
+    switch results.length
+      when 0 
+        undefined
+      when 1
+        results[0]
+      else
+        if results[0].concat?
+          results = results.reduceRight (a, b) -> a.concat(b)
+        else if results[0].merge?
+          results = results.reduceRight (a, b) -> a.merge(b)
+        results
+  
+  getFirst: (key) ->
+    results = @getAll(key)
+    results[0]
 
-    if @[key]?
-      results.unshift @[key]
-    
-    if results[0].concat?
-      results = results.reduce (a, b) -> a.concat(b)
-    else if results[0].merge?
-      results = results.reduce (a, b) -> a.merge(b)
+  getAll: (keyOrGetter) ->
+    if typeof keyOrGetter is 'function'
+      getter = keyOrGetter
+    else
+      getter = (ancestor) -> ancestor._batman?[keyOrGetter]
+
+    results = @ancestors(getter)
+    if val = getter(@object)
+      results.unshift val
     results
 
   ancestors: (getter = (x) -> x) ->
@@ -541,13 +527,11 @@ class _Batman
         cons.__super__
       else
         cons::
-
     # Call _batman.get on the ancestor which will take the next step up the chain
     if parent?
       val = getter(parent)
       results.push(val) if val?
       results = results.concat parent._batman.ancestors(getter) if parent._batman?
-    
     results
 
   set: (key, value) ->
@@ -599,7 +583,6 @@ class Batman.SimpleHash
   hasKey: (key) ->
     typeof @get(key) isnt 'undefined'
   get: (key) ->
-    return @length if key is 'length' # FIXME: tries to call getValue
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
@@ -610,14 +593,12 @@ class Batman.SimpleHash
     unless pair
       pair = [key]
       matches.push(pair)
-      @length++
     pair[1] = val
   unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
           matches.splice(index,1)
-          @length--
           return
   equality: (lhs, rhs) ->
     if typeof lhs.isEqual is 'function'
@@ -1102,7 +1083,7 @@ class Batman.Model extends Batman.Object
       callback?.call @
       do @afterLoad
     
-    allMechanisms = Batman._lookupAllBatmanKeys @prototype, 'storage'
+    allMechanisms = @::_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     allMechanisms.shift() if not fireImmediately
     for mechanisms in allMechanisms
@@ -1206,8 +1187,8 @@ class Batman.Model extends Batman.Object
     obj = {}
     # Encode each key into a new object
     encoders = @_batman.get('encoders')
-    if encoders.length > 0
-      encoders.each (key, encoder) ->
+    unless !encoders or encoders.isEmpty()
+      encoders.each (key, encoder) =>
         obj[key] = encoder(@[key])
     
     obj
@@ -1220,7 +1201,7 @@ class Batman.Model extends Batman.Object
 
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing 
     # each key and just setting the values.
-    if decoders.get('length') is 0
+    if !decoders or decoders.isEmpty()
       for key, value of data
         obj[helpers.camelize(key, yes)] = value
     else
@@ -1249,7 +1230,7 @@ class Batman.Model extends Batman.Object
       callback?.call @
       do @afterLoad
     
-    allMechanisms = Batman._lookupAllBatmanKeys @, 'storage'
+    allMechanisms = @_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
@@ -1272,7 +1253,7 @@ class Batman.Model extends Batman.Object
       do @afterCreate if creating
       do @afterSave
     
-    allMechanisms = Batman._lookupAllBatmanKeys @, 'storage'
+    allMechanisms = @_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
@@ -1290,27 +1271,26 @@ class Batman.Model extends Batman.Object
     # Start off assuming the validation is synchronous, and as they are each run, ensure each in fact is.
     async = no
 
-    for validators in Batman._lookupAllBatmanKeys(@, 'validators')
-      for validator in validators
-        v = validator.validator
+    for validator in @_batman.get('validators') || []
+      v = validator.validator
 
-        # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
-        # and passing it to the appropriate function along with the key and the value to be validated.
-        for key in validator.keys
-          promise = new Batman.ValidatorPromise @
-          if v 
-            v.validateEach promise, @, key, @get key 
-          else 
-            validator.callback promise, @, key, @get key
-          
-          # In the event the validation is async (marked this way because the promise is paused), then
-          # prevent the after callback from running, and run it only after all the promises have resolved.
-          if promise.paused
-            @prevent 'afterValidation'
-            promise.resume => @allow('afterValidation'); @afterValidation()
-            async = yes
-          else
-            promise.success() if promise.canSucceed
+      # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
+      # and passing it to the appropriate function along with the key and the value to be validated.
+      for key in validator.keys
+        promise = new Batman.ValidatorPromise @
+        if v 
+          v.validateEach promise, @, key, @get key 
+        else 
+          validator.callback promise, @, key, @get key
+        
+        # In the event the validation is async (marked this way because the promise is paused), then
+        # prevent the after callback from running, and run it only after all the promises have resolved.
+        if promise.paused
+          @prevent 'afterValidation'
+          promise.resume => @allow('afterValidation'); @afterValidation()
+          async = yes
+        else
+          promise.success() if promise.canSucceed
     
     # Return the result of the validation if synchronous, otherwise call the validation callback.
     # FIXME: Is this really right?
