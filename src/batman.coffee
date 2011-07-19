@@ -1335,7 +1335,7 @@ class Batman.Model extends Batman.Object
     # FIXME: Is this really right?
     if async then return no else do @afterValidation
 
-  isNew: -> !@id?
+  isNew: -> !@_id()
 
   @::accessor
     isValid: ->
@@ -1442,17 +1442,15 @@ class Batman.LocalStorage extends Batman.StorageMechanism
 class Batman.RestStorage extends Batman.StorageMechanism
   optionsForRecord: (record) ->
     options =
-      type: 'JSON'
+      type: 'json'
 
     for thing in [record, @model]
       if thing.url
-        if typeof thing.url is 'function'
-          options.url = thing.url()
-        else
-          options.url = thing.url
+        options.url = thing.url?() || thing.url
       else
         options.url = "/#{@modelKey}/#{record.id}"
       break if options.url
+
     options
 
   writeToStorage: (record, callback) ->
