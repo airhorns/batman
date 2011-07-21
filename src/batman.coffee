@@ -1878,6 +1878,7 @@ Batman.DOM = {
 # -------
 
 camelize_rx = /(?:^|_)(.)/g
+capitalize_rx = /(^|\s)([a-z])/g
 underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
 underscore_rx2 = /([a-z\d])([A-Z])/g
 
@@ -1894,7 +1895,9 @@ helpers = Batman.helpers = {
           .replace('-', '_').toLowerCase()
 
   singularize: (string) ->
-    if string.substr(-1) is 's'
+    if string.substr(-3) is 'ies'
+      string.substr(0, string.length - 3) + 'y'
+    else if string.substr(-1) is 's'
       string.substr(0, string.length - 1)
     else
       string
@@ -1909,6 +1912,8 @@ helpers = Batman.helpers = {
       "#{string.substr(0,string.length-1)}ies"
     else
       "#{string}s"
+
+  capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
 }
 
 # Filters

@@ -30,6 +30,7 @@ Batman.Request::send = (data) ->
     
     if @get('method') is 'GET'
       path += querystring.stringify Batman.mixin({}, requestURL.query, @get 'data')
+    
 
     # Make the request and grab the ClientRequest object
     options = 
@@ -37,8 +38,17 @@ Batman.Request::send = (data) ->
       method: @get 'method'
       port: requestURL.port
       host: requestURL.hostname      
+      headers: {}
 
-    console.log options
+   # Set auth if its given
+    auth = if @get 'username'
+      "#{@get 'username'}:#{@get 'password'}"
+    else if requestURL.auth
+      requestURL.auth
+    
+    if auth
+      options.headers["Authorization"] = "Basic #{new Buffer(auth).toString('base64')}"
+
     request = requestModule.request options, (response) =>
       
       # Buffer all the chunks of data into an array
@@ -53,20 +63,12 @@ Batman.Request::send = (data) ->
         
         # Dispatch the appropriate event based on the status code
         status = response.statusCode
-        console.log status, data
         if (status >= 200 and status < 300) or status is 304      
           @success data
         else
           @error data
     
-    # Set auth if its given
-    auth = if @get 'username'
-      "#{@get 'username'}:#{@get 'password'}"
-    else if requestURL.auth
-      requestURL.auth
-    
-    if auth
-      request.setHeader("Authorization", new Buffer(auth).toString('base64')) 
+
 
     if @get 'method' is 'POST'
       request.write JSON.stringify(@get 'data')
