@@ -7,7 +7,7 @@ fs     = require 'fs'
 q      = require 'q'
 glob   = require 'glob'
 path   = require 'path'
-
+{exec} = require 'child_process'
 
 option '-w', '--watch',  'continue to watch the files and rebuild them when they change'
 option '-c', '--commit', 'operate on the git index instead of the working tree'
@@ -48,7 +48,13 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
               destination = "#{distDir}/batman.#{matches[1]}.js"
               compile = muffin.compileScript(joinedCoffeePath, destination, options)
               q.when compile, ->
-                muffin.minifyScript destination, options
+                finalPath = destination.split('.')
+                finalPath.pop()
+                finalPath.push('min.js')
+                exec "java -jar tools/compiler.jar --js #{destination} --js_output_file #{finalPath.join(".")} --compilation_level ADVANCED_OPTIMIZATIONS", (error, stdout, stderr) ->
+                  console.log error if error?
+                  console.log stdout.toString()
+                  console.log stderr.toString()
 
 task 'doc', 'build the Docco documentation', (options) ->
   muffin.run

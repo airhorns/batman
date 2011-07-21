@@ -40,6 +40,9 @@ Batman.mixin = $mixin = (to, mixins...) ->
   
   to
 
+$export = (onto, name, val) ->
+  onto[name] = val
+
 # `$unmixin` removes every key/value from every argument after the first
 # from the first argument. If a mixin has a `deinitialize` method, it will be
 # called in the context of the `from` object and won't be removed.
@@ -435,6 +438,9 @@ Batman.StateMachine = {
     event
 }
 
+Batman.StateMachine['state'] = Batman.StateMachine.state
+Batman.StateMachine['transition'] = Batman.StateMachine.transition
+
 # this is cached here so it doesn't need to be recompiled for every setter
 _stateMachine_setState = (newState) ->
   Batman.StateMachine.initialize.call @
@@ -527,17 +533,20 @@ class Batman.Object
     Batman._initializeObject @
     if keys.length is 0
       if accessor.get or accessor.set
-        @_batman.defaultAccessor = accessor
+        @_batman['defaultAccessor'] = accessor
       else
-        @_batman.keyAccessors ||= new Batman.SimpleHash
+        @_batman['keyAccessors'] ||= new Batman.SimpleHash
         for key, value of accessor
-          @_batman.keyAccessors.set(key, {get: value, set: value})
+          @_batman['keyAccessors'].set(key, {get: value, set: value})
           @[key] = value
     else
-      @_batman.keyAccessors ||= new Batman.SimpleHash
-      @_batman.keyAccessors.set(key, accessor) for key in keys
+      @_batman['keyAccessors'] ||= new Batman.SimpleHash
+      @_batman['keyAccessors'].set(key, accessor) for key in keys
   accessor: @accessor
     
+  @export: -> $export(@, arguments...)
+  export: -> $export(@, arguments...)
+
   constructor: (mixins...) ->
     Batman._initializeObject @
     @mixin mixins...
@@ -545,9 +554,23 @@ class Batman.Object
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
-  
 
-class Batman.SimpleHash
+Batman.Object['get'] = Batman.Object.get
+Batman.Object['set'] = Batman.Object.set
+Batman.Object['observe'] = Batman.Object.observe
+Batman.Object['fire'] = Batman.Object.fire
+Batman.Object['forget'] = Batman.Object.forget
+Batman.Object['prevent'] = Batman.Object.prevent
+Batman.Object['allow'] = Batman.Object.allow
+Batman.Object::['get'] = Batman.Object::get
+Batman.Object::['set'] = Batman.Object::set
+Batman.Object::['observe'] = Batman.Object::observe
+Batman.Object::['fire'] = Batman.Object::fire
+Batman.Object::['forget'] = Batman.Object::forget
+Batman.Object::['prevent'] = Batman.Object::prevent
+Batman.Object::['allow'] = Batman.Object::allow
+  
+Batman['SimpleHash'] = class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
@@ -589,12 +612,19 @@ class Batman.SimpleHash
     @each (obj) -> result.push obj
     result
   clear: ->
-    @each (obj) -> @unset obj
+   @each (obj) -> @unset obj
   isEmpty: ->
     @keys().length is 0
-    
 
-class Batman.Hash extends Batman.Object
+Batman.SimpleHash::['get'] = Batman.SimpleHash::get
+Batman.SimpleHash::['set'] = Batman.SimpleHash::set
+Batman.SimpleHash::['unset'] = Batman.SimpleHash::unset
+Batman.SimpleHash::['each'] = Batman.SimpleHash::each
+Batman.SimpleHash::['keys'] = Batman.SimpleHash::keys
+Batman.SimpleHash::['clear'] = Batman.SimpleHash::clear
+Batman.SimpleHash::['isEmpty'] = Batman.SimpleHash::isEmpty
+
+Batman['Hash'] = class Batman.Hash extends Batman.Object
   constructor: Batman.SimpleHash
 
   @::accessor
@@ -606,7 +636,7 @@ class Batman.Hash extends Batman.Object
   for k in ['hasKey', 'equality', 'each', 'keys']
     @::[k] = Batman.SimpleHash::[k]
 
-class Batman.SimpleSet
+Batman['SimpleSet'] = class Batman.SimpleSet
   constructor: ->
     @_storage = new Batman.SimpleHash
     @length = 0
@@ -621,8 +651,8 @@ class Batman.SimpleSet
     for item in items
       unless @_storage.hasKey(item)
         @_storage.set item, true
-        @set 'length', @length + 1
-        @set 'isEmpty', true
+        @['set'] 'length', @length + 1
+        @['set'] 'isEmpty', true
     items
   remove: (items...) ->
     results = []
@@ -630,8 +660,8 @@ class Batman.SimpleSet
       if @_storage.hasKey(item)
         @_storage.unset item
         results.push item
-        @set 'length', @length - 1
-        @set 'isEmpty', true
+        @['set'] 'length', @length - 1
+        @['set'] 'isEmpty', true
     results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
@@ -639,8 +669,16 @@ class Batman.SimpleSet
   clear: -> @remove @toArray()
   toArray: ->
     @_storage.keys()
-    
-class Batman.Set extends Batman.Object
+
+Batman.SimpleSet::['has'] = Batman.SimpleSet::has
+Batman.SimpleSet::['add'] = Batman.SimpleSet::add
+Batman.SimpleSet::['remove'] = Batman.SimpleSet::remove
+Batman.SimpleSet::['each'] = Batman.SimpleSet::each
+Batman.SimpleSet::['isEmpty'] = Batman.SimpleSet::isEmpty
+Batman.SimpleSet::['clear'] = Batman.SimpleSet::clear
+Batman.SimpleSet::['toArray'] = Batman.SimpleSet::toArray
+
+Batman['Set'] = class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
 
   for k in ['add', 'remove']
@@ -651,7 +689,7 @@ class Batman.Set extends Batman.Object
 
   @::accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
 
-class Batman.SortableSet extends Batman.Set
+Batman['SortableSet'] = class Batman.SortableSet extends Batman.Set
   constructor: (index) ->
     super
     @_indexes = {}
@@ -691,7 +729,7 @@ class Batman.SortableSet extends Batman.Set
 # --------------------------
 
 # `Batman.Request` is a normalizer for XHR requests in the Batman world.
-class Batman.Request extends Batman.Object
+Batman['Request'] = class Batman.Request extends Batman.Object
   url: ''
   data: ''
   method: 'get'
@@ -717,7 +755,7 @@ class Batman.Request extends Batman.Object
 
 # `Batman.App` manages requiring files and acts as a namespace for all code subclassing
 # Batman objects.
-class Batman.App extends Batman.Object
+class Batman['App'] extends Batman.Object
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
   
@@ -1916,6 +1954,13 @@ helpers = Batman.helpers = {
   capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
 }
 
+helpers['capitalize'] = helpers.capitalize
+helpers['underscore'] = helpers.underscore
+helpers['singularize'] = helpers.singularize
+helpers['pluralize'] = helpers.pluralize
+helpers['camelize'] = helpers.camelize
+Batman['helpers'] = helpers
+
 # Filters
 # -------
 filters = Batman.filters = {}
@@ -1927,22 +1972,22 @@ mixins = Batman.mixins = new Batman.Object
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
 container = if exports?
-  exports.Batman = Batman
+  exports["Batman"] = Batman
   global
 else
-  window.Batman = Batman
+  window["Batman"] = Batman
   window
 
 $mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
-Batman.exportHelpers = (onto) ->
-  onto.$mixin = $mixin
-  onto.$unmixin = $unmixin
-  onto.$route = $route
-  onto.$redirect = $redirect
-  onto.$event = $event
-  onto.$eventOneShot = $eventOneShot
+Batman["exportHelpers"] = (onto) ->
+  onto['$mixin'] = $mixin
+  onto['$unmixin'] = $unmixin
+  onto['$route'] = $route
+  onto['$redirect'] = $redirect
+  onto['$event'] = $event
+  onto['$eventOneShot'] = $eventOneShot
 
-Batman.exportGlobals = () ->
+Batman["exportGlobals"] = () ->
   Batman.exportHelpers(container)
