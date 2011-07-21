@@ -17,7 +17,6 @@
     "build": "cake build"
   },
   "dependencies": {
-    "node-static": "~0.5"
   },
   "devDependencies": {
     "coffee-script": "~1.1",

@@ -238,7 +238,6 @@ class Batman.Keypath extends Batman.ObservableProperty
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
  
-
 # Observable
 # ----------
 
@@ -1497,8 +1496,8 @@ class Batman.View extends Batman.Object
       , @contexts)
       
       # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
-      @_renderer.contexts.push(@context) if @context
-      @_renderer.contextObject.view = @
+      @_renderer.context.push(@context) if @context
+      @_renderer.context.set 'view', @
 
 # DOM Helpers
 # -----------
@@ -1507,11 +1506,9 @@ class Batman.View extends Batman.Object
 # It is a continuation style parser, designed not to block for longer than 50ms at a time if the document 
 # fragment is particularly long.
 class Batman.Renderer extends Batman.Object
-  constructor: (@node, @callback, contexts) ->
+  constructor: (@node, @callback, contexts = [Batman.currentApp]) ->
     super
-    @contexts = contexts || [Batman.currentApp, new Batman.Object]
-    @contextObject = @contexts[1]
-    
+    @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)
     setTimeout @start, 0
   
   start: =>
@@ -1537,17 +1534,16 @@ class Batman.Renderer extends Batman.Object
       return
     
     if node.getAttribute
-      @contextObject.node = node
-      contexts = @contexts
+      @context.set 'node', node
       
       for attr in node.attributes
         name = attr.nodeName.match(regexp)?[1]
         continue if not name
                 
         result = if (index = name.indexOf('-')) is -1
-          Batman.DOM.readers[name]?(node, attr.value, contexts, @)
+          Batman.DOM.readers[name]?(node, attr.value, @context, @)
         else
-          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts, @)
+          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, @context, @)
         
         if result is false
           skipChildren = true
@@ -1575,106 +1571,246 @@ class Batman.Renderer extends Batman.Object
       return parentSibling if parentSibling
     
     return
-    
 
-# `matchContext` is used to find which context in a stack of objects which responds to a sought key.
-# A matching context is returned if found, and if it isn't, the global object is returned.
-matchContext = (contexts, key) ->
-  base = key.split('.')[0]
-  i = contexts.length
-  while i--
-    context = contexts[i]
-    if (context.get? && context.get(base)?) || (context[base])?
-      return context
-
-  return container
-
-Batman.DOM = {
+# Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
+# Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy
+# the automatic trigger and dependency system that Batman.Objects use.
+class Binding extends Batman.Object
+  # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
+  # It makes the following matches:
+  #
+  # + `foo` and `baz.qux` in `foo, "bar", baz.qux` 
+  # + `foo.bar.baz` in `true, false, "true", "false", foo.bar.baz`
+  # + `true.bar` in `2, true.bar`
+  # + `truesay` in truesay
+  # + no matches in `"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"`
+  keypath_rx = ///
+    (?:^|,)           # Match either the start of an arguments list or the start of a space inbetween commas.
+    \s*               # Be insensitive to whitespace between the comma and the actual arguments.
+    (?!               # Use a lookahead to ensure we aren't matching true or false:
+      (?:true|false)  # Match either true or false ...
+      \s*             # and make sure that there's nothing else that comes after the true or false ... 
+      (?:$|,)         # before the end of this argument in the list.
+    )
+    ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
+    \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
+    (?:$|,)           # Match either the next comma or the end of the filter arguments list.
+    ///
   
+  # The `binding` which calculates the final result by reducing the initial value through all the filters.
+  @::accessor 'binding'
+    get: -> 
+      @filterFunctions.reduce (value, fn, i) =>
+        # Get any argument keypaths from the context stored at parse time.
+        args = @filterArguments[i].map (argument) ->
+          if argument._keypath
+            argument.context.get(argument._keypath)
+          else
+            argument
+        # Apply the filter.
+        fn(value, args...)
+      , if @key then @keyContext.get(@key) else @value
+
+  constructor: ->
+    super
+
+    # Pull out the key and filter from the `@keyPath`.
+    @parseFilter()
+    
+    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can 
+    # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
+    if @key
+      [unfilteredValue, @keyContext] = @renderContext.findKey @key
+
+    shouldSet = yes
+    
+    if Batman.DOM.nodeIsEditable(@node)
+      Batman.DOM.events.change @node, ->
+        shouldSet = no
+        if @nodeChange
+          @nodeChange(@node, @keyContext || @value)
+        else
+          if @key
+            @keyContext.set @key, @node.value
+        shouldSet = yes
+    
+    # Observe the value of this binding's `binding` and fire it immediately to update the node.
+    @observe 'binding', yes, (value) ->
+      if shouldSet
+        if @dataChange
+          @dataChange(value, @node)
+        else
+          Batman.DOM.valueForNode @node, value
+
+  parseFilter: ->
+    # Store the function which does the filtering and the arguments (all except the actual value to apply the
+    # filter to) in these arrays.
+    @filterFunctions = []
+    @filterArguments = []
+    
+    # Split the string by pipes to see if there are any filters. 
+    filters = @keyPath.replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
+
+    # The key will is always the first token before the pipe.
+    try
+      key = @parseSegment(orig = filters.shift())[0]
+    catch e
+      throw "Bad binding keypath \"#{orig}\"!"
+    if key._keypath
+      @key = key._keypath
+    else
+      @value = key
+
+    if filters.length
+      # For each filter, get the name and the arguments by splitting on the first space.
+      while filterString = filters.shift()
+        split = filterString.indexOf(' ')
+        if ~split
+          filterName = filterString.substr(0, split)
+          args = filterString.substr(split)
+        else
+          filterName = filterString
+          # If the filter exists, grab it.
+        if filter = Batman.Filters[filterName] || Batman.helpers[filterName]
+          @filterFunctions.push filter
+          if args
+            try
+              @filterArguments.push @parseSegment(args)
+            catch e
+              throw "Bad filter arguments \"#{args}\"!"
+          else
+            @filterArguments.push []
+        else
+          throw "Unrecognized filter #{filter} in key \"#{key}\"!"
+      @filterArguments = @filterArguments.map (argumentList) => argumentList.map (argument) =>
+        if argument._keypath
+          [_, argument.context] = @renderContext.findKey argument._keypath
+        argument
+  
+  # Turn a piece of a `data` keypath into a usable javascript object. 
+  #  + replacing keypaths using the above regular expression
+  #  + wrapping the `,` delimited list in square brackets
+  #  + and `JSON.parse`ing them as an array.
+  parseSegment: (segment) ->
+    JSON.parse( "[" + segment.replace(keypath_rx, "{\"_keypath\": \"$1\"}") + "]" )
+
+# The Render context class manages the stack of contexts accessible to a view during rendering.
+class RenderContext
+  constructor: (contexts...) -> 
+    @contexts = contexts
+    @storage = new Batman.Object
+    @contexts.push @storage
+  
+  findKey: (key) ->
+    base = key.split('.')[0]
+    i = @contexts.length
+    while i--
+      context = @contexts[i]
+      if context.get? 
+        val = context.get(key)
+      else 
+        val = context[base]
+      return [val, context] if val?
+    return [container.get(key), container]
+
+  get: (key) ->
+    @findKey(key)[0]
+
+  set: (args...) ->
+    @storage.set(args...)
+
+  observe: (key, observer) ->
+    @findKey(key)[1].observe(key, yes, observer)
+
+  push: (x) ->
+    @contexts.push(x)
+
+  pop: ->
+    @contexts.pop()
+
+  clone: ->
+    context = new @constructor(@contexts...)
+    context.setStorage(@storage)
+    context
+
+  setStorage: (storage) ->
+    @contexts.splice(@contexts.indexOf(@storage), 1)
+    @push(storage)
+    storage
+
+  bind: (node, key, dataChange, nodeChange) ->
+    new Binding
+      renderContext: @
+      keyPath: key
+      node: node
+      dataChange: dataChange
+      nodeChange: nodeChange
+    
+Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    bind: (node, key, contexts) ->
-      context = matchContext contexts, key
-      shouldSet = yes
-      
-      if Batman.DOM.nodeIsEditable(node)
-        Batman.DOM.events.change node, ->
-          shouldSet = no
-          context.set key, node.value
-          shouldSet = yes
-      
-      context.observe key, yes, (value) ->
-        if shouldSet
-          Batman.DOM.valueForNode node, value
-    
-    context: (node, key, contexts) ->
-      context = matchContext(contexts, key).get(key)
-      contexts.push context
-      
-      node.onParseExit = ->
-        index = contexts.indexOf(context)
-        contexts.splice(index, contexts.length - index)
-    
-    mixin: (node, key, contexts) ->
-      contexts.push(Batman.mixins)
-      context = matchContext contexts, key
-      mixin = context.get key
-      contexts.pop()
+    bind: (node, key, context) -> context.bind(node, key)
 
+    context: (node, key, context) ->
+      [value, subContext] = context.findKey(key)
+      context.push subContext
+      node.onParseExit = ->
+        context.pop()
+    
+    mixin: (node, key, context) ->
+      context.push(Batman.mixins)
+      mixin = context.get key
+      context.pop()
       $mixin node, mixin
     
-    showif: (node, key, contexts, renderer, invert) ->
+    showif: (node, key, context, renderer, invert) ->
       originalDisplay = node.style.display
       originalDisplay = 'block' if !originalDisplay or originalDisplay is 'none'
       
-      context = matchContext contexts, key
-      
-      context.observe key, yes, (value) ->
+      context.bind(node, key, (value) ->
         if !!value is !invert
           if typeof node.show is 'function' then node.show() else node.style.display = originalDisplay
         else
           if typeof node.hide is 'function' then node.hide() else node.style.display = 'none'
-    
+      , -> )
+
     hideif: (args...) ->
       Batman.DOM.readers.showif args..., yes
     
-    route: (node, key, contexts) ->
+    route: (node, key, context) ->
       if key.substr(0, 1) is '/'
         route = Batman.redirect.bind Batman, key
         routeName = key
       else if (index = key.indexOf('#')) isnt -1
         controllerName = helpers.camelize(key.substr(0, index)) + 'Controller'
-        context = matchContext contexts, controllerName
-        controller = context[controllerName]
+        controller = context.get controllerName
         
         route = controller?.sharedInstance()[key.substr(index + 1)]
         routeName = route?.pattern
       else
-        context = matchContext contexts, key
         route = context.get key
         
         if route instanceof Batman.Model
           controllerName = helpers.camelize(helpers.pluralize(key)) + 'Controller'
-          context = matchContext contexts, controllerName
-          controller = context[controllerName].sharedInstance()
+          controller = context.get('controllerName').sharedInstance()
           
           id = route.id
           route = controller.show?.bind(controller, {id: id})
           routeName = '/' + helpers.pluralize(key) + '/' + id
         else
-          routeName = route?.pattern
+          routeName = route.pattern
       
       if node.nodeName.toUpperCase() is 'A'
         node.href = Batman.HASH_PATTERN + (routeName || '')
       
       Batman.DOM.events.click node, (-> do route)
     
-    partial: (node, path, contexts) ->
+    partial: (node, path, context) ->
       view = new Batman.View
         source: path + '.html'
         contentFor: node
-        contexts: Array.prototype.slice.call(contexts)
+        contexts: Array.prototype.slice.call(context.contexts)
     
     yield: (node, key) ->
       setTimeout (-> Batman.DOM.yield key, node), 0
@@ -1687,69 +1823,44 @@ Batman.DOM = {
   # This means things like foreach, binding attributes like disabled or anything arbitrary, descending into a context, binding specific classes, 
   # or binding to events.
   attrReaders: {
-    bind: (node, attr, key, contexts) ->
-      filters = key.split(/\s*\|\s*/)
-      key = filters.shift()
-      if filters.length
-        while filterName = filters.shift()
-          args = filterName.split(' ')
-          filterName = args.shift()
-          
-          filter = Batman.filters[filterName] || Batman.helpers[filterName]
-          continue if not filter
-          
-          if key.substr(0,1) is '@'
-            key = key.substr(1)
-            context = matchContext contexts, key
-            key = context.get(key)
-          
-          value = filter(key, args..., node)
-          node.setAttribute attr, value
-      else
-        context = matchContext contexts, key
-        context.observe key, yes, (value) ->
-          if attr is 'value'
-            node.value = value
-          else
-            node.setAttribute attr, value
-      
+    bind: (node, attr, key, context) ->
+      context.bind(node, key, (value) ->
         if attr is 'value'
-          Batman.DOM.events.change node, ->
-            value = node.value
-            if value is 'false' then value = false
-            if value is 'true' then value = true
-            context.set key, value
+          node.value = value
+        else
+          node.setAttribute attr, value
+      , (node, subContext) ->
+        value = node.value
+        if value is 'false' then value = false
+        if value is 'true' then value = true
+        subContext.set key, value
+      )
     
-    context: (node, contextName, key, contexts) ->
-      context = matchContext(contexts, key).get(key)
+    context: (node, contextName, key, context) ->
       object = new Batman.Object
-      object[contextName] = context
-      
-      contexts.push object
+      object[contextName] = context.get(key)
+      context.push object
       
       node.onParseExit = ->
-        index = contexts.indexOf(context)
-        contexts.splice(index, contexts.length - index)
+        context.pop()
     
-    event: (node, eventName, key, contexts) ->
+    event: (node, eventName, key, context) ->
       if key.substr(0, 1) is '@'
         callback = new Function key.substr(1)
       else
-        context = matchContext contexts, key
-        callback = context.get key
+        [callback, subContext] = context.findKey key
       
       Batman.DOM.events[eventName] node, ->
         confirmText = node.getAttribute('data-confirm')
         if confirmText and not confirm(confirmText)
           return
         
-        callback?.apply context, arguments
+        callback?.apply subContext, arguments
     
-    addclass: (node, className, key, contexts, parentRenderer, invert) ->
+    addclass: (node, className, key, context, parentRenderer, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
       
-      context = matchContext contexts, key
-      context.observe key, yes, (value) ->
+      context.bind node, key, (value) ->
         currentName = node.className
         includesClassName = currentName.indexOf(className) isnt -1
         
@@ -1757,11 +1868,12 @@ Batman.DOM = {
           node.className = "#{currentName} #{className}" if !includesClassName
         else
           node.className = currentName.replace(className, '') if includesClassName
-          
+      , ->
+
     removeclass: (args...) ->
       Batman.DOM.attrReaders.addclass args..., yes
     
-    foreach: (node, iteratorName, key, contexts, parentRenderer) ->
+    foreach: (node, iteratorName, key, context, parentRenderer) ->
       prototype = node.cloneNode true
       prototype.removeAttribute "data-foreach-#{iteratorName}"
       
@@ -1770,8 +1882,6 @@ Batman.DOM = {
       
       nodeMap = new Batman.Hash
       
-      contextsClone = Array.prototype.slice.call(contexts)
-      context = matchContext contexts, key
       collection = context.get key
       
       if collection?.observe
@@ -1779,17 +1889,16 @@ Batman.DOM = {
           newNode = prototype.cloneNode true
           nodeMap.set item, newNode
           
-          renderer = new Batman.Renderer newNode, ->
-            parent.appendChild newNode
-            parentRenderer.allow 'ready'
-          
-          renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
-          renderer.contextObject = Batman localClone[1]
-          
+          localClone = context.clone()
           iteratorContext = new Batman.Object
           iteratorContext[iteratorName] = item
           localClone.push iteratorContext
           localClone.push item
+          
+          renderer = new Batman.Renderer newNode, ->
+            parent.appendChild newNode
+            parentRenderer.allow 'ready'
+          , localClone
         
         collection.observe 'remove', remove = (item) ->
           oldNode = nodeMap.get item
@@ -1805,7 +1914,6 @@ Batman.DOM = {
       
       false
   }
-
   
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
@@ -1918,7 +2026,38 @@ helpers = Batman.helpers = {
 
 # Filters
 # -------
-filters = Batman.filters = {}
+filters = Batman.Filters = 
+  truncate: (value, length, end = "...") ->
+    if value.length > length
+      value = value.substr(0, length-end.length) + end
+    value
+
+  prepend: (value, string) ->
+    string + value
+
+  append: (value, string) ->
+    value + string
+
+  downcase: (value) ->
+    value.toLowerCase()
+
+  upcase: (value) ->
+    value.toUpperCase()
+
+  join: (value, byWhat = '') ->
+    value.join(byWhat)
+
+  sort: (value) ->
+    value.sort()
+
+  map: (value, key) ->
+    value.map((x) -> x[key])
+
+  times: (value, byWhat) ->
+    value * byWhat
+
+  first: (value) ->
+    value[0]
 
 # Mixins
 # ------

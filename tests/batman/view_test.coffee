@@ -58,7 +58,7 @@ render = (source, jqueryize = true, context = {}, callback = ->) ->
   else
     if typeof context == 'function'
       callback = context
-
+  
   context = if context.get && context.set then context else obj context
   view = new Batman.View
     contexts: [obj(), context]
@@ -122,7 +122,7 @@ asyncTest 'it should allow visibility to be bound', 2, ->
         equal node.css('display'), 'none'
         QUnit.start()
 
-asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
+asyncTest 'it should allow arbitrary (?!")\s+\|\s+(?!")attributes to be bound', 2, ->
   source = '<div data-bind-foo="one" data-bind-bar="two" foo="before"></div>'
   render source,
     one: "baz"
@@ -268,4 +268,205 @@ asyncTest 'it should allow chained keypaths', 3, ->
     equals node.html(), "whammy"
 
     QUnit.start()
+
+QUnit.module 'Batman.View rendering filters'
+
+asyncTest 'should render filters at one key deep keypaths', 1, ->
+  node = render '<div data-bind="foo | times 2"></div>',
+    foo: 2
+  , (node) ->
+    equals node.html(), "4"
+    QUnit.start()
+
+asyncTest 'should render filters at n deep keypaths', 2, ->
+  render '<div data-bind="foo.bar | times 2"></div>',
+    foo: obj
+      bar: 2
+  , (node) ->
+    equals node.html(), "4"
+    render '<div data-bind="foo.bar.baz | times 2"></div>',
+      foo: obj
+        bar: obj
+          baz: 2
+    , (node) ->
+      equals node.html(), "4"
+      QUnit.start()
+
+asyncTest 'should update bindings with the filtered value if they change', 1, ->
+  context = obj
+    foo: 1
+  render '<div data-bind="foo | times 2"></div>', context, (node) ->
+    context.set('foo', 2)
+    equals node.html(), '4'
+    QUnit.start()
+
+asyncTest 'should allow filtering on attributes', 2, ->
+  render '<div data-addclass-works="bar | first" data-bind-attr="foo | times 3"></div>',
+    foo: 2
+    bar: [true]
+  , (node) ->
+    ok node.hasClass('works')
+    equals node.attr('attr'), 6
+    QUnit.start()
+
+asyncTest 'should allow filtering on simple values', 1, ->
+  render '<div data-bind="1 | times 2"></div>', {}, (node) ->
+    equals node.html(), '2'
+    QUnit.start()
+
+asyncTest 'should allow filtering on objects and arrays', 2, ->
+  render '<div data-bind="[1,2,3] | join \' \'"></div>', {}, (node) ->
+    equals node.html(), '1 2 3'
+
+    Batman.Filters.dummyObjectFilter = (value, key) -> value[key]
+    render '<div data-bind="{\'foo\': \'bar\', \'baz\': 4} | dummyObjectFilter \'foo\'"></div>', {}, (node) ->
+      equals node.html(), 'bar'
+      QUnit.start()
+
+asyncTest 'should allow keypaths as arguments to filters', 1, ->
+  render '<div data-bind="foo | times bar"></div>', 
+    foo: 2
+    bar: 2
+  , (node) ->
+    equals node.html(), '4'
+    QUnit.start()
+
+asyncTest 'should update bindings when argument keypaths change', 1, ->
+  context = obj
+    foo: 2
+    bar: 2
+
+  render '<div data-bind="foo | times bar"></div>', context, (node) ->
+    context.set('bar', 4)
+    delay ->
+      equals node.html(), '8'
+
+QUnit.module 'Batman.View rendering filters built in'
+
+asyncTest 'truncate', 2, ->
+  render '<div data-bind="foo | truncate 5"></div>',
+    foo: 'your mother was a hampster'
+  , (node) ->
+    equals node.html(), "yo..."
+
+    render '<div data-bind="foo.bar | truncate 5, \'\'"></div>',
+      foo: obj
+        bar: 'your mother was a hampster'
+    , (node) ->
+      equals node.html(), "your "
+      QUnit.start()
+      
+asyncTest 'prepend', 1, ->
+  render '<div data-bind="foo | prepend \'special-\'"></div>',
+    foo: 'bar'
+  , (node) ->
+    equals node.html(), "special-bar"
+    QUnit.start()
+
+asyncTest 'append', 1, ->
+  render '<div data-bind="foo | append \'-special\'"></div>',
+    foo: 'bar'
+  , (node) ->
+    equals node.html(), "bar-special"
+    QUnit.start()
+
+asyncTest 'downcase', 1, ->
+  render '<div data-bind="foo | downcase"></div>',
+    foo: 'BAR'
+  , (node) ->
+    equals node.html(), "bar"
+    QUnit.start()
+
+asyncTest 'upcase', 1, ->
+  render '<div data-bind="foo | upcase"></div>',
+    foo: 'bar'
+  , (node) ->
+    equals node.html(), "BAR"
+    QUnit.start()
+
+asyncTest 'join', 2, ->
+  render '<div data-bind="foo | join"></div>',
+    foo: ['a', 'b', 'c']
+  , (node) ->
+    equals node.html(), "abc"
+
+    render '<div data-bind="foo | join \'|\'"></div>',
+      foo: ['a', 'b', 'c']
+    , (node) ->
+      equals node.html(), "a|b|c"
+      QUnit.start()
+
+asyncTest 'sort', 1, ->
+  render '<div data-bind="foo | sort | join"></div>',
+    foo: ['b', 'c', 'a', '1']
+  , (node) ->
+    equals node.html(), "1abc"
+    QUnit.start()
+
+asyncTest 'map', 1, ->
+  render '<div data-bind="posts | map \'name\' | join \', \'"></div>',
+    posts: [
+      obj
+        name: 'one'
+        comments: 10
+    , obj
+        name: 'two'
+        comments: 20
+    ]
+  , (node) -> 
+    equals node.html(), "one, two"
+    QUnit.start()
+
+asyncTest 'map with a numeric key', 1, ->
+  render '<div data-bind="counts | map 1 | join \', \'"></div>',
+    counts: [
+      [1, 2, 3]
+      [4, 5, 6]
+    ]
+  , (node) ->
+    equals node.html(), "2, 5"
+    QUnit.start()
+
+QUnit.module "Batman.View rendering filters defined by the user"
+
+asyncTest 'should render a user defined filter', 2, ->
+  Batman.Filters['test'] = spy = createSpy().whichReturns("testValue")
+  render '<div data-bind="foo | test 1, \'baz\'"></div>',
+    foo: 'bar'
+  , (node) ->
+    equals node.html(), "testValue"
+    deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
+    QUnit.start()
+
+test 'dumb', ->
+  
+  class A extends Batman.Object
+  a = new A
+  a.set 'foo', 10
+
+  class B extends Batman.Object
+    @::accessor 'prop'
+      get: (key) -> a.get('foo') + @get 'foo'
+
+  b = new B
+  b.set 'foo', 20
+  b.observe 'prop', spy = createSpy()
+  equal b.get('prop'), 30
+
+  a.set('foo', 20)
+  ok spy.called
+
+  class Binding extends Batman.Object
+    @::accessor 
+      get: () -> b.get 'foo'
+ 
+  c = new Binding
+  equal c.get(), 20
+
+  c.observe 'whatever', spy = createSpy()
+  b.set 'foo', 1000
+  ok spy.called
+
+
+   
 

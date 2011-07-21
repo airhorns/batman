@@ -883,7 +883,8 @@ the built in validators do.</p>             </td>             <td class="code"> 
         <span class="nv">keys: </span><span class="nx">keys</span>
         <span class="nv">callback: </span><span class="nx">optionsOrFunction</span>
     <span class="k">else</span></pre></div>             </td>           </tr>                               <tr id="section-78">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-78">&#182;</a>               </div>               <p>Given options, find the validations which match the given options, and add them to the validators
-array.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">for</span> <span class="nx">validator</span> <span class="k">in</span> <span class="nx">Validators</span>
+array.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nv">options = </span><span class="nx">optionsOrFunction</span>
+      <span class="k">for</span> <span class="nx">validator</span> <span class="k">in</span> <span class="nx">Validators</span>
         <span class="k">if</span> <span class="p">(</span><span class="nv">matches = </span><span class="nx">validator</span><span class="p">.</span><span class="nx">matches</span><span class="p">(</span><span class="nx">options</span><span class="p">))</span>
           <span class="k">delete</span> <span class="nx">options</span><span class="p">[</span><span class="nx">match</span><span class="p">]</span> <span class="k">for</span> <span class="nx">match</span> <span class="k">in</span> <span class="nx">matches</span>
           <span class="nx">validators</span><span class="p">.</span><span class="nx">push</span>
@@ -895,7 +896,7 @@ record is at in it's lifetime, which can often be during a save or load operatio
     <span class="err">@</span><span class="o">::</span><span class="nx">state</span> <span class="nx">k</span>
   <span class="err">@</span><span class="o">::</span><span class="nx">state</span> <span class="s1">&#39;saved&#39;</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="nx">@dirtyKeys</span><span class="p">.</span><span class="nx">clear</span><span class="p">()</span>
   </pre></div>             </td>           </tr>                               <tr id="section-81">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-81">&#182;</a>               </div>               <h3>Record API</h3>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-82">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-82">&#182;</a>               </div>               <p>New records can be constructed by passing either an ID or a hash of attributes (potentially
-containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">constructor: </span><span class="nf">(idOrAttributes) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-83">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-83">&#182;</a>               </div>               <p>We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@dirtyKeys = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Hash</span>
+containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">constructor: </span><span class="nf">(idOrAttributes = {}) -&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-83">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-83">&#182;</a>               </div>               <p>We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@dirtyKeys = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Hash</span>
     <span class="vi">@errors = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span>
     
     <span class="k">super</span>
@@ -957,7 +958,7 @@ a model if it is valid.</p>             </td>             <td class="code">     
     <span class="k">return</span> <span class="k">if</span> <span class="o">not</span> <span class="nx">@isValid</span><span class="p">()</span>
     <span class="nx">do</span> <span class="nx">@beforeSave</span>
     
-    <span class="nv">creating = </span><span class="o">!</span><span class="nx">@id</span>
+    <span class="nv">creating = </span><span class="nx">@isNew</span><span class="p">()</span>
     <span class="nx">do</span> <span class="nx">@beforeCreate</span> <span class="k">if</span> <span class="nx">creating</span>
     
     <span class="nv">afterSave = </span><span class="o">=&gt;</span>
@@ -997,6 +998,8 @@ prevent the after callback from running, and run it only after all the promises 
     </pre></div>             </td>           </tr>                               <tr id="section-103">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-103">&#182;</a>               </div>               <p>Return the result of the validation if synchronous, otherwise call the validation callback.
 FIXME: Is this really right?</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">async</span> <span class="k">then</span> <span class="k">return</span> <span class="kc">no</span> <span class="k">else</span> <span class="nx">do</span> <span class="nx">@afterValidation</span>
   
+  <span class="nv">isNew: </span><span class="o">-&gt;</span> <span class="o">!</span><span class="nx">@id</span><span class="o">?</span>
+
   <span class="err">@</span><span class="o">::</span><span class="nx">accessor</span>
     <span class="nv">isValid: </span><span class="o">-&gt;</span>
       <span class="nx">@errors</span><span class="p">.</span><span class="nx">clear</span><span class="p">()</span>
@@ -1079,7 +1082,6 @@ FIXME: Is this really right?</p>             </td>             <td class="code">
   <span class="nv">constructor: </span><span class="nf">(@model) -&gt;</span>
     <span class="vi">@modelKey = </span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">underscore</span><span class="p">(</span><span class="nx">@model</span><span class="p">.</span><span class="nx">name</span><span class="p">))</span>
   <span class="nv">isStorageAdapter: </span><span class="kc">true</span>
-  <span class="vi">@makesStorageAdapters: </span><span class="kc">true</span>
 
 <span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">StorageMechanism</span>
   <span class="nv">constructor: </span><span class="o">-&gt;</span>
@@ -1101,24 +1103,35 @@ FIXME: Is this really right?</p>             </td>             <td class="code">
     <span class="nx">callback</span><span class="p">()</span>
     
 <span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">RestStorage</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">StorageMechanism</span>
+  <span class="nv">optionsForRecord: </span><span class="nf">(record) -&gt;</span>
+    <span class="nv">options =</span>
+      <span class="nv">type: </span><span class="s1">&#39;JSON&#39;</span>
+
+    <span class="k">for</span> <span class="nx">thing</span> <span class="k">in</span> <span class="p">[</span><span class="nx">record</span><span class="p">,</span> <span class="nx">@model</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nx">thing</span><span class="p">.</span><span class="nx">url</span>
+        <span class="k">if</span> <span class="k">typeof</span> <span class="nx">thing</span><span class="p">.</span><span class="nx">url</span> <span class="o">is</span> <span class="s1">&#39;function&#39;</span>
+          <span class="nv">options.url = </span><span class="nx">thing</span><span class="p">.</span><span class="nx">url</span><span class="p">()</span>
+        <span class="k">else</span>
+          <span class="nv">options.url = </span><span class="nx">thing</span><span class="p">.</span><span class="nx">url</span>
+      <span class="k">else</span>
+        <span class="nv">options.url = </span><span class="s2">&quot;/#{@modelKey}/#{record.id}&quot;</span>
+      <span class="k">break</span> <span class="k">if</span> <span class="nx">options</span><span class="p">.</span><span class="nx">url</span>
+    <span class="nx">options</span>
+
   <span class="nv">writeToStorage: </span><span class="nf">(record, callback) -&gt;</span>
-    <span class="nv">key = </span><span class="nx">@modelKey</span>
-    <span class="nv">id = </span><span class="nx">record</span><span class="p">.</span><span class="nx">id</span>
-    <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span>
-      <span class="nv">url: </span><span class="s2">&quot;/#{key}/#{id}&quot;</span>
+    <span class="nv">options = </span><span class="nx">$mixin</span> <span class="nx">@optionsForRecord</span><span class="p">(</span><span class="nx">record</span><span class="p">),</span>
       <span class="nv">method: </span><span class="k">if</span> <span class="nx">id</span> <span class="k">then</span> <span class="s1">&#39;put&#39;</span> <span class="k">else</span> <span class="s1">&#39;post&#39;</span>
       <span class="nv">data: </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span> <span class="nx">record</span>
       <span class="nv">success: </span><span class="o">-&gt;</span>
         <span class="nx">callback</span><span class="p">()</span>
       <span class="nv">error: </span><span class="nf">(error) -&gt;</span>
         <span class="nx">callback</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span>
+
+    <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
   
   <span class="nv">readFromStorage: </span><span class="nf">(record, callback) -&gt;</span>
-    <span class="nv">id = </span><span class="nx">record</span><span class="p">.</span><span class="nx">id</span>
-    <span class="k">return</span> <span class="k">if</span> <span class="o">not</span> <span class="nx">id</span>
-    <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span>
-      <span class="nv">url: </span><span class="p">(</span><span class="nx">@model</span><span class="p">.</span><span class="nx">url</span> <span class="o">||</span> <span class="s2">&quot;/#{@modelKey}&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;/#{id}&quot;</span>
-      <span class="nv">type: </span><span class="s1">&#39;json&#39;</span>
+    <span class="nv">options = </span><span class="nx">$mixin</span> <span class="nx">@optionsForRecord</span><span class="p">(</span><span class="nx">record</span><span class="p">),</span> 
+      <span class="nv">method: </span><span class="s1">&#39;GET&#39;</span>
       <span class="nv">success: </span><span class="nf">(data) -&gt;</span>
         <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="k">if</span> <span class="k">typeof</span> <span class="nx">data</span> <span class="o">is</span> <span class="s1">&#39;string&#39;</span>
         <span class="k">for</span> <span class="nx">key</span> <span class="k">of</span> <span class="nx">data</span>
@@ -1127,12 +1140,11 @@ FIXME: Is this really right?</p>             </td>             <td class="code">
         
         <span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span> <span class="nx">data</span>
         <span class="nx">callback</span><span class="p">()</span>
+      
+    <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
         
   <span class="nv">readAllFromStorage: </span><span class="nf">(model, callback) -&gt;</span>
-    <span class="nv">key = </span><span class="nx">@modelKey</span>
-    <span class="nv">r = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span>
-      <span class="nv">url: </span><span class="nx">model</span><span class="p">.</span><span class="nx">url</span> <span class="o">||</span> <span class="s2">&quot;/#{key}&quot;</span>
-      <span class="nv">type: </span><span class="s1">&#39;json&#39;</span>
+    <span class="nv">options = </span><span class="nx">$mixin</span> <span class="nx">@optionsForRecord</span><span class="p">(</span><span class="nx">record</span><span class="p">),</span> 
       <span class="nv">success: </span><span class="nf">(data) -&gt;</span>
         <span class="nv">data = </span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="k">if</span> <span class="k">typeof</span> <span class="nx">data</span> <span class="o">is</span> <span class="s1">&#39;string&#39;</span>
         <span class="k">if</span> <span class="o">!</span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
@@ -1146,7 +1158,8 @@ FIXME: Is this really right?</p>             </td>             <td class="code">
         
         <span class="nx">callback</span><span class="p">()</span>
         <span class="k">return</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-104">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-104">&#182;</a>               </div>               <h2>Views</h2>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-105">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-105">&#182;</a>               </div>               <p>A <code>Batman.View</code> can function two ways: a mechanism to load and/or parse html files
+
+    <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Request</span> <span class="nx">options</span></pre></div>             </td>           </tr>                               <tr id="section-104">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-104">&#182;</a>               </div>               <h2>Views</h2>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-105">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-105">&#182;</a>               </div>               <p>A <code>Batman.View</code> can function two ways: a mechanism to load and/or parse html files
 or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">View</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span>
   <span class="nv">viewSources = </span><span class="p">{}</span>
   </pre></div>             </td>           </tr>                               <tr id="section-106">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-106">&#182;</a>               </div>               <p>Set the source attribute to an html file to have that file loaded.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">source: </span><span class="s1">&#39;&#39;</span>
@@ -1201,15 +1214,13 @@ block user interaction for too long during the render.</p>             </td>    
         
         <span class="nx">@ready</span> <span class="nx">node</span>
       <span class="p">,</span> <span class="nx">@contexts</span><span class="p">)</span>
-      </pre></div>             </td>           </tr>                               <tr id="section-113">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-113">&#182;</a>               </div>               <p>Ensure any context object explicitly given for use in rendering the view (in <code>@context</code>) gets passed to the renderer</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">@_renderer</span><span class="p">.</span><span class="nx">contexts</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">@context</span><span class="p">)</span> <span class="k">if</span> <span class="nx">@context</span>
-      <span class="vi">@_renderer.contextObject.view = </span><span class="err">@</span></pre></div>             </td>           </tr>                               <tr id="section-114">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-114">&#182;</a>               </div>               <h2>DOM Helpers</h2>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-115">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-115">&#182;</a>               </div>               <p><code>Batman.Renderer</code> will take a node and parse all recognized data attributes out of it and its children. 
+      </pre></div>             </td>           </tr>                               <tr id="section-113">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-113">&#182;</a>               </div>               <p>Ensure any context object explicitly given for use in rendering the view (in <code>@context</code>) gets passed to the renderer</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="nx">@_renderer</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">@context</span><span class="p">)</span> <span class="k">if</span> <span class="nx">@context</span>
+      <span class="nx">@_renderer</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">set</span> <span class="s1">&#39;view&#39;</span><span class="p">,</span> <span class="err">@</span></pre></div>             </td>           </tr>                               <tr id="section-114">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-114">&#182;</a>               </div>               <h2>DOM Helpers</h2>             </td>             <td class="code">               <div class="highlight"><pre></pre></div>             </td>           </tr>                               <tr id="section-115">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-115">&#182;</a>               </div>               <p><code>Batman.Renderer</code> will take a node and parse all recognized data attributes out of it and its children. 
 It is a continuation style parser, designed not to block for longer than 50ms at a time if the document 
 fragment is particularly long.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Renderer</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span>
-  <span class="nv">constructor: </span><span class="nf">(@node, @callback, contexts) -&gt;</span>
+  <span class="nv">constructor: </span><span class="nf">(@node, @callback, contexts = [Batman.currentApp]) -&gt;</span>
     <span class="k">super</span>
-    <span class="vi">@contexts = </span><span class="nx">contexts</span> <span class="o">||</span> <span class="p">[</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">currentApp</span><span class="p">,</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">]</span>
-    <span class="vi">@contextObject = </span><span class="nx">@contexts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    
+    <span class="vi">@context = </span><span class="k">if</span> <span class="nx">contexts</span> <span class="k">instanceof</span> <span class="nx">RenderContext</span> <span class="k">then</span> <span class="nx">contexts</span> <span class="k">else</span> <span class="k">new</span> <span class="nx">RenderContext</span><span class="p">(</span><span class="nx">contexts</span><span class="p">...)</span>
     <span class="nx">setTimeout</span> <span class="nx">@start</span><span class="p">,</span> <span class="mi">0</span>
   
   <span class="nv">start: </span><span class="o">=&gt;</span>
@@ -1235,17 +1246,16 @@ fragment is particularly long.</p>             </td>             <td class="code
       <span class="k">return</span>
     
     <span class="k">if</span> <span class="nx">node</span><span class="p">.</span><span class="nx">getAttribute</span>
-      <span class="vi">@contextObject.node = </span><span class="nx">node</span>
-      <span class="nv">contexts = </span><span class="nx">@contexts</span>
+      <span class="nx">@context</span><span class="p">.</span><span class="nx">set</span> <span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="nx">node</span>
       
       <span class="k">for</span> <span class="nx">attr</span> <span class="k">in</span> <span class="nx">node</span><span class="p">.</span><span class="nx">attributes</span>
         <span class="nv">name = </span><span class="nx">attr</span><span class="p">.</span><span class="nx">nodeName</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="nx">regexp</span><span class="p">)</span><span class="o">?</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="k">continue</span> <span class="k">if</span> <span class="o">not</span> <span class="nx">name</span>
                 
         <span class="nv">result = </span><span class="k">if</span> <span class="p">(</span><span class="nv">index = </span><span class="nx">name</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))</span> <span class="o">is</span> <span class="o">-</span><span class="mi">1</span>
-          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">readers</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span><span class="o">?</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">attr</span><span class="p">.</span><span class="nx">value</span><span class="p">,</span> <span class="nx">contexts</span><span class="p">,</span> <span class="err">@</span><span class="p">)</span>
+          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">readers</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span><span class="o">?</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">attr</span><span class="p">.</span><span class="nx">value</span><span class="p">,</span> <span class="nx">@context</span><span class="p">,</span> <span class="err">@</span><span class="p">)</span>
         <span class="k">else</span>
-          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">attrReaders</span><span class="p">[</span><span class="nx">name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">index</span><span class="p">)]</span><span class="o">?</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="nx">attr</span><span class="p">.</span><span class="nx">value</span><span class="p">,</span> <span class="nx">contexts</span><span class="p">,</span> <span class="err">@</span><span class="p">)</span>
+          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">attrReaders</span><span class="p">[</span><span class="nx">name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">index</span><span class="p">)]</span><span class="o">?</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">name</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="nx">attr</span><span class="p">.</span><span class="nx">value</span><span class="p">,</span> <span class="nx">@context</span><span class="p">,</span> <span class="err">@</span><span class="p">)</span>
         
         <span class="k">if</span> <span class="nx">result</span> <span class="o">is</span> <span class="kc">false</span>
           <span class="nv">skipChildren = </span><span class="kc">true</span>
@@ -1270,102 +1280,213 @@ FIXME: we need a way to break if you exit the original node context of the rende
       <span class="nv">parentSibling = </span><span class="nx">nextParent</span><span class="p">.</span><span class="nx">nextSibling</span>
       <span class="k">return</span> <span class="nx">parentSibling</span> <span class="k">if</span> <span class="nx">parentSibling</span>
     
-    <span class="k">return</span>
-    </pre></div>             </td>           </tr>                               <tr id="section-117">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-117">&#182;</a>               </div>               <p><code>matchContext</code> is used to find which context in a stack of objects which responds to a sought key.
-A matching context is returned if found, and if it isn't, the global object is returned.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">matchContext = </span><span class="nf">(contexts, key) -&gt;</span>
-  <span class="nv">base = </span><span class="nx">key</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="nv">i = </span><span class="nx">contexts</span><span class="p">.</span><span class="nx">length</span>
-  <span class="k">while</span> <span class="nx">i</span><span class="o">--</span>
-    <span class="nv">context = </span><span class="nx">contexts</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
-    <span class="k">if</span> <span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="o">?</span> <span class="o">&amp;&amp;</span> <span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">base</span><span class="p">)</span><span class="o">?</span><span class="p">)</span> <span class="o">||</span> <span class="p">(</span><span class="nx">context</span><span class="p">[</span><span class="nx">base</span><span class="p">])</span><span class="o">?</span>
-      <span class="k">return</span> <span class="nx">context</span>
+    <span class="k">return</span></pre></div>             </td>           </tr>                               <tr id="section-117">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-117">&#182;</a>               </div>               <p>Bindings are shortlived objects which manage the observation of any keypaths a <code>data</code> attribute depends on.
+Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy
+the automatic trigger and dependency system that Batman.Objects use.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">Binding</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span></pre></div>             </td>           </tr>                               <tr id="section-118">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-118">&#182;</a>               </div>               <p>A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
+It makes the following matches:</p>
 
-  <span class="k">return</span> <span class="nx">container</span>
+<ul>
+<li><code>foo</code> and <code>baz.qux</code> in <code>foo, "bar", baz.qux</code> </li>
+<li><code>foo.bar.baz</code> in <code>true, false, "true", "false", foo.bar.baz</code></li>
+<li><code>true.bar</code> in <code>2, true.bar</code></li>
+<li><code>truesay</code> in truesay</li>
+<li>no matches in <code>"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"</code></li>
+</ul>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">keypath_rx = </span><span class="err">///</span>
+    <span class="p">(</span><span class="o">?:^|</span><span class="p">,)</span>           <span class="c1"># Match either the start of an arguments list or the start of a space inbetween commas.</span>
+    <span class="err">\</span><span class="nx">s</span><span class="o">*</span>               <span class="c1"># Be insensitive to whitespace between the comma and the actual arguments.</span>
+    <span class="p">(</span><span class="o">?!</span>               <span class="c1"># Use a lookahead to ensure we aren&#39;t matching true or false:</span>
+      <span class="p">(</span><span class="o">?:</span><span class="kc">true</span><span class="o">|</span><span class="kc">false</span><span class="p">)</span>  <span class="c1"># Match either true or false ...</span>
+      <span class="err">\</span><span class="nx">s</span><span class="o">*</span>             <span class="c1"># and make sure that there&#39;s nothing else that comes after the true or false ... </span>
+      <span class="p">(</span><span class="o">?:</span><span class="nx">$</span><span class="o">|</span><span class="p">,)</span>         <span class="c1"># before the end of this argument in the list.</span>
+    <span class="p">)</span>
+    <span class="p">([</span><span class="nx">a</span><span class="o">-</span><span class="nx">zA</span><span class="o">-</span><span class="nx">Z</span><span class="p">][</span><span class="err">\</span><span class="nx">w</span><span class="err">\</span><span class="p">.]</span><span class="o">*</span><span class="p">)</span> <span class="c1"># Now that true and false can&#39;t be matched, match a dot delimited list of keys.</span>
+    <span class="err">\</span><span class="nx">s</span><span class="o">*</span>               <span class="c1"># Be insensitive to whitespace before the next comma or end of the filter arguments list.</span>
+    <span class="p">(</span><span class="o">?:</span><span class="nx">$</span><span class="o">|</span><span class="p">,)</span>           <span class="c1"># Match either the next comma or the end of the filter arguments list.</span>
+    <span class="o">/</span><span class="err">//</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-119">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-119">&#182;</a>               </div>               <p>The <code>binding</code> which calculates the final result by reducing the initial value through all the filters.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="err">@</span><span class="o">::</span><span class="nx">accessor</span> <span class="s1">&#39;binding&#39;</span>
+    <span class="nv">get: </span><span class="o">-&gt;</span> 
+      <span class="nx">@filterFunctions</span><span class="p">.</span><span class="nx">reduce</span> <span class="p">(</span><span class="nx">value</span><span class="p">,</span> <span class="nx">fn</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="o">=&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-120">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-120">&#182;</a>               </div>               <p>Get any argument keypaths from the context stored at parse time.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nv">args = </span><span class="nx">@filterArguments</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">map</span> <span class="nf">(argument) -&gt;</span>
+          <span class="k">if</span> <span class="nx">argument</span><span class="p">.</span><span class="nx">_keypath</span>
+            <span class="nx">argument</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">argument</span><span class="p">.</span><span class="nx">_keypath</span><span class="p">)</span>
+          <span class="k">else</span>
+            <span class="nx">argument</span></pre></div>             </td>           </tr>                               <tr id="section-121">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-121">&#182;</a>               </div>               <p>Apply the filter.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="nx">fn</span><span class="p">(</span><span class="nx">value</span><span class="p">,</span> <span class="nx">args</span><span class="p">...)</span>
+      <span class="p">,</span> <span class="k">if</span> <span class="nx">@key</span> <span class="k">then</span> <span class="nx">@keyContext</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">@key</span><span class="p">)</span> <span class="k">else</span> <span class="nx">@value</span>
 
-<span class="nv">Batman.DOM = </span><span class="p">{</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-118">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-118">&#182;</a>               </div>               <p><code>Batman.DOM.readers</code> contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
+  <span class="nv">constructor: </span><span class="o">-&gt;</span>
+    <span class="k">super</span></pre></div>             </td>           </tr>                               <tr id="section-122">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-122">&#182;</a>               </div>               <p>Pull out the key and filter from the <code>@keyPath</code>.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">@parseFilter</span><span class="p">()</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-123">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-123">&#182;</a>               </div>               <p>If we're working with an <code>@key</code> and not an <code>@value</code>, find the context the key belongs to so we can 
+hold a reference to it for passing to the <code>dataChange</code> and <code>nodeChange</code> observers.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">if</span> <span class="nx">@key</span>
+      <span class="p">[</span><span class="nx">unfilteredValue</span><span class="p">,</span> <span class="nx">@keyContext</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@renderContext</span><span class="p">.</span><span class="nx">findKey</span> <span class="nx">@key</span>
+
+    <span class="nv">shouldSet = </span><span class="kc">yes</span>
+    
+    <span class="k">if</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">nodeIsEditable</span><span class="p">(</span><span class="nx">@node</span><span class="p">)</span>
+      <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">events</span><span class="p">.</span><span class="nx">change</span> <span class="nx">@node</span><span class="p">,</span> <span class="o">-&gt;</span>
+        <span class="nv">shouldSet = </span><span class="kc">no</span>
+        <span class="k">if</span> <span class="nx">@nodeChange</span>
+          <span class="nx">@nodeChange</span><span class="p">(</span><span class="nx">@node</span><span class="p">,</span> <span class="nx">@keyContext</span> <span class="o">||</span> <span class="nx">@value</span><span class="p">)</span>
+        <span class="k">else</span>
+          <span class="k">if</span> <span class="nx">@key</span>
+            <span class="nx">@keyContext</span><span class="p">.</span><span class="nx">set</span> <span class="nx">@key</span><span class="p">,</span> <span class="nx">@node</span><span class="p">.</span><span class="nx">value</span>
+        <span class="nv">shouldSet = </span><span class="kc">yes</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-124">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-124">&#182;</a>               </div>               <p>Observe the value of this binding's <code>binding</code> and fire it immediately to update the node.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nx">@observe</span> <span class="s1">&#39;binding&#39;</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
+      <span class="k">if</span> <span class="nx">shouldSet</span>
+        <span class="k">if</span> <span class="nx">@dataChange</span>
+          <span class="nx">@dataChange</span><span class="p">(</span><span class="nx">value</span><span class="p">,</span> <span class="nx">@node</span><span class="p">)</span>
+        <span class="k">else</span>
+          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">valueForNode</span> <span class="nx">@node</span><span class="p">,</span> <span class="nx">value</span>
+
+  <span class="nv">parseFilter: </span><span class="o">-&gt;</span></pre></div>             </td>           </tr>                               <tr id="section-125">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-125">&#182;</a>               </div>               <p>Store the function which does the filtering and the arguments (all except the actual value to apply the
+filter to) in these arrays.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="vi">@filterFunctions = </span><span class="p">[]</span>
+    <span class="vi">@filterArguments = </span><span class="p">[]</span>
+    </pre></div>             </td>           </tr>                               <tr id="section-126">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-126">&#182;</a>               </div>               <p>Split the string by pipes to see if there are any filters. </p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="nv">filters = </span><span class="nx">@keyPath</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/&#39;/g</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">).</span><span class="nx">split</span><span class="p">(</span><span class="sr">/(?!&quot;)\s+\|\s+(?!&quot;)/</span><span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-127">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-127">&#182;</a>               </div>               <p>The key will is always the first token before the pipe.</p>             </td>             <td class="code">               <div class="highlight"><pre>    <span class="k">try</span>
+      <span class="nv">key = </span><span class="nx">@parseSegment</span><span class="p">(</span><span class="nv">orig = </span><span class="nx">filters</span><span class="p">.</span><span class="nx">shift</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">catch</span> <span class="nx">e</span>
+      <span class="k">throw</span> <span class="s2">&quot;Bad binding keypath \&quot;#{orig}\&quot;!&quot;</span>
+    <span class="k">if</span> <span class="nx">key</span><span class="p">.</span><span class="nx">_keypath</span>
+      <span class="vi">@key = </span><span class="nx">key</span><span class="p">.</span><span class="nx">_keypath</span>
+    <span class="k">else</span>
+      <span class="vi">@value = </span><span class="nx">key</span>
+
+    <span class="k">if</span> <span class="nx">filters</span><span class="p">.</span><span class="nx">length</span></pre></div>             </td>           </tr>                               <tr id="section-128">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-128">&#182;</a>               </div>               <p>For each filter, get the name and the arguments by splitting on the first space.</p>             </td>             <td class="code">               <div class="highlight"><pre>      <span class="k">while</span> <span class="nv">filterString = </span><span class="nx">filters</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
+        <span class="nv">split = </span><span class="nx">filterString</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="o">~</span><span class="nx">split</span>
+          <span class="nv">filterName = </span><span class="nx">filterString</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">split</span><span class="p">)</span>
+          <span class="nv">args = </span><span class="nx">filterString</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">split</span><span class="p">)</span>
+        <span class="k">else</span>
+          <span class="nv">filterName = </span><span class="nx">filterString</span></pre></div>             </td>           </tr>                               <tr id="section-129">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-129">&#182;</a>               </div>               <p>If the filter exists, grab it.</p>             </td>             <td class="code">               <div class="highlight"><pre>        <span class="k">if</span> <span class="nv">filter = </span><span class="nx">Batman</span><span class="p">.</span><span class="nx">Filters</span><span class="p">[</span><span class="nx">filterName</span><span class="p">]</span> <span class="o">||</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">[</span><span class="nx">filterName</span><span class="p">]</span>
+          <span class="nx">@filterFunctions</span><span class="p">.</span><span class="nx">push</span> <span class="nx">filter</span>
+          <span class="k">if</span> <span class="nx">args</span>
+            <span class="k">try</span>
+              <span class="nx">@filterArguments</span><span class="p">.</span><span class="nx">push</span> <span class="nx">@parseSegment</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span>
+            <span class="k">catch</span> <span class="nx">e</span>
+              <span class="k">throw</span> <span class="s2">&quot;Bad filter arguments \&quot;#{args}\&quot;!&quot;</span>
+          <span class="k">else</span>
+            <span class="nx">@filterArguments</span><span class="p">.</span><span class="nx">push</span> <span class="p">[]</span>
+        <span class="k">else</span>
+          <span class="k">throw</span> <span class="s2">&quot;Unrecognized filter #{filter} in key \&quot;#{key}\&quot;!&quot;</span>
+      <span class="vi">@filterArguments = </span><span class="nx">@filterArguments</span><span class="p">.</span><span class="nx">map</span> <span class="p">(</span><span class="nx">argumentList</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">argumentList</span><span class="p">.</span><span class="nx">map</span> <span class="p">(</span><span class="nx">argument</span><span class="p">)</span> <span class="o">=&gt;</span>
+        <span class="k">if</span> <span class="nx">argument</span><span class="p">.</span><span class="nx">_keypath</span>
+          <span class="p">[</span><span class="nx">_</span><span class="p">,</span> <span class="nx">argument</span><span class="p">.</span><span class="nx">context</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@renderContext</span><span class="p">.</span><span class="nx">findKey</span> <span class="nx">argument</span><span class="p">.</span><span class="nx">_keypath</span>
+        <span class="nx">argument</span>
+  </pre></div>             </td>           </tr>                               <tr id="section-130">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-130">&#182;</a>               </div>               <p>Turn a piece of a <code>data</code> keypath into a usable javascript object. 
+ + replacing keypaths using the above regular expression
+ + wrapping the <code>,</code> delimited list in square brackets
+ + and <code>JSON.parse</code>ing them as an array.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">parseSegment: </span><span class="nf">(segment) -&gt;</span>
+    <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nx">segment</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="nx">keypath_rx</span><span class="p">,</span> <span class="s2">&quot;{\&quot;_keypath\&quot;: \&quot;$1\&quot;}&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span> <span class="p">)</span></pre></div>             </td>           </tr>                               <tr id="section-131">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-131">&#182;</a>               </div>               <p>The Render context class manages the stack of contexts accessible to a view during rendering.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="k">class</span> <span class="nx">RenderContext</span>
+  <span class="nv">constructor: </span><span class="nf">(contexts...) -&gt;</span> 
+    <span class="vi">@contexts = </span><span class="nx">contexts</span>
+    <span class="vi">@storage = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span>
+    <span class="nx">@contexts</span><span class="p">.</span><span class="nx">push</span> <span class="nx">@storage</span>
+  
+  <span class="nv">findKey: </span><span class="nf">(key) -&gt;</span>
+    <span class="nv">base = </span><span class="nx">key</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="nv">i = </span><span class="nx">@contexts</span><span class="p">.</span><span class="nx">length</span>
+    <span class="k">while</span> <span class="nx">i</span><span class="o">--</span>
+      <span class="nv">context = </span><span class="nx">@contexts</span><span class="p">[</span><span class="nx">i</span><span class="p">]</span>
+      <span class="k">if</span> <span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="o">?</span> 
+        <span class="nv">val = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+      <span class="k">else</span> 
+        <span class="nv">val = </span><span class="nx">context</span><span class="p">[</span><span class="nx">base</span><span class="p">]</span>
+      <span class="k">return</span> <span class="p">[</span><span class="nx">val</span><span class="p">,</span> <span class="nx">context</span><span class="p">]</span> <span class="k">if</span> <span class="nx">val</span><span class="o">?</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nx">container</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">),</span> <span class="nx">container</span><span class="p">]</span>
+
+  <span class="nv">get: </span><span class="nf">(key) -&gt;</span>
+    <span class="nx">@findKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+  <span class="nv">set: </span><span class="nf">(args...) -&gt;</span>
+    <span class="nx">@storage</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="nx">args</span><span class="p">...)</span>
+
+  <span class="nv">observe: </span><span class="nf">(key, observer) -&gt;</span>
+    <span class="nx">@findKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)[</span><span class="mi">1</span><span class="p">].</span><span class="nx">observe</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nx">observer</span><span class="p">)</span>
+
+  <span class="nv">push: </span><span class="nf">(x) -&gt;</span>
+    <span class="nx">@contexts</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span>
+
+  <span class="nv">pop: </span><span class="o">-&gt;</span>
+    <span class="nx">@contexts</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
+
+  <span class="nv">clone: </span><span class="o">-&gt;</span>
+    <span class="nv">context = </span><span class="k">new</span> <span class="nx">@constructor</span><span class="p">(</span><span class="nx">@contexts</span><span class="p">...)</span>
+    <span class="nx">context</span><span class="p">.</span><span class="nx">setStorage</span><span class="p">(</span><span class="nx">@storage</span><span class="p">)</span>
+    <span class="nx">context</span>
+
+  <span class="nv">setStorage: </span><span class="nf">(storage) -&gt;</span>
+    <span class="nx">@contexts</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="nx">@contexts</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">@storage</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nx">@push</span><span class="p">(</span><span class="nx">storage</span><span class="p">)</span>
+    <span class="nx">storage</span>
+
+  <span class="nv">bind: </span><span class="nf">(node, key, dataChange, nodeChange) -&gt;</span>
+    <span class="k">new</span> <span class="nx">Binding</span>
+      <span class="nv">renderContext: </span><span class="err">@</span>
+      <span class="nv">keyPath: </span><span class="nx">key</span>
+      <span class="nv">node: </span><span class="nx">node</span>
+      <span class="nv">dataChange: </span><span class="nx">dataChange</span>
+      <span class="nv">nodeChange: </span><span class="nx">nodeChange</span>
+    
+<span class="nv">Batman.DOM = </span><span class="p">{</span></pre></div>             </td>           </tr>                               <tr id="section-132">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-132">&#182;</a>               </div>               <p><code>Batman.DOM.readers</code> contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
 and any other <code>data-#{name}=""</code> style DOM directives.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">readers: </span><span class="p">{</span>
-    <span class="nv">bind: </span><span class="nf">(node, key, contexts) -&gt;</span>
-      <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-      <span class="nv">shouldSet = </span><span class="kc">yes</span>
-      
-      <span class="k">if</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">nodeIsEditable</span><span class="p">(</span><span class="nx">node</span><span class="p">)</span>
-        <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">events</span><span class="p">.</span><span class="nx">change</span> <span class="nx">node</span><span class="p">,</span> <span class="o">-&gt;</span>
-          <span class="nv">shouldSet = </span><span class="kc">no</span>
-          <span class="nx">context</span><span class="p">.</span><span class="nx">set</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">node</span><span class="p">.</span><span class="nx">value</span>
-          <span class="nv">shouldSet = </span><span class="kc">yes</span>
-      
-      <span class="nx">context</span><span class="p">.</span><span class="nx">observe</span> <span class="nx">key</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
-        <span class="k">if</span> <span class="nx">shouldSet</span>
-          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">valueForNode</span> <span class="nx">node</span><span class="p">,</span> <span class="nx">value</span>
-    
-    <span class="nv">context: </span><span class="nf">(node, key, contexts) -&gt;</span>
-      <span class="nv">context = </span><span class="nx">matchContext</span><span class="p">(</span><span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span><span class="p">).</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
-      <span class="nx">contexts</span><span class="p">.</span><span class="nx">push</span> <span class="nx">context</span>
-      
-      <span class="nv">node.onParseExit = </span><span class="o">-&gt;</span>
-        <span class="nv">index = </span><span class="nx">contexts</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span>
-        <span class="nx">contexts</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="nx">index</span><span class="p">,</span> <span class="nx">contexts</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">index</span><span class="p">)</span>
-    
-    <span class="nv">mixin: </span><span class="nf">(node, key, contexts) -&gt;</span>
-      <span class="nx">contexts</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixins</span><span class="p">)</span>
-      <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-      <span class="nv">mixin = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">key</span>
-      <span class="nx">contexts</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
+    <span class="nv">bind: </span><span class="nf">(node, key, context) -&gt;</span> <span class="nx">context</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">key</span><span class="p">)</span>
 
+    <span class="nv">context: </span><span class="nf">(node, key, context) -&gt;</span>
+      <span class="p">[</span><span class="nx">value</span><span class="p">,</span> <span class="nx">subContext</span><span class="p">]</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">findKey</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">push</span> <span class="nx">subContext</span>
+      <span class="nv">node.onParseExit = </span><span class="o">-&gt;</span>
+        <span class="nx">context</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
+    
+    <span class="nv">mixin: </span><span class="nf">(node, key, context) -&gt;</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixins</span><span class="p">)</span>
+      <span class="nv">mixin = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">key</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
       <span class="nx">$mixin</span> <span class="nx">node</span><span class="p">,</span> <span class="nx">mixin</span>
     
-    <span class="nv">showif: </span><span class="nf">(node, key, contexts, renderer, invert) -&gt;</span>
+    <span class="nv">showif: </span><span class="nf">(node, key, context, renderer, invert) -&gt;</span>
       <span class="nv">originalDisplay = </span><span class="nx">node</span><span class="p">.</span><span class="nx">style</span><span class="p">.</span><span class="nx">display</span>
       <span class="nv">originalDisplay = </span><span class="s1">&#39;block&#39;</span> <span class="k">if</span> <span class="o">!</span><span class="nx">originalDisplay</span> <span class="o">or</span> <span class="nx">originalDisplay</span> <span class="o">is</span> <span class="s1">&#39;none&#39;</span>
       
-      <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-      
-      <span class="nx">context</span><span class="p">.</span><span class="nx">observe</span> <span class="nx">key</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
         <span class="k">if</span> <span class="o">!!</span><span class="nx">value</span> <span class="o">is</span> <span class="o">!</span><span class="nx">invert</span>
           <span class="k">if</span> <span class="k">typeof</span> <span class="nx">node</span><span class="p">.</span><span class="nx">show</span> <span class="o">is</span> <span class="s1">&#39;function&#39;</span> <span class="k">then</span> <span class="nx">node</span><span class="p">.</span><span class="nx">show</span><span class="p">()</span> <span class="k">else</span> <span class="nv">node.style.display = </span><span class="nx">originalDisplay</span>
         <span class="k">else</span>
           <span class="k">if</span> <span class="k">typeof</span> <span class="nx">node</span><span class="p">.</span><span class="nx">hide</span> <span class="o">is</span> <span class="s1">&#39;function&#39;</span> <span class="k">then</span> <span class="nx">node</span><span class="p">.</span><span class="nx">hide</span><span class="p">()</span> <span class="k">else</span> <span class="nv">node.style.display = </span><span class="s1">&#39;none&#39;</span>
-    
+      <span class="p">,</span> <span class="o">-&gt;</span> <span class="p">)</span>
+
     <span class="nv">hideif: </span><span class="nf">(args...) -&gt;</span>
       <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">readers</span><span class="p">.</span><span class="nx">showif</span> <span class="nx">args</span><span class="p">...,</span> <span class="kc">yes</span>
     
-    <span class="nv">route: </span><span class="nf">(node, key, contexts) -&gt;</span>
+    <span class="nv">route: </span><span class="nf">(node, key, context) -&gt;</span>
       <span class="k">if</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;/&#39;</span>
         <span class="nv">route = </span><span class="nx">Batman</span><span class="p">.</span><span class="nx">redirect</span><span class="p">.</span><span class="nx">bind</span> <span class="nx">Batman</span><span class="p">,</span> <span class="nx">key</span>
         <span class="nv">routeName = </span><span class="nx">key</span>
       <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nv">index = </span><span class="nx">key</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">))</span> <span class="o">isnt</span> <span class="o">-</span><span class="mi">1</span>
         <span class="nv">controllerName = </span><span class="nx">helpers</span><span class="p">.</span><span class="nx">camelize</span><span class="p">(</span><span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">index</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;Controller&#39;</span>
-        <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">controllerName</span>
-        <span class="nv">controller = </span><span class="nx">context</span><span class="p">[</span><span class="nx">controllerName</span><span class="p">]</span>
+        <span class="nv">controller = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">controllerName</span>
         
         <span class="nv">route = </span><span class="nx">controller</span><span class="o">?</span><span class="p">.</span><span class="nx">sharedInstance</span><span class="p">()[</span><span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="nx">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="nv">routeName = </span><span class="nx">route</span><span class="o">?</span><span class="p">.</span><span class="nx">pattern</span>
       <span class="k">else</span>
-        <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
         <span class="nv">route = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">key</span>
         
         <span class="k">if</span> <span class="nx">route</span> <span class="k">instanceof</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span>
           <span class="nv">controllerName = </span><span class="nx">helpers</span><span class="p">.</span><span class="nx">camelize</span><span class="p">(</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="nx">key</span><span class="p">))</span> <span class="o">+</span> <span class="s1">&#39;Controller&#39;</span>
-          <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">controllerName</span>
-          <span class="nv">controller = </span><span class="nx">context</span><span class="p">[</span><span class="nx">controllerName</span><span class="p">].</span><span class="nx">sharedInstance</span><span class="p">()</span>
+          <span class="nv">controller = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;controllerName&#39;</span><span class="p">).</span><span class="nx">sharedInstance</span><span class="p">()</span>
           
           <span class="nv">id = </span><span class="nx">route</span><span class="p">.</span><span class="nx">id</span>
           <span class="nv">route = </span><span class="nx">controller</span><span class="p">.</span><span class="nx">show</span><span class="o">?</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">controller</span><span class="p">,</span> <span class="p">{</span><span class="nv">id: </span><span class="nx">id</span><span class="p">})</span>
           <span class="nv">routeName = </span><span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="nx">id</span>
         <span class="k">else</span>
-          <span class="nv">routeName = </span><span class="nx">route</span><span class="o">?</span><span class="p">.</span><span class="nx">pattern</span>
+          <span class="nv">routeName = </span><span class="nx">route</span><span class="p">.</span><span class="nx">pattern</span>
       
       <span class="k">if</span> <span class="nx">node</span><span class="p">.</span><span class="nx">nodeName</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span> <span class="o">is</span> <span class="s1">&#39;A&#39;</span>
         <span class="nv">node.href = </span><span class="nx">Batman</span><span class="p">.</span><span class="nx">HASH_PATTERN</span> <span class="o">+</span> <span class="p">(</span><span class="nx">routeName</span> <span class="o">||</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
       
       <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">events</span><span class="p">.</span><span class="nx">click</span> <span class="nx">node</span><span class="p">,</span> <span class="p">(</span><span class="o">-&gt;</span> <span class="nx">do</span> <span class="nx">route</span><span class="p">)</span>
     
-    <span class="nv">partial: </span><span class="nf">(node, path, contexts) -&gt;</span>
+    <span class="nv">partial: </span><span class="nf">(node, path, context) -&gt;</span>
       <span class="nv">view = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">View</span>
         <span class="nv">source: </span><span class="nx">path</span> <span class="o">+</span> <span class="s1">&#39;.html&#39;</span>
         <span class="nv">contentFor: </span><span class="nx">node</span>
-        <span class="nv">contexts: </span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">contexts</span><span class="p">)</span>
+        <span class="nv">contexts: </span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">contexts</span><span class="p">)</span>
     
     <span class="nv">yield: </span><span class="nf">(node, key) -&gt;</span>
       <span class="nx">setTimeout</span> <span class="p">(</span><span class="o">-&gt;</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">yield</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">node</span><span class="p">),</span> <span class="mi">0</span>
@@ -1373,72 +1494,47 @@ and any other <code>data-#{name}=""</code> style DOM directives.</p>            
     <span class="nv">contentfor: </span><span class="nf">(node, key) -&gt;</span>
       <span class="nx">setTimeout</span> <span class="p">(</span><span class="o">-&gt;</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">contentFor</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">node</span><span class="p">),</span> <span class="mi">0</span>
   <span class="p">}</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-119">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-119">&#182;</a>               </div>               <p><code>Batman.DOM.attrReaders</code> contains all the DOM directives which take an argument in their name, in the <code>data-dosomething-argument="keypath"</code> style.
+  </pre></div>             </td>           </tr>                               <tr id="section-133">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-133">&#182;</a>               </div>               <p><code>Batman.DOM.attrReaders</code> contains all the DOM directives which take an argument in their name, in the <code>data-dosomething-argument="keypath"</code> style.
 This means things like foreach, binding attributes like disabled or anything arbitrary, descending into a context, binding specific classes, 
 or binding to events.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">attrReaders: </span><span class="p">{</span>
-    <span class="nv">bind: </span><span class="nf">(node, attr, key, contexts) -&gt;</span>
-      <span class="nv">filters = </span><span class="nx">key</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\s*\|\s*/</span><span class="p">)</span>
-      <span class="nv">key = </span><span class="nx">filters</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
-      <span class="k">if</span> <span class="nx">filters</span><span class="p">.</span><span class="nx">length</span>
-        <span class="k">while</span> <span class="nv">filterName = </span><span class="nx">filters</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
-          <span class="nv">args = </span><span class="nx">filterName</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
-          <span class="nv">filterName = </span><span class="nx">args</span><span class="p">.</span><span class="nx">shift</span><span class="p">()</span>
-          
-          <span class="nv">filter = </span><span class="nx">Batman</span><span class="p">.</span><span class="nx">filters</span><span class="p">[</span><span class="nx">filterName</span><span class="p">]</span> <span class="o">||</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">[</span><span class="nx">filterName</span><span class="p">]</span>
-          <span class="k">continue</span> <span class="k">if</span> <span class="o">not</span> <span class="nx">filter</span>
-          
-          <span class="k">if</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;@&#39;</span>
-            <span class="nv">key = </span><span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-            <span class="nv">key = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
-          
-          <span class="nv">value = </span><span class="nx">filter</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">args</span><span class="p">...,</span> <span class="nx">node</span><span class="p">)</span>
-          <span class="nx">node</span><span class="p">.</span><span class="nx">setAttribute</span> <span class="nx">attr</span><span class="p">,</span> <span class="nx">value</span>
-      <span class="k">else</span>
-        <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-        <span class="nx">context</span><span class="p">.</span><span class="nx">observe</span> <span class="nx">key</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
-          <span class="k">if</span> <span class="nx">attr</span> <span class="o">is</span> <span class="s1">&#39;value&#39;</span>
-            <span class="nv">node.value = </span><span class="nx">value</span>
-          <span class="k">else</span>
-            <span class="nx">node</span><span class="p">.</span><span class="nx">setAttribute</span> <span class="nx">attr</span><span class="p">,</span> <span class="nx">value</span>
-      
+    <span class="nv">bind: </span><span class="nf">(node, attr, key, context) -&gt;</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">node</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
         <span class="k">if</span> <span class="nx">attr</span> <span class="o">is</span> <span class="s1">&#39;value&#39;</span>
-          <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">events</span><span class="p">.</span><span class="nx">change</span> <span class="nx">node</span><span class="p">,</span> <span class="o">-&gt;</span>
-            <span class="nv">value = </span><span class="nx">node</span><span class="p">.</span><span class="nx">value</span>
-            <span class="k">if</span> <span class="nx">value</span> <span class="o">is</span> <span class="s1">&#39;false&#39;</span> <span class="k">then</span> <span class="nv">value = </span><span class="kc">false</span>
-            <span class="k">if</span> <span class="nx">value</span> <span class="o">is</span> <span class="s1">&#39;true&#39;</span> <span class="k">then</span> <span class="nv">value = </span><span class="kc">true</span>
-            <span class="nx">context</span><span class="p">.</span><span class="nx">set</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span>
+          <span class="nv">node.value = </span><span class="nx">value</span>
+        <span class="k">else</span>
+          <span class="nx">node</span><span class="p">.</span><span class="nx">setAttribute</span> <span class="nx">attr</span><span class="p">,</span> <span class="nx">value</span>
+      <span class="p">,</span> <span class="nf">(node, subContext) -&gt;</span>
+        <span class="nv">value = </span><span class="nx">node</span><span class="p">.</span><span class="nx">value</span>
+        <span class="k">if</span> <span class="nx">value</span> <span class="o">is</span> <span class="s1">&#39;false&#39;</span> <span class="k">then</span> <span class="nv">value = </span><span class="kc">false</span>
+        <span class="k">if</span> <span class="nx">value</span> <span class="o">is</span> <span class="s1">&#39;true&#39;</span> <span class="k">then</span> <span class="nv">value = </span><span class="kc">true</span>
+        <span class="nx">subContext</span><span class="p">.</span><span class="nx">set</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span>
+      <span class="p">)</span>
     
-    <span class="nv">context: </span><span class="nf">(node, contextName, key, contexts) -&gt;</span>
-      <span class="nv">context = </span><span class="nx">matchContext</span><span class="p">(</span><span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span><span class="p">).</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+    <span class="nv">context: </span><span class="nf">(node, contextName, key, context) -&gt;</span>
       <span class="nv">object = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span>
-      <span class="nx">object</span><span class="p">[</span><span class="nx">contextName</span><span class="p">]</span> <span class="o">=</span> <span class="nx">context</span>
-      
-      <span class="nx">contexts</span><span class="p">.</span><span class="nx">push</span> <span class="nx">object</span>
+      <span class="nx">object</span><span class="p">[</span><span class="nx">contextName</span><span class="p">]</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">key</span><span class="p">)</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">push</span> <span class="nx">object</span>
       
       <span class="nv">node.onParseExit = </span><span class="o">-&gt;</span>
-        <span class="nv">index = </span><span class="nx">contexts</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">context</span><span class="p">)</span>
-        <span class="nx">contexts</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="nx">index</span><span class="p">,</span> <span class="nx">contexts</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">index</span><span class="p">)</span>
+        <span class="nx">context</span><span class="p">.</span><span class="nx">pop</span><span class="p">()</span>
     
-    <span class="nv">event: </span><span class="nf">(node, eventName, key, contexts) -&gt;</span>
+    <span class="nv">event: </span><span class="nf">(node, eventName, key, context) -&gt;</span>
       <span class="k">if</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;@&#39;</span>
         <span class="nv">callback = </span><span class="k">new</span> <span class="nb">Function</span> <span class="nx">key</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">else</span>
-        <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-        <span class="nv">callback = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">key</span>
+        <span class="p">[</span><span class="nx">callback</span><span class="p">,</span> <span class="nx">subContext</span><span class="p">]</span> <span class="o">=</span> <span class="nx">context</span><span class="p">.</span><span class="nx">findKey</span> <span class="nx">key</span>
       
       <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">events</span><span class="p">[</span><span class="nx">eventName</span><span class="p">]</span> <span class="nx">node</span><span class="p">,</span> <span class="o">-&gt;</span>
         <span class="nv">confirmText = </span><span class="nx">node</span><span class="p">.</span><span class="nx">getAttribute</span><span class="p">(</span><span class="s1">&#39;data-confirm&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nx">confirmText</span> <span class="o">and</span> <span class="o">not</span> <span class="nx">confirm</span><span class="p">(</span><span class="nx">confirmText</span><span class="p">)</span>
           <span class="k">return</span>
         
-        <span class="nx">callback</span><span class="o">?</span><span class="p">.</span><span class="nx">apply</span> <span class="nx">context</span><span class="p">,</span> <span class="nx">arguments</span>
+        <span class="nx">callback</span><span class="o">?</span><span class="p">.</span><span class="nx">apply</span> <span class="nx">subContext</span><span class="p">,</span> <span class="nx">arguments</span>
     
-    <span class="nv">addclass: </span><span class="nf">(node, className, key, contexts, parentRenderer, invert) -&gt;</span>
+    <span class="nv">addclass: </span><span class="nf">(node, className, key, context, parentRenderer, invert) -&gt;</span>
       <span class="nv">className = </span><span class="nx">className</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/\|/g</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="c1">#this will let you add or remove multiple class names in one binding</span>
       
-      <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
-      <span class="nx">context</span><span class="p">.</span><span class="nx">observe</span> <span class="nx">key</span><span class="p">,</span> <span class="kc">yes</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
+      <span class="nx">context</span><span class="p">.</span><span class="nx">bind</span> <span class="nx">node</span><span class="p">,</span> <span class="nx">key</span><span class="p">,</span> <span class="nf">(value) -&gt;</span>
         <span class="nv">currentName = </span><span class="nx">node</span><span class="p">.</span><span class="nx">className</span>
         <span class="nv">includesClassName = </span><span class="nx">currentName</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="nx">className</span><span class="p">)</span> <span class="o">isnt</span> <span class="o">-</span><span class="mi">1</span>
         
@@ -1446,11 +1542,12 @@ or binding to events.</p>             </td>             <td class="code">       
           <span class="nv">node.className = </span><span class="s2">&quot;#{currentName} #{className}&quot;</span> <span class="k">if</span> <span class="o">!</span><span class="nx">includesClassName</span>
         <span class="k">else</span>
           <span class="nv">node.className = </span><span class="nx">currentName</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="nx">className</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="nx">includesClassName</span>
-          
+      <span class="p">,</span> <span class="o">-&gt;</span>
+
     <span class="nv">removeclass: </span><span class="nf">(args...) -&gt;</span>
       <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">attrReaders</span><span class="p">.</span><span class="nx">addclass</span> <span class="nx">args</span><span class="p">...,</span> <span class="kc">yes</span>
     
-    <span class="nv">foreach: </span><span class="nf">(node, iteratorName, key, contexts, parentRenderer) -&gt;</span>
+    <span class="nv">foreach: </span><span class="nf">(node, iteratorName, key, context, parentRenderer) -&gt;</span>
       <span class="nv">prototype = </span><span class="nx">node</span><span class="p">.</span><span class="nx">cloneNode</span> <span class="kc">true</span>
       <span class="nx">prototype</span><span class="p">.</span><span class="nx">removeAttribute</span> <span class="s2">&quot;data-foreach-#{iteratorName}&quot;</span>
       
@@ -1459,8 +1556,6 @@ or binding to events.</p>             </td>             <td class="code">       
       
       <span class="nv">nodeMap = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Hash</span>
       
-      <span class="nv">contextsClone = </span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">contexts</span><span class="p">)</span>
-      <span class="nv">context = </span><span class="nx">matchContext</span> <span class="nx">contexts</span><span class="p">,</span> <span class="nx">key</span>
       <span class="nv">collection = </span><span class="nx">context</span><span class="p">.</span><span class="nx">get</span> <span class="nx">key</span>
       
       <span class="k">if</span> <span class="nx">collection</span><span class="o">?</span><span class="p">.</span><span class="nx">observe</span>
@@ -1468,17 +1563,16 @@ or binding to events.</p>             </td>             <td class="code">       
           <span class="nv">newNode = </span><span class="nx">prototype</span><span class="p">.</span><span class="nx">cloneNode</span> <span class="kc">true</span>
           <span class="nx">nodeMap</span><span class="p">.</span><span class="nx">set</span> <span class="nx">item</span><span class="p">,</span> <span class="nx">newNode</span>
           
-          <span class="nv">renderer = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Renderer</span> <span class="nx">newNode</span><span class="p">,</span> <span class="o">-&gt;</span>
-            <span class="nx">parent</span><span class="p">.</span><span class="nx">appendChild</span> <span class="nx">newNode</span>
-            <span class="nx">parentRenderer</span><span class="p">.</span><span class="nx">allow</span> <span class="s1">&#39;ready&#39;</span>
-          
-          <span class="nv">renderer.contexts = localClone = </span><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">contextsClone</span><span class="p">)</span>
-          <span class="nv">renderer.contextObject = </span><span class="nx">Batman</span> <span class="nx">localClone</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-          
+          <span class="nv">localClone = </span><span class="nx">context</span><span class="p">.</span><span class="nx">clone</span><span class="p">()</span>
           <span class="nv">iteratorContext = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span>
           <span class="nx">iteratorContext</span><span class="p">[</span><span class="nx">iteratorName</span><span class="p">]</span> <span class="o">=</span> <span class="nx">item</span>
           <span class="nx">localClone</span><span class="p">.</span><span class="nx">push</span> <span class="nx">iteratorContext</span>
           <span class="nx">localClone</span><span class="p">.</span><span class="nx">push</span> <span class="nx">item</span>
+          
+          <span class="nv">renderer = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Renderer</span> <span class="nx">newNode</span><span class="p">,</span> <span class="o">-&gt;</span>
+            <span class="nx">parent</span><span class="p">.</span><span class="nx">appendChild</span> <span class="nx">newNode</span>
+            <span class="nx">parentRenderer</span><span class="p">.</span><span class="nx">allow</span> <span class="s1">&#39;ready&#39;</span>
+          <span class="p">,</span> <span class="nx">localClone</span>
         
         <span class="nx">collection</span><span class="p">.</span><span class="nx">observe</span> <span class="s1">&#39;remove&#39;</span><span class="p">,</span> <span class="nv">remove = </span><span class="nf">(item) -&gt;</span>
           <span class="nv">oldNode = </span><span class="nx">nodeMap</span><span class="p">.</span><span class="nx">get</span> <span class="nx">item</span>
@@ -1494,8 +1588,7 @@ or binding to events.</p>             </td>             <td class="code">       
       
       <span class="kc">false</span>
   <span class="p">}</span>
-
-  </pre></div>             </td>           </tr>                               <tr id="section-120">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-120">&#182;</a>               </div>               <p><code>Batman.DOM.events</code> contains the helpers used for binding to events. These aren't called by
+  </pre></div>             </td>           </tr>                               <tr id="section-134">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-134">&#182;</a>               </div>               <p><code>Batman.DOM.events</code> contains the helpers used for binding to events. These aren't called by
 DOM directives, but are used to handle specific events by the <code>data-event-#{name}</code> helper.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">events: </span><span class="p">{</span>
     <span class="nv">click: </span><span class="nf">(node, callback) -&gt;</span>
       <span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">addEventListener</span> <span class="nx">node</span><span class="p">,</span> <span class="s1">&#39;click&#39;</span><span class="p">,</span> <span class="nf">(e) -&gt;</span>
@@ -1525,7 +1618,7 @@ DOM directives, but are used to handle specific events by the <code>data-event-#
           <span class="nx">callback</span><span class="p">.</span><span class="nx">apply</span> <span class="err">@</span><span class="p">,</span> <span class="nx">arguments</span>
           <span class="nx">e</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">()</span>
   <span class="p">}</span>
-  </pre></div>             </td>           </tr>                               <tr id="section-121">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-121">&#182;</a>               </div>               <p><code>yield</code> and <code>contentFor</code> are used to declare partial views and then pull them in elsewhere.
+  </pre></div>             </td>           </tr>                               <tr id="section-135">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-135">&#182;</a>               </div>               <p><code>yield</code> and <code>contentFor</code> are used to declare partial views and then pull them in elsewhere.
 This can be used for abstraction as well as repetition.</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">yield: </span><span class="nf">(name, node) -&gt;</span>
     <span class="nv">yields = </span><span class="nx">Batman</span><span class="p">.</span><span class="nx">DOM</span><span class="p">.</span><span class="nx">_yields</span> <span class="o">||=</span> <span class="p">{}</span>
     <span class="nx">yields</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span> <span class="o">=</span> <span class="nx">node</span>
@@ -1557,9 +1650,10 @@ This can be used for abstraction as well as repetition.</p>             </td>   
       <span class="nx">node</span><span class="p">.</span><span class="nx">addEventListener</span> <span class="nx">eventName</span><span class="p">,</span> <span class="nx">callback</span><span class="p">,</span> <span class="kc">false</span>
     <span class="k">else</span>
       <span class="nx">node</span><span class="p">.</span><span class="nx">attachEvent</span> <span class="s2">&quot;on#{eventName}&quot;</span><span class="p">,</span> <span class="nx">callback</span>
-<span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-122">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-122">&#182;</a>               </div>               <h2>Helpers</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">camelize_rx = </span><span class="sr">/(?:^|_)(.)/g</span>
+<span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-136">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-136">&#182;</a>               </div>               <h2>Helpers</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">camelize_rx = </span><span class="sr">/(?:^|_)(.)/g</span>
+<span class="nv">capitalize_rx = </span><span class="sr">/(^|\s)([a-z])/g</span>
 <span class="nv">underscore_rx1 = </span><span class="sr">/([A-Z]+)([A-Z][a-z])/g</span>
-<span class="nv">underscore_rx2 = </span><span class="sr">/([a-z\d])([A-Z])/g</span></pre></div>             </td>           </tr>                               <tr id="section-123">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-123">&#182;</a>               </div>               <p>Just a few random Rails-style string helpers. You can add more
+<span class="nv">underscore_rx2 = </span><span class="sr">/([a-z\d])([A-Z])/g</span></pre></div>             </td>           </tr>                               <tr id="section-137">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-137">&#182;</a>               </div>               <p>Just a few random Rails-style string helpers. You can add more
 to the Batman.helpers object.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">helpers = Batman.helpers = </span><span class="p">{</span>
   <span class="nv">camelize: </span><span class="nf">(string, firstLetterLower) -&gt;</span>
     <span class="nv">string = </span><span class="nx">string</span><span class="p">.</span><span class="nx">replace</span> <span class="nx">camelize_rx</span><span class="p">,</span> <span class="nf">(str, p1) -&gt;</span> <span class="nx">p1</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span>
@@ -1571,7 +1665,9 @@ to the Batman.helpers object.</p>             </td>             <td class="code"
           <span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">).</span><span class="nx">toLowerCase</span><span class="p">()</span>
 
   <span class="nv">singularize: </span><span class="nf">(string) -&gt;</span>
-    <span class="k">if</span> <span class="nx">string</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;s&#39;</span>
+    <span class="k">if</span> <span class="nx">string</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;ies&#39;</span>
+      <span class="nx">string</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">string</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;y&#39;</span>
+    <span class="k">else</span> <span class="k">if</span> <span class="nx">string</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">is</span> <span class="s1">&#39;s&#39;</span>
       <span class="nx">string</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">string</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span>
       <span class="nx">string</span>
@@ -1586,7 +1682,40 @@ to the Batman.helpers object.</p>             </td>             <td class="code"
       <span class="s2">&quot;#{string.substr(0,string.length-1)}ies&quot;</span>
     <span class="k">else</span>
       <span class="s2">&quot;#{string}s&quot;</span>
-<span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-124">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-124">&#182;</a>               </div>               <h2>Filters</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">filters = Batman.filters = </span><span class="p">{}</span></pre></div>             </td>           </tr>                               <tr id="section-125">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-125">&#182;</a>               </div>               <h2>Mixins</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">mixins = Batman.mixins = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span></pre></div>             </td>           </tr>                               <tr id="section-126">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-126">&#182;</a>               </div>               <p>Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
+
+  <span class="nv">capitalize: </span><span class="nf">(string) -&gt;</span> <span class="nx">string</span><span class="p">.</span><span class="nx">replace</span> <span class="nx">capitalize_rx</span><span class="p">,</span> <span class="nf">(m,p1,p2) -&gt;</span> <span class="nx">p1</span><span class="o">+</span><span class="nx">p2</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span>
+<span class="p">}</span></pre></div>             </td>           </tr>                               <tr id="section-138">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-138">&#182;</a>               </div>               <h2>Filters</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">filters = Batman.Filters = </span>
+  <span class="nv">truncate: </span><span class="nf">(value, length, end = &quot;...&quot;) -&gt;</span>
+    <span class="k">if</span> <span class="nx">value</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="nx">length</span>
+      <span class="nv">value = </span><span class="nx">value</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">length</span><span class="o">-</span><span class="nx">end</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="o">+</span> <span class="nx">end</span>
+    <span class="nx">value</span>
+
+  <span class="nv">prepend: </span><span class="nf">(value, string) -&gt;</span>
+    <span class="nx">string</span> <span class="o">+</span> <span class="nx">value</span>
+
+  <span class="nv">append: </span><span class="nf">(value, string) -&gt;</span>
+    <span class="nx">value</span> <span class="o">+</span> <span class="nx">string</span>
+
+  <span class="nv">downcase: </span><span class="nf">(value) -&gt;</span>
+    <span class="nx">value</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">()</span>
+
+  <span class="nv">upcase: </span><span class="nf">(value) -&gt;</span>
+    <span class="nx">value</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span>
+
+  <span class="nv">join: </span><span class="nf">(value, byWhat = &#39;&#39;) -&gt;</span>
+    <span class="nx">value</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">byWhat</span><span class="p">)</span>
+
+  <span class="nv">sort: </span><span class="nf">(value) -&gt;</span>
+    <span class="nx">value</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+
+  <span class="nv">map: </span><span class="nf">(value, key) -&gt;</span>
+    <span class="nx">value</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nf">(x) -&gt;</span> <span class="nx">x</span><span class="p">[</span><span class="nx">key</span><span class="p">])</span>
+
+  <span class="nv">times: </span><span class="nf">(value, byWhat) -&gt;</span>
+    <span class="nx">value</span> <span class="o">*</span> <span class="nx">byWhat</span>
+
+  <span class="nv">first: </span><span class="nf">(value) -&gt;</span>
+    <span class="nx">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-139">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-139">&#182;</a>               </div>               <h2>Mixins</h2>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">mixins = Batman.mixins = </span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span></pre></div>             </td>           </tr>                               <tr id="section-140">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-140">&#182;</a>               </div>               <p>Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 In node, the container is the <code>global</code> object, and in the browser, the container is the window object.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">container = </span><span class="k">if</span> <span class="nx">exports</span><span class="o">?</span>
   <span class="nv">exports.Batman = </span><span class="nx">Batman</span>
   <span class="nx">global</span>
@@ -1594,8 +1723,7 @@ In node, the container is the <code>global</code> object, and in the browser, th
   <span class="nb">window</span><span class="p">.</span><span class="nv">Batman = </span><span class="nx">Batman</span>
   <span class="nb">window</span>
 
-<span class="nx">$mixin</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Observable</span></pre></div>             </td>           </tr>                               <tr id="section-127">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-127">&#182;</a>               </div>               <p>Optionally export global sugar. Not sure what to do with this.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman.exportHelpers = </span><span class="nf">(onto) -&gt;</span>
-  <span class="nx">onto</span><span class="p">.</span><span class="nv">$typeOf = </span><span class="nx">$typeOf</span>
+<span class="nx">$mixin</span> <span class="nx">container</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Observable</span></pre></div>             </td>           </tr>                               <tr id="section-141">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-141">&#182;</a>               </div>               <p>Optionally export global sugar. Not sure what to do with this.</p>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">Batman.exportHelpers = </span><span class="nf">(onto) -&gt;</span>
   <span class="nx">onto</span><span class="p">.</span><span class="nv">$mixin = </span><span class="nx">$mixin</span>
   <span class="nx">onto</span><span class="p">.</span><span class="nv">$unmixin = </span><span class="nx">$unmixin</span>
   <span class="nx">onto</span><span class="p">.</span><span class="nv">$route = </span><span class="nx">$route</span>
