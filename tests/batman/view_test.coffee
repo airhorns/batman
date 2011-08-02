@@ -160,7 +160,7 @@ asyncTest 'it should allow mixins to be applied', 1, ->
 
 QUnit.module "Batman.View rendering loops"
 
-asyncTest 'it should allow simple loops', 6, ->
+asyncTest 'it should allow simple loops', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   objects = new Batman.Set('foo', 'bar', 'baz')
 
@@ -168,13 +168,34 @@ asyncTest 'it should allow simple loops', 6, ->
     delay => # new renderer's are used for each loop node, must wait longer
       tracking = {foo: false, bar: false, baz: false}
       node = $(view.get('node')).children()
-      for i in [0..2]
+      for i in [0...node.length]
         # We must track these in a temp object because they are a set => undefined order, can't assume
         tracking[node[i].innerHTML] = true 
         equal node[i].className,  'present'
       
-      for k, found of tracking
-        ok found, "Each object's name was found in the source"
+      for k in ['foo', 'bar', 'baz']
+        ok tracking[k], "Object #{k} was found in the source"
+
+asyncTest 'it should continue to render nodes after the loop', 1, ->
+  source = '<div><p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"/></div>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, {bar: objects, foo: "qux"}, (node) ->
+    delay => equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
+
+
+asyncTest 'it should order loops among their siblings properly', 5, ->
+  source = '<div><span data-bind="baz"></span><p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"></span></div>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, {baz: "corn", bar: objects, foo: "qux"}, (node) ->
+    delay =>
+      div = node.childNodes[0]
+      equal 'corn', $('span', div).get(0).innerHTML, "Node before the loop is rendered"
+      equal 'qux', $('span', div).get(1).innerHTML, "Node before the loop is rendered"
+      equal 'p', div.childNodes[1].tagName.toLowerCase(), "Order of nodes is preserved"
+      equal 'span', div.childNodes[4].tagName.toLowerCase(), "Order of nodes is preserved"
+      equal 'span', div.childNodes[0].tagName.toLowerCase(), "Order of nodes is preserved"
 
 QUnit.module "Batman.View rendering nested loops"
   setup: ->

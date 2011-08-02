@@ -1766,8 +1766,12 @@ Batman.DOM = {
       prototype.removeAttribute "data-foreach-#{iteratorName}"
       
       parent = node.parentNode
-      parent.removeChild node
-      
+      sibling = node.nextSibling
+      setTimeout ->
+        if node.nextSibling?
+          parent.removeChild node
+      , 0
+
       nodeMap = new Batman.Hash
       
       contextsClone = Array.prototype.slice.call(contexts)
@@ -1780,7 +1784,7 @@ Batman.DOM = {
           nodeMap.set item, newNode
           
           renderer = new Batman.Renderer newNode, ->
-            parent.appendChild newNode
+            parent.insertBefore newNode, sibling
             parentRenderer.allow 'ready'
           
           renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
