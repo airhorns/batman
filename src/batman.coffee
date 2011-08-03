@@ -35,14 +35,14 @@ _objectToString = Object.prototype.toString
 Batman.mixin = $mixin = (to, mixins...) ->
   set = to.set
   hasSet = typeof set is 'function'
-  
+
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
-    
+
     for key, value of mixin
       continue if key in ['initialize', 'uninitialize', 'prototype']
       if hasSet then set.call(to, key, value) else to[key] = value
-  
+
   to
 
 # `$unmixin` removes every key/value from every argument after the first
@@ -52,20 +52,20 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
   for mixin in mixins
     for key of mixin
       continue if key in ['initialize', 'uninitialize']
-      
+
       from[key] = null
       delete from[key]
-    
+
     if typeof mixin.deinitialize is 'function'
       mixin.deinitialize.call from
-  
+
   from
 
 # `$block` takes in a function and returns a function which can either
-#   A) take a callback as its last argument as it would normally, or 
+#   A) take a callback as its last argument as it would normally, or
 #   B) accept a callback as a second function application.
-# This is useful so that multiline functions can be passed as callbacks 
-# without the need for wrapping brackets (which a CoffeeScript bug 
+# This is useful so that multiline functions can be passed as callbacks
+# without the need for wrapping brackets (which a CoffeeScript bug
 # requires them to have).
 #
 # Example:
@@ -74,7 +74,7 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 #     f = (a, b, callback) -> callback(a + b)
 #     ex = $block f
 #
-#  We can use $block to make it accept the callback in both ways:   
+#  We can use $block to make it accept the callback in both ways:
 #
 #     ex(2, 3, (x) -> alert(x))  # alerts 5
 #
@@ -88,7 +88,7 @@ Batman._block = $block = (fn) ->
     f = (callback) ->
       args.push callback
       fn.apply(ctx, args)
-    
+
     if typeof args[args.length-1] is 'function'
       f(args.pop())
     else
@@ -103,7 +103,7 @@ Batman._findName = $findName = (f, context) ->
       if value is f
         f.displayName = key
         break
-  
+
   f.displayName
 
 
@@ -134,7 +134,7 @@ class Batman.Property
     key = @key
     accessors = @base._batman?.get('keyAccessors')
     if accessors && (val = accessors.get(key))
-      return val 
+      return val
     else
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
 
@@ -148,7 +148,7 @@ class Batman.Property
   unsetValue: -> @accessor()?.unset.call @base, @key
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
-    
+
 
 class Batman.ObservableProperty extends Batman.Property
   constructor: (base, key) ->
@@ -241,7 +241,7 @@ class Batman.Keypath extends Batman.ObservableProperty
     if @depth is 1 then super else @terminalProperty()?.getValue()
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
- 
+
 
 # Observable
 # ----------
@@ -262,12 +262,12 @@ Batman.Observable =
   observe: (key, args...) ->
     @property(key).observe(args...)
     @
-  
-  # Tell any observers attached to a key to fire, manually. 
+
+  # Tell any observers attached to a key to fire, manually.
   fire: (key, args...) ->
     @property(key).fire(args...)
 
-  # Forget removes an observer from an object. If the callback is passed in, 
+  # Forget removes an observer from an object. If the callback is passed in,
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
   forget: (key, observer) ->
@@ -290,7 +290,7 @@ Batman.Observable =
     @property(key).allowFire()
     @
 
-  # allowed returns a boolean describing whether or not the key is 
+  # allowed returns a boolean describing whether or not the key is
   # currently allowed to fire its observers.
   allowed: (key) ->
     @property(key).isAllowedToFire()
@@ -298,7 +298,7 @@ Batman.Observable =
 # Events
 # ------
 
-# `Batman.EventEmitter` is another generic mixin that simply allows an object to 
+# `Batman.EventEmitter` is another generic mixin that simply allows an object to
 # emit events. Batman events use observers to manage the callbacks, so they require that
 # the object emitting the events be observable. If events need to be attached to an object
 # which isn't a `Batman.Object` or doesn't have the `Batman.Observable` and `Batman.EventEmitter`
@@ -307,8 +307,8 @@ Batman.Observable =
 
 Batman.EventEmitter =
   # An event is a convenient observer wrapper. Any function can be wrapped in an event, and
-  # when called, it will cause it's object to fire all the observers for that event. There is 
-  # also some syntactical sugar so observers can be registered simply by calling the event with a 
+  # when called, it will cause it's object to fire all the observers for that event. There is
+  # also some syntactical sugar so observers can be registered simply by calling the event with a
   # function argument. Notice that the `$block` helper is used here so events can be declared in
   # class definitions using the second function application syntax and no wrapping brackets.
   event: $block (key, context, callback) ->
@@ -318,33 +318,33 @@ Batman.EventEmitter =
     if not callback and $typeOf(key) isnt 'String'
       callback = key
       key = null
-    
+
     # Return a function which either takes another observer
     # to register or a value to fire the event with.
     f = (observer) ->
       if not @observe
         throw "EventEmitter requires Observable"
-      
+
       Batman.initializeObject @
-      
+
       key ||= $findName(f, @)
       fired = @_batman._oneShotFired?[key]
-      
+
       # Pass a function to the event to register it as an observer.
       if typeof observer is 'function'
         @observe key, observer
         observer.apply(@, f._firedArgs) if f.isOneShot and fired
-      
+
       # Otherwise, calling the event will cause it to fire. Any
       # arguments you pass will be passed to your wrapped function.
       else if @allowed key
         return false if f.isOneShot and fired
         value = callback?.apply @, arguments
-        
+
         # Observers will only fire if the result of the event is not false.
         if value isnt false
-          # Get and cache the arguments for the event listeners. Add the value if 
-          # its not undefined, and then concat any more arguments passed to this 
+          # Get and cache the arguments for the event listeners. Add the value if
+          # its not undefined, and then concat any more arguments passed to this
           # event when fired.
           f._firedArgs = if typeof value isnt 'undefined'
               [value].concat arguments...
@@ -358,15 +358,15 @@ Batman.EventEmitter =
           args = Array.prototype.slice.call f._firedArgs
           args.unshift key
           @fire(args...)
-          
+
           if f.isOneShot
             firings = @_batman._oneShotFired ||= {}
             firings[key] = yes
-        
+
         value
       else
         false
-    
+
     # This could be its own mixin but is kept here for brevity.
     f = f.bind(context) if context
     @[key] = f if key?
@@ -374,7 +374,7 @@ Batman.EventEmitter =
       isEvent: yes
       action: callback
       isOneShot: @isOneShot
-  
+
   # One shot events can be used for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately. This is useful
   # for things like `ready` events on requests or renders, because once ready they always
@@ -411,29 +411,29 @@ Batman.StateMachine = {
       @accessor 'state',
         get: -> @state()
         set: (key, value) -> _stateMachine_setState.call(@, value)
-  
+
   state: (name, callback) ->
     Batman.StateMachine.initialize.call @
-    
+
     if not name
       return @_batman.getFirst 'state'
-    
+
     if not @event
       throw "StateMachine requires EventEmitter"
-    
+
     event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
     event.call(@, callback) if typeof callback is 'function'
     event
-  
+
   transition: (from, to, callback) ->
     Batman.StateMachine.initialize.call @
-    
+
     @state from
     @state to
-    
+
     name = "#{from}->#{to}"
     transitions = @_batman.states
-    
+
     event = transitions.get(name) || transitions.set(name, $event ->)
     event(callback) if callback
     event
@@ -442,28 +442,28 @@ Batman.StateMachine = {
 # this is cached here so it doesn't need to be recompiled for every setter
 _stateMachine_setState = (newState) ->
   Batman.StateMachine.initialize.call @
-  
+
   if @_batman.isTransitioning
     (@_batman.nextState ||= []).push(newState)
     return false
-  
+
   @_batman.isTransitioning = yes
-  
+
   oldState = @state()
   @_batman.state = newState
-  
+
   if newState and oldState
     name = "#{oldState}->#{newState}"
     for event in @_batman.getAll((ancestor) -> ancestor._batman?.get('states')?.get(name))
       if event
         event newState, oldState
-  
+
   if newState
     @fire newState, newState, oldState
-  
+
   @_batman.isTransitioning = no
   @[@_batman.nextState.shift()]() if @_batman.nextState?.length
-  
+
   newState
 
 # Objects
@@ -473,8 +473,8 @@ _stateMachine_setState = (newState) ->
 # object's `_batman` property is initialized and it's own. Classes extending Batman.Object inherit
 # methods like `get`, `set`, and `observe` by default on the class and prototype levels, such that
 # both instances and the class respond to them and can be bound to. However, CoffeeScript's static
-# class inheritance copies over all class level properties indiscriminately, so a parent class' 
-# `_batman` object will get copied to its subclasses, transferring all the information stored there and 
+# class inheritance copies over all class level properties indiscriminately, so a parent class'
+# `_batman` object will get copied to its subclasses, transferring all the information stored there and
 # allowing subclasses to mutate parent state. This method prevents this undesirable behaviour by tracking
 # which object the `_batman_` object was initialized upon, and reinitializing if that has changed since
 # initialization.
@@ -486,17 +486,17 @@ Batman.initializeObject = (object) ->
 
 # _Batman provides a convienient, parent class and prototype aware place to store hidden
 # object state. Things like observers, accessors, and states belong in the `_batman` object
-# attached to every Batman.Object subclass and subclass instance. 
+# attached to every Batman.Object subclass and subclass instance.
 Batman._Batman = class _Batman
   constructor: (@object, mixins...) ->
     $mixin(@, mixins...) if mixins.length > 0
-  
-  # Used by `Batman.initializeObject` to ensure that this `_batman` was created referencing 
+
+  # Used by `Batman.initializeObject` to ensure that this `_batman` was created referencing
   # the object it is pointing to.
   check: (object) ->
     if object != @object
       object._batman = new _Batman(object)
-  
+
   # `get` is a prototype and class aware property access method. `get` will traverse the prototype chain, asking
   # for the passed key at each step, and then attempting to merge the results into one object.
   # It can only do this if at each level an `Array`, `Hash`, or `Set` is found, so try to use
@@ -505,19 +505,19 @@ Batman._Batman = class _Batman
     # Get all the keys from the ancestor chain
     results = @getAll(key)
     switch results.length
-      when 0 
+      when 0
         undefined
       when 1
         results[0]
       else
-        # And then try to merge them if there is more than one. Use `concat` on arrays, and `merge` on 
+        # And then try to merge them if there is more than one. Use `concat` on arrays, and `merge` on
         # sets and hashes.
         if results[0].concat?
           results = results.reduceRight (a, b) -> a.concat(b)
         else if results[0].merge?
           results = results.reduceRight (a, b) -> a.merge(b)
         results
-  
+
   # `getFirst` is a prototype and class aware property access method. `getFirst` traverses the prototype chain,
   # and returns the value of the first `_batman` object which defines the passed key. Useful for
   # times when the merged value doesn't make sense or the value is a primitive.
@@ -534,13 +534,13 @@ Batman._Batman = class _Batman
       getter = keyOrGetter
     else
       getter = (ancestor) -> ancestor._batman?[keyOrGetter]
-   
+
     # Apply it to all the ancestors, and then this `_batman`'s object.
     results = @ancestors(getter)
     if val = getter(@object)
       results.unshift val
     results
-  
+
   # `ancestors` traverses the prototype or class chain and returns the application of a function to each
   # object in the chain. `ancestors` does this _only_ to the `@object`'s ancestors, and not the `@object`
   # itsself.
@@ -548,9 +548,9 @@ Batman._Batman = class _Batman
     results = []
     # Decide if the object is a class or not, and pull out the first ancestor
     isClass = !!@object.prototype
-    parent = if isClass 
-      @object.__super__?.constructor 
-    else 
+    parent = if isClass
+      @object.__super__?.constructor
+    else
       if (cons = @object.constructor):: == @object
         cons.__super__
       else
@@ -568,7 +568,7 @@ Batman._Batman = class _Batman
   set: (key, value) ->
     @[key] = value
 
-# `Batman.Object` is the base class for all other Batman objects. It is not abstract. 
+# `Batman.Object` is the base class for all other Batman objects. It is not abstract.
 class Batman.Object
   # Setting `isGlobal` to true will cause the class name to be defined on the
   # global object. For example, Batman.Model will be aliased to window.Model.
@@ -576,13 +576,13 @@ class Batman.Object
   @global: (isGlobal) ->
     return if isGlobal is false
     container[@name] = @
-  
+
   # Apply mixins to this subclass.
   @mixin: (mixins...) -> $mixin @, mixins...
-  
+
   # Apply mixins to instances of this subclass.
   mixin: @mixin
-  
+
   @accessor: (keys..., accessor) ->
     Batman.initializeObject @
     if keys.length is 0
@@ -597,15 +597,15 @@ class Batman.Object
       @_batman.keyAccessors ||= new Batman.SimpleHash
       @_batman.keyAccessors.set(key, accessor) for key in keys
   accessor: @accessor
-    
+
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
     @mixin mixins...
-  
+
   # Make every subclass and their instances observable.
   @mixin Batman.Observable, Batman.EventEmitter
   @::mixin Batman.Observable, Batman.EventEmitter
-  
+
 
 class Batman.SimpleHash
   constructor: ->
@@ -652,7 +652,7 @@ class Batman.SimpleHash
   merge: (others...) ->
     merged = new @constructor
     others.unshift(@)
-    for hash in others      
+    for hash in others
       hash.each (obj, value) ->
         merged.set obj, value
     merged
@@ -765,23 +765,23 @@ class Batman.Request extends Batman.Object
   url: ''
   data: ''
   method: 'get'
-  
+
   response: null
-  
+
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is
   # not desired, use @cancel() after setting the URL.
   @::observe 'url', ->
     @_autosendTimeout = setTimeout (=> @send()), 0
-  
+
   loading: @event ->
   loaded: @event ->
-  
+
   success: @event ->
   error: @event ->
-  
-  send: () -> throw "Please source a dependency file for a request implementation" 
-  
+
+  send: () -> throw "Please source a dependency file for a request implementation"
+
   cancel: ->
     clearTimeout(@_autosendTimeout) if @_autosendTimeout
 
@@ -790,7 +790,7 @@ class Batman.Request extends Batman.Object
 class Batman.App extends Batman.Object
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
-  
+
   # The require class methods (`controller`, `model`, `view`) simply tells
   # your app where to look for coffeescript source files. This
   # implementation may change in the future.
@@ -798,7 +798,7 @@ class Batman.App extends Batman.Object
     base = @requirePath + path
     for name in names
       @prevent 'run'
-      
+
       path = base + '/' + name + '.coffee' # FIXME: don't hardcode this
       new Batman.Request
         url: path
@@ -808,35 +808,35 @@ class Batman.App extends Batman.Object
           # FIXME: under no circumstances should we be compiling coffee in
           # the browser. This can be fixed via a real deployment solution
           # to compile coffeescripts, such as Sprockets.
-          
+
           @allow 'run'
           @run() # FIXME: this should only happen if the client actually called run.
     @
-  
+
   @controller: (names...) ->
     @require 'controllers', names...
-  
+
   @model: (names...) ->
     @require 'models', names...
-  
+
   @view: (names...) ->
     @require 'views', names...
-  
+
   # Layout is the base view that other views can be yielded into. The
   # default behavior is that when `app.run()` is called, a new view will
   # be created for the layout using the `document` node as its content.
   # Use `MyApp.layout = null` to turn off the default behavior.
   @layout: undefined
-  
-  # Call `MyApp.run()` to start up an app. Batman level initializers will 
+
+  # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
   @run: @eventOneShot ->
     return false if @hasRun
     Batman.currentApp = @
-    
+
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View node: document
-    
+
     @startRouting()
     @hasRun = yes
 
@@ -852,13 +852,13 @@ escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 # which a user might visit in the application.
 Batman.Route = {
   isRoute: yes
-  
+
   pattern: null
   regexp: null
   namedArguments: null
   action: null
   context: null
-  
+
   # call the action without going through the dispatch mechanism
   fire: (args, context) ->
     action = @action
@@ -866,15 +866,15 @@ Batman.Route = {
       if (index = action.indexOf('#')) isnt -1
         controllerName = helpers.camelize(action.substr(0, index) + 'Controller')
         controller = Batman.currentApp[controllerName]
-        
+
         context = controller
         if context?.sharedInstance
           context = context.sharedInstance()
-        
+
         action = context[action.substr(index + 1)]
-    
+
     action.apply(context || @context, args) if action
-  
+
   toString: ->
     "route: #{@pattern}"
 }
@@ -884,56 +884,56 @@ Batman.Route = {
 $mixin Batman,
   HASH_PATTERN: '#!'
   _routes: []
-  
+
   # `route` adds a new route to the global routing table. It accepts a pattern of the
-  # Rails/Backbone variety with `:foo` denoting named arguments and `*bar` denoting 
+  # Rails/Backbone variety with `:foo` denoting named arguments and `*bar` denoting
   # repeated segements. It also accepts a callback to fire when the route is visited.
-  # Note that route uses the `$block` helper, so it can be used in class definitions 
-  # without wrapping brackets 
+  # Note that route uses the `$block` helper, so it can be used in class definitions
+  # without wrapping brackets
   route: $block (pattern, callback) ->
     f = (params) ->
       context = f.context || @
       if context and context.sharedInstance
         context = context.sharedInstance()
-      
+
       pattern = f.pattern
       if params and not params.url
         for key, value of params
           pattern = pattern.replace(new RegExp('[:|\*]' + key), value)
-      
+
       if (params and not params.url) or not params
         Batman.currentApp._cachedRoute = pattern
         window.location.hash = Batman.HASH_PATTERN + pattern
-        
+
       if context and context.dispatch
         context.dispatch f, params
       else
         f.fire arguments, context
-      
+
     match = pattern.replace(escapeRegExp, '\\$&')
     regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
-    
+
     namedArguments = []
     while (array = namedOrSplat.exec(match))?
       namedArguments.push(array[1]) if array[1]
-      
+
     $mixin f, Batman.Route,
       pattern: match
       regexp: regexp
       namedArguments: namedArguments
       action: callback
       context: @
-    
+
     Batman._routes.push f
     f
-   
+
   # `redirect` sets the `window.location.hash` to passed string or pattern of the passed route. This will
   # then trigger any route who's pattern matches the route and thus it's callback.
   redirect: (urlOrFunction) ->
     url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
     window.location.hash = "#{Batman.HASH_PATTERN}#{url}"
 
-# Add the route and redirect helpers to the class level of all `Batman.Object` subclasses so they can be 
+# Add the route and redirect helpers to the class level of all `Batman.Object` subclasses so they can be
 # used declaratively within class definitions.
 Batman.Object.route = Batman.App.route = $route = Batman.route
 Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
@@ -947,17 +947,17 @@ $mixin Batman.App,
       return if hash is @_cachedRoute
       @_cachedRoute = hash
       @_dispatch hash
-    
+
     window.location.hash = "#{Batman.HASH_PATTERN}/" if not window.location.hash
     setTimeout(parseUrl, 0)
-    
+
     if 'onhashchange' of window
       @_routeHandler = parseUrl
       window.addEventListener 'hashchange', parseUrl
     else
       old = window.location.hash
       @_routeHandler = setInterval parseUrl, 100
-  
+
   # `stopRouting` stops any hash change listeners from dispatching routes.
   stopRouting: ->
     return unless @_routeHandler?
@@ -966,41 +966,41 @@ $mixin Batman.App,
       @_routeHandler = null
     else
       @_routeHandler = clearInterval @_routeHandler
-  
+
   _dispatch: (url) ->
     route = @_matchRoute url
     if not route
       if url is '/404' then Batman.currentApp['404']() else $redirect '/404'
       return
-    
+
     params = @_extractParams url, route
     route(params)
-  
+
   _matchRoute: (url) ->
     for route in Batman._routes
       return route if route.regexp.test(url)
-    
+
     null
-  
+
   _extractParams: (url, route) ->
     [url, query] = url.split('?')
     array = route.regexp.exec(url).slice(1)
     params = url: url
-    
+
     for param, index in array
       params[route.namedArguments[index]] = param
-    
+
     if query?
       for s in query.split('&')
         [k, v] = s.split('=')
         params[k] = v
 
     params
-  
+
   # `root` is a shortcut for setting the root route.
   root: (callback) ->
     $route '/', callback
-  
+
   '404': ->
     view = new Batman.View
       html: '<h1>Page could not be found</h1>'
@@ -1017,11 +1017,11 @@ class Batman.Controller extends Batman.Object
   @sharedInstance: ->
     @_sharedInstance = new @ if not @_sharedInstance
     @_sharedInstance
-  
+
   @beforeFilter: (nameOrFunction) ->
     filters = @_beforeFilters ||= []
     filters.push nameOrFunction
-  
+
   @resources: (base) ->
     # FIXME: MUST find a non-deferred way to do this
     f = =>
@@ -1030,45 +1030,45 @@ class Batman.Controller extends Batman.Object
       @::show = @route("/#{base}/:id", @::show) if @::show
       @::edit = @route("/#{base}/:id/edit", @::edit) if @::edit
     setTimeout f, 0
-    
+
     #name = helpers.underscore(@name.replace('Controller', ''))
-    
+
     #$route "/#{base}", "#{name}#index"
     #$route "/#{base}/:id", "#{name}#show"
     #$route "/#{base}/:id/edit", "#{name}#edit"
-  
+
   dispatch: (route, params...) ->
     key = $findName route, @
-    
+
     @_actedDuringAction = no
     @_currentAction = key
-    
+
     filters = @constructor._beforeFilters
     if filters
       for filter in filters
         filter.call @
-    
+
     result = route.fire params, @
 
     if not @_actedDuringAction and result isnt false
       @render()
-    
+
     delete @_actedDuringAction
     delete @_currentAction
-  
+
   redirect: (url) ->
     @_actedDuringAction = yes
     $redirect url
-  
+
   render: (options = {}) ->
     @_actedDuringAction = yes
-    
+
     if not options.view
       options.source = helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
-    
+
     if view = options.view
-      view.context ||= @ 
+      view.context ||= @
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
 
@@ -1077,7 +1077,7 @@ class Batman.Controller extends Batman.Object
 
 
 class Batman.Model extends Batman.Object
-  
+
   # ## Model API
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
@@ -1087,7 +1087,7 @@ class Batman.Model extends Batman.Object
     for mechanism in mechanisms
       storage.push if mechanism.isStorageAdapter then mechanism else new mechanism(@)
     @
-  
+
   # ### Query methods
   @accessor 'all',
     get: ->
@@ -1096,28 +1096,29 @@ class Batman.Model extends Batman.Object
 
   @accessor 'first', {get: -> @first = @get('all')[0]}
   @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
-  
+
   @find: (id) ->
     return record if (record = @get('all').get(id))
     record = new @(''+id)
     setTimeout (-> record.load()), 0
     record
-  
+
   # ### Transport methods
-    
+
   # Create a before load event. Clear the `all` set.
   @beforeLoad: @event -> @get('all').clear()
   # Create an after load event.
   @afterLoad: @event ->
-  
+
   # `load` fetches the record from all sources possible
   @load: (callback) ->
+    @all ||= new Batman.Set
     do @beforeLoad
-    
+
     afterLoad = =>
       callback?.call @
       do @afterLoad
-    
+
     allMechanisms = @::_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     allMechanisms.shift() if not fireImmediately
@@ -1125,10 +1126,10 @@ class Batman.Model extends Batman.Object
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
         m.readAllFromStorage @, afterLoad
-    
+
     do afterLoad if fireImmediately
-  
-  # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their 
+
+  # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their
   # storage representations. Encoders do things like stringifying dates and parsing them back out again,
   # pulling out nested model collections and instantiating them (and JSON.stringifying them back again),
   # and marshalling otherwise un-storable object.
@@ -1136,14 +1137,14 @@ class Batman.Model extends Batman.Object
     Batman.initializeObject @prototype
     @::_batman.encoders ||= new Batman.SimpleHash
     @::_batman.decoders ||= new Batman.SimpleHash
-    
+
     for key in keys
       @::_batman.encoders.set key, (value) ->
         ''+value
-      
+
       @::_batman.decoders.set key, (value) ->
         value
-  
+
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
   # what they have entered and forgo waiting on a round trip to the server.
@@ -1153,7 +1154,7 @@ class Batman.Model extends Batman.Object
   @validate: (keys..., optionsOrFunction) ->
     Batman.initializeObject @prototype
     validators = @::_batman.validators ||= []
-    
+
     if typeof optionsOrFunction is 'function'
       # Given a function, use that as the actual validator, expecting it to conform to the API
       # the built in validators do.
@@ -1171,16 +1172,16 @@ class Batman.Model extends Batman.Object
             keys: keys
             validator: new validator(matches)
 
-  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various 
-  # operations on the model are asynchronous, these states are used to indicate exactly what point the 
+  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
+  # operations on the model are asynchronous, these states are used to indicate exactly what point the
   # record is at in it's lifetime, which can often be during a save or load operation.
   @::mixin Batman.StateMachine
-  
+
   # Add the various states to the model.
   for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
     @::state k
   @::state 'saved', -> @dirtyKeys.clear()
-  
+
   # ### Record API
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
@@ -1189,34 +1190,37 @@ class Batman.Model extends Batman.Object
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
     @errors = new Batman.Set
-    
+
     super
     @empty() if not @state()
-    
+
     # Find the ID from either the first argument or the attributes.
     id = if $typeOf(idOrAttributes) is 'String' then idOrAttributes else idOrAttributes.id
     if id?
       @id = "#{id}"
       @constructor.get('all').add(@)
-  
+
+  _id: ->
+    @id
+
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
-    
+
     # Optimize setting where the value is the same as what's already been set.
     oldValue = @[key]
     return if oldValue is value
-    
+
     # Actually set the value and note what the old value was in the tracking array.
     super
     @dirtyKeys.set(key, oldValue)
-    
+
     # Mark the model as dirty if isn't already.
     @dirty() if @state() isnt 'dirty'
-  
+
   # FIXME: Is this really needed?
   @::accessor 'dirtyKeys',
     get: -> @dirtyKeys
-  
+
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
     obj = {}
@@ -1225,16 +1229,16 @@ class Batman.Model extends Batman.Object
     unless !encoders or encoders.isEmpty()
       encoders.each (key, encoder) =>
         obj[key] = encoder(@[key])
-    
+
     obj
-  
-  # `fromJSON` uses the various decoders for each key to generate a record instance from the JSON 
+
+  # `fromJSON` uses the various decoders for each key to generate a record instance from the JSON
   # stored in whichever storage mechanism.
   fromJSON: (data) ->
     obj = {}
     decoders = @_batman.get('decoders')
 
-    # If no decoders were specified, do the best we can to interpret the given JSON by camelizing 
+    # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
     # each key and just setting the values.
     if !decoders or decoders.isEmpty()
       for key, value of data
@@ -1243,10 +1247,10 @@ class Batman.Model extends Batman.Object
       # If we do have decoders, use them to get the data.
       decoders.each (key, decoder) ->
         obj[key] = decoder(data[key])
-    
+
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
-  
+
   # Set up the lifecycle events for a record.
   beforeLoad: @event -> @loading(); true
   afterLoad: @event -> @loaded(); true
@@ -1256,48 +1260,48 @@ class Batman.Model extends Batman.Object
   afterSave: @event -> @saved(); true
   beforeValidation: @event ->
   afterValidation: @event ->
-  
-  # `load` fetches the record from all sources possible    
+
+  # `load` fetches the record from all sources possible
   load: (callback) ->
     do @beforeLoad
-    
+
     afterLoad = =>
       callback?.call @
       do @afterLoad
-    
+
     allMechanisms = @_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
         m.readFromStorage @, afterLoad
-    
+
     do afterLoad if fireImmediately
-  
+
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
   save: (callback) ->
     return if not @isValid()
     do @beforeSave
-    
+
     creating = @isNew()
     do @beforeCreate if creating
-    
+
     afterSave = =>
       callback?.call @
       do @afterCreate if creating
       do @afterSave
-    
+
     allMechanisms = @_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
         m.writeToStorage @, afterSave
-    
+
     do afterSave if fireImmediately
-  
-  # `validate` performs the record level validations determining the record's validity. These may be asynchronous, 
+
+  # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
   validate: ->
@@ -1313,11 +1317,11 @@ class Batman.Model extends Batman.Object
       # and passing it to the appropriate function along with the key and the value to be validated.
       for key in validator.keys
         promise = new Batman.ValidatorPromise @
-        if v 
-          v.validateEach promise, @, key, @get key 
-        else 
+        if v
+          v.validateEach promise, @, key, @get key
+        else
           validator.callback promise, @, key, @get key
-        
+
         # In the event the validation is async (marked this way because the promise is paused), then
         # prevent the after callback from running, and run it only after all the promises have resolved.
         if promise.paused
@@ -1326,11 +1330,11 @@ class Batman.Model extends Batman.Object
           async = yes
         else
           promise.success() if promise.canSucceed
-    
+
     # Return the result of the validation if synchronous, otherwise call the validation callback.
     # FIXME: Is this really right?
     if async then return no else do @afterValidation
-  
+
   isNew: -> !@id?
 
   @::accessor
@@ -1338,41 +1342,41 @@ class Batman.Model extends Batman.Object
       @errors.clear()
       return no if @validate() is no
       @errors.isEmpty()
-  
+
 
 class Batman.ValidatorPromise extends Batman.Object
   constructor: (@record) ->
     @canSucceed = yes
-  
+
   error: (err) ->
     @record.errors.add err
     @canSucceed = no
-  
+
   wait: ->
     @paused = yes
     @canSucceed = no
-  
+
   resume: @event ->
     @paused = no
     true
-  
+
   success: ->
     @canSucceed = no
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
     super mixins...
-  
+
   validate: (record) ->
     throw "You must override validate in Batman.Validator subclasses."
-  
+
   @kind: -> helpers.underscore(@name).replace('_validator', '')
   kind: -> @constructor.kind()
-  
+
   @options: (options...) ->
     Batman.initializeObject @
     if @_batman.options then @_batman.options.concat(options) else @_batman.options = options
-  
+
   @matches: (options) ->
     results = {}
     shouldReturn = no
@@ -1391,9 +1395,9 @@ Validators = Batman.Validators = [
         options.maxLength = range[1] || -1
         delete options.lengthWithin
         delete options.lengthIn
-      
+
       super
-      
+
     validateEach: (validator, record, key, value) ->
       options = @options
       if options.minLength and value.length < options.minLength
@@ -1402,7 +1406,7 @@ Validators = Batman.Validators = [
         validator.error "#{key} must be less than #{options.maxLength} characters"
       if options.length and value.length isnt options.length
         validator.error "#{key} must be #{options.length} characters"
-  
+
   class Batman.PresenceValidator extends Batman.Validator
     @options 'presence'
     validateEach: (validator, record, key, value) ->
@@ -1421,20 +1425,20 @@ class Batman.LocalStorage extends Batman.StorageMechanism
     return null if not 'localStorage' in window
     @id = 0
     super
-  
+
   writeToStorage: (record, callback) ->
     key = @modelKey
     id = record.id ||= ++@id
     localStorage[key + id] = JSON.stringify(record) if key and id
     callback()
-  
+
   readFromStorage: (record, callback) ->
     key = @modelKey
     id = record.id
     json = localStorage[key + id] if key and id
     record.fromJSON JSON.parse json
     callback()
-    
+
 class Batman.RestStorage extends Batman.StorageMechanism
   optionsForRecord: (record) ->
     options =
@@ -1461,34 +1465,34 @@ class Batman.RestStorage extends Batman.StorageMechanism
         callback(error)
 
     new Batman.Request(options)
-  
+
   readFromStorage: (record, callback) ->
-    options = $mixin @optionsForRecord(record), 
+    options = $mixin @optionsForRecord(record),
       method: 'GET'
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         for key of data
           data = data[key]
           break
-        
+
         record.fromJSON data
         callback()
-      
+
     new Batman.Request(options)
-        
+
   readAllFromStorage: (model, callback) ->
-    options = $mixin @optionsForRecord(record), 
+    options = $mixin @optionsForRecord(record),
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         if !Array.isArray(data)
           for key of data
             data = data[key]
             break
-        
+
         for obj in data
           record = new model ''+obj.id
           record.fromJSON obj
-        
+
         callback()
         return
 
@@ -1501,34 +1505,34 @@ class Batman.RestStorage extends Batman.StorageMechanism
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   viewSources = {}
-  
+
   # Set the source attribute to an html file to have that file loaded.
   source: ''
-  
+
   # Set the html to a string of html to have that html parsed.
   html: ''
-  
+
   # Set an existing DOM node to parse immediately.
   node: null
-  
+
   context: null
   contexts: null
   contentFor: null
-  
+
   # Fires once a node is parsed.
   ready: @eventOneShot ->
-  
+
   # Where to look for views on the server
   prefix: 'views'
 
   # Whenever the source changes we load it up asynchronously
   @::observe 'source', ->
     setTimeout (=> @reloadSource()), 0
-  
+
   reloadSource: ->
     source = @get 'source'
     return if not source
-    
+
     if viewSources[source]
       @set('html', viewSources[source])
     else
@@ -1540,20 +1544,20 @@ class Batman.View extends Batman.Object
           @set('html', response)
         error: (response) ->
           throw "Could not load view from #{url}"
-  
+
   @::observe 'html', (html) ->
     node = @node || document.createElement 'div'
     node.innerHTML = html
-    
+
     @set('node', node) if @node isnt node
-  
+
   @::observe 'node', (node) ->
     return unless node
     @ready.fired = false
-    
+
     if @_renderer
       @_renderer.forgetAll()
-    
+
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
@@ -1561,14 +1565,14 @@ class Batman.View extends Batman.Object
         content = @contentFor
         if typeof content is 'string'
           @contentFor = Batman.DOM._yields?[content]
-        
+
         if @contentFor and node
           @contentFor.innerHTML = ''
           @contentFor.appendChild(node)
-        
+
         @ready node
       , @contexts)
-      
+
       # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
       @_renderer.contexts.push(@context) if @context
       @_renderer.contextObject.view = @
@@ -1576,79 +1580,79 @@ class Batman.View extends Batman.Object
 # DOM Helpers
 # -----------
 
-# `Batman.Renderer` will take a node and parse all recognized data attributes out of it and its children. 
-# It is a continuation style parser, designed not to block for longer than 50ms at a time if the document 
+# `Batman.Renderer` will take a node and parse all recognized data attributes out of it and its children.
+# It is a continuation style parser, designed not to block for longer than 50ms at a time if the document
 # fragment is particularly long.
 class Batman.Renderer extends Batman.Object
   constructor: (@node, @callback, contexts) ->
     super
     @contexts = contexts || [Batman.currentApp, new Batman.Object]
     @contextObject = @contexts[1]
-    
+
     setTimeout @start, 0
-  
+
   start: =>
     @startTime = new Date
     @parseNode @node
-  
+
   resume: =>
     @startTime = new Date
     @parseNode @resumeNode
-  
+
   finish: ->
     @startTime = null
     @callback?()
-  
+
   forgetAll: ->
-    
+
   regexp = /data\-(.*)/
-  
+
   parseNode: (node) ->
     if new Date - @startTime > 50
       @resumeNode = node
       setTimeout @resume, 0
       return
-    
+
     if node.getAttribute
       @contextObject.node = node
       contexts = @contexts
-      
+
       for attr in node.attributes
         name = attr.nodeName.match(regexp)?[1]
         continue if not name
-                
+
         result = if (index = name.indexOf('-')) is -1
           Batman.DOM.readers[name]?(node, attr.value, contexts, @)
         else
           Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, contexts, @)
-        
+
         if result is false
           skipChildren = true
           break
-    
+
     if (nextNode = @nextNode(node, skipChildren)) then @parseNode(nextNode) else @finish()
-  
+
   nextNode: (node, skipChildren) ->
     if not skipChildren
       children = node.childNodes
       return children[0] if children?.length
-    
+
     node.onParseExit?()
-    
+
     sibling = node.nextSibling
     return sibling if sibling
-    
+
     nextParent = node
     while nextParent = nextParent.parentNode
       nextParent.onParseExit?()
       #return if nextParent is @node
       # FIXME: we need a way to break if you exit the original node context of the renderer.
-      
+
       parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
-    
+
     return
-    
+
 
 # `matchContext` is used to find which context in a stack of objects which responds to a sought key.
 # A matching context is returned if found, and if it isn't, the global object is returned.
@@ -1663,32 +1667,32 @@ matchContext = (contexts, key) ->
   return container
 
 Batman.DOM = {
-  
+
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
     bind: (node, key, contexts) ->
       context = matchContext contexts, key
       shouldSet = yes
-      
+
       if Batman.DOM.nodeIsEditable(node)
         Batman.DOM.events.change node, ->
           shouldSet = no
           context.set key, node.value
           shouldSet = yes
-      
+
       context.observe key, yes, (value) ->
         if shouldSet
           Batman.DOM.valueForNode node, value
-    
+
     context: (node, key, contexts) ->
       context = matchContext(contexts, key).get(key)
       contexts.push context
-      
+
       node.onParseExit = ->
         index = contexts.indexOf(context)
         contexts.splice(index, contexts.length - index)
-    
+
     mixin: (node, key, contexts) ->
       contexts.push(Batman.mixins)
       context = matchContext contexts, key
@@ -1696,22 +1700,22 @@ Batman.DOM = {
       contexts.pop()
 
       $mixin node, mixin
-    
+
     showif: (node, key, contexts, renderer, invert) ->
       originalDisplay = node.style.display
       originalDisplay = 'block' if !originalDisplay or originalDisplay is 'none'
-      
+
       context = matchContext contexts, key
-      
+
       context.observe key, yes, (value) ->
         if !!value is !invert
           if typeof node.show is 'function' then node.show() else node.style.display = originalDisplay
         else
           if typeof node.hide is 'function' then node.hide() else node.style.display = 'none'
-    
+
     hideif: (args...) ->
       Batman.DOM.readers.showif args..., yes
-    
+
     route: (node, key, contexts) ->
       if key.substr(0, 1) is '/'
         route = Batman.redirect.bind Batman, key
@@ -1720,44 +1724,44 @@ Batman.DOM = {
         controllerName = helpers.camelize(key.substr(0, index)) + 'Controller'
         context = matchContext contexts, controllerName
         controller = context[controllerName]
-        
+
         route = controller?.sharedInstance()[key.substr(index + 1)]
         routeName = route?.pattern
       else
         context = matchContext contexts, key
         route = context.get key
-        
+
         if route instanceof Batman.Model
           controllerName = helpers.camelize(helpers.pluralize(key)) + 'Controller'
           context = matchContext contexts, controllerName
           controller = context[controllerName].sharedInstance()
-          
-          id = route.id
+
+          id = route._id()
           route = controller.show?.bind(controller, {id: id})
           routeName = '/' + helpers.pluralize(key) + '/' + id
         else
           routeName = route?.pattern
-      
+
       if node.nodeName.toUpperCase() is 'A'
         node.href = Batman.HASH_PATTERN + (routeName || '')
-      
-      Batman.DOM.events.click node, (-> do route)
-    
+
+      Batman.DOM.events.click node, (-> route?())
+
     partial: (node, path, contexts) ->
       view = new Batman.View
         source: path + '.html'
         contentFor: node
         contexts: Array.prototype.slice.call(contexts)
-    
+
     yield: (node, key) ->
       setTimeout (-> Batman.DOM.yield key, node), 0
-    
+
     contentfor: (node, key) ->
       setTimeout (-> Batman.DOM.contentFor key, node), 0
   }
-  
+
   # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the `data-dosomething-argument="keypath"` style.
-  # This means things like foreach, binding attributes like disabled or anything arbitrary, descending into a context, binding specific classes, 
+  # This means things like foreach, binding attributes like disabled or anything arbitrary, descending into a context, binding specific classes,
   # or binding to events.
   attrReaders: {
     bind: (node, attr, key, contexts) ->
@@ -1767,15 +1771,15 @@ Batman.DOM = {
         while filterName = filters.shift()
           args = filterName.split(' ')
           filterName = args.shift()
-          
+
           filter = Batman.filters[filterName] || Batman.helpers[filterName]
           continue if not filter
-          
+
           if key.substr(0,1) is '@'
             key = key.substr(1)
             context = matchContext contexts, key
             key = context.get(key)
-          
+
           value = filter(key, args..., node)
           node.setAttribute attr, value
       else
@@ -1785,59 +1789,59 @@ Batman.DOM = {
             node.value = value
           else
             node.setAttribute attr, value
-      
+
         if attr is 'value'
           Batman.DOM.events.change node, ->
             value = node.value
             if value is 'false' then value = false
             if value is 'true' then value = true
             context.set key, value
-    
+
     context: (node, contextName, key, contexts) ->
       context = matchContext(contexts, key).get(key)
       object = new Batman.Object
       object[contextName] = context
-      
+
       contexts.push object
-      
+
       node.onParseExit = ->
         index = contexts.indexOf(context)
         contexts.splice(index, contexts.length - index)
-    
+
     event: (node, eventName, key, contexts) ->
       if key.substr(0, 1) is '@'
         callback = new Function key.substr(1)
       else
         context = matchContext contexts, key
         callback = context.get key
-      
+
       Batman.DOM.events[eventName] node, ->
         confirmText = node.getAttribute('data-confirm')
         if confirmText and not confirm(confirmText)
           return
-        
+
         callback?.apply context, arguments
-    
+
     addclass: (node, className, key, contexts, parentRenderer, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
-      
+
       context = matchContext contexts, key
       context.observe key, yes, (value) ->
         currentName = node.className
         includesClassName = currentName.indexOf(className) isnt -1
-        
+
         if !!value is !invert
           node.className = "#{currentName} #{className}" if !includesClassName
         else
           node.className = currentName.replace(className, '') if includesClassName
-          
+
     removeclass: (args...) ->
       Batman.DOM.attrReaders.addclass args..., yes
-    
+
     foreach: (node, iteratorName, key, contexts, parentRenderer) ->
       prototype = node.cloneNode true
       prototype.removeAttribute "data-foreach-#{iteratorName}"
-      
+
       parent = node.parentNode
       sibling = node.nextSibling
       setTimeout ->
@@ -1846,44 +1850,44 @@ Batman.DOM = {
       , 0
 
       nodeMap = new Batman.Hash
-      
+
       contextsClone = Array.prototype.slice.call(contexts)
       context = matchContext contexts, key
       collection = context.get key
-      
+
       if collection?.observe
         collection.observe 'add', add = (item) ->
           newNode = prototype.cloneNode true
           nodeMap.set item, newNode
-          
+
           renderer = new Batman.Renderer newNode, ->
             parent.insertBefore newNode, sibling
             parentRenderer.allow 'ready'
-          
+
           renderer.contexts = localClone = Array.prototype.slice.call(contextsClone)
           renderer.contextObject = Batman localClone[1]
-          
+
           iteratorContext = new Batman.Object
           iteratorContext[iteratorName] = item
           localClone.push iteratorContext
           localClone.push item
-        
+
         collection.observe 'remove', remove = (item) ->
           oldNode = nodeMap.get item
           oldNode?.parentNode?.removeChild oldNode
-        
+
         collection.observe 'sort', ->
           collection.each remove
           setTimeout (-> collection.each add), 0
-        
+
         collection.each (item) ->
           parentRenderer.prevent 'ready'
           add(item)
-      
+
       false
   }
 
-  
+
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
@@ -1891,19 +1895,19 @@ Batman.DOM = {
       Batman.DOM.addEventListener node, 'click', (e) ->
         callback?.apply @, arguments
         e.preventDefault()
-      
+
       if node.nodeName.toUpperCase() is 'A' and not node.href
         node.href = '#'
-    
+
     change: (node, callback) ->
       eventName = switch node.nodeName.toUpperCase()
         when 'TEXTAREA' then 'keyup'
         when 'INPUT'
           if node.type.toUpperCase() is 'TEXT' then 'keyup' else 'change'
         else 'change'
-      
+
       Batman.DOM.addEventListener node, eventName, callback
-    
+
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
         Batman.DOM.addEventListener node, 'keyup', (e) ->
@@ -1915,35 +1919,35 @@ Batman.DOM = {
           callback.apply @, arguments
           e.preventDefault()
   }
-  
+
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # This can be used for abstraction as well as repetition.
   yield: (name, node) ->
     yields = Batman.DOM._yields ||= {}
     yields[name] = node
-    
+
     if (content = Batman.DOM._yieldContents?[name])
       node.innerHTML = ''
       node.appendChild(content) if content
-  
+
   contentFor: (name, node) ->
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
-    
+
     if (yield = Batman.DOM._yields?[name])
       yield.innerHTML = ''
       yield.appendChild(node) if node
-  
+
   valueForNode: (node, value) ->
     isSetting = arguments.length > 1
-    
+
     switch node.nodeName.toUpperCase()
       when 'INPUT' then (if isSetting then (node.value = value) else node.value)
       else (if isSetting then (node.innerHTML = value) else node.innerHTML)
-  
+
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA']
-  
+
   addEventListener: (node, eventName, callback) ->
     if node.addEventListener
       node.addEventListener eventName, callback, false
