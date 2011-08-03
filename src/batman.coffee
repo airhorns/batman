@@ -1049,8 +1049,8 @@ class Batman.Controller extends Batman.Object
         filter.call @
     
     result = route.fire params, @
-    
-    if not @_actedDuringAction
+
+    if not @_actedDuringAction and result isnt false
       @render()
     
     delete @_actedDuringAction
