@@ -1857,6 +1857,7 @@ Batman.DOM = {
 
       if collection?.observe
         collection.observe 'add', add = (item) ->
+          if $typeOf(item) is 'Array' then item = item[0]
           newNode = prototype.cloneNode true
           nodeMap.set item, newNode
 
