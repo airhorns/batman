@@ -1089,7 +1089,11 @@ class Batman.Model extends Batman.Object
     @
   
   # ### Query methods
-  @accessor 'all', {get: -> @all ||= new Batman.Set}
+  @accessor 'all',
+    get: ->
+      @load() if not @all
+      @all
+
   @accessor 'first', {get: -> @first = @get('all')[0]}
   @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
   
