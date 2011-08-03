@@ -1,10 +1,15 @@
 #
-# Batman.js
+# batman.js
 #
 # Created by Nicholas Small
-#
 # Copyright 2011, JadedPixel Technologies, Inc.
 #
+
+if not Function.prototype.bind
+  Function.prototype.bind = (context, args...) ->
+    f = =>
+      @apply context, args.concat `__slice`.call arguments
+
 
 # The global namespace, the `Batman` function will also create also create a new
 # instance of Batman.Object and mixin all arguments to it.
