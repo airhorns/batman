@@ -1,3 +1,3 @@
 class Twitter.Comment extends Batman.Model
-  # @persist Batman
-  @belongsTo 'tweet'
+  @persist Batman.LocalStorage
+  #@belongsTo 'tweet'

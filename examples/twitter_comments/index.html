@@ -3,9 +3,8 @@
 <head>
   <title>Twitter</title>
   
-  <script src="lib/coffee-script.js"></script>
-  <script src="lib/batman.js"></script>
-  <script src="nowjs/now.js"></script>
+  <script src="/lib/coffee-script.js"></script>
+  <script src="/lib/dist/batman.nodep.js"></script>
   
   <style>
   * {
@@ -69,24 +68,24 @@
   <div data-yield="main"></div>
   
   <div id="batman">
-    Search Twitter: <input data-bind="App.query" data-event-submit="App.search"/>
+    Search Twitter: <input data-bind="Twitter.query" data-event-submit="Twitter.search"/>
     <code>powered by</code><br />
     <img src="resources/batman.png" />
   </div>
   
   <script type="text/coffeescript">
-  class Twitter extends Batman.App
+  window.Twitter = class Twitter extends Batman.App
     @controller 'app', 'comments'
     @model 'tweet', 'comment'
     
-    @root 'app.index'
-    @match '/:query', 'app.query'
-    @match '/:id/comment', 'comments.new'
-    @match '/:id/comments', 'comments.index'
-    
-    query: '#'
-    search: ->
-      Batman.redirect '/' + encodeURIComponent(App.query)
+    @root 'app#index'
+    @route '/:query', 'app#query'
+    @route '/:id/comment', 'comments#new'
+    @route '/:id/comments', 'comments#index'
+    console.log Batman._routes
+    @query: '#'
+    @search: ->
+      Batman.redirect '/' + encodeURIComponent(@get 'query')
   
   Twitter.run()
   </script>
