@@ -21,7 +21,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     map:
       'src/batman\.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/batman.js', options)
       'src/batman\.(.+)\.coffee' : (matches) -> muffin.compileScript(matches[0], "lib/batman.#{matches[1]}.js", options)
-      'src/tools/batman\.coffee' : (matches) -> muffin.copyFile(matches[0], "tools/batman", muffin.extend({}, options, {mode: 755}))
+      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({bare: true}, options, {mode: 755}))
       'src/tools/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "tools/#{matches[1]}.js", options)
 
   if options.dist
@@ -33,6 +33,12 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       files: './src/**/*'
       options: options
       map:
+
+        # Compile the scripts to the distribution folder by:
+        # 1. Finding each platform specific batman file of the form `batman.platform.coffee`
+        # 2. Concatenating each platform specific file with the main Batman source, and storing that in a temp file.
+        # 3. Compiling each complete platform specific batman distribution into JavaScript in `./lib/dist`
+        # 4. Minify each complete platform specific distribution in to a .min.js file in `./lib/dist`
         'src/batman\.(.+)\.coffee' : (matches) ->
           return if matches[1] == 'node'
           joinedCoffeePath = "#{tmpdir}/batman.#{matches[1]}.coffee"
@@ -64,6 +70,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
 
   tmpdir = temp.mkdirSync()
   first = false
+
   muffin.run
     files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
     options: options

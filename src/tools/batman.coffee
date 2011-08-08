@@ -1,4 +1,5 @@
-#!/usr/bin/env coffee
+`#!/usr/bin/env node
+`
 
 # batman.js
 # Batman
@@ -40,11 +41,6 @@ task 'gen', 'generate an app or files inside an app', ->
   require('./generator.js')
 
 alias 'g', 'gen'
-
-task 'framework', 'generate batman.js framework files', ->
-  require('./framework.js')
-
-alias('js', 'framework')
 
 task '-T', ->
   for key in tasks

@@ -1,33 +1,19 @@
 (function() {
-  var File, Path, code, everyone, file, http, ids, mainPath, port, server, stat, _port;
-  http = require('http');
-  stat = require('node-static');
-  Path = require('path');
-  File = require('fs');
+  var code, connect, fs, mainPath, path, port, server, _port;
+  connect = require('connect');
+  path = require('path');
+  fs = require('fs');
   _port = process.argv.indexOf('-p');
   port = _port !== -1 ? process.argv[_port + 1] : '8124';
-  file = new stat.Server({
-    cache: 1
-  });
-  server = http.createServer(function(req, res) {
-    return req.addListener('end', function() {
-      return file.serve(req, res);
-    });
-  });
+  server = connect.createServer(connect.favicon(), connect.logger(), connect.compiler({
+    src: process.cwd(),
+    enable: ['coffeescript']
+  }), connect.static(process.cwd()));
   server.listen(port, '127.0.0.1');
-  ids = {};
-  everyone = require('now').initialize(server);
-  everyone.now.sendSync = function(data) {
-    ids = data;
-    return everyone.now.receiveSync(ids);
-  };
-  everyone.connected(function() {
-    return this.now.receiveSync(ids);
-  });
-  mainPath = Path.join(process.cwd(), 'main.js');
-  if (Path.existsSync(mainPath)) {
-    code = File.readFileSync(mainPath, 'utf8');
+  mainPath = path.join(process.cwd(), 'main.js');
+  if (path.existsSync(mainPath)) {
+    code = fs.readFileSync(mainPath, 'utf8');
     eval(code);
   }
-  console.log('Batman is waiting at http:#127.0.0.1:' + port);
+  console.log('Batman is waiting at http://127.0.0.1:' + port);
 }).call(this);
