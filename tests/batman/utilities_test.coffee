@@ -212,19 +212,30 @@ test "should preserve the context in which the function is called", 1, ->
     getContext: ->
       @
     method: Batman._block (arg, callback) ->
-      equal @, arg
+      equal arg, @
 
   x = new Test
   ctx = x.getContext()
   x.method(ctx)(->)
 
 
-test "should allow the callback to be passed as the last argument", 1, ->
+test "should allow the callback to be passed as the last argument", 2, ->
+  x = ->
   class Test
     method: Batman._block (arg, callback) ->
-      equal true, arg
+      equal arg, true
+      equal callback, x
   
-  (new Test).method(true, ->)
+  (new Test).method(true, x)
+
+test "should allow the airty to be specified so non function arguments can be passed and still trigger the call", 2, ->
+  class Test
+    method: Batman._block(2, (arg, anotherArg) ->
+      equal arg, true
+      equal anotherArg, false
+    )
+
+  (new Test).method(true, false)
 
 QUnit.module "Batman.StateMachine",
   setup: ->

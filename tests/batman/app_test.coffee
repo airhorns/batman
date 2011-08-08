@@ -7,17 +7,22 @@ else
 class TestApp extends Batman.App
 
 class TestApp.TestController
+  @sharedInstance: -> @instance
   render: -> true
-  for k in ['show', 'complex', 'root'] 
-    @::[k] = createSpy()
+  constructor: ->
+    @constructor.instance = @
+    for k in ['show', 'complex', 'root'] 
+      @[k] = createSpy()
+
 
 QUnit.module "Batman.App routing"
   setup: ->
     @app = TestApp
     @app.root ->
-    @app.route '/404', ->
+    @app.route '/404', -> throw new Error("404 route called, shouldn't be during tests!")
     @controller = new TestApp.TestController
     @app.startRouting()
+    Batman.currentApp = @app
 
   teardown: ->
     @app.stopRouting()
@@ -65,6 +70,15 @@ asyncTest "should match a root route", 1, ->
   delay =>
     deepEqual @controller.root.lastCallArguments, [{
       url: '/'
+    }]
+
+asyncTest "should match a string route", 1, ->
+  @app.route "/orders/:id", "test#complex"
+  @app.redirect url = "/orders/1"
+  delay =>
+    deepEqual @controller.complex.lastCallArguments, [{
+      url: url
+      id: '1'
     }]
 
 asyncTest "should allow routes to be defined within class definitions", 1, ->

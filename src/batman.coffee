@@ -66,8 +66,10 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 #   B) accept a callback as a second function application.
 # This is useful so that multiline functions can be passed as callbacks
 # without the need for wrapping brackets (which a CoffeeScript bug
-# requires them to have).
-#
+# requires them to have). `$block` also takes an optional function airity 
+# argument as the first argument. If a `length` argument is given, and `length` 
+# or more arguments are passed, `$block` will call the second argument
+# (the function) with the passed arguments, regardless of their type.
 # Example:
 #  With a function that accepts a callback as its last argument
 #
@@ -82,14 +84,19 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 #
 #     ex(2, 3) (x) -> alert(x)
 #
-Batman._block = $block = (fn) ->
+Batman._block = $block = (lengthOrFunction, fn) ->
+  if fn?
+    argsLength = lengthOrFunction
+  else
+    fn = lengthOrFunction
+
   callbackEater = (args...) ->
     ctx = @
     f = (callback) ->
       args.push callback
       fn.apply(ctx, args)
 
-    if typeof args[args.length-1] is 'function'
+    if (typeof args[args.length-1] is 'function') || (argsLength && (args.length >= argsLength))
       f(args.pop())
     else
       f
@@ -889,7 +896,7 @@ $mixin Batman,
   # repeated segements. It also accepts a callback to fire when the route is visited.
   # Note that route uses the `$block` helper, so it can be used in class definitions
   # without wrapping brackets
-  route: $block (pattern, callback) ->
+  route: $block(2, (pattern, callback) ->
     f = (params) ->
       context = f.context || @
       if context and context.sharedInstance
@@ -925,7 +932,7 @@ $mixin Batman,
 
     Batman._routes.push f
     f
-
+  )
   # `redirect` sets the `window.location.hash` to passed string or pattern of the passed route. This will
   # then trigger any route who's pattern matches the route and thus it's callback.
   redirect: (urlOrFunction) ->
