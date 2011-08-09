@@ -693,6 +693,7 @@ class Batman.SimpleSet
         @set 'length', @length + 1
         @set 'isEmpty', true
     items
+
   remove: (items...) ->
     results = []
     for item in items
@@ -1104,7 +1105,9 @@ class Batman.Model extends Batman.Object
   @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
 
   @find: (id) ->
-    return record if (record = @get('all').get(id))
+    for record in @get('all').toArray()
+      return record if record._id() is id
+    
     record = new @(''+id)
     setTimeout (-> record.load()), 0
     record
@@ -1229,6 +1232,9 @@ class Batman.Model extends Batman.Object
   # FIXME: Is this really needed?
   @::accessor 'dirtyKeys',
     get: -> @dirtyKeys
+
+  toString: ->
+    "#{@_id()}"
 
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
