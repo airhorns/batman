@@ -12,6 +12,7 @@ path   = require 'path'
 option '-w', '--watch',  'continue to watch the files and rebuild them when they change'
 option '-c', '--commit', 'operate on the git index instead of the working tree'
 option '-d', '--dist',   'compile minified versions of the platform dependent code into lib/dist (build task only)'
+option '-m', '--compare', 'compare to git refs (stat task only)'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
   muffin.run
@@ -79,4 +80,4 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         tests: glob.globSync("#{tmpdir}/*_test.js")
 
 task 'stats', 'compile the files and report on their final size', (options) ->
-  muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')))
+  muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')), options)
