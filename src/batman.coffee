@@ -2107,8 +2107,11 @@ helpers = Batman.helpers = {
     else
       string = count
 
-    if string.substr(-1) is 'y'
+    lastLetter = string.substr(-1)
+    if lastLetter is 'y'
       "#{string.substr(0,string.length-1)}ies"
+    else if lastLetter is 's'
+      string
     else
       "#{string}s"
 
