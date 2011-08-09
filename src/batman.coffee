@@ -2168,7 +2168,7 @@ mixins = Batman.mixins = new Batman.Object
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
 container = if exports?
-  exports.Batman = Batman
+  module.exports = Batman
   global
 else
   window.Batman = Batman

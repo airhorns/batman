@@ -159,19 +159,20 @@ asyncTest "async", 2, ->
 
 QUnit.module "Batman.Model: storage"
 
-asyncTest "local storage", 1, ->
-  localStorage.clear()
-  
-  class Product extends Batman.Model
-    @persist Batman.LocalStorage
-    @encode 'foo'
-  
-  p = new Product foo: 'bar'
-  
-  p.afterSave ->
-    copy = Product.find p.id
-    copy.afterLoad ->
-      equal copy.get('foo'), 'bar'
-      start()
-  
-  p.save()
+if window? && 'localStorage' in window
+  asyncTest "local storage", 1, ->
+    localStorage.clear()
+    
+    class Product extends Batman.Model
+      @persist Batman.LocalStorage
+      @encode 'foo'
+    
+    p = new Product foo: 'bar'
+    
+    p.afterSave ->
+      copy = Product.find p.id
+      copy.afterLoad ->
+        equal copy.get('foo'), 'bar'
+        start()
+    
+    p.save()

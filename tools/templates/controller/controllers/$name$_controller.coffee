@@ -1,5 +1,6 @@
-class $App$.AppController extends Batman.Controller
-  index: -> 
+class $App$.$Name$Controller extends Batman.Controller
+
+  index: (params) ->
 
   # Add actions to this controller by defining functions on it. 
   #
@@ -13,3 +14,4 @@ class $App$.AppController extends Batman.Controller
   #
   # @beforeFilter 'someFunctionKey'  # or
   # @beforeFilter -> ...
+  

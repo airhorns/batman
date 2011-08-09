@@ -4,82 +4,123 @@
 
 # can all be sync since this isn't a server
 
-File = require('fs')
-Path = require('path')
-Util = require('util')
-{Batman} = require('../lib/batman.js')
+fs = require 'fs'
+path = require 'path'
+util = require 'util' 
+cli  = require 'cli'
+Batman = require '../lib/batman.js'
 
-template = process.argv[3]
-name = process.argv[4]
+cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse 
+  app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
 
-if !template
-  return Batman.missingArg('template')
+cli.main (args, options) ->
+  args.shift() # get rid of the command
+  
+  options.appName = options.app
+  if args.length == 2
+    options.template = args[0]
+    options.name = args[1]
+  else
+    @error "Please specify a template and a name for batman generate."
+    cli.getUsage()
+    process.exit()
 
-if !name
-  return Batman.missingArg('name')
+  source = path.join(__dirname, 'templates', options.template)
 
-source = Path.join(__dirname, 'templates', template)
+  if !path.existsSync(source)
+    @fatal "template #{options.template} not found"
 
-if !Path.existsSync(source)
-  return console.log('template ' + template + ' not found')
+  if options.template == 'app'
+    # Allow the app name to be passed with the option flag or as the argument at the end of the command.
+    if options.appName?
+      options.name = options.appName
+    else
+      options.appName = options.name
 
-if template == 'app'
-  dest = Path.join(process.cwd(), name)
-  if Path.existsSync(dest)
-    return console.log('destination already exists')
+    destinationPath = path.join(process.cwd(), Batman.helpers.underscore(options.appName))
+    if path.existsSync(destinationPath)
+      @fatal 'Destination already exists!'
+  
+    # Make the directory and add the .batman
+    fs.mkdirSync(destinationPath, 0755)
+    fs.writeFileSync(path.join(destinationPath, '.batman'), options.appName)
+  else
+    destinationPath = process.cwd()
+    unless options.appName?
+      try
+        options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim()
+      catch e
+        if e.code is 'EBADF'
+          @fatal 'Couldn\'t find out the name your project! Either pass it with --name or put it in a .batman file in your project root.'
+        else
+          throw e
+  
+  # `replaceVars` is a super simple templating engine.
+  # Add a new key to `varMap` right here, and in the templates, the following substitutions will be made:
+  # $key$: the lower cased value of the key
+  # $Key$: the camel cased value of the key
+  # $KEY$: the upper cased value of the key
+  varMap = 
+    app: options.appName
+    name: options.name
 
-  appName = name
-  File.mkdirSync(dest, 0755)
- else
-  dest = process.cwd()
-  appName = File.readFileSync(Path.join(process.cwd(), '.batman'), 'utf8')
+  transforms = [((x) -> x.toUpperCase()), ((x) -> Batman.helpers.camelize(x)), ((x) -> x.toLowerCase())]
 
+  replaceVars = (string) ->
+    for templateKey, value of varMap
+      console.error "template key #{templateKey} not defined!" unless value?
+      for f in transforms
+        string = string.replace(new RegExp("\\$#{f(templateKey)}\\$", 'g'), f(value))
+    string
 
-replaceVars = (string) ->
-  return string
-    .replace(/\$APP\$/g, appName.toUpperCase())
-    .replace(/\$App\$/g, Batman.helpers.camelize(appName))
-    .replace(/\$app\$/g, appName.toLowerCase())
+  # `walk` is the recursive function which will traverse a template's directory structure and copy the files within 
+  # it to the destination after running the substitutions on their contents and names. `walk` takes in an absolute
+  # file path pointing to part or all of the template directory.
+  count = 0
+  walk = (aPath = "/") =>
+    sourcePath = path.join(source, aPath)
+    # Examine each file at the path.
+    fs.readdirSync(sourcePath).forEach (file) =>
+      if file == '.gitignore'
+        return
+      
+      # Get an absolute path to this file in the template directory
+      resultName = replaceVars(file)
+      sourceFile = path.join(sourcePath, file)
+      destFile = path.join(destinationPath, aPath, resultName)
 
-    .replace(/\$NAME\$/g, name.toUpperCase())
-    .replace(/\$Name\$/g, Batman.helpers.camelize(name))
-    .replace(/\$name\$/g, name.toLowerCase())
+      ext = path.extname(file).toLowerCase().slice(1)
+      stat = fs.statSync(sourceFile)
+    
+      # If the file is a directory, create it in the destination, and then walk it in the template.
+      if stat.isDirectory()
+        dir = path.join(destinationPath, aPath, resultName)
+        if !path.existsSync(dir)
+          fs.mkdirSync(dir, 0755)
+        # Descend into this sub dir in the template directory.
+        walk path.join(aPath, file)
+      
+      # If the file is a binary blog like an image, copy it to the destination.  
+      else if ext == 'png' || ext == 'jpg' || ext == 'gif'
+        newFile = fs.createWriteStream destFile
+        oldFile = fs.createReadStream sourceFile
 
+        @info "creaitng #{destFile}"
+        util.pump oldFile, newFile, (err) ->
+          throw err if err?
 
-walk = (path) ->
-  sourcePath = if path then Path.join(source, path) else source
+      # Otherwise, do the substitutions on the raw text of the template file and write it in the destination.
+      else
+        return if file.charAt(0) == '.' # Skip hidden files like .swp's
+        count++
+        fs.readFile sourceFile, 'utf8', (err, fileContents) =>
+          throw err if err?
+          @info "creating #{destFile}"
 
-  File.readdirSync(sourcePath).forEach (file) ->
-    if (file == '.gitignore')
-      return
+          fs.writeFile destFile, replaceVars(fileContents), (err) =>
+            throw err if err?
+            if(--count == 0)
+              @ok "#{options.name} generated successfully."
 
-    resultName = replaceVars(file)
-
-    # FIXME
-    components = file.split('.')
-    ext = components[components.length - 1]
-
-    stat = File.statSync(Path.join(sourcePath, file))
-    if stat.isDirectory()
-      dir = Path.join(dest, path, resultName)
-      if !Path.existsSync(dir)
-        File.mkdirSync(dir, 0755)
-      walk Path.join(path, file)
-
-     else if ext == 'png' || ext == 'jpg' || ext == 'gif'
-      reader = File.readFileSync(Path.join(sourcePath, file), 'binary')
-      File.writeFileSync(Path.join(dest, path, resultName), reader, 'binary')
-
-     else
-      reader = File.readFileSync(Path.join(sourcePath, file), 'utf8')
-      writePath = Path.join(dest, path, resultName)
-
-      console.log('creating ' + writePath)
-      File.writeFileSync(writePath, replaceVars(reader))
-
-
-walk()
-
-if template == 'app'
-  process.chdir(dest)
-  require('./framework.js')
+  # Start the walk.
+  walk()

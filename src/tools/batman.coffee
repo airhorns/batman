@@ -1,67 +1,52 @@
 `#!/usr/bin/env node
 `
-
 # batman.js
 # Batman
 # Copyright Shopify, 2011
 
-{Batman} = require('../lib/batman.js')
+cli = require 'cli'
+Batman = require '../lib/batman.js'
 
-Batman.missingArg = (name) ->
-  console.log('why so serious? (please provide ' + name + ')')
+# List of commands for use in the multiple `cli.parse` calls below.
+Commands = ['server', 'generate']
 
-tasks = {}
-aliases = {}
+# Yeah, this is happening. Sorry everyone.
+# cli needs to be headlocked into not fatal erroring if no command is given when
+# help is disabled. We need to disable help so the second parse (the one
+# in the command file) can spit out its own command specific usage stuff if the 
+# help flag is given with a command. So, we disable the help module here, and 
+# catch the `process.exit` call by overriding `cli.fatal`. The effect is this:
+# when run with just '--help', the new `cli.fatal` implementation will spit out
+# the global usage. When run with 'generate --help' for example, the usage from
+# the generate file will be shown. Nice.
 
-task = (name, description, f) ->
-  if typeof description == 'function'
-    f = description
-  else
-    f.description = description
+# Disable the help and grab a pointer to the old `fatal` function.
+cli.disable 'help'
+oldFatal = cli.fatal
+noCommandGiven = false
+# Provide a `fatal` which behaves.
+cli.fatal = (str) -> 
+  if str.match 'command is required' 
+    noCommandGiven = true 
+    cli.enable('help').parse(null, Commands)
+    process.exit()
+  else 
+    oldFatal(str)
 
-  f.name = name
+# Run the parse and then revert this dirty, dirty hack.
+cli.parse null, Commands
+cli.fatal = oldFatal
+cli.enable 'help'
 
-  tasks[name] = f
-  return f
+# File Breakout
+# -------------
 
-alias = (name, original) ->
-  f = tasks[original]
-  if !f.aliases
-    f.aliases = []
+# Effectively reset cli's parsing.
+cli.setArgv(process.argv)
 
-  f.aliases.push(name)
-  aliases[name] = f
-
-task 'server', 'starts the Batman server', ->
-  require('./server.js')
-
-alias 's', 'server'
-
-task 'gen', 'generate an app or files inside an app', ->
-  require('./generator.js')
-
-alias 'g', 'gen'
-
-task '-T', ->
-  for key in tasks
-    if key.substr(0,1) == '-'
-      continue
-
-    string = key
-
-    aliases = tasks[key].aliases
-    if aliases
-      string += ' (' + aliases.join(', ') + ')'
-
-    desc = tasks[key].description
-    if desc
-      string += ' -- ' + desc
-
-    console.log(string)
-
-arg = process.argv[2]
-if arg
-  request = tasks[arg] || aliases[arg]
-  if request then request() else console.log(arg + ' is not a known task')
-else
-  Batman.missingArg('task')
+# Finally, we can actually start doing some work.
+switch cli.command
+  when 'server'
+    require('./server')
+  when 'generate'
+    require('./generator')

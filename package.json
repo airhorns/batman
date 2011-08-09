@@ -17,7 +17,8 @@
     "build": "cake build"
   },
   "dependencies": {
-    "connect": "~1.6.1"
+    "connect": "~1.6.1",
+    "cli": "~0.3.7"
   },
   "devDependencies": {
     "coffee-script": "~1.1",

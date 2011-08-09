@@ -3,24 +3,34 @@
 # Copyright Shopify, 2011
 
 connect = require 'connect'
-path = require('path')
-fs = require('fs')
+path    = require 'path'
+fs      = require 'fs'
+cli     = require 'cli'
 
-_port = process.argv.indexOf('-p')
-port = if _port != -1 then process.argv[_port + 1] else '8124'
+cli.enable('daemon').setUsage('batman server [OPTIONS]').parse 
+  port: ['p', "Port to run HTTP server on", "number", 8124]
 
-server = connect.createServer( 
-  connect.favicon(),
-  connect.logger(),
-  connect.compiler(src: process.cwd(), enable: ['coffeescript']),
-  connect.static(process.cwd())
-)
+cli.main (args, options) ->
 
-server.listen port, '127.0.0.1'
+  # Create a connect server with the 
+  #  * transparent coffee compilation middleware
+  #  * staic file serving middle ware for the current directory
+  #  * static file serving at the /batman path for the lib dir of batman
+  # and tell it to serve on the passed port.
+  Server = connect.createServer( 
+    connect.favicon(),
+    connect.logger(),
+    connect.compiler(src: process.cwd(), enable: ['coffeescript']),
+    connect.static(process.cwd()),
+  )
+  Server.use '/batman', connect.static(path.join(__dirname,'..','lib'))
+  Server.listen options.port, '127.0.0.1'
+  
+  
+  # Execut a main.js if there is one
+  mainPath = path.join(process.cwd(), 'main.js')
+  if path.existsSync(mainPath)
+    code = fs.readFileSync(mainPath, 'utf8')
+    eval code
 
-mainPath = path.join(process.cwd(), 'main.js')
-if path.existsSync(mainPath)
-  code = fs.readFileSync(mainPath, 'utf8')
-  eval code
-
-console.log 'Batman is waiting at http://127.0.0.1:' + port
+  @ok 'Batman is waiting at http://127.0.0.1:' + options.port

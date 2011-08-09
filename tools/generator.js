@@ -1,67 +1,137 @@
 (function() {
-  var Batman, File, Path, Util, appName, dest, name, replaceVars, source, template, walk;
-  File = require('fs');
-  Path = require('path');
-  Util = require('util');
-  Batman = require('../lib/batman.js').Batman;
-  template = process.argv[3];
-  name = process.argv[4];
-  if (!template) {
-    return Batman.missingArg('template');
-  }
-  if (!name) {
-    return Batman.missingArg('name');
-  }
-  source = Path.join(__dirname, 'templates', template);
-  if (!Path.existsSync(source)) {
-    return console.log('template ' + template + ' not found');
-  }
-  if (template === 'app') {
-    dest = Path.join(process.cwd(), name);
-    if (Path.existsSync(dest)) {
-      return console.log('destination already exists');
+  var Batman, cli, fs, path, util;
+  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+  fs = require('fs');
+  path = require('path');
+  util = require('util');
+  cli = require('cli');
+  Batman = require('../lib/batman.js');
+  cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse({
+    app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
+  });
+  cli.main(function(args, options) {
+    var count, destinationPath, replaceVars, source, transforms, varMap, walk;
+    args.shift();
+    options.appName = options.app;
+    if (args.length === 2) {
+      options.template = args[0];
+      options.name = args[1];
+    } else {
+      this.error("Please specify a template and a name for batman generate.");
+      cli.getUsage();
+      process.exit();
     }
-    appName = name;
-    File.mkdirSync(dest, 0755);
-  } else {
-    dest = process.cwd();
-    appName = File.readFileSync(Path.join(process.cwd(), '.batman'), 'utf8');
-  }
-  replaceVars = function(string) {
-    return string.replace(/\$APP\$/g, appName.toUpperCase()).replace(/\$App\$/g, Batman.helpers.camelize(appName)).replace(/\$app\$/g, appName.toLowerCase()).replace(/\$NAME\$/g, name.toUpperCase()).replace(/\$Name\$/g, Batman.helpers.camelize(name)).replace(/\$name\$/g, name.toLowerCase());
-  };
-  walk = function(path) {
-    var sourcePath;
-    sourcePath = path ? Path.join(source, path) : source;
-    return File.readdirSync(sourcePath).forEach(function(file) {
-      var components, dir, ext, reader, resultName, stat, writePath;
-      if (file === '.gitignore') {
-        return;
-      }
-      resultName = replaceVars(file);
-      components = file.split('.');
-      ext = components[components.length - 1];
-      stat = File.statSync(Path.join(sourcePath, file));
-      if (stat.isDirectory()) {
-        dir = Path.join(dest, path, resultName);
-        if (!Path.existsSync(dir)) {
-          File.mkdirSync(dir, 0755);
-        }
-        return walk(Path.join(path, file));
-      } else if (ext === 'png' || ext === 'jpg' || ext === 'gif') {
-        reader = File.readFileSync(Path.join(sourcePath, file), 'binary');
-        return File.writeFileSync(Path.join(dest, path, resultName), reader, 'binary');
+    source = path.join(__dirname, 'templates', options.template);
+    if (!path.existsSync(source)) {
+      this.fatal("template " + options.template + " not found");
+    }
+    if (options.template === 'app') {
+      if (options.appName != null) {
+        options.name = options.appName;
       } else {
-        reader = File.readFileSync(Path.join(sourcePath, file), 'utf8');
-        writePath = Path.join(dest, path, resultName);
-        console.log('creating ' + writePath);
-        return File.writeFileSync(writePath, replaceVars(reader));
+        options.appName = options.name;
       }
-    });
-  };
-  walk();
-  if (template === 'app') {
-    process.chdir(dest);
-    require('./framework.js');
-  }
+      destinationPath = path.join(process.cwd(), Batman.helpers.underscore(options.appName));
+      if (path.existsSync(destinationPath)) {
+        this.fatal('Destination already exists!');
+      }
+      fs.mkdirSync(destinationPath, 0755);
+      fs.writeFileSync(path.join(destinationPath, '.batman'), options.appName);
+    } else {
+      destinationPath = process.cwd();
+      if (options.appName == null) {
+        try {
+          options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim();
+        } catch (e) {
+          if (e.code === 'EBADF') {
+            this.fatal('Couldn\'t find out the name your project! Either pass it with --name or put it in a .batman file in your project root.');
+          } else {
+            throw e;
+          }
+        }
+      }
+    }
+    varMap = {
+      app: options.appName,
+      name: options.name
+    };
+    transforms = [
+      (function(x) {
+        return x.toUpperCase();
+      }), (function(x) {
+        return Batman.helpers.camelize(x);
+      }), (function(x) {
+        return x.toLowerCase();
+      })
+    ];
+    replaceVars = function(string) {
+      var f, templateKey, value, _i, _len;
+      for (templateKey in varMap) {
+        value = varMap[templateKey];
+        if (value == null) {
+          console.error("template key " + templateKey + " not defined!");
+        }
+        for (_i = 0, _len = transforms.length; _i < _len; _i++) {
+          f = transforms[_i];
+          string = string.replace(new RegExp("\\$" + (f(templateKey)) + "\\$", 'g'), f(value));
+        }
+      }
+      return string;
+    };
+    count = 0;
+    walk = __bind(function(aPath) {
+      var sourcePath;
+      if (aPath == null) {
+        aPath = "/";
+      }
+      sourcePath = path.join(source, aPath);
+      return fs.readdirSync(sourcePath).forEach(__bind(function(file) {
+        var destFile, dir, ext, newFile, oldFile, resultName, sourceFile, stat;
+        if (file === '.gitignore') {
+          return;
+        }
+        resultName = replaceVars(file);
+        sourceFile = path.join(sourcePath, file);
+        destFile = path.join(destinationPath, aPath, resultName);
+        ext = path.extname(file).toLowerCase().slice(1);
+        stat = fs.statSync(sourceFile);
+        if (stat.isDirectory()) {
+          dir = path.join(destinationPath, aPath, resultName);
+          if (!path.existsSync(dir)) {
+            fs.mkdirSync(dir, 0755);
+          }
+          return walk(path.join(aPath, file));
+        } else if (ext === 'png' || ext === 'jpg' || ext === 'gif') {
+          newFile = fs.createWriteStream(destFile);
+          oldFile = fs.createReadStream(sourceFile);
+          this.info("creaitng " + destFile);
+          return util.pump(oldFile, newFile, function(err) {
+            if (err != null) {
+              throw err;
+            }
+          });
+        } else {
+          if (file.charAt(0) === '.') {
+            return;
+          }
+          count++;
+          return fs.readFile(sourceFile, 'utf8', __bind(function(err, fileContents) {
+            if (err != null) {
+              throw err;
+            }
+            this.info("creating " + destFile);
+            return fs.writeFile(destFile, replaceVars(fileContents), __bind(function(err) {
+              if (err != null) {
+                throw err;
+              }
+              if (--count === 0) {
+                return this.ok("" + options.name + " generated successfully.");
+              }
+            }, this));
+          }, this));
+        }
+      }, this));
+    }, this);
+    return walk();
+  });
 }).call(this);

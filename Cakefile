@@ -82,7 +82,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     after: ->
       first = true
       runner.run
-        code:  "#{tmpdir}/batman.js"
+        code:  {namespace: "Batman", code: "#{tmpdir}/batman.js"}
         deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
         tests: glob.globSync("#{tmpdir}/*_test.js")
 

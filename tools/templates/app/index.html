@@ -3,8 +3,11 @@
 <head>
   <title>$App$</title>
   
-  <script src="lib/coffee-script.js"></script>
-  <script src="lib/batman.js"></script>
+  <script src="/batman/coffee-script.js" type="text/javascript"></script>
+  <script src="/batman/es5-shim.js" type="text/javascript"></script>
+  <script src="/batman/dist/batman.nodep.js" type="text/javascript"></script>
+
+  <script src="app.js" type="text/javascript"></script>
   
   <style>
   * {
@@ -36,21 +39,13 @@
 
 <body>
   <div data-yield="main"></div>
-  
   <div id="batman">
-    <input data-bind="App.name" />
+    <span>$App$</span>
     <code>powered by</code><br />
-    <img src="resources/batman.png" />
+    <img src="/resources/batman.png" />
   </div>
-  
-  <script type="text/coffeescript">
-  class $App$ extends Batman.App
-    @controller 'app'
-    @root 'app.index'
-    
-    name: '$App$'
-  
-  $App$.run()
+  <script type="text/javascript">
+    $App$.run();
   </script>
 </body>
 </html>

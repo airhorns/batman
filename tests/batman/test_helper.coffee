@@ -4,6 +4,7 @@ else
   exports = global
   exports.window = w = jsdom("<html><head><script></script></head><body></body></html>").createWindow()
   exports.document = w.document
+  global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
 
 exports.ASYNC_TEST_DELAY = 20
 
