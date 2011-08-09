@@ -1108,6 +1108,8 @@ class Batman.Model extends Batman.Object
     record = new @(''+id)
     setTimeout (-> record.load()), 0
     record
+  
+  @id: 'id'
 
   # ### Transport methods
 
@@ -1127,7 +1129,6 @@ class Batman.Model extends Batman.Object
 
     allMechanisms = @::_batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
-    allMechanisms.shift() if not fireImmediately
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
       for m in mechanisms
@@ -1203,11 +1204,13 @@ class Batman.Model extends Batman.Object
     # Find the ID from either the first argument or the attributes.
     id = if $typeOf(idOrAttributes) is 'String' then idOrAttributes else idOrAttributes.id
     if id?
-      @id = "#{id}"
+      @_id "#{id}"
       @constructor.get('all').add(@)
 
-  _id: ->
-    @id
+  _id: (id) ->
+    key = @constructor.id
+    @[key] = id if typeof id isnt 'undefined'
+    @[key]
 
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
@@ -1434,13 +1437,13 @@ class Batman.LocalStorage extends Batman.StorageMechanism
 
   writeToStorage: (record, callback) ->
     key = @modelKey
-    id = record.id ||= ++@id
+    id = record._id() || record._id(++@id)
     localStorage[key + id] = JSON.stringify(record) if key and id
     callback()
 
   readFromStorage: (record, callback) ->
     key = @modelKey
-    id = record.id
+    id = record._id()
     json = localStorage[key + id] if key and id
     record.fromJSON JSON.parse json
     callback()
@@ -1454,14 +1457,14 @@ class Batman.RestStorage extends Batman.StorageMechanism
       if thing.url
         options.url = thing.url?() || thing.url
       else
-        options.url = "/#{@modelKey}/#{record.id}"
+        options.url = "/#{@modelKey}/#{record._id()}"
       break if options.url
 
     options
 
   writeToStorage: (record, callback) ->
     options = $mixin @optionsForRecord(record),
-      method: if id then 'put' else 'post'
+      method: if record._id() then 'put' else 'post'
       data: JSON.stringify record
       success: ->
         callback()
@@ -1472,7 +1475,6 @@ class Batman.RestStorage extends Batman.StorageMechanism
 
   readFromStorage: (record, callback) ->
     options = $mixin @optionsForRecord(record),
-      method: 'GET'
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         for key of data
@@ -1485,7 +1487,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
     new Batman.Request(options)
 
   readAllFromStorage: (model, callback) ->
-    options = $mixin @optionsForRecord(record),
+    options = $mixin @optionsForRecord(model),
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         if !Array.isArray(data)
@@ -1494,7 +1496,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
             break
 
         for obj in data
-          record = new model ''+obj.id
+          record = new model ''+obj[model.id]
           record.fromJSON obj
 
         callback()
@@ -1875,7 +1877,7 @@ Batman.DOM = {
 
         if route instanceof Batman.Model
           controllerName = helpers.camelize(helpers.pluralize(key)) + 'Controller'
-          controller = context.get('controllerName').sharedInstance()
+          controller = context.get(controllerName).sharedInstance()
 
           id = route._id()
           route = controller.show?.bind(controller, {id: id})
