@@ -1983,7 +1983,7 @@ Batman.DOM = {
           localClone.push item
           
           renderer = new Batman.Renderer newNode, ->
-            parent.appendChild newNode
+            parent.insertBefore newNode, sibling
             parentRenderer.allow 'ready'
           , localClone
         
