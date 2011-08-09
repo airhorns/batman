@@ -1459,12 +1459,8 @@ class Batman.RestStorage extends Batman.StorageMechanism
     options =
       type: 'json'
 
-    for thing in [record, @model]
-      if thing.url
-        options.url = thing.url?() || thing.url
-      else
-        options.url = "/#{@modelKey}/#{record._id()}"
-      break if options.url
+    options.url = record?.url?() || record?.url || @model.url?() || @model.url || @modelKey
+    options.url += "/#{record._id()}" if record and not record.url
 
     options
 
@@ -1486,14 +1482,14 @@ class Batman.RestStorage extends Batman.StorageMechanism
         for key of data
           data = data[key]
           break
-
+        
         record.fromJSON data
         callback()
 
     new Batman.Request(options)
 
   readAllFromStorage: (model, callback) ->
-    options = $mixin @optionsForRecord(model),
+    options = $mixin @optionsForRecord(),
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
         if !Array.isArray(data)
