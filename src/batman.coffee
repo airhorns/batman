@@ -1800,10 +1800,13 @@ class RenderContext
     while i--
       context = @contexts[i]
       if context.get?
-        val = context.get(key)
+        val = context.get(base)
       else
         val = context[base]
-      return [val, context] if val?
+
+      # we need to pass the check if the basekey exists, even if the intermediary keys do not.
+      return [(context.get || Batman.Observable.get).call(context, key), context] if typeof val isnt 'undefined'
+
     return [container.get(key), container]
 
   get: (key) ->
