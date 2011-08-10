@@ -583,13 +583,14 @@ class Batman.Object
     return if isGlobal is false
     container[@name] = @
 
-  # Apply mixins to this subclass.
-  @mixin: (mixins...) -> $mixin @, mixins...
+  # Apply mixins to this class.
+  @classMixin: (mixins...) -> $mixin @, mixins...
 
-  # Apply mixins to instances of this subclass.
-  mixin: @mixin
+  # Apply mixins to instances of this class.
+  @mixin: -> @classMixin.apply @prototype, arguments
+  mixin: @classMixin
 
-  @accessor: (keys..., accessor) ->
+  @classAccessor: (keys..., accessor) ->
     Batman.initializeObject @
     if keys.length is 0
       if accessor.get or accessor.set
@@ -602,15 +603,20 @@ class Batman.Object
     else
       @_batman.keyAccessors ||= new Batman.SimpleHash
       @_batman.keyAccessors.set(key, accessor) for key in keys
-  accessor: @accessor
+  
+  @accessor: -> @classAccessor.apply @prototype, arguments
+  accessor: @classAccessor
 
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
     @mixin mixins...
 
   # Make every subclass and their instances observable.
+  @classMixin Batman.Observable, Batman.EventEmitter
   @mixin Batman.Observable, Batman.EventEmitter
-  @::mixin Batman.Observable, Batman.EventEmitter
+
+  # Observe this property on every instance of this class.
+  @observeAll: -> @::observe.apply @prototype, arguments
 
 
 class Batman.SimpleHash
@@ -666,12 +672,13 @@ class Batman.SimpleHash
 class Batman.Hash extends Batman.Object
   constructor: Batman.SimpleHash
 
-  @::accessor
+  @accessor
     get: Batman.SimpleHash::get
     set: Batman.SimpleHash::set
     unset: Batman.SimpleHash::unset
 
-  @::accessor 'isEmpty', get: -> @isEmpty()
+  @accessor 'isEmpty', get: -> @isEmpty()
+
   for k in ['hasKey', 'equality', 'each', 'keys', 'merge']
     @::[k] = Batman.SimpleHash::[k]
 
@@ -726,7 +733,7 @@ class Batman.Set extends Batman.Object
   for k in ['has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
     @::[k] = Batman.SimpleSet::[k]
 
-  @::accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
+  @accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
 
 class Batman.SortableSet extends Batman.Set
   constructor: (index) ->
@@ -778,7 +785,7 @@ class Batman.Request extends Batman.Object
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is
   # not desired, use @cancel() after setting the URL.
-  @::observe 'url', ->
+  @observeAll 'url', ->
     @_autosendTimeout = setTimeout (=> @send()), 0
 
   loading: @event ->
@@ -1096,13 +1103,13 @@ class Batman.Model extends Batman.Object
     @
 
   # ### Query methods
-  @accessor 'all',
+  @classAccessor 'all',
     get: ->
       @load() if not @all
       @all
 
-  @accessor 'first', {get: -> @first = @get('all')[0]}
-  @accessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
+  @classAccessor 'first', {get: -> @first = @get('all')[0]}
+  @classAccessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
 
   @find: (id) ->
     for record in @get('all').toArray()
@@ -1112,6 +1119,7 @@ class Batman.Model extends Batman.Object
     setTimeout (-> record.load()), 0
     record
   
+  # Override this property if your model is indexed by a key other than `id`
   @id: 'id'
 
   # ### Transport methods
@@ -1185,7 +1193,7 @@ class Batman.Model extends Batman.Object
   # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
   # operations on the model are asynchronous, these states are used to indicate exactly what point the
   # record is at in it's lifetime, which can often be during a save or load operation.
-  @::mixin Batman.StateMachine
+  @mixin Batman.StateMachine
 
   # Add the various states to the model.
   for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
@@ -1230,7 +1238,7 @@ class Batman.Model extends Batman.Object
     @dirty() if @state() isnt 'dirty'
 
   # FIXME: Is this really needed?
-  @::accessor 'dirtyKeys',
+  @accessor 'dirtyKeys',
     get: -> @dirtyKeys
 
   toString: ->
@@ -1352,7 +1360,7 @@ class Batman.Model extends Batman.Object
 
   isNew: -> !@_id()
 
-  @::accessor
+  @accessor
     isValid: ->
       @errors.clear()
       return no if @validate() is no
@@ -1534,7 +1542,7 @@ class Batman.View extends Batman.Object
   prefix: 'views'
 
   # Whenever the source changes we load it up asynchronously
-  @::observe 'source', ->
+  @observeAll 'source', ->
     setTimeout (=> @reloadSource()), 0
 
   reloadSource: ->
@@ -1553,13 +1561,13 @@ class Batman.View extends Batman.Object
         error: (response) ->
           throw "Could not load view from #{url}"
 
-  @::observe 'html', (html) ->
+  @observeAll 'html', (html) ->
     node = @node || document.createElement 'div'
     node.innerHTML = html
 
     @set('node', node) if @node isnt node
 
-  @::observe 'node', (node) ->
+  @observeAll 'node', (node) ->
     return unless node
     @ready.fired = false
 
@@ -1684,7 +1692,7 @@ class Binding extends Batman.Object
     ///
   
   # The `binding` which calculates the final result by reducing the initial value through all the filters.
-  @::accessor 'binding'
+  @accessor 'binding'
     get: -> 
       @filterFunctions.reduce (value, fn, i) =>
         # Get any argument keypaths from the context stored at parse time.

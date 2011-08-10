@@ -61,17 +61,17 @@ QUnit.module "$events on Batman.Object: prototype events"
 
     class One extends Batman.Object
       method: @event ->
-      @::observe "method", a
+      @observeAll "method", a
 
       redeclaredMethod: @event ->
-      @::observe "redeclaredMethod", b
+      @observeAll "redeclaredMethod", b
 
     class Two extends One
       # Redeclare a new event with the same key
       redeclaredMethod: @event ->
 
-      @::observe "method", c
-      @::observe "redeclaredMethod", d
+      @observeAll "method", c
+      @observeAll "redeclaredMethod", d
 
     @one = new One
     @two = new Two
