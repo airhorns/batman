@@ -2186,6 +2186,8 @@ Batman.exportHelpers = (onto) ->
   onto.$redirect = $redirect
   onto.$event = $event
   onto.$eventOneShot = $eventOneShot
+  onto.$typeOf = $typeOf
+  onto
 
 Batman.exportGlobals = () ->
   Batman.exportHelpers(container)
