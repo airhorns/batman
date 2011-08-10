@@ -32,16 +32,19 @@ _objectToString = Object.prototype.toString
 # `$mixin` applies every key from every argument after the first to the
 # first argument. If a mixin has an `initialize` method, it will be called in
 # the context of the `to` object, and it's key/values won't be applied.
+unmixinableKeys = ['initialize', 'uninitialize', 'prototype']
 Batman.mixin = $mixin = (to, mixins...) ->
-  set = to.set
-  hasSet = typeof set is 'function'
+  hasSet = typeof to.set is 'function'
 
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
 
     for key, value of mixin
-      continue if key in ['initialize', 'uninitialize', 'prototype']
-      if hasSet then set.call(to, key, value) else to[key] = value
+      continue if key in unmixinableKeys
+      if hasSet
+        to.set(key, value)
+      else 
+        to[key] = value
 
   to
 
@@ -584,7 +587,7 @@ class Batman.Object
     container[@name] = @
 
   # Apply mixins to this class.
-  @classMixin: (mixins...) -> $mixin @, mixins...
+  @classMixin: -> $mixin @, arguments...
 
   # Apply mixins to instances of this class.
   @mixin: -> @classMixin.apply @prototype, arguments
@@ -1150,17 +1153,26 @@ class Batman.Model extends Batman.Object
   # storage representations. Encoders do things like stringifying dates and parsing them back out again,
   # pulling out nested model collections and instantiating them (and JSON.stringifying them back again),
   # and marshalling otherwise un-storable object.
-  @encode: (keys...) ->
+  @encode: (keys..., encoderOrLastKey) ->
     Batman.initializeObject @prototype
     @::_batman.encoders ||= new Batman.SimpleHash
     @::_batman.decoders ||= new Batman.SimpleHash
+    
+    switch $typeOf(encoderOrLastKey) 
+      when 'String'
+        keys.push encoderOrLastKey
+      when 'Function'
+        encoder = encoderOrLastKey
+      else
+        encoder = encoderOrLastKey.encode
+        decoder = encoderOrLastKey.decode
 
     for key in keys
-      @::_batman.encoders.set key, (value) ->
-        ''+value
+      @::_batman.encoders.set key, (encoder || @defaultEncoder)
+      @::_batman.decoders.set key, (decoder || @defaultDecoder)
 
-      @::_batman.decoders.set key, (value) ->
-        value
+  # Set up the unit functions as the default for both
+  @defaultEncoder = @defaultDecoder = (x) -> (x)
 
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
@@ -1250,7 +1262,11 @@ class Batman.Model extends Batman.Object
     encoders = @_batman.get('encoders')
     unless !encoders or encoders.isEmpty()
       encoders.each (key, encoder) =>
-        obj[key] = encoder(@[key])
+        val = @get key
+        if typeof val isnt 'undefined'
+          encodedVal = encoder(@get key)
+          if typeof encodedVal isnt 'undefined'
+            obj[key] = encodedVal
 
     obj
 
@@ -1259,7 +1275,7 @@ class Batman.Model extends Batman.Object
   fromJSON: (data) ->
     obj = {}
     decoders = @_batman.get('decoders')
-
+    
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
     # each key and just setting the values.
     if !decoders or decoders.isEmpty()
@@ -1599,6 +1615,7 @@ class Batman.View extends Batman.Object
 # It is a continuation style parser, designed not to block for longer than 50ms at a time if the document
 # fragment is particularly long.
 class Batman.Renderer extends Batman.Object
+
   constructor: (@node, @callback, contexts = [Batman.currentApp]) ->
     super
     @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)

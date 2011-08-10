@@ -104,10 +104,32 @@ test "models without any decoders should decode all keys with camelization", ->
     # No encoders.
 
   p = new TestProduct
-  p.fromJSON {name: "Cool Snowboard", cost: 12.99}
+  p.fromJSON {name: "Cool Snowboard", cost: 12.99, rails_is_silly: "yup"}
   
-  equal p.get 'name', "Cool Snowboard"
-  equal p.get 'cost', 12.99
+  equal p.get('name'), "Cool Snowboard"
+  equal p.get('cost'), 12.99
+  equal p.get('railsIsSilly'), 'yup'
+
+QUnit.module "Batman.Model: encoding: custom encoders/decoders"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', (unencoded) -> unencoded.toUpperCase()
+      
+      @encode 'date',
+        encode: (unencoded) -> "zzz"
+        decode: (encoded) -> "yyy"
+  
+test "custom encoders with an encode and a decode implementation should be recognized", ->
+  p = new @Product(date: "clobbered")
+  deepEqual p.toJSON(), {date: "zzz"}
+
+  json =   p = new @Product
+  p.fromJSON({date: "clobbered"})
+  equal p.get('date'), "yyy"
+
+test "passing a function should shortcut to passing an encoder", ->
+  p = new @Product(name: "snowboard")
+  deepEqual p.toJSON(), {name: "SNOWBOARD"}
 
 QUnit.module "Batman.Model: validations"
 
