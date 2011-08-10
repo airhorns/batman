@@ -66,8 +66,8 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 #   B) accept a callback as a second function application.
 # This is useful so that multiline functions can be passed as callbacks
 # without the need for wrapping brackets (which a CoffeeScript bug
-# requires them to have). `$block` also takes an optional function airity 
-# argument as the first argument. If a `length` argument is given, and `length` 
+# requires them to have). `$block` also takes an optional function airity
+# argument as the first argument. If a `length` argument is given, and `length`
 # or more arguments are passed, `$block` will call the second argument
 # (the function) with the passed arguments, regardless of their type.
 # Example:
@@ -248,7 +248,7 @@ class Batman.Keypath extends Batman.ObservableProperty
     if @depth is 1 then super else @terminalProperty()?.getValue()
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
- 
+
 # Observable
 # ----------
 
@@ -603,7 +603,7 @@ class Batman.Object
     else
       @_batman.keyAccessors ||= new Batman.SimpleHash
       @_batman.keyAccessors.set(key, accessor) for key in keys
-  
+
   @accessor: -> @classAccessor.apply @prototype, arguments
   accessor: @classAccessor
 
@@ -1089,7 +1089,6 @@ class Batman.Controller extends Batman.Object
 # Models
 # ------
 
-
 class Batman.Model extends Batman.Object
 
   # ## Model API
@@ -1114,11 +1113,11 @@ class Batman.Model extends Batman.Object
   @find: (id) ->
     for record in @get('all').toArray()
       return record if record._id() is id
-    
+
     record = new @(''+id)
     setTimeout (-> record.load()), 0
     record
-  
+
   # Override this property if your model is indexed by a key other than `id`
   @id: 'id'
 
@@ -1490,7 +1489,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
         for key of data
           data = data[key]
           break
-        
+
         record.fromJSON data
         callback()
 
@@ -1673,7 +1672,7 @@ class Binding extends Batman.Object
   # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
   # It makes the following matches:
   #
-  # + `foo` and `baz.qux` in `foo, "bar", baz.qux` 
+  # + `foo` and `baz.qux` in `foo, "bar", baz.qux`
   # + `foo.bar.baz` in `true, false, "true", "false", foo.bar.baz`
   # + `true.bar` in `2, true.bar`
   # + `truesay` in truesay
@@ -1683,17 +1682,17 @@ class Binding extends Batman.Object
     \s*               # Be insensitive to whitespace between the comma and the actual arguments.
     (?!               # Use a lookahead to ensure we aren't matching true or false:
       (?:true|false)  # Match either true or false ...
-      \s*             # and make sure that there's nothing else that comes after the true or false ... 
+      \s*             # and make sure that there's nothing else that comes after the true or false ...
       (?:$|,)         # before the end of this argument in the list.
     )
     ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
     \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
     (?:$|,)           # Match either the next comma or the end of the filter arguments list.
     ///
-  
+
   # The `binding` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'binding'
-    get: -> 
+    get: ->
       @filterFunctions.reduce (value, fn, i) =>
         # Get any argument keypaths from the context stored at parse time.
         args = @filterArguments[i].map (argument) ->
@@ -1710,14 +1709,14 @@ class Binding extends Batman.Object
 
     # Pull out the key and filter from the `@keyPath`.
     @parseFilter()
-    
-    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can 
+
+    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
     # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
     if @key
       [unfilteredValue, @keyContext] = @renderContext.findKey @key
 
     shouldSet = yes
-    
+
     if Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, ->
         shouldSet = no
@@ -1727,7 +1726,7 @@ class Binding extends Batman.Object
           if @key
             @keyContext.set @key, @node.value
         shouldSet = yes
-    
+
     # Observe the value of this binding's `binding` and fire it immediately to update the node.
     @observe 'binding', yes, (value) ->
       if shouldSet
@@ -1741,8 +1740,8 @@ class Binding extends Batman.Object
     # filter to) in these arrays.
     @filterFunctions = []
     @filterArguments = []
-    
-    # Split the string by pipes to see if there are any filters. 
+
+    # Split the string by pipes to see if there are any filters.
     filters = @keyPath.replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
 
     # The key will is always the first token before the pipe.
@@ -1780,8 +1779,8 @@ class Binding extends Batman.Object
         if argument._keypath
           [_, argument.context] = @renderContext.findKey argument._keypath
         argument
-  
-  # Turn a piece of a `data` keypath into a usable javascript object. 
+
+  # Turn a piece of a `data` keypath into a usable javascript object.
   #  + replacing keypaths using the above regular expression
   #  + wrapping the `,` delimited list in square brackets
   #  + and `JSON.parse`ing them as an array.
@@ -1790,19 +1789,19 @@ class Binding extends Batman.Object
 
 # The Render context class manages the stack of contexts accessible to a view during rendering.
 class RenderContext
-  constructor: (contexts...) -> 
+  constructor: (contexts...) ->
     @contexts = contexts
     @storage = new Batman.Object
     @contexts.push @storage
-  
+
   findKey: (key) ->
     base = key.split('.')[0]
     i = @contexts.length
     while i--
       context = @contexts[i]
-      if context.get? 
+      if context.get?
         val = context.get(key)
-      else 
+      else
         val = context[base]
       return [val, context] if val?
     return [container.get(key), container]
@@ -1839,7 +1838,7 @@ class RenderContext
       node: node
       dataChange: dataChange
       nodeChange: nodeChange
-    
+
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
@@ -1934,7 +1933,7 @@ Batman.DOM = {
       object = new Batman.Object
       object[contextName] = context.get(key)
       context.push object
-      
+
       node.onParseExit = ->
         context.pop()
 
@@ -1979,7 +1978,7 @@ Batman.DOM = {
       , 0
 
       nodeMap = new Batman.Hash
-      
+
       collection = context.get key
 
       if collection?.observe
@@ -1993,12 +1992,12 @@ Batman.DOM = {
           iteratorContext[iteratorName] = item
           localClone.push iteratorContext
           localClone.push item
-          
+
           renderer = new Batman.Renderer newNode, ->
             parent.insertBefore newNode, sibling
             parentRenderer.allow 'ready'
           , localClone
-        
+
         collection.observe 'remove', remove = (item) ->
           oldNode = nodeMap.get item
           oldNode?.parentNode?.removeChild oldNode
@@ -2128,7 +2127,7 @@ helpers = Batman.helpers = {
 
 # Filters
 # -------
-filters = Batman.Filters = 
+filters = Batman.Filters =
   truncate: (value, length, end = "...") ->
     if value.length > length
       value = value.substr(0, length-end.length) + end
