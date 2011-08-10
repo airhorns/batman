@@ -2134,6 +2134,9 @@ filters = Batman.Filters =
       value = value.substr(0, length-end.length) + end
     value
 
+  else: (value, string) ->
+    value || string
+
   prepend: (value, string) ->
     string + value
 
