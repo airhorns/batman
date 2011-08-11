@@ -1752,9 +1752,9 @@ class Binding extends Batman.Object
       [unfilteredValue, @keyContext] = @renderContext.findKey @key
 
     shouldSet = yes
-
+    
     if Batman.DOM.nodeIsEditable(@node)
-      Batman.DOM.events.change @node, ->
+      Batman.DOM.events.change @node, =>
         shouldSet = no
         if @nodeChange
           @nodeChange(@node, @keyContext || @value)
@@ -1764,7 +1764,7 @@ class Binding extends Batman.Object
         shouldSet = yes
 
     # Observe the value of this binding's `binding` and fire it immediately to update the node.
-    @observe 'binding', yes, (value) ->
+    @observe 'binding', yes, (value) =>
       if shouldSet
         if @dataChange
           @dataChange(value, @node)
@@ -2064,13 +2064,14 @@ Batman.DOM = {
         node.href = '#'
 
     change: (node, callback) ->
-      eventName = switch node.nodeName.toUpperCase()
-        when 'TEXTAREA' then 'keyup'
+      eventNames = switch node.nodeName.toUpperCase()
+        when 'TEXTAREA' then ['keyup', 'change']
         when 'INPUT'
-          if node.type.toUpperCase() is 'TEXT' then 'keyup' else 'change'
-        else 'change'
-
-      Batman.DOM.addEventListener node, eventName, callback
+          if node.type.toUpperCase() is 'TEXT' then ['keyup', 'change'] else ['change']
+        else ['change']
+      
+      for eventName in eventNames
+        Batman.DOM.addEventListener node, eventName, callback
 
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)

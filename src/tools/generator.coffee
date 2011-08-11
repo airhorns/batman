@@ -9,7 +9,7 @@ util = require 'util'
 cli  = require './cli'
 Batman = require '../lib/batman.js'
 
-cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\nbatman [OPTIONS] new <app_name>')
+cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\n  batman [OPTIONS] new <app_name>')
 cli.parse 
   app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
 
@@ -32,6 +32,9 @@ cli.main (args, options) ->
   command = args.shift()
   if command == 'new'
     options.template = 'app'
+    unless args[0]?
+      @error "Please provide a name for the application."
+      cli.getUsage()
     options.name = args[0]
   # Otherwise grab the template and name of the thing to generate
   else if args.length == 2
@@ -40,7 +43,6 @@ cli.main (args, options) ->
   else
     @error "Please specify a template and a name for batman generate."
     cli.getUsage()
-    process.exit()
   
   # Grab a reference to the batman template directory
   source = path.join(__dirname, 'templates', options.template)

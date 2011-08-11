@@ -86,6 +86,7 @@ asyncTest 'it should allow the inner value to be bound', 1, ->
     equals node.html(), "bar"
     QUnit.start()
 
+
 asyncTest 'it should allow a class to be bound', 6, ->
   source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'
   render source,
@@ -127,6 +128,36 @@ asyncTest 'it should allow arbitrary (?!")\s+\|\s+(?!")attributes to be bound', 
     equal $(node[0]).attr('foo'), "baz"
     equal $(node[0]).attr('bar'), "qux"
     QUnit.start()
+
+asyncTest 'it should allow input values to be bound', 1, ->
+  render '<input data-bind="one" type="text" />',
+    one: "qux"
+  , (node) ->
+    equal $(node[0]).val(), 'qux'
+    QUnit.start()
+
+asyncTest 'it should bind the input value and update the input when it changes', 2, ->
+  context = new Batman.Object
+    one: "qux"
+
+  render '<input data-bind="one" type="text" />', context, (node) ->
+    equal $(node[0]).val(), 'qux'
+    context.set('one', "bar")
+    delay =>
+      equal $(node[0]).val(), 'bar'
+
+asyncTest 'it should bind the input value and update the object when it changes', 1, ->
+  context = new Batman.Object
+    one: "qux"
+
+  render '<input data-bind="one" type="text" />', context, (node) ->
+    $(node[0]).val('bar')
+    # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
+    evt = document.createEvent("MouseEvents")
+    evt.initEvent("change", true, true)
+    node[0].dispatchEvent(evt)
+    delay =>
+      equal context.get('one'), 'bar'
 
 asyncTest 'it should allow events to be bound', 1, ->
   context =
@@ -455,14 +486,13 @@ asyncTest 'should render a user defined filter', 2, ->
     deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
     QUnit.start()
 
-test 'dumb', ->
-  
+test 'Batman: runtime integration test', ->
   class A extends Batman.Object
   a = new A
   a.set 'foo', 10
 
   class B extends Batman.Object
-    @::accessor 'prop'
+    @accessor 'prop'
       get: (key) -> a.get('foo') + @get 'foo'
 
   b = new B
@@ -483,7 +513,3 @@ test 'dumb', ->
   c.observe 'whatever', spy = createSpy()
   b.set 'foo', 1000
   ok spy.called
-
-
-   
-
