@@ -909,6 +909,13 @@ $mixin Batman,
   # without wrapping brackets
   route: $block(2, (pattern, callback) ->
     f = (params) ->
+      if $typeOf(f.action) is 'String'
+        components = f.action.split '#'
+        controller = Batman.currentApp[helpers.camelize(components[0])+'Controller']
+        if controller
+          f.context = controller
+          f.action = controller::[components[1]]
+
       context = f.context || @
       if context and context.sharedInstance
         context = context.sharedInstance()
