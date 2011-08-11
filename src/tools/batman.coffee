@@ -4,7 +4,7 @@
 # Batman
 # Copyright Shopify, 2011
 
-cli = require 'cli'
+cli = require './cli'
 Batman = require '../lib/batman.js'
 
 # List of commands for use in the multiple `cli.parse` calls below.

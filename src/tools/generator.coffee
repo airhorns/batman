@@ -7,7 +7,7 @@
 fs = require 'fs'
 path = require 'path'
 util = require 'util' 
-cli  = require 'cli'
+cli  = require './cli'
 Batman = require '../lib/batman.js'
 
 cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse 

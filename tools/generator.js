@@ -4,7 +4,7 @@
   fs = require('fs');
   path = require('path');
   util = require('util');
-  cli = require('cli');
+  cli = require('./cli');
   Batman = require('../lib/batman.js');
   cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse({
     app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]

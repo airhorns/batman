@@ -5,7 +5,7 @@
 connect = require 'connect'
 path    = require 'path'
 fs      = require 'fs'
-cli     = require 'cli'
+cli     = require './cli'
 
 cli.enable('daemon').setUsage('batman server [OPTIONS]').parse 
   port: ['p', "Port to run HTTP server on", "number", 8124]

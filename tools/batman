@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 ;
 var Batman, Commands, cli, noCommandGiven, oldFatal;
-cli = require('cli');
+cli = require('./cli');
 Batman = require('../lib/batman.js');
 Commands = ['server', 'generate'];
 cli.disable('help');
