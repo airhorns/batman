@@ -12,10 +12,10 @@ QUnit.module 'Batman.View'
     MockRequest.reset()
     @options =
       source: "test_path#{++count}.html"
-    
+
     Batman.Request = MockRequest
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
-  
+
   teardown: ->
     Batman.Request = oldRequest
 
@@ -30,7 +30,7 @@ asyncTest 'should update its node with the contents of its view', 1, ->
 
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.ready (observer = createSpy())
-  
+
   setTimeout(=>
     MockRequest.lastInstance.fireSuccess('view contents')
   , ASYNC_TEST_DELAY)
@@ -39,11 +39,11 @@ asyncTest 'should fire the ready event once its contents have been loaded', 1, -
     ok observer.called
     QUnit.start()
   , ASYNC_TEST_DELAY*2)
-  
+
 QUnit.module 'Batman.View rendering'
 
 # Helper function for making a Batman.Object out of a JS object
-obj = (a = {}) -> 
+obj = (a = {}) ->
   new Batman.Object a
 
 # Helper function for rendering a view given a context. Optionally returns a jQuery of the nodes,
@@ -57,12 +57,12 @@ render = (source, jqueryize = true, context = {}, callback = ->) ->
   else
     if typeof context == 'function'
       callback = context
-  
+
   context = if context.get && context.set then context else obj context
   view = new Batman.View
     contexts: [obj(), context]
     node: node
-  view.ready -> 
+  view.ready ->
     node = if jqueryize then $(view.get('node')).children() else view.get('node')
     callback(node, view)
   view.get('node')
@@ -176,7 +176,7 @@ asyncTest 'it should allow events to be bound', 1, ->
     QUnit.start()
 
 asyncTest 'it should allow mixins to be applied', 1, ->
-  Batman.mixins.set 'test', 
+  Batman.mixins.set 'test',
     foo: 'bar'
 
   source = '<div data-mixin="test"></div>'
@@ -197,9 +197,9 @@ asyncTest 'it should allow simple loops', ->
       node = $(view.get('node')).children()
       for i in [0...node.length]
         # We must track these in a temp object because they are a set => undefined order, can't assume
-        tracking[node[i].innerHTML] = true 
+        tracking[node[i].innerHTML] = true
         equal node[i].className,  'present'
-      
+
       for k in ['foo', 'bar', 'baz']
         ok tracking[k], "Object #{k} was found in the source"
 
@@ -254,8 +254,8 @@ asyncTest 'it should allow access to variables in higher scopes during loops', 3
           equal $(tagNode).attr('color'), "green"
 
           # Each tag node has a "post-#{i}" binding to show it has access to the enclosing scope.
-          # Since the order the tags come out is undefined, we increment the ith index in a 
-          # tracking array. At the end, each position in the tracking array should read 3, 
+          # Since the order the tags come out is undefined, we increment the ith index in a
+          # tracking array. At the end, each position in the tracking array should read 3,
           # because each post has three tags.
           postRef = $(tagNode).attr('post')
           postCounts[parseInt(postRef.slice(5,6), 10)]++
@@ -320,46 +320,46 @@ asyncTest 'it should allow chained keypaths', 3, ->
 QUnit.module 'Batman.View rendering filters'
 
 asyncTest 'should render filters at one key deep keypaths', 1, ->
-  node = render '<div data-bind="foo | times 2"></div>',
-    foo: 2
+  node = render '<div data-bind="foo | upcase"></div>',
+    foo: 'foo'
   , (node) ->
-    equals node.html(), "4"
+    equals node.html(), "FOO"
     QUnit.start()
 
 asyncTest 'should render filters at n deep keypaths', 2, ->
-  render '<div data-bind="foo.bar | times 2"></div>',
+  render '<div data-bind="foo.bar | upcase"></div>',
     foo: obj
-      bar: 2
+      bar: 'baz'
   , (node) ->
-    equals node.html(), "4"
-    render '<div data-bind="foo.bar.baz | times 2"></div>',
+    equals node.html(), "BAZ"
+    render '<div data-bind="foo.bar.baz | upcase "></div>',
       foo: obj
         bar: obj
-          baz: 2
+          baz: "qux"
     , (node) ->
-      equals node.html(), "4"
+      equals node.html(), "QUX"
       QUnit.start()
 
 asyncTest 'should update bindings with the filtered value if they change', 1, ->
   context = obj
-    foo: 1
-  render '<div data-bind="foo | times 2"></div>', context, (node) ->
-    context.set('foo', 2)
-    equals node.html(), '4'
+    foo: 'bar'
+  render '<div data-bind="foo | upcase"></div>', context, (node) ->
+    context.set('foo', 'baz')
+    equals node.html(), 'BAZ'
     QUnit.start()
 
 asyncTest 'should allow filtering on attributes', 2, ->
-  render '<div data-addclass-works="bar | first" data-bind-attr="foo | times 3"></div>',
-    foo: 2
+  render '<div data-addclass-works="bar | first" data-bind-attr="foo | upcase "></div>',
+    foo: "bar"
     bar: [true]
   , (node) ->
     ok node.hasClass('works')
-    equals node.attr('attr'), 6
+    equals node.attr('attr'), 'BAR'
     QUnit.start()
 
 asyncTest 'should allow filtering on simple values', 1, ->
-  render '<div data-bind="1 | times 2"></div>', {}, (node) ->
-    equals node.html(), '2'
+  render '<div data-bind="\'foo\' | upcase"></div>', {}, (node) ->
+    equals node.html(), 'FOO'
     QUnit.start()
 
 asyncTest 'should allow filtering on objects and arrays', 2, ->
@@ -372,24 +372,40 @@ asyncTest 'should allow filtering on objects and arrays', 2, ->
       QUnit.start()
 
 asyncTest 'should allow keypaths as arguments to filters', 1, ->
-  render '<div data-bind="foo | times bar"></div>', 
-    foo: 2
-    bar: 2
+  render '<div data-bind="foo | join bar"></div>',
+    foo: [1,2,3]
+    bar: ':'
   , (node) ->
-    equals node.html(), '4'
+    equals node.html(), '1:2:3'
     QUnit.start()
 
 asyncTest 'should update bindings when argument keypaths change', 1, ->
   context = obj
-    foo: 2
-    bar: 2
+    foo: [1,2,3]
+    bar: ''
 
-  render '<div data-bind="foo | times bar"></div>', context, (node) ->
-    context.set('bar', 4)
+  render '<div data-bind="foo | join bar"></div>', context, (node) ->
+    context.set('bar', "-")
     delay ->
-      equals node.html(), '8'
+      equals node.html(), '1-2-3'
 
 QUnit.module 'Batman.View rendering filters built in'
+
+asyncTest 'get', 1, ->
+  context = obj
+    foo: new Batman.Hash({bar: "qux"})
+
+  render '<div data-bind="foo | get \'bar\'"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
+asyncTest 'get short syntax', 1, ->
+  context = obj
+    foo: new Batman.Hash({bar: "qux"})
+
+  render '<div data-bind="foo[\'bar\']"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
 
 asyncTest 'truncate', 2, ->
   render '<div data-bind="foo | truncate 5"></div>',
@@ -403,7 +419,7 @@ asyncTest 'truncate', 2, ->
     , (node) ->
       equals node.html(), "your "
       QUnit.start()
-      
+
 asyncTest 'prepend', 1, ->
   render '<div data-bind="foo | prepend \'special-\'"></div>',
     foo: 'bar'
@@ -461,7 +477,7 @@ asyncTest 'map', 1, ->
         name: 'two'
         comments: 20
     ]
-  , (node) -> 
+  , (node) ->
     equals node.html(), "one, two"
     QUnit.start()
 
@@ -473,6 +489,20 @@ asyncTest 'map with a numeric key', 1, ->
     ]
   , (node) ->
     equals node.html(), "2, 5"
+    QUnit.start()
+
+asyncTest 'map', 1, ->
+  render '<div data-bind="posts | map \'name\' | join \', \'"></div>',
+    posts: [
+      obj
+        name: 'one'
+        comments: 10
+    , obj
+        name: 'two'
+        comments: 20
+    ]
+  , (node) ->
+    equals node.html(), "one, two"
     QUnit.start()
 
 QUnit.module "Batman.View rendering filters defined by the user"
@@ -504,9 +534,9 @@ test 'Batman: runtime integration test', ->
   ok spy.called
 
   class Binding extends Batman.Object
-    @::accessor 
+    @::accessor
       get: () -> b.get 'foo'
- 
+
   c = new Binding
   equal c.get(), 20
 

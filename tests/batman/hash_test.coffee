@@ -2,6 +2,11 @@ QUnit.module 'Batman.Hash',
   setup: ->
     @hash = new Batman.Hash
 
+test "constructor takes arguments", ->
+  @hash = new Batman.Hash(foo: 'bar', baz: true)
+  ok @hash.hasKey('foo')
+  ok !@hash.hasKey('qux')
+
 test "has(key) on an empty hash returns false", ->
   equal @hash.hasKey('foo'), false
 
@@ -69,7 +74,7 @@ test "keys() returns an array of the hash's keys", ->
   notEqual keys.indexOf(o1), -1
   notEqual keys.indexOf(o2), -1
   notEqual keys.indexOf('bar'), -1
-  
+
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}
   key2 = {}

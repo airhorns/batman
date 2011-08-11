@@ -673,7 +673,9 @@ class Batman.SimpleHash
     merged
 
 class Batman.Hash extends Batman.Object
-  constructor: Batman.SimpleHash
+  constructor: ->
+    Batman.SimpleHash.apply(@, arguments)
+    super
 
   @accessor
     get: Batman.SimpleHash::get
@@ -1726,6 +1728,9 @@ class Binding extends Batman.Object
     (?:$|,)           # Match either the next comma or the end of the filter arguments list.
     ///
 
+  # A less beastly regular expression for pulling out the [] syntax `get`s in a binding string.
+  get_rx = /(\w)\[(.+?)\]/
+
   # The `binding` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'binding'
     get: ->
@@ -1752,7 +1757,7 @@ class Binding extends Batman.Object
       [unfilteredValue, @keyContext] = @renderContext.findKey @key
 
     shouldSet = yes
-    
+
     if Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
@@ -1777,8 +1782,8 @@ class Binding extends Batman.Object
     @filterFunctions = []
     @filterArguments = []
 
-    # Split the string by pipes to see if there are any filters.
-    filters = @keyPath.replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
+    # Rewrite [] style gets, replace quotes to be JSON friendly, and split the string by pipes to see if there are any filters.
+    filters = @keyPath.replace(get_rx, "$1 | get $2 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
 
     # The key will is always the first token before the pipe.
     try
@@ -2045,9 +2050,19 @@ Batman.DOM = {
           collection.each remove
           setTimeout (-> collection.each add), 0
 
-        collection.each (item) ->
-          parentRenderer.prevent 'ready'
-          add(item)
+      # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
+      # This is useful for iterating over hashes or other things that pass (key, value) instead of (value)
+      addItem = () ->
+        item = arguments[arguments.length-1]
+        parentRenderer.prevent 'ready'
+        add(item)
+
+      if collection.each
+        collection.each addItem
+      else if collection.forEach
+        collection.forEach addItem
+      else for k, v of collection
+        addItem(k, v)
 
       false
   }
@@ -2069,7 +2084,7 @@ Batman.DOM = {
         when 'INPUT'
           if node.type.toUpperCase() is 'TEXT' then ['keyup', 'change'] else ['change']
         else ['change']
-      
+
       for eventName in eventNames
         Batman.DOM.addEventListener node, eventName, callback
 
@@ -2167,8 +2182,21 @@ helpers = Batman.helpers = {
 
 # Filters
 # -------
+buntUndefined = (f) ->
+  (value) ->
+    if typeof value is 'undefined'
+      undefined
+    else
+      f.apply(@, arguments)
+
 filters = Batman.Filters =
-  truncate: (value, length, end = "...") ->
+  get: buntUndefined (value, key) ->
+    if value.get?
+      value.get(key)
+    else
+      value[key]
+
+  truncate: buntUndefined (value, length, end = "...") ->
     if value.length > length
       value = value.substr(0, length-end.length) + end
     value
@@ -2182,25 +2210,22 @@ filters = Batman.Filters =
   append: (value, string) ->
     value + string
 
-  downcase: (value) ->
+  downcase: buntUndefined (value) ->
     value.toLowerCase()
 
-  upcase: (value) ->
+  upcase: buntUndefined (value) ->
     value.toUpperCase()
 
-  join: (value, byWhat = '') ->
+  join: buntUndefined (value, byWhat = '') ->
     value.join(byWhat)
 
-  sort: (value) ->
+  sort: buntUndefined (value) ->
     value.sort()
 
-  map: (value, key) ->
+  map: buntUndefined (value, key) ->
     value.map((x) -> x[key])
 
-  times: (value, byWhat) ->
-    value * byWhat
-
-  first: (value) ->
+  first: buntUndefined (value) ->
     value[0]
 
 # Mixins
