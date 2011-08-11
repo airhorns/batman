@@ -43,7 +43,7 @@ Batman.mixin = $mixin = (to, mixins...) ->
       continue if key in unmixinableKeys
       if hasSet
         to.set(key, value)
-      else 
+      else
         to[key] = value
 
   to
@@ -1114,15 +1114,34 @@ class Batman.Model extends Batman.Object
   @classAccessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
 
   @find: (id) ->
+    id = "#{id}"
     for record in @get('all').toArray()
       return record if record._id() is id
 
-    record = new @(''+id)
+    record = new @(id)
     setTimeout (-> record.load()), 0
     record
 
   # Override this property if your model is indexed by a key other than `id`
   @id: 'id'
+  _id: (id) ->
+    model = @constructor
+    key = model.id?() || model.id || 'id'
+
+    if arguments.length > 0
+      id = "#{id}" # normalize to a string
+
+      Batman.initializeObject model
+      records = model._batman.records ||= {}
+      record = records[id]
+
+      all = model.get 'all'
+      all.remove(record) if record
+
+      records[id] = @
+      all.add(@)
+
+    @[key]
 
   # ### Transport methods
 
@@ -1157,8 +1176,8 @@ class Batman.Model extends Batman.Object
     Batman.initializeObject @prototype
     @::_batman.encoders ||= new Batman.SimpleHash
     @::_batman.decoders ||= new Batman.SimpleHash
-    
-    switch $typeOf(encoderOrLastKey) 
+
+    switch $typeOf(encoderOrLastKey)
       when 'String'
         keys.push encoderOrLastKey
       when 'Function'
@@ -1224,19 +1243,11 @@ class Batman.Model extends Batman.Object
     @empty() if not @state()
 
     # Find the ID from either the first argument or the attributes.
-    id = if $typeOf(idOrAttributes) is 'String' then idOrAttributes else idOrAttributes.id
-    if id?
-      @_id "#{id}"
-      @constructor.get('all').add(@)
-
-  _id: (id) ->
-    key = @constructor.id
-    @[key] = id if typeof id isnt 'undefined'
-    @[key]
+    id = if $typeOf(idOrAttributes) is 'Object' then idOrAttributes.id else idOrAttributes
+    @_id id if id?
 
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
-
     # Optimize setting where the value is the same as what's already been set.
     oldValue = @[key]
     return if oldValue is value
@@ -1253,7 +1264,7 @@ class Batman.Model extends Batman.Object
     get: -> @dirtyKeys
 
   toString: ->
-    "#{@_id()}"
+    "#{@constructor.name}: #{@_id()}"
 
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
@@ -1275,7 +1286,7 @@ class Batman.Model extends Batman.Object
   fromJSON: (data) ->
     obj = {}
     decoders = @_batman.get('decoders')
-    
+
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
     # each key and just setting the values.
     if !decoders or decoders.isEmpty()
