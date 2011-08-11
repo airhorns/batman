@@ -6,14 +6,18 @@
   util = require('util');
   cli = require('./cli');
   Batman = require('../lib/batman.js');
-  cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse({
+  cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\nbatman [OPTIONS] new <app_name>');
+  cli.parse({
     app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
   });
   cli.main(function(args, options) {
-    var count, destinationPath, replaceVars, source, transforms, varMap, walk;
-    args.shift();
+    var command, count, destinationPath, replaceVars, source, transforms, varMap, walk;
     options.appName = options.app;
-    if (args.length === 2) {
+    command = args.shift();
+    if (command === 'new') {
+      options.template = 'app';
+      options.name = args[0];
+    } else if (args.length === 2) {
       options.template = args[0];
       options.name = args[1];
     } else {
@@ -31,7 +35,7 @@
       } else {
         options.appName = options.name;
       }
-      destinationPath = path.join(process.cwd(), Batman.helpers.underscore(options.appName));
+      destinationPath = path.join(process.cwd(), options.appName);
       if (path.existsSync(destinationPath)) {
         this.fatal('Destination already exists!');
       }
@@ -44,13 +48,14 @@
           options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim();
         } catch (e) {
           if (e.code === 'EBADF') {
-            this.fatal('Couldn\'t find out the name your project! Either pass it with --name or put it in a .batman file in your project root.');
+            this.fatal('Couldn\'t find out the name your project! Either pass it with --app or put it in a .batman file in your project root.');
           } else {
             throw e;
           }
         }
       }
     }
+    options.appName = Batman.helpers.camelize(options.appName);
     varMap = {
       app: options.appName,
       name: options.name

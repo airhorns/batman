@@ -3,7 +3,7 @@
 var Batman, Commands, cli, noCommandGiven, oldFatal;
 cli = require('./cli');
 Batman = require('../lib/batman.js');
-Commands = ['server', 'generate'];
+Commands = ['server', 'generate', 'new'];
 cli.disable('help');
 oldFatal = cli.fatal;
 noCommandGiven = false;
@@ -25,5 +25,6 @@ switch (cli.command) {
     require('./server');
     break;
   case 'generate':
+  case 'new':
     require('./generator');
 }

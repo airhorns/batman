@@ -8,7 +8,7 @@ cli = require './cli'
 Batman = require '../lib/batman.js'
 
 # List of commands for use in the multiple `cli.parse` calls below.
-Commands = ['server', 'generate']
+Commands = ['server', 'generate', 'new']
 
 # Yeah, this is happening. Sorry everyone.
 # cli needs to be headlocked into not fatal erroring if no command is given when
@@ -48,5 +48,5 @@ cli.setArgv(process.argv)
 switch cli.command
   when 'server'
     require('./server')
-  when 'generate'
+  when 'generate', 'new'
     require('./generator')

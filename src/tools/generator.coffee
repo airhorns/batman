@@ -2,7 +2,6 @@
 # Batman
 # Copyright Shopify, 2011
 
-# can all be sync since this isn't a server
 
 fs = require 'fs'
 path = require 'path'
@@ -10,21 +9,40 @@ util = require 'util'
 cli  = require './cli'
 Batman = require '../lib/batman.js'
 
-cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>').parse 
+cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\nbatman [OPTIONS] new <app_name>')
+cli.parse 
   app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
 
+
 cli.main (args, options) ->
-  args.shift() # get rid of the command
-  
+  # Argument Fandangling
+  # --------------------
+
+  # `generate` can get called in a few different ways:
+  #  - batman gen <template> name   # standard
+  #  - batman gen app name          # different because the `appName` and `name` options should have the same value
+  #  - batman -n <name> gen app     # support passing the `appName` to the app generator using the flag
+  #  - batman new <name>            # alias `new` to `generate app`
+  # Here we support all those options.
+
+  # We use the 'app' identifier for the flag cause appName looks silly.
   options.appName = options.app
-  if args.length == 2
+
+  # Get rid of the command and check to see if it's `new`, and if it is do the short cut for `generate app`
+  command = args.shift()
+  if command == 'new'
+    options.template = 'app'
+    options.name = args[0]
+  # Otherwise grab the template and name of the thing to generate
+  else if args.length == 2
     options.template = args[0]
     options.name = args[1]
   else
     @error "Please specify a template and a name for batman generate."
     cli.getUsage()
     process.exit()
-
+  
+  # Grab a reference to the batman template directory
   source = path.join(__dirname, 'templates', options.template)
 
   if !path.existsSync(source)
@@ -36,25 +54,31 @@ cli.main (args, options) ->
       options.name = options.appName
     else
       options.appName = options.name
-
-    destinationPath = path.join(process.cwd(), Batman.helpers.underscore(options.appName))
+    
+    # Make the project directory in the current directory.
+    destinationPath = path.join(process.cwd(), options.appName)
     if path.existsSync(destinationPath)
       @fatal 'Destination already exists!'
-  
+
     # Make the directory and add the .batman
     fs.mkdirSync(destinationPath, 0755)
     fs.writeFileSync(path.join(destinationPath, '.batman'), options.appName)
   else
+    # Assume we are in the project directory
     destinationPath = process.cwd()
     unless options.appName?
       try
         options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim()
       catch e
         if e.code is 'EBADF'
-          @fatal 'Couldn\'t find out the name your project! Either pass it with --name or put it in a .batman file in your project root.'
+          @fatal 'Couldn\'t find out the name your project! Either pass it with --app or put it in a .batman file in your project root.'
         else
           throw e
-  
+
+  # All the paths have been figured out above, so `appName` can be modified
+  # Ensure that the app name is always camel cased
+  options.appName = Batman.helpers.camelize(options.appName)
+
   # `replaceVars` is a super simple templating engine.
   # Add a new key to `varMap` right here, and in the templates, the following substitutions will be made:
   # $key$: the lower cased value of the key
