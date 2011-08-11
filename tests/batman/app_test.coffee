@@ -1,8 +1,7 @@
-if window?
-  window.ASYNC_TEST_DELAY = 120 unless 'onhashchange' of window
-  window.location.hash = ""
-else
-  return
+window.ASYNC_TEST_DELAY = 120 unless 'onhashchange' of window
+window.location.hash = ""
+
+return if  IN_NODE
 
 class TestApp extends Batman.App
 
@@ -21,6 +20,7 @@ QUnit.module "Batman.App routing"
     @app.root ->
     @app.route '/404', -> throw new Error("404 route called, shouldn't be during tests!")
     @controller = new TestApp.TestController
+    window.location.hash = '' if 'hash' in window.location
     @app.startRouting()
     Batman.currentApp = @app
 
@@ -110,12 +110,12 @@ asyncTest "should listen for hashchange events", 2, ->
   setTimeout(->
     equal spy.callCount, 1
     window.location.hash = "#!/orders/2"
-  , ASYNC_TEST_DELAY*2)
+  , ASYNC_TEST_DELAY)
 
   setTimeout(->
     equal spy.callCount, 2
     start()
-  , ASYNC_TEST_DELAY*4)
+  , ASYNC_TEST_DELAY*2)
 
 
 QUnit.module "requiring"

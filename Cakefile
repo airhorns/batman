@@ -13,6 +13,7 @@ option '-w', '--watch',  'continue to watch the files and rebuild them when they
 option '-c', '--commit', 'operate on the git index instead of the working tree'
 option '-d', '--dist',   'compile minified versions of the platform dependent code into lib/dist (build task only)'
 option '-m', '--compare', 'compare to git refs (stat task only)'
+option '-s', '--coverage', 'run jscoverage during tests and report coverage (test task only)'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
   muffin.run
@@ -67,7 +68,7 @@ task 'doc', 'build the Docco documentation', (options) ->
 task 'test', 'compile Batman.js and the tests and run them on the command line', (options) ->
   temp    = require 'temp'
   runner  = require 'qunit'
-
+  runner.options.coverage = false
   tmpdir = temp.mkdirSync()
   first = false
 
@@ -82,9 +83,10 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     after: ->
       first = true
       runner.run
-        code:  {namespace: "Batman", code: "#{tmpdir}/batman.js"}
+        code:  {namespace: "Batman", path: "#{tmpdir}/batman.js"}
         deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
         tests: glob.globSync("#{tmpdir}/*_test.js")
+        coverage: options.coverage || false
 
 task 'stats', 'compile the files and report on their final size', (options) ->
   muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')), options)

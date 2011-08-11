@@ -1,5 +1,4 @@
 $ = window.$ unless $
-runningInNode = module? && exports?
 
 class MockRequest extends MockClass
   @chainedCallback 'success'
@@ -37,8 +36,8 @@ asyncTest 'should fire the ready event once its contents have been loaded', 1, -
   , ASYNC_TEST_DELAY)
 
   setTimeout(=>
-    QUnit.start()
     ok observer.called
+    QUnit.start()
   , ASYNC_TEST_DELAY*2)
   
 QUnit.module 'Batman.View rendering'
@@ -111,10 +110,7 @@ asyncTest 'it should allow visibility to be bound', 2, ->
   render source,
     foo: true
   , (node) ->
-    if runningInNode
-      equal node.css('display'), undefined
-    else
-      equal node.css('display'), 'block'
+    equal node.css('display'), 'block'
 
     render source,
       foo: false
@@ -138,7 +134,7 @@ asyncTest 'it should allow events to be bound', 1, ->
 
   source = '<button data-event-click="doSomething"></button>'
   render source, context, (node) ->
-    if runningInNode
+    if IN_NODE
       # Use DOM level 2 event dispatch, which doesn't seem to work with jQuery
       evt = document.createEvent("MouseEvents")
       evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)

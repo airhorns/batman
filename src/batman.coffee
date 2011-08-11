@@ -39,7 +39,7 @@ Batman.mixin = $mixin = (to, mixins...) ->
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
 
-    for key, value of mixin
+    for own key, value of mixin
       continue if key in unmixinableKeys
       if hasSet
         to.set(key, value)
