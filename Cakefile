@@ -87,6 +87,13 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
         tests: glob.globSync("#{tmpdir}/*_test.js")
         coverage: options.coverage || false
+      , (report) ->
+        unless options.watch
+          exit = -> process.exit report.errors
+          unless process.stdout.flush()
+            process.stdout.once 'drain', exit
+          else
+            exit
 
 task 'stats', 'compile the files and report on their final size', (options) ->
   muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')), options)
