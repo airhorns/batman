@@ -611,6 +611,18 @@ class Batman.Object
   # Observe this property on every instance of this class.
   @observeAll: -> @::observe.apply @prototype, arguments
 
+  # A special method to alias state machine methods to class methods
+  @becomeStateMachine: (includeInstanceMethods=true) ->
+    Batman.StateMachine.initialize.call @
+    Batman.StateMachine.initialize.call @prototype
+
+    @classState = -> Batman.StateMachine.state.apply @, arguments
+    @state = -> @classState.apply @prototype, arguments
+    @::state = @classState if includeInstanceMethods
+
+    @classTransition = -> Batman.StateMachine.transition.apply @, arguments
+    @transition = -> @classTransition.apply @prototype, arguments
+    @::transition = @classTransition if includeInstanceMethods
 
 class Batman.SimpleHash
   constructor: ->

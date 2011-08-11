@@ -272,6 +272,15 @@ test "state machine has accessors", 2, ->
   @sm.set 'state', 'test'
   equal @sm.get('state'), 'test'
 
+test "state machine class", 1, ->
+  class SM extends Batman.Object
+    @becomeStateMachine yes
+    @state 'foo', -> ok(true)
+
+  sm = new SM
+  sm.foo()
+
+
 QUnit.module "_Batman",
   setup: ->
     class @Animal extends Batman.Object
