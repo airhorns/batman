@@ -682,7 +682,7 @@ class Batman.Hash extends Batman.Object
 
   @accessor 'isEmpty', get: -> @isEmpty()
 
-  for k in ['hasKey', 'equality', 'each', 'keys', 'merge']
+  for k in ['hasKey', 'equality', 'each', 'keys', 'merge', 'clear']
     @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
@@ -1337,6 +1337,7 @@ class Batman.Model extends Batman.Object
     do @beforeCreate if creating
 
     afterSave = =>
+      @dirtyKeys.clear()
       callback?.call @
       do @afterCreate if creating
       do @afterSave
