@@ -5,12 +5,6 @@
 # Copyright 2011, JadedPixel Technologies, Inc.
 #
 
-if not Function.prototype.bind
-  Function.prototype.bind = (context, args...) ->
-    f = =>
-      @apply context, args.concat `__slice`.call arguments
-
-
 # The global namespace, the `Batman` function will also create also create a new
 # instance of Batman.Object and mixin all arguments to it.
 Batman = (mixins...) ->
@@ -27,7 +21,6 @@ Batman.typeOf = $typeOf = (object) ->
 
 # Cache this function to skip property lookups.
 _objectToString = Object.prototype.toString
-
 
 # `$mixin` applies every key from every argument after the first to the
 # first argument. If a mixin has an `initialize` method, it will be called in
@@ -99,6 +92,7 @@ Batman._block = $block = (lengthOrFunction, fn) ->
       args.push callback
       fn.apply(ctx, args)
 
+    # Call the function right now if we've been passed the callback already or if we've reached the argument count threshold
     if (typeof args[args.length-1] is 'function') || (argsLength && (args.length >= argsLength))
       f(args.pop())
     else
@@ -116,10 +110,8 @@ Batman._findName = $findName = (f, context) ->
 
   f.displayName
 
-
 # Properties
 # ----------
-
 class Batman.Property
   @defaultAccessor:
     get: (key) -> @[key]
@@ -192,10 +184,12 @@ class Batman.ObservableProperty extends Batman.Property
     @
   hasObserversToFire: ->
     return true if @observers.length > 0
-    return false if @base is @base.constructor::
-    @base.constructor::property?(@key).observers.length > 0
-  preventFire: -> @_preventCount++
-  allowFire: -> @_preventCount-- if @_preventCount > 0
+    if @base._batman?
+      @base._batman.ancestors().some((ancestor) => ancestor.property(@key)?.observers?.length > 0)
+    else
+      false
+  prevent: -> @_preventCount++
+  allow: -> @_preventCount-- if @_preventCount > 0
   isAllowedToFire: -> @_preventCount <= 0
   fire: (args...) ->
     return unless @hasObserversToFire()
@@ -222,7 +216,7 @@ class Batman.ObservableProperty extends Batman.Property
     @triggers.each (property) =>
       property.dependents ||= new Batman.SimpleSet
       property.dependents.add @
-    Batman.Property.triggerTracker = null
+    delete Batman.Property.triggerTracker
   clearTriggers: ->
     @triggers.each (property) =>
       property.dependents.remove @
@@ -262,21 +256,17 @@ Batman.Observable =
   property: (key) ->
     Batman.initializeObject @
     Batman.Keypath.for(@, key)
-  get: (key) -> @property(key).getValue()
-  set: (key, val) -> @property(key).setValue(val)
-  unset: (key) -> @property(key).unsetValue()
+  get: (key) ->
+    return undefined if typeof key is 'undefined'
+    @property(key).getValue()
+  set: (key, val) ->
+    return undefined if typeof key is 'undefined'
+    @property(key).setValue(val)
+  unset: (key) ->
+    return undefined if typeof key is 'undefined'
+    @property(key).unsetValue()
 
-  # Pass a key and a callback. Whenever the value for that key changes, your
-  # callback will be called in the context of the original object.
-  observe: (key, args...) ->
-    @property(key).observe(args...)
-    @
-
-  # Tell any observers attached to a key to fire, manually.
-  fire: (key, args...) ->
-    @property(key).fire(args...)
-
-  # Forget removes an observer from an object. If the callback is passed in,
+  # `forget` removes an observer from an object. If the callback is passed in,
   # its removed. If no callback but a key is passed in, all the observers on
   # that key are removed. If no key is passed in, all observers are removed.
   forget: (key, observer) ->
@@ -286,23 +276,23 @@ Batman.Observable =
       @_batman.properties.each (key, property) -> property.forget()
     @
 
-  # Prevent allows the prevention of a given binding from firing. Prevent counts can be nested,
-  # so three calls to prevent means three calls to allow must be made before observers will
-  # be fired.
-  prevent: (key) ->
-    @property(key).preventFire()
-    @
-
-  # Allow unblocks a property for firing observers. Every call to prevent
-  # must have a matching call to allow later if observers are to be fired.
-  allow: (key) ->
-    @property(key).allowFire()
-    @
-
-  # allowed returns a boolean describing whether or not the key is
+  # `allowed` returns a boolean describing whether or not the key is
   # currently allowed to fire its observers.
   allowed: (key) ->
     @property(key).isAllowedToFire()
+
+# `fire` tells any observers attached to a key to fire, manually.
+# `prevent` stops of a given binding from firing. `prevent` calls can be repeated such that
+# the same number of calls to allow are needed before observers can be fired.
+# `allow` unblocks a property for firing observers. Every call to prevent
+# must have a matching call to allow later if observers are to be fired.
+# `observe` takes a key and a callback. Whenever the value for that key changes, your
+# callback will be called in the context of the original object.
+for k in ['observe', 'prevent', 'allow', 'fire']
+  do (k) ->
+    Batman.Observable[k] = (key, args...) ->
+      @property(key)[k](args...)
+      @
 
 # Events
 # ------
@@ -629,24 +619,32 @@ class Batman.SimpleHash
   hasKey: (key) ->
     typeof @get(key) isnt 'undefined'
   get: (key) ->
+    return undefined if typeof key is 'undefined'
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
   set: (key, val) ->
+    return undefined if typeof key is 'undefined'
+    return @unset(key) if typeof val is 'undefined'
     matches = @_storage[key] ||= []
     for match in matches
-      pair = match if @equality(match[0], key)
+      if @equality(match[0], key)
+        pair = match
+        break
     unless pair
       pair = [key]
       matches.push(pair)
+      @length++
     pair[1] = val
   unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
         if @equality(obj, key)
           matches.splice(index,1)
+          @length--
           return
   equality: (lhs, rhs) ->
+    return false if typeof lhs is 'undefined' or typeof rhs is 'undefined'
     if typeof lhs.isEqual is 'function'
       lhs.isEqual rhs
     else if typeof rhs.isEqual is 'function'
@@ -661,9 +659,9 @@ class Batman.SimpleHash
     @each (obj) -> result.push obj
     result
   clear: ->
-    @each (obj) -> @unset obj
+    @each (obj) => @unset obj
   isEmpty: ->
-    @keys().length is 0
+    @length is 0
   merge: (others...) ->
     merged = new @constructor
     others.unshift(@)
@@ -684,7 +682,7 @@ class Batman.Hash extends Batman.Object
 
   @accessor 'isEmpty', get: -> @isEmpty()
 
-  for k in ['hasKey', 'equality', 'each', 'keys', 'merge', 'clear']
+  for k in ['hasKey', 'equality', 'each', 'keys', 'merge', 'clear', 'isEmpty']
     @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
@@ -695,15 +693,11 @@ class Batman.SimpleSet
   has: (item) ->
     @_storage.hasKey item
 
-  for k in ['get', 'set', 'unset']
-   @::[k] = Batman.Property.defaultAccessor[k]
-
   add: (items...) ->
     for item in items
       unless @_storage.hasKey(item)
         @_storage.set item, true
-        @set 'length', @length + 1
-        @set 'isEmpty', true
+        @length++
     items
 
   remove: (items...) ->
@@ -712,12 +706,11 @@ class Batman.SimpleSet
       if @_storage.hasKey(item)
         @_storage.unset item
         results.push item
-        @set 'length', @length - 1
-        @set 'isEmpty', true
+        @length--
     results
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
-  isEmpty: -> @get('length') is 0
+  isEmpty: -> @length is 0
   clear: -> @remove @toArray()
   toArray: ->
     @_storage.keys()
@@ -738,7 +731,7 @@ class Batman.Set extends Batman.Object
   for k in ['has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
     @::[k] = Batman.SimpleSet::[k]
 
-  @accessor 'isEmpty', {get: (-> @isEmpty()), set: ->}
+  @accessor 'isEmpty', get: -> @isEmpty()
 
 class Batman.SortableSet extends Batman.Set
   constructor: (index) ->
@@ -1796,17 +1789,21 @@ class Binding extends Batman.Object
       @value = key
 
     if filters.length
-      # For each filter, get the name and the arguments by splitting on the first space.
       while filterString = filters.shift()
+        # For each filter, get the name and the arguments by splitting on the first space.
         split = filterString.indexOf(' ')
         if ~split
           filterName = filterString.substr(0, split)
           args = filterString.substr(split)
         else
           filterName = filterString
-          # If the filter exists, grab it.
+
+        # If the filter exists, grab it.
         if filter = Batman.Filters[filterName] || Batman.helpers[filterName]
           @filterFunctions.push filter
+
+          # Get the arguments for the filter by parsing the args as JSON, or
+          # just pushing an placeholder array
           if args
             try
               @filterArguments.push @parseSegment(args)
@@ -1816,10 +1813,14 @@ class Binding extends Batman.Object
             @filterArguments.push []
         else
           throw "Unrecognized filter #{filter} in key \"#{key}\"!"
-      @filterArguments = @filterArguments.map (argumentList) => argumentList.map (argument) =>
-        if argument._keypath
-          [_, argument.context] = @renderContext.findKey argument._keypath
-        argument
+
+      # Map over each array of arguments to grab the context for any keypaths.
+      @filterArguments = @filterArguments.map (argumentList) =>
+        argumentList.map (argument) =>
+          if argument._keypath
+            # Discard the value (for the time being) and store the context for the keypath in `context`.
+            [_, argument.context] = @renderContext.findKey argument._keypath
+          argument
 
   # Turn a piece of a `data` keypath into a usable javascript object.
   #  + replacing keypaths using the above regular expression

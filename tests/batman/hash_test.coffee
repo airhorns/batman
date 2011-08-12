@@ -7,8 +7,18 @@ test "constructor takes arguments", ->
   ok @hash.hasKey('foo')
   ok !@hash.hasKey('qux')
 
+test "isEmpty() on an empty hash returns true", ->
+  ok @hash.isEmpty()
+  ok @hash.get('isEmpty')
+
 test "has(key) on an empty hash returns false", ->
   equal @hash.hasKey('foo'), false
+
+test "has(undefined) returns false", ->
+  equal @hash.hasKey(undefined), false
+
+test "get(undefined) returns undefined", ->
+  equal typeof(@hash.get(undefined)), 'undefined'
 
 test "get(key) on an empty hash returns undefined", ->
   equal typeof(@hash.get('foo')), 'undefined'
@@ -32,6 +42,14 @@ test "set(key, val) keeps unequal keys distinct", ->
   equal @hash.get(key1), 1
   equal @hash.get(key2), 2
 
+test "set(undefined, val) doesn't set", ->
+  equal typeof(@hash.set undefined, true), 'undefined'
+  equal @hash.length, 0
+
+test "set(key, undefined) unsets", ->
+  equal typeof(@hash.set 'foo', undefined), 'undefined'
+  equal @hash.length, 0
+
 test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
   @hash.set 'foo', 'bar'
   equal typeof(@hash.unset('foo')), 'undefined'
@@ -47,6 +65,34 @@ test "unset(key) doesn't touch any other keys", ->
   equal @hash.hasKey(o1), true
   equal @hash.hasKey(o2), false
   equal @hash.hasKey(o3), true
+
+test "unset(undefined) doesn't touch any other keys", ->
+  @hash.set 'foo', 'bar'
+  @hash.set {}, 'bar'
+  @hash.unset undefined
+  equal @hash.length, 2
+
+test "length is maintained over get, set, and unset", ->
+  equal @hash.length, 0
+
+  @hash.set 'foo', 'bar'
+  equal @hash.length, 1
+
+  @hash.set 'foo', 'baz'
+  equal @hash.length, 1, "Length doesn't increase after setting an already existing key"
+
+  @hash.set 'corge', 'qux'
+  equal @hash.length, 2
+
+  @hash.unset 'foo'
+  equal @hash.length, 1, "Unsetting an existant key decreases the length"
+
+  @hash.unset 'nonexistant'
+  equal @hash.length, 1, "Unsetting an nonexistant key doesn't decrease the length"
+
+  @hash.set 'bar', 'baz'
+  @hash.clear()
+  equal @hash.length, 0
 
 test "equality(lhs, rhs) uses === by default", ->
   equal @hash.equality({}, {}), false

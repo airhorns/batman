@@ -25,7 +25,7 @@ test "reserved words don't get applied", ->
 test "should only initialize objects which have a function initializer", ->
   obj =
     initialize: "x"
-  
+
   $mixin @base, obj
   ok true, "Initializer wasn't called because no error was thrown"
 
@@ -75,11 +75,11 @@ QUnit.module "$events on Batman.Object: prototype events"
 
     @one = new One
     @two = new Two
-    
+
 test "should be declarable", ->
   class Emitter extends Batman.Object
     foo: @event ->
-  
+
   e = new Emitter
   ok e.foo.isEvent
 
@@ -105,7 +105,7 @@ QUnit.module "$events on Batman.Object: class events"
 test "class events", ->
   class Emitter extends Batman.Object
     @foo: @event ->
-  
+
   ok Emitter.foo.isEvent
 
 QUnit.module "$events on Batman.Object: instance events"
@@ -114,17 +114,17 @@ test "instance events", ->
   foo = new Batman.Object
   foo.event 'bar', ->
   ok foo.bar.isEvent
-  
+
 test "should create an event with an action", ->
   event = $event callback = ->
-  
+
   ok event.isEvent
   strictEqual event.action, callback
 
 test "should maintain return value and arguments for observers", ->
   event = $event (x) -> x * 2
   observer = createSpy()
-  
+
   event(observer)
   equal event(2), 4
   deepEqual observer.lastCallArguments, [4, 2] # result of event function, followed by original argument
@@ -133,7 +133,7 @@ test "return false from event should not fire observers", ->
   event = $event -> false
   event observer = createSpy()
   event true
-  
+
   equal observer.called, false
 
 test "should return the result of the original function", ->
@@ -148,10 +148,10 @@ test "should add observers when passed functions, without calling the original",
 test "should fire more than once if not oneShot", ->
   event = $event ->
   event observer = createSpy()
-  
+
   event 1
   event true
-  
+
   equal observer.callCount, 2
 
 QUnit.module "$eventOneShot"
@@ -160,16 +160,16 @@ test "should fire exactly once", ->
   event = $eventOneShot ->
   event observer = createSpy()
   ok event.isOneShot
-  
+
   event 1
   event true
-  
+
   equal observer.callCount, 1
 
 test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
   event = $eventOneShot -> "result"
   event false, 2
-  
+
   event (observer = createSpy())
 
   equal observer.callCount, 1
@@ -178,7 +178,7 @@ test "should fire handlers added after the first fire immediately and pass the o
 test "oneShotEvents shouldn't fire each other", ->
   one = $eventOneShot -> "result"
   two = $eventOneShot -> "result"
-  
+
   one (oneObserver = createSpy())
   two (twoObserver = createSpy())
 
@@ -193,7 +193,7 @@ test "should allow blockizing of functions with take only a callback", 1, ->
   class Test
     method: Batman._block (callback) ->
       callback()
-  
+
   (new Test).method()(-> ok true)
 
 test "should allow blockizing of functions which take arguments and a callback", 3, ->
@@ -225,7 +225,7 @@ test "should allow the callback to be passed as the last argument", 2, ->
     method: Batman._block (arg, callback) ->
       equal arg, true
       equal callback, x
-  
+
   (new Test).method(true, x)
 
 test "should allow the airty to be specified so non function arguments can be passed and still trigger the call", 2, ->
@@ -244,14 +244,14 @@ QUnit.module "Batman.StateMachine",
 test "should fire state callback", 1, ->
   @sm.state 'test', (state) ->
     equal(state, 'test', 'test called')
-  
+
   @sm.test()
 
 test "should fire transition callback", 2, ->
   @sm.transition 'test', 'test2', (state, oldState) ->
     equal state, 'test2', 'new state set'
     equal oldState, 'test', 'old state removed'
-  
+
   @sm.test()
   @sm.test2()
 
@@ -259,16 +259,16 @@ test "should pause subsequent state changes", 2, ->
   @sm.state 'newState', =>
     @sm.oldState()
     equal(@sm.state(), 'newState')
-  
+
   @sm.state 'oldState', =>
     equal(@sm.state(), 'oldState')
-  
+
   @sm.newState()
 
 test "state machine has accessors", 2, ->
   @sm.state 'test', ->
     ok(true, 'state called')
-  
+
   @sm.set 'state', 'test'
   equal @sm.get('state'), 'test'
 
@@ -276,13 +276,13 @@ QUnit.module "_Batman",
   setup: ->
     class @Animal extends Batman.Object
       Batman.initializeObject @::
-    
+
     class @Snake extends @Animal
       Batman.initializeObject @::
 
     class @BlackMamba extends @Snake
       Batman.initializeObject @::
-    
+
     @mamba = new @BlackMamba
     @snake = new @Snake
 
@@ -296,7 +296,7 @@ test "primitives are traversed in _batman lookups", ->
   @Animal::_batman.set 'primitive_key', 1
   @Snake::_batman.set 'primitive_key', 2
   @BlackMamba::_batman.set 'primitive_key', 3
-  
+
   deepSortedEqual @snake._batman.get('primitive_key'), [1,2]
   deepSortedEqual @mamba._batman.get('primitive_key'), [1,2,3]
 
@@ -309,7 +309,7 @@ test "array keys are traversed and merged in _batman lookups", ->
   @Animal::_batman.set 'array_key', [1,2,3]
   @Snake::_batman.set 'array_key', [4,5,6]
   @BlackMamba::_batman.set 'array_key', [7,8,9]
-  
+
   deepSortedEqual @snake._batman.get('array_key'), [1,2,3,4,5,6]
   deepSortedEqual @mamba._batman.get('array_key'), [1,2,3,4,5,6,7,8,9]
 
@@ -327,7 +327,7 @@ test "hash keys are traversed and merged in _batman lookups", ->
 
   @BlackMamba::_batman.set 'hash_key', new Batman.SimpleHash
   @BlackMamba::_batman.hash_key.set 'wibble', 'wobble'
-  
+
   for k, v of {wibble: 'wobble', baz: 'qux', foo: 'bar'}
     equal @mamba._batman.get('hash_key').get(k), v
 
@@ -350,12 +350,12 @@ test "hash keys from closer ancestors replace those from further ancestors", ->
 
   equal @snake._batman.get('hash_key').get('foo'), 'baz'
   equal @mamba._batman.get('hash_key').get('foo'), 'qux'
-  
+
   for obj in [@snake, @mamba]
     obj._batman.hash_key = new Batman.SimpleHash
     obj._batman.hash_key.set('foo', 'corge')
     equal obj._batman.get('hash_key').get('foo'), 'corge'
-  
+
 test "set keys are traversed and merged in _batman lookups", ->
   @Animal::_batman.set 'set_key', new Batman.SimpleSet
   @Animal::_batman.set_key.add 'foo', 'bar'
@@ -365,15 +365,15 @@ test "set keys are traversed and merged in _batman lookups", ->
 
   @BlackMamba::_batman.set 'set_key', new Batman.SimpleSet
   @BlackMamba::_batman.set_key.add 'wibble', 'wobble'
-  
+
   for k in ['wibble', 'wobble', 'baz', 'qux', 'foo', 'bar']
     ok @mamba._batman.get('set_key').has(k)
-  equal @mamba._batman.get('set_key').get('length'), 6
+  equal @mamba._batman.get('set_key').length, 6
 
   @mamba._batman.set 'set_key', new Batman.SimpleSet
-  equal @mamba._batman.get('set_key').get('length'), 6
+  equal @mamba._batman.get('set_key').length, 6
 
   @mamba._batman.set_key.add 'winnie', 'pooh'
   for k in ['wibble', 'wobble', 'baz', 'qux', 'foo', 'bar', 'winnie', 'pooh']
     ok @mamba._batman.get('set_key').has(k)
-  equal @mamba._batman.get('set_key').get('length'), 8
+  equal @mamba._batman.get('set_key').length, 8
