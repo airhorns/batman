@@ -1,17 +1,19 @@
 (function() {
-  var Batman, cli, fs, path, util;
+  var Batman, cli, exec, fs, path, spawn, util, utils, _ref;
   var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
   fs = require('fs');
   path = require('path');
   util = require('util');
   cli = require('./cli');
+  utils = require('./utils');
+  _ref = require('child_process'), spawn = _ref.spawn, exec = _ref.exec;
   Batman = require('../lib/batman.js');
   cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\n  batman [OPTIONS] new <app_name>');
   cli.parse({
     app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
   });
   cli.main(function(args, options) {
-    var command, count, destinationPath, replaceVars, source, transforms, varMap, walk;
+    var TemplateVars, command, count, destinationPath, replaceVars, source, transforms, walk;
     options.appName = options.app;
     command = args.shift();
     if (command === 'new') {
@@ -32,6 +34,7 @@
     if (!path.existsSync(source)) {
       this.fatal("template " + options.template + " not found");
     }
+    TemplateVars = {};
     if (options.template === 'app') {
       if (options.appName != null) {
         options.name = options.appName;
@@ -41,28 +44,18 @@
       destinationPath = path.join(process.cwd(), options.appName);
       if (path.existsSync(destinationPath)) {
         this.fatal('Destination already exists!');
+      } else {
+        fs.mkdirSync(destinationPath, 0755);
       }
-      fs.mkdirSync(destinationPath, 0755);
-      fs.writeFileSync(path.join(destinationPath, '.batman'), options.appName);
     } else {
       destinationPath = process.cwd();
-      if (options.appName == null) {
-        try {
-          options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim();
-        } catch (e) {
-          if (e.code === 'EBADF') {
-            this.fatal('Couldn\'t find out the name your project! Either pass it with --app or put it in a .batman file in your project root.');
-          } else {
-            throw e;
-          }
-        }
-      }
+      Batman.mixin(options, utils.getConfig());
     }
     options.appName = Batman.helpers.camelize(options.appName);
-    varMap = {
+    Batman.mixin(TemplateVars, {
       app: options.appName,
       name: options.name
-    };
+    });
     transforms = [
       (function(x) {
         return x.toUpperCase();
@@ -74,11 +67,12 @@
     ];
     replaceVars = function(string) {
       var f, templateKey, value, _i, _len;
-      for (templateKey in varMap) {
-        value = varMap[templateKey];
+      for (templateKey in TemplateVars) {
+        value = TemplateVars[templateKey];
         if (value == null) {
           console.error("template key " + templateKey + " not defined!");
         }
+        string = string.replace(new RegExp("\\$_" + templateKey + "\\$", 'g'), value);
         for (_i = 0, _len = transforms.length; _i < _len; _i++) {
           f = transforms[_i];
           string = string.replace(new RegExp("\\$" + (f(templateKey)) + "\\$", 'g'), f(value));
@@ -112,7 +106,7 @@
         } else if (ext === 'png' || ext === 'jpg' || ext === 'gif') {
           newFile = fs.createWriteStream(destFile);
           oldFile = fs.createReadStream(sourceFile);
-          this.info("creaitng " + destFile);
+          this.info("creating " + destFile);
           return util.pump(oldFile, newFile, function(err) {
             if (err != null) {
               throw err;

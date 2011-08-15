@@ -1,6 +1,7 @@
 connect = require 'connect'
 path    = require 'path'
 fs      = require 'fs'
+cli     = require './cli'
 parse = require("url").parse
 cache = {}
 
@@ -118,3 +119,14 @@ exports.CoffeeCompiler = (options) ->
     # Move on to the next middleware if we can't deal with this request.
     next()
 
+exports.getConfig = (->
+  try
+    json = fs.readFileSync(path.join(process.cwd(), 'package.json')).toString().trim()
+    jsonOptions = JSON.parse(json)
+    return jsonOptions.batman
+  catch e
+    if e.code is 'EBADF'
+      @fatal 'Couldn\'t find your Batman project configuration! Please put it in your package.json under the batman key.'
+    else
+      throw e
+).bind(cli)

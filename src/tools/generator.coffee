@@ -5,12 +5,14 @@
 
 fs = require 'fs'
 path = require 'path'
-util = require 'util' 
+util = require 'util'
 cli  = require './cli'
+utils = require './utils'
+{spawn, exec} = require 'child_process'
 Batman = require '../lib/batman.js'
 
 cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\n  batman [OPTIONS] new <app_name>')
-cli.parse 
+cli.parse
   app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
 
 
@@ -27,7 +29,6 @@ cli.main (args, options) ->
 
   # We use the 'app' identifier for the flag cause appName looks silly.
   options.appName = options.app
-
   # Get rid of the command and check to see if it's `new`, and if it is do the short cut for `generate app`
   command = args.shift()
   if command == 'new'
@@ -43,12 +44,15 @@ cli.main (args, options) ->
   else
     @error "Please specify a template and a name for batman generate."
     cli.getUsage()
-  
+
   # Grab a reference to the batman template directory
   source = path.join(__dirname, 'templates', options.template)
 
   if !path.existsSync(source)
     @fatal "template #{options.template} not found"
+
+  # Start the goodness. Define a place to put variables available in the template
+  TemplateVars = {}
 
   if options.template == 'app'
     # Allow the app name to be passed with the option flag or as the argument at the end of the command.
@@ -56,26 +60,18 @@ cli.main (args, options) ->
       options.name = options.appName
     else
       options.appName = options.name
-    
+
     # Make the project directory in the current directory.
     destinationPath = path.join(process.cwd(), options.appName)
     if path.existsSync(destinationPath)
       @fatal 'Destination already exists!'
-
-    # Make the directory and add the .batman
-    fs.mkdirSync(destinationPath, 0755)
-    fs.writeFileSync(path.join(destinationPath, '.batman'), options.appName)
+    else
+      fs.mkdirSync(destinationPath, 0755)
   else
     # Assume we are in the project directory
     destinationPath = process.cwd()
-    unless options.appName?
-      try
-        options.appName = fs.readFileSync(path.join(process.cwd(), '.batman')).toString().trim()
-      catch e
-        if e.code is 'EBADF'
-          @fatal 'Couldn\'t find out the name your project! Either pass it with --app or put it in a .batman file in your project root.'
-        else
-          throw e
+    # Get the config from the package.json
+    Batman.mixin options, utils.getConfig()
 
   # All the paths have been figured out above, so `appName` can be modified
   # Ensure that the app name is always camel cased
@@ -86,20 +82,24 @@ cli.main (args, options) ->
   # $key$: the lower cased value of the key
   # $Key$: the camel cased value of the key
   # $KEY$: the upper cased value of the key
-  varMap = 
+  # $_key$: the original value of the key
+  Batman.mixin TemplateVars,
     app: options.appName
     name: options.name
 
   transforms = [((x) -> x.toUpperCase()), ((x) -> Batman.helpers.camelize(x)), ((x) -> x.toLowerCase())]
 
   replaceVars = (string) ->
-    for templateKey, value of varMap
+    for templateKey, value of TemplateVars
       console.error "template key #{templateKey} not defined!" unless value?
+      # Do vanilla key replacement
+      string = string.replace(new RegExp("\\$_#{templateKey}\\$", 'g'), value)
+      # Do transformed key replacement
       for f in transforms
         string = string.replace(new RegExp("\\$#{f(templateKey)}\\$", 'g'), f(value))
     string
 
-  # `walk` is the recursive function which will traverse a template's directory structure and copy the files within 
+  # `walk` is the recursive function which will traverse a template's directory structure and copy the files within
   # it to the destination after running the substitutions on their contents and names. `walk` takes in an absolute
   # file path pointing to part or all of the template directory.
   count = 0
@@ -109,7 +109,7 @@ cli.main (args, options) ->
     fs.readdirSync(sourcePath).forEach (file) =>
       if file == '.gitignore'
         return
-      
+
       # Get an absolute path to this file in the template directory
       resultName = replaceVars(file)
       sourceFile = path.join(sourcePath, file)
@@ -117,7 +117,7 @@ cli.main (args, options) ->
 
       ext = path.extname(file).toLowerCase().slice(1)
       stat = fs.statSync(sourceFile)
-    
+
       # If the file is a directory, create it in the destination, and then walk it in the template.
       if stat.isDirectory()
         dir = path.join(destinationPath, aPath, resultName)
@@ -125,13 +125,13 @@ cli.main (args, options) ->
           fs.mkdirSync(dir, 0755)
         # Descend into this sub dir in the template directory.
         walk path.join(aPath, file)
-      
-      # If the file is a binary blog like an image, copy it to the destination.  
+
+      # If the file is a binary blog like an image, copy it to the destination.
       else if ext == 'png' || ext == 'jpg' || ext == 'gif'
         newFile = fs.createWriteStream destFile
         oldFile = fs.createReadStream sourceFile
 
-        @info "creaitng #{destFile}"
+        @info "creating #{destFile}"
         util.pump oldFile, newFile, (err) ->
           throw err if err?
 

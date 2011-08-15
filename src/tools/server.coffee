@@ -6,14 +6,18 @@ connect = require 'connect'
 path    = require 'path'
 fs      = require 'fs'
 cli     = require './cli'
-utils   = require './server_utils'
+utils   = require './utils'
+Batman  = require '../lib/batman.js'
 
 cli.enable('daemon').setUsage('batman server [OPTIONS]').parse
   port: ['p', "Port to run HTTP server on", "number", 8124]
-  build: ['b', "Build coffeescripts on the fly into the build dir (default ./build) and serve them as js", "boolean", true]
-  'build-dir': [false, "Where to store built coffeescript files", "path", './build']
+  build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean", true]
+  'build-dir': [false, "Where to store built coffeescript files (default is ./build)", "path"]
 
 cli.main (args, options) ->
+
+  Batman.mixin options, utils.getConfig()
+  options.buildDir = options['build-dir'] if options['build-dir']?
 
   # Create a connect server with the
   #  * transparent coffee compilation middleware
@@ -28,7 +32,7 @@ cli.main (args, options) ->
   )
 
   if options.build
-    Server.use utils.CoffeeCompiler(src: process.cwd(), dest: path.join(process.cwd(), options['build-dir']))
+    Server.use utils.CoffeeCompiler(src: process.cwd(), dest: path.join(process.cwd(), options.buildDir))
 
   Server.use '/batman', connect.static(path.join(__dirname,'..','lib'))
   Server.listen options.port, '127.0.0.1'
