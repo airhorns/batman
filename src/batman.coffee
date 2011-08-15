@@ -185,7 +185,7 @@ class Batman.ObservableProperty extends Batman.Property
   hasObserversToFire: ->
     return true if @observers.length > 0
     if @base._batman?
-      @base._batman.ancestors().some((ancestor) => ancestor.property(@key)?.observers?.length > 0)
+      @base._batman.ancestors().some((ancestor) => ancestor.property?(@key)?.observers?.length > 0)
     else
       false
   prevent: -> @_preventCount++
@@ -659,7 +659,8 @@ class Batman.SimpleHash
     @each (obj) -> result.push obj
     result
   clear: ->
-    @each (obj) => @unset obj
+    @_storage = {}
+    @length = 0
   isEmpty: ->
     @length is 0
   merge: (others...) ->

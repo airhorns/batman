@@ -94,6 +94,17 @@ test "length is maintained over get, set, and unset", ->
   @hash.clear()
   equal @hash.length, 0
 
+  @hash.set o1 = {}, true
+  equal @hash.length, 1
+  @hash.set o2 = {}, true
+  equal @hash.length, 2
+
+  @hash.set o1, false, "Resetting object keys doesn't change length"
+  equal @hash.length, 2
+
+  @hash.clear()
+  equal @hash.length, 0
+
 test "equality(lhs, rhs) uses === by default", ->
   equal @hash.equality({}, {}), false
   equal @hash.equality(1, '1'), false

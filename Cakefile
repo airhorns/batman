@@ -29,34 +29,46 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     temp    = require 'temp'
     tmpdir = temp.mkdirSync()
     distDir = "lib/dist"
+
+    # Compile the scripts to the distribution folder by:
+    # 1. Finding each platform specific batman file of the form `batman.platform.coffee`
+    # 2. Concatenating each platform specific file with the main Batman source, and storing that in a temp file.
+    # 3. Compiling each complete platform specific batman distribution into JavaScript in `./lib/dist`
+    # 4. Minify each complete platform specific distribution in to a .min.js file in `./lib/dist`
+    compileDist = (platformName) ->
+      return if platformName == 'node'
+      joinedCoffeePath = "#{tmpdir}/batman.#{platformName}.coffee"
+
+      # Read the platform specific code
+      platform = muffin.readFile "src/batman.#{platformName}.coffee", options
+      standard = muffin.readFile 'src/batman.coffee', options
+      q.join platform, standard, (platformSource, standardSource) ->
+        # Write the joined coffeescript to a temp dir
+        write = muffin.writeFile(joinedCoffeePath, standardSource + "\n" + platformSource, options)
+        q.when write, (result) ->
+          # Compile the temp coffeescript to the build dir
+          fs.mkdirSync(distDir, 0777) unless path.existsSync(distDir)
+          destination = "#{distDir}/batman.#{platformName}.js"
+          compile = muffin.compileScript(joinedCoffeePath, destination, options)
+          q.when compile, ->
+            muffin.minifyScript destination, options
+
     # Run a task which concats the coffeescript, compiles it, and then minifies it
+    first = true
     muffin.run
       files: './src/**/*'
       options: options
       map:
-
-        # Compile the scripts to the distribution folder by:
-        # 1. Finding each platform specific batman file of the form `batman.platform.coffee`
-        # 2. Concatenating each platform specific file with the main Batman source, and storing that in a temp file.
-        # 3. Compiling each complete platform specific batman distribution into JavaScript in `./lib/dist`
-        # 4. Minify each complete platform specific distribution in to a .min.js file in `./lib/dist`
-        'src/batman\.(.+)\.coffee' : (matches) ->
-          return if matches[1] == 'node'
-          joinedCoffeePath = "#{tmpdir}/batman.#{matches[1]}.coffee"
-
-          # Read the platform specific code
-          platform = muffin.readFile matches[0], options
-          standard = muffin.readFile 'src/batman.coffee', options
-          q.join platform, standard, (platformSource, standardSource) ->
-            # Write the joined coffeescript to a temp dir
-            write = muffin.writeFile(joinedCoffeePath, standardSource + "\n" + platformSource, options)
-            q.when write, (result) -> 
-              # Compile the temp coffeescript to the build dir
-              fs.mkdirSync(distDir, 0777) unless path.existsSync(distDir)
-              destination = "#{distDir}/batman.#{matches[1]}.js"
-              compile = muffin.compileScript(joinedCoffeePath, destination, options)
-              q.when compile, ->
-                muffin.minifyScript destination, options
+        'src/batman\.(.+)\.coffee': (matches) -> compileDist(matches[1])
+        'src/batman.coffee'       : (matches) ->
+          if first
+            first = false
+            return
+          # When the the root batman file changes, compile all the platform files.
+          platformFiles = glob.globSync('./src/batman.*.coffee')
+          for file in platformFiles
+            matches = /src\/batman.(.+).coffee/.exec(file)
+            compileDist(matches[1])
 
 task 'doc', 'build the Docco documentation', (options) ->
   muffin.run
