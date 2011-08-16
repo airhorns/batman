@@ -62,7 +62,7 @@
       }), (function(x) {
         return Batman.helpers.camelize(x);
       }), (function(x) {
-        return x.toLowerCase();
+        return Batman.helpers.underscore(x).toLowerCase();
       })
     ];
     replaceVars = function(string) {

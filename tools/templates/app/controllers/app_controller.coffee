@@ -5,7 +5,7 @@ class $App$.AppController extends Batman.Controller
   #
   # show: (params) ->
 
-  # Routes can optionally be declard inline with the callback on the controller:
+  # Routes can optionally be declared inline with the callback on the controller:
   #
   # edit: @route('/$name$/:id', (params) -> ... )
 

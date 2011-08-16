@@ -7,7 +7,7 @@
   <script src="/batman/es5-shim.js" type="text/javascript"></script>
   <script src="/batman/dist/batman.solo.js" type="text/javascript"></script>
 
-  <script src="app.js" type="text/javascript"></script>
+  <script src="$app$.js" type="text/javascript"></script>
 
   <style>
   * {
@@ -43,6 +43,7 @@
     <span>$App$</span>
     <code>powered by</code><br />
     <img src="/resources/batman.png" />
+    <input type="text" data-bind="$App$.mission"/>
   </div>
   <script type="text/javascript">
     $App$.run();

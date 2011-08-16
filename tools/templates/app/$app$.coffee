@@ -1,4 +1,6 @@
 class $App$ extends Batman.App
+  @set 'mission', 'fight crime'
+  
   # Make $App$ available in the global namespace so it can be used
   # as a namespace and bound to in views.
   @global yes

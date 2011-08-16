@@ -1,338 +1,180 @@
 # Batman
 
-Batman is a full-stack Javascript framework that helps you build rich, single-page, Javascript applications. It (will) include:
+Batman is a framework for building rich single-page browser applications. It is written in [CoffeeScript](http://jashkenas.github.com/coffee-script/) and its API is developed with CoffeeScript in mind, but of course you can use plain old JavaScript too.
 
-* A tiny Javascript framework for managing your app at runtime
-* An optional DOM plugin to bind nodes to pieces of your app
-* Tools to bootstrap your Javascript development
-* Tools to tightly integrate your front-end and back-end
-* A robust toolchain for working with your Javascript app
+It's got:
+
+* a stateful MVC architecture
+* a powerful binding system
+* routable controller actions
+* pure HTML views
+* toolchain support built on [node.js](http://nodejs.org) and [cake](http://jashkenas.github.com/coffee-script/#cake)
+
 
 # Installation
 
-(This well get better quickly)
+If you haven't already, you'll need to install [node.js](http://nodejs.org) and [npm](http://npmjs.org/). Then:
 
-1. Install [Node.js](http://nodejs.org)
+    npm install -g batman
 
-2. Install Batman
-		
-		git clone git://github.com/Shopify/batman
-		export PATH="batman/tools:$PATH"
-3. Start your app
-		
-		batman gen app MyApp
-		cd MyApp
-		
-		batman server
+Generate a new Batman app somewhere, called bat_belt:
 
-# Documentation
+    cd ~/code
+    batman new bat_belt
 
-## Javascript Framework
+Fire it up:
 
-The core of the framework clocks in at <9kb when compressed. It takes a powerful alternative to classical inheritance and a robust system of data bindings, and builds a thin MVC layer on top that favors convention over configuration. This allows you to quickly write apps without having to worry about browser and framework quirks. Let's look at the two key concepts.
+    cd bat_belt
+    batman server #(or just "batman s")
 
-### Mixins
+Now visit [http://localhost:8124](http://localhost:8124) and start playing around!
 
-Batman features a more fully-realized mixin system in favor of classical inheritance, though at times it may still feel like you're creating classes.
+## Architecture
 
-** Batman.mixin()**:
+Batman's MVC architecture fits together like this:
 
-	Batman.mixin(destinationObject, sourceObject1, sourceObject2...)
+* Controllers are persistent objects which render the views and give them mediated access to the model layer.
+* Views are written in pure HTML, and use `data-*` attributes to create bindings with model data and event handlers exposed by the controllers.
+* Models have validations, lifecycle events, a built-in identity map, and can use arbitrary storage mechanisms (`Batman.LocalStorage` and `Batman.RestStorage` are included).
 
-A basic mixin function. It will simply take all the properties from the source objects and apply them to destinationObject. Because all Javascript objects act like dictionaries or hashes, you can simply pass in a hash and it will be mixed into the destination object. **Returns destinationObject.**
+A Batman application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app is handled via [hash-bang fragment identifers](http://www.w3.org/QA/2011/05/hash_uris.html), with [pushState](https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries) support forthcoming.
 
-**Batman() constructor**:
 
-	Batman(sourceObject...)
+### Controllers
 
-Creates a new object and mixes in all the keys of the source objects to that new object. **Returns the new object.**
+Batman controllers are singleton classes with one or more instance methods that can serve as routable actions. Because they're singletons, instance variables persist as long as the app is running. You normally define your routes along with your actions, like so:
 
-*Note: Source objects are applied in order; if a key already exists on an object, it will be overwritten.*
+    class MyApp.UsersController extends Batman.Controller
+      index: @route('/users') ->
+        @users ||= MyApp.User.get('all')
 
-**Batman.Mixin**:
+Now when you navigate to `/#!/users`, the dispatcher run this `index` action with an implicit call to `@render`, which by default will look for a view at `/views/users/index.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML.
 
-	MyMixin = Batman.Mixin({
-		isMyMixin: true
-	})
+Controllers are also a fine place to put event handlers used by your views. Here's one that uses [jQuery](http://jquery.com/) to toggle a CSS class on a button:
 
-You can think of a Mixin as a predefined bucket of properties, or almost as a class. All of the source objects passed to the Batman.Mixin constructor will be applied to the Mixin's *prototype*. You can now use MyMixin in a variety of ways:
+    class MyApp.BigRedButtonController extends Batman.Controller
+      index: @route('/button') ->
+      
+      buttonWasClicked: (node, event) ->
+        $(node).toggleClass('activated')
 
-* **applyTo**: Apply it to an object
-		
-		MyMixin.applyTo(someObject) => someObject.isMyMixin == true
-		Batman.mixin(someObject, MyMixin) => someObject.isMyMixin == true
-		Batman(MyMixin) => {isMyMixin: true}
-* **create**: Instantiate a new object
-		
-		MyMixin.create() => {isMyMixin: true}
-		MyMixin() => {isMyMixin: true}
-		MyMixin({foo: 'bar'}) => {isMyMixin: true, foo: 'bar'}
-* **removeFrom**: Remove it from an object
-		
-		MyMixin.removeFrom(someObject) => someObject.isMyMixin == undefined
-		Batman.unmixin(someObject, MyMixin) => someObject.isMyMixin == undefined
-* **enhance**: Mixin more properties to the *prototype*
-		
-		MyMixin.enhance({isEnhanced: true})
-		MyMixin() => {isMyMixin: true, isEnhanced: true}
-* **mixin**: Mixin properties to the mixin object itself
-		
-		MyMixin.mixin({foo: 'bar'}) => MyMixin.foo == 'bar'
-* **inherit**: Returns a hash of functions proxied to this Mixin's prototype
-		
-		MyMixin.enhance({foo: function() { console.log(this) }})
-		AnotherMixin = Batman.Mixin({isAnotherMixin: true}, MyMixin.inherit('foo'))
-		AnotherMixin().foo() => logs {isAnotherMixin: true, foo: function}
-Batman includes a number of predefined Mixins, and indeed uses these instead of classes. You'll see how this helps you write powerful code more simply.
 
-**Dependency Injection**: You can use inline permanent observers as a basic system of dependency injection. A future update may make this more automatic.
+### Views
 
-	Batman.View = Batman.Mixin({
-		isView: true,
-		node: $binding().observeForever(function(node) {
-			if (node)
-				Batman.require('batman.dom', function() {
-					Batman.DOM.applyToNode(node)
-				})
-		})
-	})
+You write views in plain HTML. These aren't templates in the usual sense: the HTML is rendered in the page as-is, and you use `data-*` attributes to specify how different parts of the view bind to your app's data. Here's a very small view which displays a user's name and avatar:
 
-Batman.require caches already loaded files.
+    <div class="user">
+      <img data-bind-src="user.avatarURL" />
+      <p data-bind="user.name"></p>
+    </div>
 
-### Bindings
+The `data-bind` attribute on the `<p>` tag sets up a binding between the user's `name` property and the content of the tag. The `data-bind-src` attribute on the `<img>` tag binds the user's `avatarURL` property to the `src` attribute of the tag. You can do the same thing for arbitrary attribute names, so for example `data-bind-href` would bind to the `href` attribute.
 
-Bindings let you register any arbitrary key on any arbitrary object as observable. You can then add listeners to that property, so whenever its value changes, you can notify something in a completely different place in your app.
 
-	var obj = Batman({
-		foo: $binding('bar')
-	})
-	
-	obj.foo() => 'bar'
-	
-	obj.foo('pew pew')
-	obj.foo() => 'pew pew'
+### Models
 
-* **observe**: Register a function to be notified when the value changes
-		
-		obj.foo.observe(function(newValue) {
-			console.log(newValue)
-		})
-		// observe is aliased to obj.foo.on() or obj.foo.when()
-		// you can pass true as a second parameter to observe, and the observer will be called immediately, without firing the binding
-		
-		obj.foo('foobaar') => logs 'foobar'
-* **forget**: Stop notifying a particular observer
-		
-		var f = function() {
-			// do something
-		}
-		
-		obj.foo.observe(f)
-		obj.foo.forget(f)
-		
-		obj.foo('foobar') => nothing happens
-* **fire**: Manually fire all observers, even if the value hasn't changed
-		
-		obj.foo.fire() => logs 'foobar', the last value set
-* **prevent**: Lock a binding to prevent it from firing
-		
-		obj.foo.prevent()
-		obj.foo.allowed() => false
-		
-		obj.foo.fire() => false, does nothing
-		
-		obj.foo.allow()
-		obj.foo.fire() => logs 'foobar', the last value set
-		
-		// every call to prevent() increments a counter; you can nest prevents, but each must have a matching allow() before the binding will fire again
-* **copy**: Copies the binding to a new binding
-		
-		var obj2 = Batman({
-			bar: obj.foo.copy()
-		})
-		
-		obj2.bar() => 'foobar'
-		
-		obj2.bar('qux')
-		obj2.bar() => 'qux'
-		obj.foo() => 'foobar'
-* **observeForever**: Registers an observer that persists through copies
-		
-		Batman.Request = Batman.Mixin({
-			url: $binding('').observeForever(function(url) {
-				if (url)
-					this.send()
-			})
-		})
-* **validate**: Functionality may change
 
-**Array bindings**: Any binding with an array value will inherit the methods from the Array prototype, but toll-free bridge them to the binding.
 
-	var user = Batman({
-		friends: $binding(['nick'])
-	})
-	
-	user.friends() => ['nick']
-	
-	user.friends.observe(function(friends) {
-		console.log(friends)
-	})
-	
-	user.friends.push('tobi') => logs ['nick', 'tobi']
-	user.friends.removeObject('tobi') => logs ['nick']
-	user.friends.unshift('chris') => logs ['chris', 'nick']
-	user.friends.join(',') => 'chris, nick'
+## Observable Properties
 
-**Computed bindings**: You can also have computed bindings. These are bindings which you create with a function instead of a value; whenever the value is requested, the function will be executed and the result will be returned. If a computed binding uses any other bindings in its implementation, it will automatically observe those sub-bindings; when one of the dependent bindings changes, the computed binding will be recalculated, and thus re-fire its observers.
+Most of the classes you work with in your app code will descend from `Batman.Object`. One thing you get from `Batman.Object` is a powerful system of observable properties which forms the basis of the binding system. Here's a very simple example:
 
-	var person = Batman({
-		firstName: $binding("bruce"),
-		lastName: $binding("wayne"),
-		
-		fullName: $binding(function() {
-			return this.firstName() + ' ' + this.lastName()
-		})
-	})
-	
-	person.fullName() => 'bruce wayne'
-	
-	person.fullName.observe(function(newValue) {
-		console.log(newValue)
-	})
-	
-	person.firstName('thomas') => logs 'thomas wayne', from the observer on fullName
+    gadget = new Batman.Object
+    gadget.observe 'name', (newVal, oldVal) ->
+      console.log "name changed from #{oldVal} to #{newVal}!"
+    gadget.get 'name'
+    # returns undefined
+    gadget.set 'name', 'Batarang'
+    # console output: "name changed from undefined to Batarang!"
+    gadget.unset 'name'
+    # console output: "name changed from Batarang to undefined!"
 
-**Events**: Batman builds its event system on top of bindings.
+By default, these properties are stored like plain old JavaScript properties: that is, `gadget.name` would return "Batarang" just like you'd expect. But if you set the gadget's name with `gadget.name = 'Shark Spray'`, then the observer function you set on `gadget` will not fire.
 
-	var button = Batman({
-		title: $binding('Click Me'),
-		click: $event(function() {
-			this.title('Clicked!')
-		})
-	})
-	
-	// register an observer
-	// this is a shortcut to button.click.observe, so it has the normal aliases
-	button.click(function() {
-		console.log('pressed')
-	})
-	
-	// when you receive a mouse event...
-	button.click() => logs 'pressed'
-	// equivalent to button.click.dispatch()
-	// if you need to pass a function as an argument, use .dispatch
-	
-	button.title() => 'Clicked!'
+### Custom Accessors
 
-**One Shot Events**: Can only fire a single time, any observers added after that will simply be called immediately
+So, what's the point of using `gadget.get 'name'` instead of just `gadget.name`? Well, Batman properties don't need to be backed by JavaScript properties. Let's write a `Box` class with a custom getter for its volume:
 
-	Batman.ready = $event(function() { /* do something */ }, true)
-	Batman.ready.isEvent => true
-	Batman.ready.isOneShot => true
-	Batman.ready.hasFired => false
-	
-	Batman.ready()
-	Batman.ready.hasFired => true
-	
-	Batman.ready(function() { console.log('ready') }) => logs 'ready' immediately
+    class Box extends Batman.Object
+      constructor: (@length, @width, @height) ->
+      @accessor 'volume',
+        get: (key) -> @get('length') * @get('width') * @get('height')
+    
+    box = new Box(16,16,12)
+    box.get 'volume'
+    # returns 3072
 
-**Ajax Requests**: XHR built on bindings
+The really cool thing about this is that, because we used `@get` to access the component properties of `volume`, Batman can keep track of those dependencies and let us observe the `volume` directly:
+    
+    box.observe 'volume', (newVal, oldVal) ->
+      console.log "volume changed from #{oldVal} to #{newVal}!"
+    box.set 'height', 6
+    # console output: "volume changed from 3072 to 1536!"
 
-	var request = Batman.Request('foo.json')
-		.success(function(request) {
-			// do something
-		})
-		.error(function(error) {
-			// handle error
-		})
-		// other events: .send, .complete, .done, .fail, .then
-	
-	request.method() => 'get'
-	
-	request.body({foo: 'bar'})
-	request.method() => 'post'
-	request.contentType() => 'application/json'
-	
-	// request will be sent automatically, a short time after the url changes
-	// use request.cancel() to stop this behavior or request.send() to send immediately
+The `Box`'s `volume` is a read-only attribute here, because we only provided a getter in the accessor we defined. Here's a `Person` class with a (rather naive) read-write accessor for their name:
 
-### MVC
+    class Person extends Batman.Object
+      constructor: (name) -> @set 'name', name
+      @accessor 'name',
+        get: (key) -> [@get('firstName'), @get('lastName')].join(' ')
+        set: (key, val) ->
+          [first, last] = val.split(' ')
+          @set 'firstName', first
+          @set 'lastName', last
+        unset: (key) ->
+          @unset 'firstName'
+          @unset 'lastName'
+          
+          
+### Keypaths
 
-The Javascript framework also includes a very thin layer of MVC. More documentation coming. Short version is everything is a Mixin and aliased to moneyhat functions.
+If you want to get at properties of properties, use keypaths:
 
-	User = Batman.Model('user', {
-		name: $binding('')
-	}, $M.timestamps(), Batman.LocalStorage)
-	
-	User.isModel => true
-	User.name => undefined
-	
-	var me = User({name: 'bruce wayne'})
-	me.name() => 'bruce wayne'
-	me.save() => user is stored in HTML5 localStorage
+    employee.get 'team.manager.name'
 
-### DOM
+This does what you expect and is pretty much the same as `employee.get('team').get('manager').get('name')`. If you want to observe a deep keypath for changes, go ahead:
+    
+    employee.observe 'team.manager.name', (newVal, oldVal) ->
+      console.log "you now answer to #{newVal || 'nobody'}!"
+    manager = employee.get 'team.manager'
+    manager.set 'name', 'Bill'
+    # console output: "you now answer to Bill!"
 
-This optional plugin will be automatically included if you create a Batman.View with the *node* property defined. It allows you to access your app data inside your normal HTML **without using templates**.
+If any component of the keypath is set to something that would change the overall value, then observers will fire:
+    
+    employee.set 'team', randomTeam()
+    # console output: "you now answer to Larry!"
+    employee.team.unset 'manager'
+    # console output: "you now answer to nobody!"
+    
 
-*Why templates are bad: they take too long to render; they delay the initial display of the page; the generated DOM nodes are not isolated--any Javascript, like jQuery, may manipulate DOM nodes; if a single piece of data changes, all the existing DOM nodes are blown away.*
+## A tour through the project folder
 
-Instead of templates, you simply write normal HTML. You can then use data- attributes to bind different properties of the node to your data.
+Here's what you get with your freshly generated project:
 
-	<body>
-		<div data-bind="person.fullName"></div> => <div>bruce wayne</div>
-	</body>
+    .
+    ├── README
+    ├── controllers
+    │   └── app_controller.coffee
+    ├── index.html
+    ├── models
+    ├── bat_belt.coffee
+    ├── package.json
+    ├── resources
+    │   └── batman.png
+    └── views
+        └── app
+            └── index.html
 
-No rendering is required, the browser's much faster rendering simply renders the HTML. Batman.DOM simply observes the binding you pass in and updates the *existing* node's innerHTML when the binding changes.
 
-**each**: Iterate over a collection binding using a prototype node
+The root directory has two application code files which together form the entry point to your Batman application:
 
-	<ul>
-		<li data-each-friend="user.friends"><span data-bind="friend.name"></span></li>
-		<li><span data-bind="user.friends.length"></span> friends</li>
-	</ul>
+* `index.html` is the only page load in your app. It loads the Batman library along with your app code, then calls `run()` on your application.
+* `bat_belt.coffee` (named however you named your app in the generator) contains a [coffeescript class](http://jashkenas.github.com/coffee-script/#classes) which represents your application as a whole. Among other things, it specifies the controllers and models to be loaded as part of your app.
 
-The li that has the data-each binding will be used as a prototype; replicated for ever item in the friends array. This allows you to also use arbitrary non-collection elements, like the count li at the bottom of the list.
+When `index.html` is rendered, it loads `bat_belt.js`, which gets compiled on-the-fly by the `batman server` process from `bat_belt.coffee`. Before the closing `</body>` tag, there's a `<script>` tag which just calls `BatBelt.run()`. Because the `BatBelt` app class has defined the `@root` route to point to the `index` action of `BatBelt.AppController`, this is the action that is loaded when you have a bare path.
 
-**visible**: Shows or hides the node based on whether the value of the binding is truthy or falsy.
 
-	<ul data-visible="user.hasFriends"></ul>
-
-**Binding expressions**: The string you pass to the attribute is a full expression. This makes complex bindings possible
-
-	<ul data-visible="user.friends().length > 0"></ul>
-
-**classes**: Add or remove CSS class names based on a hash of bindings
-
-	<div data-classes="modified: user.isModified, has_friends: user.hasFriends">
-
-**Arbitrary HTML attributes**: You can bind the value of any HTML attribute to a binding
-
-	<div data-bind-class="user.cssClasses"><input data-bind-placeholder="user.fullName" /></div>
-
-**events**: A more robust list of events than the DOM provides by default
-
-	<input data-events="submit: controller.takeNameFrom" />
-	
-	controller = Batman({
-		takeNameFromNode: function(value, node) {
-			user.firstName(value)
-		}
-	})
-
-The full list of supported events can be found in Batman.DOM.events
-
-**mixin**: You can mixin an object of properties to a node
-
-	<div data-mixin="animation"></div> => divNode.show(), divNode.hide()
-
-**yield and contentFor**: Place different blocks of HTML in different places (this is subject to the why templates are bad rule above)
-
-	<div id="content" data-yield="main"></div>
-	
-	<div data-content-for="main">Foo</div> => <div id="content">Foo</div>
-
-More documentation coming soon.
 
 # Testing
 

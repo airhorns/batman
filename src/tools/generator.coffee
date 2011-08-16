@@ -79,7 +79,7 @@ cli.main (args, options) ->
 
   # `replaceVars` is a super simple templating engine.
   # Add a new key to `varMap` right here, and in the templates, the following substitutions will be made:
-  # $key$: the lower cased value of the key
+  # $key$: the lower-case-underscored value of the key
   # $Key$: the camel cased value of the key
   # $KEY$: the upper cased value of the key
   # $_key$: the original value of the key
@@ -87,7 +87,7 @@ cli.main (args, options) ->
     app: options.appName
     name: options.name
 
-  transforms = [((x) -> x.toUpperCase()), ((x) -> Batman.helpers.camelize(x)), ((x) -> x.toLowerCase())]
+  transforms = [((x) -> x.toUpperCase()), ((x) -> Batman.helpers.camelize(x)), ((x) -> Batman.helpers.underscore(x).toLowerCase())]
 
   replaceVars = (string) ->
     for templateKey, value of TemplateVars
