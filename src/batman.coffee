@@ -2092,6 +2092,8 @@ Batman.DOM = {
       if node.nodeName.toUpperCase() is 'A' and not node.href
         node.href = '#'
 
+      node
+
     change: (node, callback) ->
       eventNames = switch node.nodeName.toUpperCase()
         when 'TEXTAREA' then ['keyup', 'change']
@@ -2103,6 +2105,8 @@ Batman.DOM = {
         Batman.DOM.addEventListener node, eventName, (args...) ->
           callback node, args...
 
+      node
+
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
         Batman.DOM.addEventListener node, 'keyup', (args...) ->
@@ -2113,6 +2117,8 @@ Batman.DOM = {
         Batman.DOM.addEventListener node, 'submit', (args...) ->
           callback node, args...
           e.preventDefault()
+
+      node
   }
 
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
