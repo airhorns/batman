@@ -2085,8 +2085,8 @@ Batman.DOM = {
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
     click: (node, callback) ->
-      Batman.DOM.addEventListener node, 'click', (args...) ->
-        callback node, args...
+      Batman.DOM.addEventListener node, 'click', (e) ->
+        callback node, e
         e.preventDefault()
 
       if node.nodeName.toUpperCase() is 'A' and not node.href
@@ -2102,20 +2102,20 @@ Batman.DOM = {
         else ['change']
 
       for eventName in eventNames
-        Batman.DOM.addEventListener node, eventName, (args...) ->
-          callback node, args...
+        Batman.DOM.addEventListener node, eventName, (e) ->
+          callback node, e
 
       node
 
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
-        Batman.DOM.addEventListener node, 'keyup', (args...) ->
+        Batman.DOM.addEventListener node, 'keyup', (e) ->
           if e.keyCode is 13
-            callback node, args...
+            callback node, e
             e.preventDefault()
       else
-        Batman.DOM.addEventListener node, 'submit', (args...) ->
-          callback node, args...
+        Batman.DOM.addEventListener node, 'submit', (e) ->
+          callback node, e
           e.preventDefault()
 
       node

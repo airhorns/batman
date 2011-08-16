@@ -159,7 +159,7 @@ asyncTest 'it should bind the input value and update the object when it changes'
     delay =>
       equal context.get('one'), 'bar'
 
-asyncTest 'it should allow events to be bound', 1, ->
+asyncTest 'it should allow events to be bound', 2, ->
   context =
     doSomething: spy = createSpy()
 
@@ -172,7 +172,10 @@ asyncTest 'it should allow events to be bound', 1, ->
       node[0].dispatchEvent(evt)
     else
       node.trigger('click')
+
     ok spy.called
+    equal spy.lastCallArguments[0], node[0]
+
     QUnit.start()
 
 asyncTest 'it should allow mixins to be applied', 1, ->
