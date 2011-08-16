@@ -5,6 +5,10 @@ class MockRequest extends MockClass
   @chainedCallback 'error'
 
 oldRequest = Batman.Request
+triggerChange = (domNode) ->
+  evt = document.createEvent("HTMLEvents")
+  evt.initEvent("change", true, true)
+  domNode.dispatchEvent(evt)
 
 count = 0
 QUnit.module 'Batman.View'
@@ -146,6 +150,26 @@ asyncTest 'it should bind the input value and update the input when it changes',
     delay =>
       equal $(node[0]).val(), 'bar'
 
+asyncTest 'it should bind the input value of checkboxes and update the value when the object changes', 2, ->
+  context = new Batman.Object
+    one: true
+
+  render '<input type="checkbox" data-bind="one" />', context, (node) ->
+    equal node[0].checked, true
+    context.set('one', false)
+    delay =>
+      equal node[0].checked, false
+
+asyncTest 'it should bind the input value of checkboxes and update the object when the value changes', 1, ->
+  context = new Batman.Object
+    one: true
+
+  render '<input type="checkbox" data-bind="one" />', context, (node) ->
+    node[0].checked = false
+    triggerChange(node[0])
+    delay =>
+      equal context.get('one'), false
+
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object
     one: "qux"
@@ -153,9 +177,7 @@ asyncTest 'it should bind the input value and update the object when it changes'
   render '<input data-bind="one" type="text" />', context, (node) ->
     $(node[0]).val('bar')
     # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
-    evt = document.createEvent("MouseEvents")
-    evt.initEvent("change", true, true)
-    node[0].dispatchEvent(evt)
+    triggerChange(node[0])
     delay =>
       equal context.get('one'), 'bar'
 
@@ -184,9 +206,35 @@ asyncTest 'it should allow mixins to be applied', 1, ->
 
   source = '<div data-mixin="test"></div>'
   render source, false, (node) ->
-    equals node.firstChild.foo, 'bar'
-    delete Batman.mixins.test
-    QUnit.start()
+    delay ->
+      equals node.firstChild.foo, 'bar'
+      delete Batman.mixins.test
+
+asyncTest 'it should allow contexts to be entered', 2, ->
+  context = obj
+    namespace: obj
+      foo: 'bar'
+  source = '<div data-context="namespace"><span id="test" data-bind="foo"></span></div>'
+  render source, context, (node) ->
+    equal $('#test', node).html(), 'bar'
+    context.set('namespace', obj(foo: 'baz'))
+    delay ->
+      equal $("#test", node).html(), 'baz', 'if the context changes the bindings should update'
+
+asyncTest 'it should allow contexts to be specified using filters', 2, ->
+  context = obj
+    namespace: obj
+      foo: obj
+        bar: 'baz'
+    keyName: 'foo'
+
+  source = '<div data-context="namespace | get keyName"><span id="test" data-bind="bar"></span></div>'
+  render source, context, (node) ->
+    equal $('#test', node).html(), 'baz'
+    context.set('namespace', obj(foo: obj(bar: 'qux')))
+    delay ->
+      equal $("#test", node).html(), 'qux', 'if the context changes the bindings should update'
+
 
 QUnit.module "Batman.View rendering loops"
 
@@ -243,14 +291,16 @@ QUnit.module "Batman.View rendering nested loops"
 
 asyncTest 'it should allow nested loops', 2, ->
   render @source, @context, (node, view) ->
-    delay ->
+    setTimeout ->
       equal $('.post', node).length, 3
       equal $('.tag', node).length, 9
+      QUnit.start()
+    , ASYNC_TEST_DELAY*3
 
 asyncTest 'it should allow access to variables in higher scopes during loops', 3*3 + 3, ->
   postCounts = [0,0,0]
   render @source, @context, (node, view) ->
-    delay => # new renderers are used for each loop node, must wait longer
+    setTimeout ->
       node = view.get('node')
       for postNode, i in $('.post', node)
         for tagNode, j in $('.tag', postNode)
@@ -265,6 +315,41 @@ asyncTest 'it should allow access to variables in higher scopes during loops', 3
 
       for count, i in postCounts
         equal count, 3, "There are 3 tags referencing post-#{i}"
+      QUnit.start()
+    , ASYNC_TEST_DELAY*3
+
+QUnit.module 'Batman.View rendering formfor'
+  setup: ->
+    @User = class User extends MockClass
+      name: 'default name'
+
+asyncTest 'it should pull in objects for form rendering', 1, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+  context =
+    instanceOfUser: new @User
+
+  node = render source, context, (node) ->
+    equals $('input', node).val(), "default name"
+    QUnit.start()
+
+asyncTest 'it should update objects when form rendering', 1, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+  context =
+    instanceOfUser: new @User
+
+  node = render source, context, (node) =>
+    $('input', node).val('new name')
+    triggerChange(node[0].childNodes[1])
+    delay =>
+      equals @User.lastInstance.name, "new name"
 
 QUnit.module 'Batman.View rendering yielding and contentFor'
 
@@ -398,6 +483,61 @@ asyncTest 'should update bindings when argument keypaths change', 1, ->
     context.set('bar', "-")
     delay ->
       equals node.html(), '1-2-3'
+
+asyncTest 'should allow filtered keypaths as arguments to context', 1, ->
+  context = obj
+    foo: obj
+      baz: obj
+        qux: "filtered!"
+    bar: 'baz'
+
+  render '<div data-context-corge="foo | get bar"><div id="test" data-bind="corge.qux"></div></div>', context, (node) ->
+    delay ->
+      equals $("#test", node).html(), 'filtered!'
+
+asyncTest 'should allow filtered keypaths as arguments to formfor', 1, ->
+  class SingletonDooDad extends Batman.Object
+    someKey: 'foobar'
+
+    @classAccessor 'instance',
+      get: (key) ->
+        unless @_instance
+          @_instance = new SingletonDooDad
+        @_instance
+
+  context = obj
+    klass: SingletonDooDad
+
+  source = '<form data-formfor-obj="klass | get \'instance\'"><span id="test" data-bind="obj.someKey"></span></form>'
+  render source, context, (node) ->
+    delay ->
+      equals $("#test", node).html(), 'foobar'
+
+asyncTest 'should allow filtered keypaths as arguments to mixin', 1, ->
+  context = obj
+    foo: obj
+      baz:
+        someKey: "foobar"
+    bar: 'baz'
+
+  render '<div id="test" data-mixin="foo | get bar"></div>', context, (node) ->
+    delay ->
+      equals node[0].someKey, 'foobar'
+
+asyncTest 'should allow filtered keypaths as arguments to foreach', 3, ->
+  context = obj
+    foo: obj
+      baz: [obj(key: 1), obj(key: 2), obj(key: 3)]
+    bar: 'baz'
+
+  render '<div><span class="tracking" data-foreach-number="foo | get bar" data-bind="number.key"></span></div>', context, (node) ->
+    delay ->
+      tracker = {'1': false, '2': false, '3': false}
+      $(".tracking", node).each (i, x) ->
+        tracker[$(x).html()] = true
+      ok tracker['1']
+      ok tracker['2']
+      ok tracker['3']
 
 QUnit.module 'Batman.View rendering filters built in'
 

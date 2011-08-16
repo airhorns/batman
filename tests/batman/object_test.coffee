@@ -127,4 +127,3 @@ test 'Batman: runtime integration test', ->
   ok spy.called
 
 QUnit.module "Batman (the function)"
-
