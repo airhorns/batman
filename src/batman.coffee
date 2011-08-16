@@ -1256,6 +1256,27 @@ class Batman.Controller extends Batman.Object
 class Batman.Model extends Batman.Object
 
   # ## Model API
+  # Override this property if your model is indexed by a key other than `id`
+  @id: 'id'
+  _id: (id) ->
+    model = @constructor
+    key = model.id?() || model.id || 'id'
+
+    if arguments.length > 0
+      id = "#{id}" # normalize to a string
+
+      Batman.initializeObject model
+      records = model._batman.records ||= {}
+      record = records[id]
+
+      all = model.get 'all'
+      all.remove(record) if record
+
+      records[id] = @
+      all.add @
+
+    @[key]
+
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
   @persist: (mechanisms...) ->
@@ -1282,52 +1303,6 @@ class Batman.Model extends Batman.Object
     record = new @(id)
     setTimeout (-> record.load()), 0
     record
-
-  # Override this property if your model is indexed by a key other than `id`
-  @id: 'id'
-  _id: (id) ->
-    model = @constructor
-    key = model.id?() || model.id || 'id'
-
-    if arguments.length > 0
-      id = @[key] = "#{id}" # normalize to a string
-
-      Batman.initializeObject model
-      records = model._batman.records ||= {}
-      record = records[id]
-
-      all = model.get 'all'
-      all.remove(record) if record
-
-      records[id] = @
-      all.add(@)
-
-    @[key]
-
-  # ### Transport methods
-
-  # Create a before load event. Clear the `all` set.
-  @beforeLoad: @event -> @get('all').clear()
-  # Create an after load event.
-  @afterLoad: @event ->
-
-  # `load` fetches the record from all sources possible
-  @load: (callback) ->
-    @all ||= new Batman.Set
-    do @beforeLoad
-
-    afterLoad = =>
-      callback?.call @
-      do @afterLoad
-
-    allMechanisms = @::_batman.getAll 'storage'
-    fireImmediately = !allMechanisms.length
-    for mechanisms in allMechanisms
-      fireImmediately = fireImmediately || !mechanisms.length
-      for m in mechanisms
-        m.readAllFromStorage @, afterLoad
-
-    do afterLoad if fireImmediately
 
   # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their
   # storage representations. Encoders do things like stringifying dates and parsing them back out again,
@@ -1381,16 +1356,6 @@ class Batman.Model extends Batman.Object
             keys: keys
             validator: new validator(matches)
 
-  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
-  # operations on the model are asynchronous, these states are used to indicate exactly what point the
-  # record is at in it's lifetime, which can often be during a save or load operation.
-  @mixin Batman.StateMachine
-
-  # Add the various states to the model.
-  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving']
-    @::state k
-  @::state 'saved', -> @dirtyKeys.clear()
-
   # ### Record API
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
@@ -1419,9 +1384,6 @@ class Batman.Model extends Batman.Object
 
     # Mark the model as dirty if isn't already.
     @dirty() if @state() isnt 'dirty'
-
-  # FIXME: Is this really needed?
-  @accessor 'dirtyKeys', -> @dirtyKeys
 
   toString: ->
     "#{@constructor.name}: #{@_id()}"
@@ -1460,63 +1422,66 @@ class Batman.Model extends Batman.Object
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
 
-  # Set up the lifecycle events for a record.
-  beforeLoad: @event -> @loading(); true
-  afterLoad: @event -> @loaded(); true
-  beforeCreate: @event ->
-  afterCreate: @event ->
-  beforeSave: @event -> @saving(); true
-  afterSave: @event -> @saved(); true
-  beforeValidation: @event ->
-  afterValidation: @event ->
+  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
+  # operations on the model are asynchronous, these states are used to indicate exactly what point the
+  # record is at in it's lifetime, which can often be during a save or load operation.
+  @becomeStateMachine yes
 
-  # `load` fetches the record from all sources possible
-  load: (callback) ->
-    do @beforeLoad
+  # Add the various states to the model.
+  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'creating', 'created', 'validated']
+    @state k
 
-    afterLoad = =>
-      callback?.call @
-      do @afterLoad
+  @state 'saved', -> @dirtyKeys.clear()
+  @state 'validating', -> console.log 'validator'
+  @state 'validated', -> @[@_oldState]?()
+  @classState 'loading'
+  @classState 'loaded'
 
-    allMechanisms = @_batman.getAll 'storage'
+  doStorageMethod = (target, methodName, callback) ->
+    allMechanisms = target._batman.getAll 'storage'
     fireImmediately = !allMechanisms.length
     for mechanisms in allMechanisms
       fireImmediately = fireImmediately || !mechanisms.length
-      for m in mechanisms
-        m.readFromStorage @, afterLoad
+      m[methodName] @, callback for m in mechanisms
 
-    do afterLoad if fireImmediately
+    do callback if fireImmediately
+
+  # `load` fetches the record from all sources possible
+  @load: (callback) ->
+    @all ||= new Batman.Set
+
+    do @loading
+    doStorageMethod.call @, @prototype, 'readAllFromStorage', =>
+      callback?.call @, @
+      do @loaded
+
+  # `load` fetches the record from all sources possible
+  load: (callback) ->
+    do @loading
+    doStorageMethod.call @, @, 'readAllFromStorage', =>
+      callback?.call @, @
+      do @loaded
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
   save: (callback) =>
     return if not @isValid()
-    do @beforeSave
 
     creating = @isNew()
-    do @beforeCreate if creating
 
-    afterSave = =>
-      @dirtyKeys.clear()
-      if callback? && callback.call?
-        callback?.call @
-      do @afterCreate if creating
-      do @afterSave
-
-    allMechanisms = @_batman.getAll 'storage'
-    fireImmediately = !allMechanisms.length
-    for mechanisms in allMechanisms
-      fireImmediately = fireImmediately || !mechanisms.length
-      for m in mechanisms
-        m.writeToStorage @, afterSave
-
-    do afterSave if fireImmediately
+    do @saving
+    do @creating if creating
+    doStorageMethod.call @, @, 'writeToStorage', =>
+      callback?.call @, @
+      do @created if creating
+      do @saved
 
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
   validate: ->
-    do @beforeValidation
+    console.log @validating, @_batman.isTransitioning
+    do @validating
 
     # Start off assuming the validation is synchronous, and as they are each run, ensure each in fact is.
     async = no
@@ -1536,15 +1501,15 @@ class Batman.Model extends Batman.Object
         # In the event the validation is async (marked this way because the promise is paused), then
         # prevent the after callback from running, and run it only after all the promises have resolved.
         if promise.paused
-          @prevent 'afterValidation'
-          promise.resume => @allow('afterValidation'); @afterValidation()
+          @prevent 'validated'
+          promise.resume => @allow('validated'); do @validated
           async = yes
         else
           promise.success() if promise.canSucceed
 
     # Return the result of the validation if synchronous, otherwise call the validation callback.
     # FIXME: Is this really right?
-    if async then return no else do @afterValidation
+    return if async then no else do @validated; yes
 
   isNew: -> !@_id()
 
@@ -1669,14 +1634,15 @@ class Batman.RestStorage extends Batman.StorageMechanism
 
     options
 
-  writeToStorage: (record, callback) ->
-    options = $mixin @optionsForRecord(record),
+  writeToStorage: (record, callback, options) ->
+    options = $mixin @optionsForRecord(record), {
       method: if record._id() then 'put' else 'post'
       data: JSON.stringify record
       success: ->
         callback()
       error: (error) ->
         callback(error)
+    }, options
 
     new Batman.Request(options)
 
@@ -2300,8 +2266,8 @@ Batman.DOM = {
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
     click: (node, callback) ->
-      Batman.DOM.addEventListener node, 'click', (e) ->
-        callback node, e
+      Batman.DOM.addEventListener node, 'click', (args...) ->
+        callback node, args...
         e.preventDefault()
 
       if node.nodeName.toUpperCase() is 'A' and not node.href
@@ -2327,17 +2293,18 @@ Batman.DOM = {
         Batman.DOM.addEventListener node, eventName, (e) ->
           callback node, e
 
-      node
+      Batman.DOM.addEventListener node, eventName, (args...) ->
+        callback node, args...
 
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
-        Batman.DOM.addEventListener node, 'keyup', (e) ->
+        Batman.DOM.addEventListener node, 'keyup', (args...) ->
           if e.keyCode is 13
-            callback node, e
+            callback node, args...
             e.preventDefault()
       else
-        Batman.DOM.addEventListener node, 'submit', (e) ->
-          callback node, e
+        Batman.DOM.addEventListener node, 'submit', (args...) ->
+          callback node, args...
           e.preventDefault()
 
       node
