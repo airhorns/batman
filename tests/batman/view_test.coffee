@@ -343,6 +343,13 @@ asyncTest 'should render filters at n deep keypaths', 2, ->
       equals node.html(), "QUX"
       QUnit.start()
 
+asyncTest 'should render chained filters', 1, ->
+  node = render '<div data-bind="foo | upcase | downcase"></div>',
+    foo: 'foo'
+  , (node) ->
+    equals node.html(), "foo"
+    QUnit.start()
+
 asyncTest 'should update bindings with the filtered value if they change', 1, ->
   context = obj
     foo: 'bar'
