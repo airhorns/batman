@@ -1425,7 +1425,7 @@ class Batman.Model extends Batman.Object
   # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
   # operations on the model are asynchronous, these states are used to indicate exactly what point the
   # record is at in it's lifetime, which can often be during a save or load operation.
-  @becomeStateMachine yes
+  @actsAsStateMachine yes
 
   # Add the various states to the model.
   for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'creating', 'created', 'validated']
