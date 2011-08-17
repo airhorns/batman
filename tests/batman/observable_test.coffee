@@ -241,31 +241,6 @@ test "observe(key, callback) called twice to attach two different observers on t
   equal callback1.callCount, 1
   equal callback2.callCount, 1
 
-test "observe(key, callback) will attach event listeners when given a simple key", ->
-  @obj.foo.bar.baz.observe 'corge', observer = createSpy()
-  @obj.foo.bar.baz.corge('x', true)
-  deepEqual observer.lastCallArguments, ['x', true]
-
-test "observe(key, callback) will attach event listeners when given a deep key", ->
-  @obj.foo.observe 'bar.baz.corge', observer = createSpy()
-  @obj.foo.bar.baz.corge('x', true)
-  deepEqual observer.lastCallArguments, ['x', true]
-
-test "observe(key, callback) will attach event listeners, given a deep key, and still fire them if an intermediate key changes", ->
-  @obj.foo.observe 'bar.baz.corge', observer = createSpy()
-
-  baz = Batman
-    qux: "something else"
-  baz.event('corge', ->)
-
-  @obj.foo.bar.set('baz', baz)
-
-  ok !observer.called, "The observer shouldn't fire when the event instance changes, only when the event fires."
-
-  @obj.foo.bar.baz.corge('x', false)
-  deepEqual observer.lastCallArguments, ['x', false]
-
-
 test "observe(key, callback) will only fire once and will not break when there's an object cycle", ->
   @obj.foo.bar.baz.foo = @obj.foo
 
