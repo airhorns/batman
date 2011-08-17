@@ -89,7 +89,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     options: options
     map:
      'src/batman.coffee'               : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend {notify: first}, options)
-     'src/batman.nodep.coffee'         : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.nodep.js", muffin.extend {notify: first}, options)
+     'src/batman.solo.coffee'         : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend {notify: first}, options)
      'tests/batman/(.+)_test.coffee'   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", muffin.extend {notify: first}, options)
      'tests/batman/test_helper.coffee' : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/test_helper.js", muffin.extend {notify: first}, options)
     after: ->

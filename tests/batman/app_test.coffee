@@ -10,7 +10,7 @@ class TestApp.TestController
   render: -> true
   constructor: ->
     @constructor.instance = @
-    for k in ['show', 'complex', 'root'] 
+    for k in ['show', 'complex', 'root']
       @[k] = createSpy()
 
 
@@ -86,7 +86,7 @@ asyncTest "should allow routes to be defined within class definitions", 1, ->
     testing: @route('/blech/:id', (params) ->
       # Pass a super simple view mock to the controller so it doesn't try and render a Batman.View.
       @render
-        view: 
+        view:
           ready: ->
 
       deepEqual params, {url: '/blech/42', id: '42'}
@@ -106,7 +106,7 @@ asyncTest "should start routing for aribtrary routes", 1, ->
 asyncTest "should listen for hashchange events", 2, ->
   @app.route "/orders/:id", spy = createSpy()
   window.location.hash = "#!/orders/1"
-  
+
   setTimeout(->
     equal spy.callCount, 1
     window.location.hash = "#!/orders/2"
