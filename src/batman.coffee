@@ -588,6 +588,8 @@ class Batman.Object
     if keys.length is 0
       if accessor.get or accessor.set
         @_batman.defaultAccessor = accessor
+      else if $typeOf(accessor) is 'Function'
+        @_batman.defaultAccessor = {get: accessor}
       else
         @_batman.keyAccessors ||= new Batman.SimpleHash
         for key, value of accessor
@@ -595,6 +597,7 @@ class Batman.Object
           @[key] = value
     else
       @_batman.keyAccessors ||= new Batman.SimpleHash
+      accessor = {get: accessor} if !accessor.get && !accessor.set && !accessor.unset
       @_batman.keyAccessors.set(key, accessor) for key in keys
 
   @accessor: -> @classAccessor.apply @prototype, arguments
@@ -692,7 +695,7 @@ class Batman.Hash extends Batman.Object
     set: Batman.SimpleHash::set
     unset: Batman.SimpleHash::unset
 
-  @accessor 'isEmpty', get: -> @isEmpty()
+  @accessor 'isEmpty', -> @isEmpty()
 
   for k in ['hasKey', 'equality', 'each', 'keys', 'merge', 'clear', 'isEmpty']
     @::[k] = Batman.SimpleHash::[k]
@@ -742,11 +745,11 @@ class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
-  
+
   for k in ['add', 'remove', 'has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
     @::[k] = Batman.SimpleSet::[k]
 
-  @accessor 'isEmpty', get: -> @isEmpty()
+  @accessor 'isEmpty', -> @isEmpty()
 
 class Batman.SortableSet extends Batman.Set
   constructor: ->
@@ -1289,8 +1292,7 @@ class Batman.Model extends Batman.Object
     @dirty() if @state() isnt 'dirty'
 
   # FIXME: Is this really needed?
-  @accessor 'dirtyKeys',
-    get: -> @dirtyKeys
+  @accessor 'dirtyKeys', -> @dirtyKeys
 
   toString: ->
     "#{@constructor.name}: #{@_id()}"
@@ -1763,8 +1765,7 @@ class Binding extends Batman.Object
   get_rx = /(\w)\[(.+?)\]/
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
-  @accessor 'filteredValue'
-    get: ->
+  @accessor 'filteredValue', ->
       value = @get('unfilteredValue')
       if @filterFunctions.length > 0
         @filterFunctions.reduce((value, fn, i) =>
@@ -1781,8 +1782,7 @@ class Binding extends Batman.Object
         value
 
   # The `unfilteredValue` is whats evaluated each time any dependents change.
-  @accessor 'unfilteredValue'
-    get: ->
+  @accessor 'unfilteredValue', ->
       # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
       # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
       if @get('key')
@@ -1791,8 +1791,7 @@ class Binding extends Batman.Object
         @get('value')
 
   # The `keyContext` accessor is
-  @accessor 'keyContext'
-    get: ->
+  @accessor 'keyContext', ->
       unless @_keyContext
         [unfilteredValue, @_keyContext] = @renderContext.findKey @key
       @_keyContext
@@ -1943,11 +1942,9 @@ class RenderContext
     # Take the `binding` which needs to be proxied, and optionally rest it at the `localKey` scope.
     constructor: (@binding, @localKey) ->
       if @localKey
-        @accessor @localKey,
-          get: -> @binding.get('filteredValue')
+        @accessor @localKey, -> @binding.get('filteredValue')
       else
-        @accessor
-          get: (key) -> @binding.get("filteredValue.#{key}")
+        @accessor (key) -> @binding.get("filteredValue.#{key}")
 
   # Below are the two primitives that all the `Batman.DOM` helpers are composed of.
   # `addKeyToScopeForNode` takes a `node`, `key`, and optionally a `localName`. It creates a `Binding` to
@@ -2126,7 +2123,7 @@ Batman.DOM = {
           iteratorContext[iteratorName] = item
           localClone.push iteratorContext
           localClone.push item
-      
+
           new Batman.Renderer newNode, do (newNode) ->
             ->
               parent.insertBefore newNode, sibling
