@@ -18,10 +18,10 @@ test "add(items...) adds the items to the set, such that has(item) returns true 
   equal @set.has('foo'), true
   equal @set.has('bar'), true
 
-test "add(items...) only increments length for items that aren't already there", ->
-  @set.add('foo')
-  @set.add('foo', 'bar')
-  @set.add('baz', 'baz')
+test "add(items...) only increments length for items which weren't already there, and only returns items which weren't already there", ->
+  deepEqual @set.add('foo'), ['foo']
+  deepEqual @set.add('foo', 'bar'), ['bar']
+  deepEqual @set.add('baz', 'baz'), ['baz']
 
   equal @set.length, 3
 

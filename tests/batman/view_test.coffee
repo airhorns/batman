@@ -238,6 +238,47 @@ asyncTest 'it should allow contexts to be specified using filters', 2, ->
 
 QUnit.module "Batman.View rendering loops"
 
+asyncTest 'it should render new items as they are added', ->
+  source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
+  objects = new Batman.Set('foo', 'bar')
+  
+  render source, {objects}, (node, view) ->
+    objects.add('foo', 'baz', 'qux')
+    delay =>
+      names = $('p', view.get('node')).map -> @innerHTML
+      names = names.toArray()
+      deepEqual names, ['', 'foo', 'bar', 'baz', 'qux']
+
+asyncTest 'it should remove items from the DOM as they are removed from the set', ->
+  source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
+  objects = new Batman.Set('foo', 'bar')
+  
+  render source, {objects}, (node, view) ->
+    delay =>
+      objects.remove('foo', 'baz', 'qux')
+      names = $('p', view.get('node')).map -> @innerHTML
+      names = names.toArray()
+      deepEqual names, ['', 'bar']
+
+asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
+  source = '<div><p data-foreach-object="objects" class="present" data-bind="object.name"></p></div>'
+  objects = new Batman.SortableSet({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
+  objects.sortBy 'id'
+  
+  render source, {objects}, (node, view) ->
+    setTimeout =>
+      names = ($('p', view.get('node')).map -> @innerHTML).toArray()
+      deepEqual names, ['', 'foo', 'bar']
+      objects.addIndex('name')
+      # multiple reordering all at once should not end up with duplicate DOM nodes
+      objects.set 'activeIndex', 'name'
+      objects.set 'activeIndex', 'id'
+      objects.set 'activeIndex', 'name'
+      delay =>
+        names = ($('p', view.get('node')).map -> @innerHTML).toArray()
+        deepEqual names, ['', 'bar', 'foo']
+    , ASYNC_TEST_DELAY
+
 asyncTest 'it should allow simple loops', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   objects = new Batman.Set('foo', 'bar', 'baz')

@@ -20,8 +20,8 @@ QUnit.module 'Batman.SortableSet',
     @set.add @freds
     @set.add @zekes
 
-test "addIndex(keypath) adds an index to be maintained and makes it the default sort order", ->
-  @set.addIndex 'owner.name'
+test "sortBy(keypath) adds an index to be maintained and makes it the default sort order", ->
+  @set.sortBy 'owner.name'
   
   ary = @set.toArray()
   equal ary.length, 3
@@ -29,7 +29,7 @@ test "addIndex(keypath) adds an index to be maintained and makes it the default 
   ok ary[1] is @marys
   ok ary[2] is @zekes
   
-  @set.addIndex 'id'
+  @set.sortBy 'id'
   
   ary = @set.toArray()
   equal ary.length, 3
@@ -37,8 +37,8 @@ test "addIndex(keypath) adds an index to be maintained and makes it the default 
   ok ary[1] is @marys
   ok ary[2] is @freds
 
-test "addIndex('keypath DESC') adds an index in descending order", ->
-  @set.addIndex 'owner.name ASC'
+test "sortBy('keypath DESC') adds an index in descending order", ->
+  @set.sortBy 'owner.name ASC'
   
   ary = @set.toArray()
   equal ary.length, 3
@@ -46,7 +46,7 @@ test "addIndex('keypath DESC') adds an index in descending order", ->
   ok ary[1] is @marys
   ok ary[2] is @zekes
   
-  @set.addIndex 'owner.name DESC'
+  @set.sortBy 'owner.name DESC'
   
   ary = @set.toArray()
   equal ary.length, 3
@@ -54,8 +54,8 @@ test "addIndex('keypath DESC') adds an index in descending order", ->
   ok ary[1] is @marys
   ok ary[2] is @freds
   
-test "addIndex(keypath) sorts by date", ->
-  @set.addIndex 'updated_at'
+test "sortBy(keypath) can sort by a date", ->
+  @set.sortBy 'updated_at'
   
   ary = @set.toArray()
   equal ary.length, 3
@@ -64,7 +64,7 @@ test "addIndex(keypath) sorts by date", ->
   ok ary[2] is @freds
 
 test "add(item) updates the indexes", ->
-  @set.addIndex 'owner.name'
+  @set.sortBy 'owner.name'
   james = Batman
     id: 4
     updated_at: new Date("2011-01-10T11:00:00-05:00")
@@ -81,7 +81,7 @@ test "add(item) updates the indexes", ->
   ok ary[3] is @zekes
 
 test "remove(item) updates the indexes", ->
-  @set.addIndex 'owner.name'
+  @set.sortBy 'owner.name'
   @set.remove @marys
   
   ary = @set.toArray()
@@ -95,7 +95,7 @@ test "undefined values have undefined sort order, but don't explode anything", -
     updated_at: new Date("2009-01-10T11:00:00-05:00")
   @set.add noOwner
   
-  @set.addIndex 'owner.name'
+  @set.sortBy 'owner.name'
   
   ary = @set.toArray()
   equal ary.length, 4

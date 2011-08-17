@@ -704,22 +704,24 @@ class Batman.SimpleSet
     @add.apply @, arguments if arguments.length > 0
   has: (item) ->
     @_storage.hasKey item
-
   add: (items...) ->
+    addedItems = []
     for item in items
       unless @_storage.hasKey(item)
         @_storage.set item, true
+        addedItems.push item
         @length++
-    items
-
+    @itemsWereAdded(addedItems...) unless addedItems.length is 0
+    addedItems
   remove: (items...) ->
-    results = []
+    removedItems = []
     for item in items
       if @_storage.hasKey(item)
         @_storage.unset item
-        results.push item
+        removedItems.push item
         @length--
-    results
+    @itemsWereRemoved(removedItems...) unless removedItems.length is 0
+    removedItems
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
   isEmpty: -> @length is 0
@@ -733,42 +735,50 @@ class Batman.SimpleSet
     for set in others
       set.each (v) -> merged.add v
     merged
+  itemsWereAdded: ->
+  itemsWereRemoved: ->
 
 class Batman.Set extends Batman.Object
   constructor: Batman.SimpleSet
-
-  for k in ['add', 'remove']
-    @::[k] = @event Batman.SimpleSet::[k]
-
-  for k in ['has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
+  itemsWereAdded: @event ->
+  itemsWereRemoved: @event ->
+  
+  for k in ['add', 'remove', 'has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
     @::[k] = Batman.SimpleSet::[k]
 
   @accessor 'isEmpty', get: -> @isEmpty()
 
 class Batman.SortableSet extends Batman.Set
-  constructor: (index) ->
+  constructor: ->
     super
     @_indexes = {}
-    @addIndex(index)
-  add: @event ->
+    @observe 'activeIndex', =>
+      @setWasSorted(@)
+  setWasSorted: @event ->
+    return false if @length is 0
+  add: ->
     results = Batman.SimpleSet::add.apply @, arguments
     @_reIndex()
     results
-  remove: @event ->
+  remove: ->
     results = Batman.SimpleSet::remove.apply @, arguments
     @_reIndex()
     results
-  addIndex: (keypath) ->
-    @_reIndex(keypath)
-    @activeIndex = keypath
-  removeIndex: (keypath) ->
-    @_indexes[keypath] = null
-    delete @_indexes[keypath]
-    keypath
+  addIndex: (index) ->
+    @_reIndex(index)
+  removeIndex: (index) ->
+    @_indexes[index] = null
+    delete @_indexes[index]
+    @unset('activeIndex') if @activeIndex is index
+    index
   each: (iterator) ->
-    iterator(el) for el in toArray()
+    iterator(el) for el in @toArray()
+  sortBy: (index) ->
+    @addIndex(index) unless @_indexes[index]
+    @set('activeIndex', index) unless @activeIndex is index
+    @
   toArray: ->
-    ary = @_indexes[@activeIndex] ? ary : super
+    @_indexes[@get('activeIndex')] ? super
   _reIndex: (index) ->
     if index
       [keypath, ordering] = index.split ' '
@@ -778,8 +788,11 @@ class Batman.SortableSet extends Batman.Set
         valueB = (Batman.Observable.property.call(b, keypath)).getValue()?.valueOf()
         [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
         if valueA < valueB then -1 else if valueA > valueB then 1 else 0
+      @setWasSorted(@) if @activeIndex is index
     else
       @_reIndex(index) for index of @_indexes
+      @setWasSorted(@)
+    @
 
 # App, Requests, and Routing
 # --------------------------
@@ -2103,37 +2116,37 @@ Batman.DOM = {
 
       nodeMap = new Batman.Hash
 
-      add = (item) ->
-        if $typeOf(item) is 'Array' then item = item[0]
-        newNode = prototype.cloneNode true
-        nodeMap.set item, newNode
+      add = (items...) ->
+        for item in items
+          newNode = prototype.cloneNode true
+          nodeMap.set item, newNode
 
-        localClone = context.clone()
-        iteratorContext = new Batman.Object
-        iteratorContext[iteratorName] = item
-        localClone.push iteratorContext
-        localClone.push item
-
-        # Prevent the parent renderer for every item. Each child renderer will allow, only firing the
-        # ready event once all children have finished.
-        parentRenderer.prevent 'ready'
-        renderer = new Batman.Renderer newNode, ->
-          parent.insertBefore newNode, sibling
-          parentRenderer.allow 'ready'
-        , localClone
-
-      remove = (item) ->
-        oldNode = nodeMap.get item
-        oldNode?.parentNode?.removeChild oldNode
+          localClone = context.clone()
+          iteratorContext = new Batman.Object
+          iteratorContext[iteratorName] = item
+          localClone.push iteratorContext
+          localClone.push item
+      
+          new Batman.Renderer newNode, do (newNode) ->
+            ->
+              parent.insertBefore newNode, sibling
+              parentRenderer.allow 'ready'
+          , localClone
+      remove = (items...) ->
+        for item in items
+          oldNode = nodeMap.get item
+          nodeMap.unset item
+          oldNode?.parentNode?.removeChild oldNode
+      reorder = (set) ->
+        for item in set.toArray()
+          parent.insertBefore(nodeMap.get(item), sibling)
 
       context.bind(node, key, (collection) ->
         # Observe the collection for events in the future
         if collection?.observe
-          collection.observe 'add', add
-          collection.observe 'remove', remove
-          collection.observe 'sort', ->
-            collection.each remove
-            setTimeout (-> collection.each add), 0
+          collection.observe 'itemsWereAdded', add
+          collection.observe 'itemsWereRemoved', remove
+          collection.observe 'setWasSorted', reorder
 
         # Add all the already existing items.
         # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
