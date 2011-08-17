@@ -54,7 +54,7 @@ test "Property.defaultAccessor does vanilla JS property access", ->
   equal Batman.Property.defaultAccessor.set.call(obj, 'foo', 'newVal'), 'newVal'
   equal obj.foo, 'newVal'
 
-  equal typeof Batman.Property.defaultAccessor.unset.call(obj, 'foo'), 'undefined'
+  equal Batman.Property.defaultAccessor.unset.call(obj, 'foo'), 'newVal'
   equal typeof obj.foo, 'undefined'
 
 test "accessor() returns the accessor specified on the base for that key, if present", ->
@@ -87,4 +87,3 @@ test "unsetValue() calls the accessor's unset(key) method in the context of the 
   equal typeof @property.unsetValue(), 'undefined'
   deepEqual @customKeyAccessor.unset.lastCallArguments, ['foo']
   equal @customKeyAccessor.unset.lastCallContext, @base
-

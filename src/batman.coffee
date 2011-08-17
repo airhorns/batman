@@ -117,7 +117,7 @@ class Batman.Property
   @defaultAccessor:
     get: (key) -> @[key]
     set: (key, val) -> @[key] = val
-    unset: (key) -> delete @[key]
+    unset: (key) -> x = @[key]; delete @[key]; x
   @triggerTracker: null
   @for: (base, key) ->
     if base._batman
