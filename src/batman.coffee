@@ -398,73 +398,6 @@ Batman.eventOneShot = $eventOneShot = (callback) ->
   context = new Batman.Object
   context.eventOneShot('_event', context, callback)
 
-###
-# Batman.StateMachine
-###
-
-Batman.StateMachine = {
-  initialize: ->
-    Batman.initializeObject @
-    if not @_batman.states
-      @_batman.states = new Batman.SimpleHash
-      @accessor 'state',
-        get: -> @state()
-        set: (key, value) -> _stateMachine_setState.call(@, value)
-
-  state: (name, callback) ->
-    Batman.StateMachine.initialize.call @
-
-    if not name
-      return @_batman.getFirst 'state'
-
-    if not @event
-      throw "StateMachine requires EventEmitter"
-
-    event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
-    event.call(@, callback) if typeof callback is 'function'
-    event
-
-  transition: (from, to, callback) ->
-    Batman.StateMachine.initialize.call @
-
-    @state from
-    @state to
-
-    name = "#{from}->#{to}"
-    transitions = @_batman.states
-
-    event = transitions.get(name) || transitions.set(name, $event ->)
-    event(callback) if callback
-    event
-}
-
-# this is cached here so it doesn't need to be recompiled for every setter
-_stateMachine_setState = (newState) ->
-  Batman.StateMachine.initialize.call @
-
-  if @_batman.isTransitioning
-    (@_batman.nextState ||= []).push(newState)
-    return false
-
-  @_batman.isTransitioning = yes
-
-  oldState = @state()
-  @_batman.state = newState
-
-  if newState and oldState
-    name = "#{oldState}->#{newState}"
-    for event in @_batman.getAll((ancestor) -> ancestor._batman?.get('states')?.get(name))
-      if event
-        event newState, oldState
-
-  if newState
-    @fire newState, newState, oldState
-
-  @_batman.isTransitioning = no
-  @[@_batman.nextState.shift()]() if @_batman.nextState?.length
-
-  newState
-
 # Objects
 # -------
 
@@ -613,19 +546,6 @@ class Batman.Object
 
   # Observe this property on every instance of this class.
   @observeAll: -> @::observe.apply @prototype, arguments
-
-  # A special method to alias state machine methods to class methods
-  @becomeStateMachine: (includeInstanceMethods=true) ->
-    Batman.StateMachine.initialize.call @
-    Batman.StateMachine.initialize.call @prototype
-
-    @classState = -> Batman.StateMachine.state.apply @, arguments
-    @state = -> @classState.apply @prototype, arguments
-    @::state = @classState if includeInstanceMethods
-
-    @classTransition = -> Batman.StateMachine.transition.apply @, arguments
-    @transition = -> @classTransition.apply @prototype, arguments
-    @::transition = @classTransition if includeInstanceMethods
 
 class Batman.SimpleHash
   constructor: ->
@@ -796,6 +716,85 @@ class Batman.SortableSet extends Batman.Set
       @_reIndex(index) for index of @_indexes
       @setWasSorted(@)
     @
+
+# State Machines
+# --------------
+
+Batman.StateMachine = {
+  initialize: ->
+    Batman.initializeObject @
+    if not @_batman.states
+      @_batman.states = new Batman.SimpleHash
+      @accessor 'state',
+        get: -> @state()
+        set: (key, value) -> _stateMachine_setState.call(@, value)
+
+  state: (name, callback) ->
+    Batman.StateMachine.initialize.call @
+
+    if not name
+      return @_batman.getFirst 'state'
+
+    if not @event
+      throw "StateMachine requires EventEmitter"
+
+    event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
+    event.call(@, callback) if typeof callback is 'function'
+    event
+
+  transition: (from, to, callback) ->
+    Batman.StateMachine.initialize.call @
+
+    @state from
+    @state to
+
+    name = "#{from}->#{to}"
+    transitions = @_batman.states
+
+    event = transitions.get(name) || transitions.set(name, $event ->)
+    event(callback) if callback
+    event
+}
+
+# A special method to alias state machine methods to class methods
+Batman.Object.actsAsStateMachine = (includeInstanceMethods=true) ->
+    Batman.StateMachine.initialize.call @
+    Batman.StateMachine.initialize.call @prototype
+
+    @classState = -> Batman.StateMachine.state.apply @, arguments
+    @state = -> @classState.apply @prototype, arguments
+    @::state = @classState if includeInstanceMethods
+
+    @classTransition = -> Batman.StateMachine.transition.apply @, arguments
+    @transition = -> @classTransition.apply @prototype, arguments
+    @::transition = @classTransition if includeInstanceMethods
+
+# This is cached here so it doesn't need to be recompiled for every setter
+_stateMachine_setState = (newState) ->
+  Batman.StateMachine.initialize.call @
+
+  if @_batman.isTransitioning
+    (@_batman.nextState ||= []).push(newState)
+    return false
+
+  @_batman.isTransitioning = yes
+
+  oldState = @state()
+  @_batman.state = newState
+
+  if newState and oldState
+    name = "#{oldState}->#{newState}"
+    for event in @_batman.getAll((ancestor) -> ancestor._batman?.get('states')?.get(name))
+      if event
+        event newState, oldState
+
+  if newState
+    @fire newState, newState, oldState
+
+  @_batman.isTransitioning = no
+  @[@_batman.nextState.shift()]() if @_batman.nextState?.length
+
+  newState
 
 # App, Requests, and Routing
 # --------------------------

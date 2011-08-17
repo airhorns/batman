@@ -274,7 +274,7 @@ test "state machine has accessors", 2, ->
 
 test "state machine class", 1, ->
   class SM extends Batman.Object
-    @becomeStateMachine yes
+    @actsAsStateMachine yes
     @state 'foo', -> ok(true)
 
   sm = new SM
