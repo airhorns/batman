@@ -359,6 +359,39 @@ asyncTest 'it should allow access to variables in higher scopes during loops', 3
       QUnit.start()
     , ASYNC_TEST_DELAY*3
 
+asyncTest 'it should not render past its original node', ->
+  @context.class1 = 'foo'
+  @context.class2 = 'bar'
+  @context.class3 = 'baz'
+  source = '''
+    <div id='node1' data-bind-class='class1'>
+      <div id='node2' data-bind-class='class2'>
+        <div>node1 class should not be set</div>
+        <div>node2 class should be set</div>
+        <div>node3 class should not be set</div>
+      </div>
+      <div id='node3' data-bind-class='class3'></div>
+    </div>
+  '''
+
+  node = document.createElement 'div'
+  node.innerHTML = source
+
+  node1 = $(node).find('#node1')[0]
+  node2 = $(node).find('#node2')[0]
+  node3 = $(node).find('#node3')[0]
+
+  view = new Batman.View
+    contexts: [@context]
+    node: node2
+  view.ready ->
+    equal node1.className, ''
+    equal node2.className, 'bar'
+    equal node3.className, ''
+    QUnit.start()
+
+  true
+
 QUnit.module 'Batman.View rendering formfor'
   setup: ->
     @User = class User extends MockClass

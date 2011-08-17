@@ -1728,8 +1728,7 @@ class Batman.Renderer extends Batman.Object
     nextParent = node
     while nextParent = nextParent.parentNode
       nextParent.onParseExit?()
-      #return if nextParent is @node
-      # FIXME: we need a way to break if you exit the original node context of the renderer.
+      return if @node.isSameNode(nextParent)
 
       parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
