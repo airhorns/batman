@@ -576,7 +576,13 @@ class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
-  hasKey: (key) -> typeof @get(key) isnt 'undefined'
+  hasKey: (key) ->
+    matches = @_storage[key] ||= []
+    for match in matches
+      if @equality(match[0], key)
+        pair = match
+        return true
+    return false
   get: (key) ->
     return undefined if typeof key is 'undefined'
     if matches = @_storage[key]
@@ -584,7 +590,6 @@ class Batman.SimpleHash
         return v if @equality(obj, key)
   set: (key, val) ->
     return undefined if typeof key is 'undefined'
-    return @unset(key) if typeof val is 'undefined'
     matches = @_storage[key] ||= []
     for match in matches
       if @equality(match[0], key)

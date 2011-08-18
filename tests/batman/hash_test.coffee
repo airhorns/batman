@@ -17,11 +17,20 @@ test "has(key) on an empty hash returns false", ->
 test "has(undefined) returns false", ->
   equal @hash.hasKey(undefined), false
 
+test "hash(key) for an existing key who's value is undefined returns true", ->
+  @hash.set('foo', undefined)
+  ok @hash.hasKey('foo')
+
 test "get(undefined) returns undefined", ->
   equal typeof(@hash.get(undefined)), 'undefined'
 
 test "get(key) on an empty hash returns undefined", ->
   equal typeof(@hash.get('foo')), 'undefined'
+
+test "get(key) where the key's value is undefined returns undefined", ->
+  @hash.set('foo', undefined)
+  equal @hash.length, 1
+  equal @hash.get('foo'), undefined
 
 test "set(key, val) stores the value for that key, such that hasKey(key) returns true and get(key) returns the stored value", ->
   @hash.set 'foo', 'bar'
@@ -46,9 +55,9 @@ test "set(undefined, val) doesn't set", ->
   equal typeof(@hash.set undefined, true), 'undefined'
   equal @hash.length, 0
 
-test "set(key, undefined) unsets", ->
+test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
-  equal @hash.length, 0
+  equal @hash.length, 1
 
 test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
   @hash.set 'foo', 'bar'
