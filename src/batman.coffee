@@ -1255,7 +1255,6 @@ class Batman.Model extends Batman.Object
   # Override this property if your model is indexed by a key other than `id`
   @identifier: 'id'
 
-
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
   @persist: (mechanisms...) ->
@@ -1264,24 +1263,6 @@ class Batman.Model extends Batman.Object
     for mechanism in mechanisms
       storage.push if mechanism.isStorageAdapter then mechanism else new mechanism(@)
     @
-
-  # ### Query methods
-  @classAccessor 'all',
-    get: ->
-      @load() if not @all
-      @all
-
-  @classAccessor 'first', {get: -> @first = @get('all')[0]}
-  @classAccessor 'last', {get: -> @last = @get('all')[@all.length - 1]}
-
-  @find: (id) ->
-    id = "#{id}"
-    for record in @get('all').toArray()
-      return record if record.get('identifier') is id
-
-    record = new @(id)
-    setTimeout (-> record.load()), 0
-    record
 
   # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their
   # storage representations. Encoders do things like stringifying dates and parsing them back out again,
@@ -1335,6 +1316,35 @@ class Batman.Model extends Batman.Object
             keys: keys
             validator: new validator(matches)
 
+  # ### Query methods
+  @classAccessor 'all',
+    get: ->
+      @load() if not @all
+      @all
+
+  @classAccessor 'first', -> @get('all').toArray()[0]
+  @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
+
+  @find: (id, callback) ->
+    id = "#{id}"
+    for record in @get('all').toArray()
+      if record.get('identifier') is id
+        callback(undefined, record)
+        return
+
+    record = new @(id)
+    record.load(-> callback(undefined, record))
+    return
+
+  # `load` fetches the record from all sources possible
+  @load: (callback) ->
+    @all ||= new Batman.Set
+
+    do @loading
+    doStorageMethod.call @, @prototype, 'readAllFromStorage', =>
+      callback?.call @, @
+      do @loaded
+
   # ### Record API
 
   @accessor 'identifier',
@@ -1360,7 +1370,7 @@ class Batman.Model extends Batman.Object
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
     # Optimize setting where the value is the same as what's already been set.
-    oldValue = @[key]
+    oldValue = @get(key)
     return if oldValue is value
 
     # Actually set the value and note what the old value was in the tracking array.
@@ -1417,7 +1427,7 @@ class Batman.Model extends Batman.Object
     @state k
 
   @state 'saved', -> @dirtyKeys.clear()
-  @state 'validating', -> console.log 'validator'
+  @state 'validating', ->
   @state 'validated', -> @[@_oldState]?()
   @classState 'loading'
   @classState 'loaded'
@@ -1432,20 +1442,11 @@ class Batman.Model extends Batman.Object
     do callback if fireImmediately
 
   # `load` fetches the record from all sources possible
-  @load: (callback) ->
-    @all ||= new Batman.Set
-
-    do @loading
-    doStorageMethod.call @, @prototype, 'readAllFromStorage', =>
-      callback?.call @, @
-      do @loaded
-
-  # `load` fetches the record from all sources possible
   load: (callback) ->
     do @loading
     doStorageMethod.call @, @, 'readAllFromStorage', =>
-      callback?.call @, @
       do @loaded
+      callback?.call @, @
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
@@ -1457,9 +1458,9 @@ class Batman.Model extends Batman.Object
     do @saving
     do @creating if creating
     doStorageMethod.call @, @, 'writeToStorage', =>
-      callback?.call @, @
       do @created if creating
       do @saved
+      callback?.call @, @
 
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
