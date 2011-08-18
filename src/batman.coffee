@@ -901,13 +901,14 @@ class Batman.App extends Batman.Object
     @
 
   @controller: (names...) ->
+    names = names.map (n) -> n + '_controller'
     @require 'controllers', names...
 
-  @model: (names...) ->
-    @require 'models', names...
+  @model: ->
+    @require 'models', arguments...
 
-  @view: (names...) ->
-    @require 'views', names...
+  @view: ->
+    @require 'views', arguments...
 
   # Layout is the base view that other views can be yielded into. The
   # default behavior is that when `app.run()` is called, a new view will
