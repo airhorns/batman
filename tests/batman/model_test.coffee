@@ -16,67 +16,101 @@ test "identifier can be changed by setting identifier on the model class", ->
   product = new @Product(uuid: "abc123")
   equal product.get('identifier'), 'abc123'
 
-
 QUnit.module "Batman.Model state transitions",
   setup: ->
     class @Product extends Batman.Model
 
-test "new instances start empty", ->
+test "new instances start 'empty'", ->
   product = new @Product
   ok product.isNew()
   equal product.state(), 'empty'
 
-test "is state machine", ->
+asyncTest "loaded instances start 'loaded'", 2, ->
+  @Product.find 10, (error, product) ->
+    ok !product.isNew()
+    equal product.state(), 'loaded'
+    QUnit.start()
+
+asyncTest "instances has state transitions for observation", 1, ->
   product = new @Product
-  equal product.state(), 'empty'
-
-  product.loading()
-  equal product.state(), 'loading'
-
-  product2 = new @Product
-  equal product.state(), 'loading'
-  equal product2.state(), 'empty'
-
-test "has state transitions", 1, ->
-  product = new @Product
-  product.transition 'loading', 'loaded', ->
-    ok(true, 'transition called')
-
+  product.transition 'loading', 'loaded', spy = createSpy()
   product.loading()
   product.loaded()
 
-test "model tracks dirty keys", ->
-  m = new Batman.Model
-  ok(m.get('dirtyKeys'))
+  delay ->
+    ok spy.called
 
+QUnit.module "Batman.Model dirty key tracking",
+  setup: ->
+    class @Product extends Batman.Model
+
+test "no keys are dirty upon creation", ->
   product = new @Product
-  product.foo = 'bar'
-  product.set 'foo', 'baz'
+  equal product.get('dirtyKeys').length, 0
 
+test "old values are tracked in the dirty keys hash", ->
+  product = new @Product
+  product.set 'foo', 'bar'
+  product.set 'foo', 'baz'
   equal(product.get('dirtyKeys.foo'), 'bar')
 
-test "saving clears dirty keys", ->
+test "creating instances by passing attributes sets those attributes as dirty", ->
   product = new @Product foo: 'bar'
-  # equal(product.dirtyKeys.length, 1) #FIXME: make length work with get
+  equal(product.get('dirtyKeys').length, 1)
   equal(product.get('state'), 'dirty')
 
-  product.save()
-  equal(product.dirtyKeys.length, 0)
-  notEqual(product.get('state'), 'dirty')
+asyncTest "saving clears dirty keys", ->
+  product = new @Product foo: 'bar'
+  product.save ->
+    equal(product.dirtyKeys.length, 0)
+    notEqual(product.get('state'), 'dirty')
+    QUnit.start()
 
-test "record lifecycle", ->
+QUnit.module "Batman.Model record lifecycle",
+  setup: ->
+    class @Product extends Batman.Model
+
+asyncTest "new record lifecycle callbacks fire in order", ->
   callOrder = []
 
   product = new @Product
+  product.dirty -> callOrder.push(0)
   product.validating -> callOrder.push(1)
   product.validated -> callOrder.push(2)
   product.saving -> callOrder.push(3)
   product.creating -> callOrder.push(4)
-  product.created -> callOrder.push(6)
-  product.saved -> callOrder.push(7)
+  product.created -> callOrder.push(5)
+  product.saved -> callOrder.push(6)
+  product.set('foo', 'bar')
+  product.save ->
+    callOrder.push(7)
+    deepEqual(callOrder, [0,1,2,3,4,5,6,7])
+    QUnit.start()
 
-  product.save(-> callOrder.push(5))
-  deepEqual(callOrder, [1,2,3,4,5,6,7])
+asyncTest "existing record lifecycle callbacks fire in order", ->
+  callOrder = []
+  classCallOrder = []
+
+  @Product.loading -> classCallOrder.push 1
+  @Product.loaded -> classCallOrder.push 2
+
+  @Product.find 10, (err, product) ->
+    product.validating -> callOrder.push(1)
+    product.validated -> callOrder.push(2)
+    product.saving -> callOrder.push(3)
+    product.saved -> callOrder.push(4)
+    product.save(-> callOrder.push(5))
+
+    deepEqual(callOrder, [1,2,3,4,5])
+    deepEqual(classCallOrder, [1,2])
+    QUnit.start()
+
+QUnit.module "Batman.Model finding and loading"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+      @accessor 'excitingName'
+        get: -> @get('name').toUpperCase()
 
 QUnit.module "Batman.Model: encoding/decoding to/from JSON"
   setup: ->
