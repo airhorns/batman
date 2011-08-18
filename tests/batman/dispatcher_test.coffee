@@ -9,7 +9,7 @@ QUnit.module 'Batman.Dispatcher defining routes',
       @test: (url) ->
         @run() if not @hasRun
         [controller, action] = @dispatcher.findRoute(url).get('action')
-        controller[action]
+        @dispatcher.get controller + '.' + action
 
     class @App.TestController extends Batman.Controller
       index: ->
@@ -47,19 +47,23 @@ asyncTest 'redirecting', 1, ->
 
   $redirect 'foo'
 
+asyncTest 'redirecting with parans', ->
+  @App.route 'products/:id', 'products#show'
+  @App.run()
+  $redirect controller: 'products', action: 'show', id: '1'
+
 asyncTest 'param matching', ->
   @App.route 'test/:id', 'products#show'
   equal @App.test('test/1'), @App.ProductsController::show
 
   $redirect 'test/1'
 
-asyncTest 'splat matching', 1, ->
+asyncTest 'splat matching', ->
   @App.route '/*first/fixed/:id/*last', (params) ->
-    deepEqual params,
-      url: url
-      first: 'x/y'
-      id: '10'
-      last: 'foo/bar'
+    equal params.url, url
+    equal params.first, 'x/y'
+    equal params.id, '10'
+    equal params.last, 'foo/bar'
     QUnit.start()
   @App.run()
 
@@ -67,10 +71,9 @@ asyncTest 'splat matching', 1, ->
 
 asyncTest 'query params', ->
   @App.root (params) ->
-    deepEqual params,
-      url: '/'
-      foo: 'bar'
-      x: 'true'
+    equal params.url, '/'
+    equal params.foo, 'bar'
+    equal params.x, 'true'
     QUnit.start()
   @App.run()
 

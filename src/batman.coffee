@@ -967,20 +967,42 @@ class Batman.Route extends Batman.Object
       if @signature
         components = @signature.split('#')
         components[1] = 'index' if components.length is 1
-        controller = @dispatcher.get components[0]
-        action = components[1]
-        @set 'action', [controller, action]
+        target = @dispatcher.get components[0]
+        @set 'action', [components[0], components[1], target]
     set: (key, action) ->
       @action = action
 
-  dispatch: (params) ->
+  parameterize: (url) ->
+    [url, query] = url.split '?'
+    array = @regexp.exec(url)?.slice(1)
+    params = url: url
+
     action = @get 'action'
+    if typeof action is 'function'
+      params.action = action
+    else
+      params.controller = action[0]
+      params.action = action[1]
+      params.target = action[2]
+
+    if array
+      for param, index in array
+        params[@namedArguments[index]] = param
+
+    if query
+      for s in query.split '&'
+        [key, value] = s.split '='
+        params[key] = value
+
+    params
+
+  dispatch: (url) ->
+    if $typeOf(url) is 'String'
+      params = @parameterize url
+
+    $redirect('404') if not (action = params.action)
     return action(params) if typeof action is 'function'
-
-    [controller, action] = action
-    $redirect('404') if not controller[action]
-
-    controller[action](params)
+    return params.target?[action](params)
 
 class Batman.Dispatcher extends Batman.Object
   constructor: (@app) ->
@@ -1009,27 +1031,20 @@ class Batman.Dispatcher extends Batman.Object
     for routeUrl, route of @routeMap
       return route if route.regexp.test(url)
 
-  parameterizeRoute: (url, route) ->
-    [url, query] = url.split '?'
-    array = route.regexp.exec(url)?.slice(1)
-    params = url: url
+  findUrl: (params) ->
+    for url, route of @routeMap
+      action = route.get 'action'
+      continue if typeof action is 'function'
 
-    if array
-      for param, index in array
-        params[route.namedArguments[index]] = param
+      [controller, action] = action
+      if controller is params.controller and action is (params.action || 'index')
+        for key, value of params
+          url = url.replace new RegExp('[:|\*]' + key), value
 
-    if query
-      for s in query.split '&'
-        [key, value] = s.split '='
-        params[key] = value
-
-    params
+        return url
 
   dispatch: (url) ->
-    route = @findRoute url
-    return unless route
-
-    route.dispatch @parameterizeRoute(url, route)
+    @findRoute(url)?.dispatch(url)
 
 # History Manager
 # ---------------
@@ -1040,8 +1055,13 @@ class Batman.HistoryManager
   dispatch: (url) ->
     url = "/#{url}" if url.indexOf('/') isnt 0
     @app.dispatcher.dispatch url
+
+    url
   redirect: (url) ->
+    if $typeOf(url) isnt 'String'
+      url = @app.dispatcher.findUrl(url)
     @dispatch url
+
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
 
@@ -1071,10 +1091,8 @@ class Batman.HashHistory extends Batman.HistoryManager
 
     @dispatch (@cachedHash = hash)
 
-  redirect: (url) ->
-    super
-
-    url = "/#{url}" if url.indexOf('/') isnt 0
+  redirect: (params) ->
+    url = super
     @cachedHash = url
 
     window.location.hash = @HASH_PREFIX + url
