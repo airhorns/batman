@@ -103,4 +103,9 @@ test "undefined values have undefined sort order, but don't explode anything", -
   ok ary[1] is @marys
   ok ary[2] is @zekes
   ok ary[3] is noOwner
+
+test "isSorted() returns true if and only if the set has a valid active index", ->
+  equal @set.isSorted(), false
+  @set.sortBy 'owner.name'
+  equal @set.isSorted(), true
   

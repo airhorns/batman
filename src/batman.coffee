@@ -732,8 +732,10 @@ class Batman.SortableSet extends Batman.Set
     @addIndex(index) unless @_indexes[index]
     @set('activeIndex', index) unless @activeIndex is index
     @
+  isSorted: ->
+    @_indexes[@get('activeIndex')]?
   toArray: ->
-    @_indexes[@get('activeIndex')] ? super
+    @_indexes[@get('activeIndex')] || super
   _reIndex: (index) ->
     if index
       [keypath, ordering] = index.split ' '
@@ -2137,39 +2139,42 @@ Batman.DOM = {
 
       parent = node.parentNode
       sibling = node.nextSibling
-      setTimeout ->
-        if node.nextSibling?
-          parent.removeChild node
-      , 0
+      node.onParseExit = ->
+        setTimeout (-> parent.removeChild node), 0
 
       nodeMap = new Batman.Hash
 
-      add = (items...) ->
-        for item in items
-          newNode = prototype.cloneNode true
-          nodeMap.set item, newNode
-
-          localClone = context.clone()
-          iteratorContext = new Batman.Object
-          iteratorContext[iteratorName] = item
-          localClone.push iteratorContext
-          localClone.push item
-
-          new Batman.Renderer newNode, do (newNode) ->
-            ->
-              parent.insertBefore newNode, sibling
-              parentRenderer.allow 'ready'
-          , localClone
-      remove = (items...) ->
-        for item in items
-          oldNode = nodeMap.get item
-          nodeMap.unset item
-          oldNode?.parentNode?.removeChild oldNode
-      reorder = (set) ->
-        for item in set.toArray()
-          parent.insertBefore(nodeMap.get(item), sibling)
-
       context.bind(node, key, (collection) ->
+        add = (items...) ->
+          for item in items
+            newNode = prototype.cloneNode true
+            nodeMap.set item, newNode
+
+            localClone = context.clone()
+            iteratorContext = new Batman.Object
+            iteratorContext[iteratorName] = item
+            localClone.push iteratorContext
+            localClone.push item
+
+            new Batman.Renderer newNode, do (newNode) ->
+              ->
+                if collection.isSorted?()
+                  reorder()
+                else
+                  parent.insertBefore newNode, sibling
+                parentRenderer.allow 'ready'
+            , localClone
+        remove = (items...) ->
+          for item in items
+            oldNode = nodeMap.get item
+            nodeMap.unset item
+            oldNode?.parentNode?.removeChild oldNode
+        reorder = ->
+          items = collection.toArray()
+          for item in items
+            parent.insertBefore(nodeMap.get(item), sibling)
+        
+        
         # Observe the collection for events in the future
         if collection?.observe
           collection.observe 'itemsWereAdded', add
