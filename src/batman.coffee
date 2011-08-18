@@ -575,6 +575,11 @@ class Batman.Object
   # Observe this property on every instance of this class.
   @observeAll: -> @::observe.apply @prototype, arguments
 
+  @singleton: (singletonMethodName) ->
+    obj = {}
+    obj[singletonMethodName] = -> @["_#{singletonMethodName}"] ||= new @
+    @classAccessor obj
+
 class Batman.SimpleHash
   constructor: ->
     @_storage = {}
@@ -930,197 +935,205 @@ class Batman.App extends Batman.Object
         node: document
         contexts: [@]
 
-    @startRouting()
+    @historyManager ||= new Batman.HashHistory @
+    @dispatcher = new Batman.Dispatcher @
     @hasRun = yes
 
-# route matching courtesy of Backbone
-namedParam = /:([\w\d]+)/g
-splatParam = /\*([\w\d]+)/g
-queryParam = '(?:\\?.+)?'
-namedOrSplat = /[:|\*]([\w\d]+)/g
-escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
+# Dispatcher
+# ----------
 
+class Batman.Route extends Batman.Object
+  # Route regexes courtesy of Backbone
+  namedParam = /:([\w\d]+)/g
+  splatParam = /\*([\w\d]+)/g
+  queryParam = '(?:\\?.+)?'
+  namedOrSplat = /[:|\*]([\w\d]+)/g
+  escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
-# `Batman.Route` is a simple object representing a route
-# which a user might visit in the application.
-Batman.Route = {
-  isRoute: yes
+  constructor: ->
+    super
 
-  pattern: null
-  regexp: null
-  namedArguments: null
-  action: null
-  context: null
+    @pattern = @url.replace(escapeRegExp, '\\$&')
+    @regexp = new RegExp('^' + @pattern.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
 
-  # call the action without going through the dispatch mechanism
-  fire: (args, context) ->
-    action = @action
-    if $typeOf(action) is 'String'
-      if (index = action.indexOf('#')) isnt -1
-        controllerName = helpers.camelize(action.substr(0, index) + 'Controller')
-        controller = Batman.currentApp[controllerName]
+    @namedArguments = []
+    while (array = namedOrSplat.exec(@pattern))?
+      @namedArguments.push(array[1]) if array[1]
 
-        context = controller
-        if context?.sharedInstance
-          context = context.sharedInstance()
+  @accessor 'action',
+    get: ->
+      return @action if @action
 
-        action = context[action.substr(index + 1)]
+      if @signature
+        components = @signature.split('#')
+        components[1] = 'index' if components.length is 1
+        controller = @dispatcher.get components[0]
+        action = components[1]
+        @set 'action', [controller, action]
+    set: (key, action) ->
+      @action = action
 
-    action.apply(context || @context, args) if action
+  dispatch: (params) ->
+    action = @get 'action'
+    return action(params) if typeof action is 'function'
 
-  toString: ->
-    "route: #{@pattern}"
-}
+    [controller, action] = action
+    $redirect('404') if not controller[action]
 
-# The `route` and `redirect` methods are mixed in to the top level `Batman` object,
-# so at any point new routes can be added and redirected to.
-$mixin Batman,
-  HASH_PATTERN: '#!'
-  _routes: []
+    controller[action](params)
 
-  # `route` adds a new route to the global routing table. It accepts a pattern of the
-  # Rails/Backbone variety with `:foo` denoting named arguments and `*bar` denoting
-  # repeated segements. It also accepts a callback to fire when the route is visited.
-  # Note that route uses the `$block` helper, so it can be used in class definitions
-  # without wrapping brackets
-  route: $block(2, (pattern, callback) ->
-    f = (params) ->
-      if $typeOf(f.action) is 'String'
-        components = f.action.split '#'
-        controller = Batman.currentApp[helpers.camelize(components[0])+'Controller']
-        if controller
-          f.context = controller
-          f.action = controller::[components[1]]
+class Batman.Dispatcher extends Batman.Object
+  constructor: (@app) ->
+    @app._flushToDispatcher @
+    for key, controller of @app
+      continue unless controller?.prototype instanceof Batman.Controller
+      @prepareController controller
 
-      context = f.context || @
-      if context and context.sharedInstance
-        context = context.sharedInstance()
+  prepareController: (controller) ->
+    name = helpers.underscore(controller.name.slice(0, Math.max(controller.name.indexOf('Controller'), 0)))
+    @accessor(name, get: -> @[name] = controller.sharedController()) if name
 
-      pattern = f.pattern
-      if params and not params.url
-        for key, value of params
-          pattern = pattern.replace(new RegExp('[:|\*]' + key), value)
+  register: (url, route) ->
+    url = "/#{url}" if url.indexOf('/') isnt 0
+    if (typeOf = $typeOf(route)) is 'String'
+      route = new Batman.Route url: url, signature: route, dispatcher: @
+    else if typeOf is 'Function'
+      route = new Batman.Route url: url, action: route, dispatcher: @
 
-      if (params and not params.url) or not params
-        Batman.currentApp._cachedRoute = pattern
-        window.location.hash = Batman.HASH_PATTERN + pattern
+    @routeMap ||= {}
+    @routeMap[url] = route
 
-      if context and context.dispatch
-        context.dispatch f, params
-      else
-        f.fire arguments, context
-
-    match = pattern.replace(escapeRegExp, '\\$&')
-    regexp = new RegExp('^' + match.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
-
-    namedArguments = []
-    while (array = namedOrSplat.exec(match))?
-      namedArguments.push(array[1]) if array[1]
-
-    $mixin f, Batman.Route,
-      pattern: match
-      regexp: regexp
-      namedArguments: namedArguments
-      action: callback
-      context: @
-
-    Batman._routes.push f
-    f
-  )
-  # `redirect` sets the `window.location.hash` to passed string or pattern of the passed route. This will
-  # then trigger any route who's pattern matches the route and thus it's callback.
-  redirect: (urlOrFunction) ->
-    url = if urlOrFunction?.isRoute then urlOrFunction.pattern else urlOrFunction
-    window.location.hash = "#{Batman.HASH_PATTERN}#{url}"
-
-# Add the route and redirect helpers to the class level of all `Batman.Object` subclasses so they can be
-# used declaratively within class definitions.
-Batman.Object.route = Batman.App.route = $route = Batman.route
-Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
-
-$mixin Batman.App,
-  # `startRouting` starts listening for changes to the window hash and dispatches routes when they change.
-  startRouting: ->
-    return if typeof window is 'undefined'
-    parseUrl = =>
-      hash = window.location.hash.replace(Batman.HASH_PATTERN, '')
-      return if hash is @_cachedRoute
-      @_cachedRoute = hash
-      @_dispatch hash
-
-    window.location.hash = "#{Batman.HASH_PATTERN}/" if not window.location.hash
-    setTimeout(parseUrl, 0)
-
-    if 'onhashchange' of window
-      @_routeHandler = parseUrl
-      window.addEventListener 'hashchange', parseUrl
-    else
-      old = window.location.hash
-      @_routeHandler = setInterval parseUrl, 100
-
-  # `stopRouting` stops any hash change listeners from dispatching routes.
-  stopRouting: ->
-    return unless @_routeHandler?
-    if 'onhashchange' of window
-      window.removeEventListener 'hashchange', @_routeHandler
-      @_routeHandler = null
-    else
-      @_routeHandler = clearInterval @_routeHandler
-
-  _dispatch: (url) ->
-    route = @_matchRoute url
-    if not route
-      if url is '/404' then Batman.currentApp['404']() else $redirect '/404'
-      return
-
-    params = @_extractParams url, route
-    route(params)
-
-  _matchRoute: (url) ->
-    for route in Batman._routes
+  findRoute: (url) ->
+    url = "/#{url}" if url.indexOf('/') isnt 0
+    return route if (route = @routeMap[url])
+    for routeUrl, route of @routeMap
       return route if route.regexp.test(url)
 
-    null
-
-  _extractParams: (url, route) ->
-    [url, query] = url.split('?')
-    array = route.regexp.exec(url).slice(1)
+  parameterizeRoute: (url, route) ->
+    [url, query] = url.split '?'
+    array = route.regexp.exec(url)?.slice(1)
     params = url: url
 
-    for param, index in array
-      params[route.namedArguments[index]] = param
+    if array
+      for param, index in array
+        params[route.namedArguments[index]] = param
 
-    if query?
-      for s in query.split('&')
-        [k, v] = s.split('=')
-        params[k] = v
+    if query
+      for s in query.split '&'
+        [key, value] = s.split '='
+        params[key] = value
 
     params
 
-  # `root` is a shortcut for setting the root route.
-  root: (callback) ->
-    $route '/', callback
+  dispatch: (url) ->
+    route = @findRoute url
+    params = @parameterizeRoute url, route
 
-  '404': ->
-    view = new Batman.View
-      html: '<h1>Page could not be found</h1>'
-      contentFor: 'main'
+    route.dispatch params
 
+# History Manager
+# ---------------
+class Batman.HistoryManager
+  constructor: (@app) ->
+    Batman.historyManager = @
+    setTimeout(@start, 0) if @start and @app.dispatcher
+  dispatch: (url) ->
+    url = "/#{url}" if url.indexOf('/') isnt 0
+    @app.dispatcher.dispatch url
+  redirect: (url) ->
+    @dispatch url
+class Batman.HashHistory extends Batman.HistoryManager
+  HASH_PREFIX: '#!'
 
+  start: ->
+    return if typeof window is 'undefined'
+
+    return if @started
+    @started = yes
+
+    if 'onhashchange' of window
+      window.addEventListener 'hashchange', @parseHash
+    else
+      @interval = setInterval @parseHash, 100
+
+    setTimeout @parseHash, 0
+
+  stop: ->
+    if @interval
+      @interval = clearInterval @interval
+    else
+      window.removeEventListener 'hashchange', @parseHash
+
+    @started = no
+
+  parseHash: =>
+    hash = window.location.hash.replace @HASH_PREFIX, ''
+    return if hash is @cachedHash
+
+    @cachedHash = hash
+    @dispatch hash
+
+  redirect: (url) ->
+    super
+
+    url = "/#{url}" if url.indexOf('/') isnt 0
+    @cachedHash = url
+
+    window.location.hash = @HASH_PREFIX + url
+
+Batman.redirect = $redirect = (url) ->
+  Batman.historyManager.redirect url
+
+# Route Declarators
+# -----------------
+
+Batman.App.classMixin
+  _flushToDispatcher: (url, route) ->
+    if $typeOf(url) is 'String'
+      @_dispatcherCache ||= {}
+      @_dispatcherCache[url] = route
+    else if url
+      dispatcher = url
+      for key, value of @_dispatcherCache
+        dispatcher.register key, value
+      @_dispatcherCache = null
+
+  route: (url, signature, options) ->
+    @_flushToDispatcher url, signature
+
+  root: (signature) ->
+    @route '/', signature
+
+  resources: (resource, options, callback) ->
+    (callback = options; options = null) if typeof options is 'function'
+    controller = options?.controller || resource
+    @route resource, "#{controller}#index"
+    @route "#{resource}/:id", "#{controller}#show"
+    @route "#{resource}/:id/edit", "#{controller}#edit"
+    @route "#{resource}/:id/destroy", "#{controller}#destroy"
+
+    if callback
+      app = @
+      obj =
+        collection: (collectionCallback) ->
+          collectionCallback?.call route: (url, methodName) -> app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
+        member: (memberCallback) ->
+          memberCallback?.call route: (url, methodName) -> app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
+
+      callback.call obj
+
+  redirect: $redirect
 
 # Controllers
 # -----------
 
 
 class Batman.Controller extends Batman.Object
-  # FIXME: should these be singletons?
-  @sharedInstance: ->
-    @_sharedInstance = new @ if not @_sharedInstance
-    @_sharedInstance
+  @singleton 'sharedController'
 
   @beforeFilter: (nameOrFunction) ->
-    filters = @_beforeFilters ||= []
-    filters.push nameOrFunction
+    filters = @_batman.beforeFilters ||= []
+    filters.push(nameOrFunction) if ~filters.indexOf(nameOrFunction)
 
   @resources: (base) ->
     # FIXME: MUST find a non-deferred way to do this
@@ -1137,6 +1150,8 @@ class Batman.Controller extends Batman.Object
     #$route "/#{base}/:id", "#{name}#show"
     #$route "/#{base}/:id/edit", "#{name}#edit"
 
+  # You shouldn't call this method directly. It will be called by the dispatcher when a route is called.
+  # If you need to call a route manually, use `$redirect()`.
   dispatch: (route, params...) ->
     key = $findName route, @
 
@@ -2056,6 +2071,8 @@ Batman.DOM = {
       Batman.DOM.readers.showif args..., yes
 
     route: (node, key, context) ->
+
+
       if key.substr(0, 1) is '/'
         route = Batman.redirect.bind Batman, key
         routeName = key
