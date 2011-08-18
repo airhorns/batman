@@ -935,8 +935,8 @@ class Batman.App extends Batman.Object
         node: document
         contexts: [@]
 
-    @historyManager ||= new Batman.HashHistory @
     @dispatcher = new Batman.Dispatcher @
+    @historyManager ||= new Batman.HashHistory @
     @hasRun = yes
 
 # Dispatcher
@@ -1027,9 +1027,9 @@ class Batman.Dispatcher extends Batman.Object
 
   dispatch: (url) ->
     route = @findRoute url
-    params = @parameterizeRoute url, route
+    return unless route
 
-    route.dispatch params
+    route.dispatch @parameterizeRoute(url, route)
 
 # History Manager
 # ---------------
@@ -1045,9 +1045,8 @@ class Batman.HistoryManager
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
 
-  start: ->
+  start: =>
     return if typeof window is 'undefined'
-
     return if @started
     @started = yes
 
@@ -1058,7 +1057,7 @@ class Batman.HashHistory extends Batman.HistoryManager
 
     setTimeout @parseHash, 0
 
-  stop: ->
+  stop: =>
     if @interval
       @interval = clearInterval @interval
     else
@@ -1070,8 +1069,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     hash = window.location.hash.replace @HASH_PREFIX, ''
     return if hash is @cachedHash
 
-    @cachedHash = hash
-    @dispatch hash
+    @dispatch (@cachedHash = hash)
 
   redirect: (url) ->
     super

@@ -1,9 +1,9 @@
-window.ASYNC_TEST_DELAY = 120 unless 'onhashchange' of window
 return if IN_NODE
 
 QUnit.module 'Batman.Dispatcher defining routes',
   setup: ->
     window.location.hash = ''
+    Batman.START = new Date()
     class @App extends Batman.App
       @layout: null
       @test: (url) ->
@@ -23,7 +23,7 @@ QUnit.module 'Batman.Dispatcher defining routes',
         QUnit.start()
       edit: ->
   teardown: ->
-    @App.historyManager?.stop?()
+    @App.historyManager?.stop()
     window.location.hash = ''
 
 test 'simple route match', ->
@@ -53,6 +53,28 @@ asyncTest 'param matching', ->
 
   $redirect 'test/1'
 
+asyncTest 'splat matching', 1, ->
+  @App.route '/*first/fixed/:id/*last', (params) ->
+    deepEqual params,
+      url: url
+      first: 'x/y'
+      id: '10'
+      last: 'foo/bar'
+    QUnit.start()
+  @App.run()
+
+  $redirect url = '/x/y/fixed/10/foo/bar'
+
+asyncTest 'query params', ->
+  @App.root (params) ->
+    deepEqual params,
+      url: '/'
+      foo: 'bar'
+      x: 'true'
+    QUnit.start()
+  @App.run()
+
+  $redirect '/?foo=bar&x=true'
 
 asyncTest 'resources', ->
   @App.resources 'products', ->
@@ -77,14 +99,16 @@ asyncTest 'resources', ->
 asyncTest 'hash manager', ->
   @App.route 'test', spy = createSpy()
   @App.route 'test2', spy2 = createSpy()
+  @App.run()
+
   window.location.hash = '#!/test'
 
   setTimeout(->
     equal spy.callCount, 1
     window.location.hash = "#!/test2"
-  , ASYNC_TEST_DELAY)
+  , 110)
 
   setTimeout(->
     equal spy2.callCount, 1
     start()
-  , ASYNC_TEST_DELAY*2)
+  , 220)
