@@ -1035,10 +1035,6 @@ class Batman.Dispatcher extends Batman.Object
     @accessor(name, get: -> @[name] = controller.get('sharedController')) if name
 
   register: (url, options) ->
-    url = "/#{url}" if url.indexOf('/') isnt 0
-    route = if $typeOf(options) is 'Function'
-      new Batman.Route url: url, action: options, dispatcher: @
-    else
       new Batman.Route url: url, options: options, dispatcher: @
 
     @routeMap ||= {}
@@ -1257,25 +1253,8 @@ class Batman.Model extends Batman.Object
 
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
-  @id: 'id'
-  _id: (id) ->
-    model = @constructor
-    key = model.id?() || model.id || 'id'
+  @identifier: 'id'
 
-    if arguments.length > 0
-      id = "#{id}" # normalize to a string
-
-      Batman.initializeObject model
-      records = model._batman.records ||= {}
-      record = records[id]
-
-      all = model.get 'all'
-      all.remove(record) if record
-
-      records[id] = @
-      all.add @
-
-    @[key]
 
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
@@ -1298,7 +1277,7 @@ class Batman.Model extends Batman.Object
   @find: (id) ->
     id = "#{id}"
     for record in @get('all').toArray()
-      return record if record._id() is id
+      return record if record.get('identifier') is id
 
     record = new @(id)
     setTimeout (-> record.load()), 0
@@ -1358,6 +1337,10 @@ class Batman.Model extends Batman.Object
 
   # ### Record API
 
+  @accessor 'identifier',
+    get: -> @get(@constructor.get('identifier'))
+    set: (k, v) -> @set(@constructor.get('identifier'), v)
+
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
   constructor: (idOrAttributes = {}) ->
@@ -1365,12 +1348,14 @@ class Batman.Model extends Batman.Object
     @dirtyKeys = new Batman.Hash
     @errors = new Batman.Set
 
-    super
-    @empty() if not @state()
-
     # Find the ID from either the first argument or the attributes.
-    id = if $typeOf(idOrAttributes) is 'Object' then idOrAttributes.id else idOrAttributes
-    @_id id if id?
+    if $typeOf(idOrAttributes) is 'Object'
+      super(idOrAttributes)
+    else
+      super()
+      @set('identifier', idOrAttributes)
+
+    @empty() if not @state()
 
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
@@ -1386,7 +1371,7 @@ class Batman.Model extends Batman.Object
     @dirty() if @state() isnt 'dirty'
 
   toString: ->
-    "#{@constructor.name}: #{@_id()}"
+    "#{@constructor.name}: #{@get('identifier')}"
 
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
@@ -1511,7 +1496,7 @@ class Batman.Model extends Batman.Object
     # FIXME: Is this really right?
     return if async then no else do @validated; yes
 
-  isNew: -> !@_id()
+  isNew: -> typeof @get('identifier') is 'undefined'
 
   isValid: ->
     @errors.clear()
@@ -1603,13 +1588,13 @@ class Batman.LocalStorage extends Batman.StorageMechanism
 
   writeToStorage: (record, callback) ->
     key = @modelKey
-    id = record._id() || record._id(++@id)
+    id = record.get('identifier') || record.set('identifier', ++@id)
     localStorage[key + id] = JSON.stringify(record) if key and id
     callback()
 
   readFromStorage: (record, callback) ->
     key = @modelKey
-    id = record._id()
+    id = record.get('identifier')
     json = localStorage[key + id] if key and id
     record.fromJSON JSON.parse json
     callback()
@@ -1630,13 +1615,13 @@ class Batman.RestStorage extends Batman.StorageMechanism
       type: 'json'
 
     options.url = record?.url?() || record?.url || @model.url?() || @model.url || @modelKey
-    options.url += "/#{record._id()}" if record and not record.url
+    options.url += "/#{record.get('identifier')}" if record and not record.url
 
     options
 
   writeToStorage: (record, callback, options) ->
     options = $mixin @optionsForRecord(record), {
-      method: if record._id() then 'put' else 'post'
+      method: if record.isNew() then 'put' else 'post'
       data: JSON.stringify record
       success: ->
         callback()
@@ -2108,7 +2093,7 @@ Batman.DOM = {
 
         if route instanceof Batman.Model
           name = helpers.underscore(helpers.pluralize(route.constructor.name))
-          url = context.get('dispatcher')?.findUrl({resource: name, id: route._id()})
+          url = context.get('dispatcher')?.findUrl({resource: name, id: route.get('id')})
         else if route.prototype
           name = helpers.underscore(helpers.pluralize(route.name))
           url = context.get('dispatcher')?.findUrl({resource: name})
@@ -2268,7 +2253,7 @@ Batman.DOM = {
     click: (node, callback) ->
       Batman.DOM.addEventListener node, 'click', (args...) ->
         callback node, args...
-        e.preventDefault()
+        args[0].preventDefault()
 
       if node.nodeName.toUpperCase() is 'A' and not node.href
         node.href = '#'
@@ -2290,8 +2275,8 @@ Batman.DOM = {
         else ['change']
 
       for eventName in eventNames
-        Batman.DOM.addEventListener node, eventName, (e) ->
-          callback node, e
+        Batman.DOM.addEventListener node, eventName, (args...) ->
+          callback node, args...
 
       Batman.DOM.addEventListener node, eventName, (args...) ->
         callback node, args...
@@ -2299,13 +2284,13 @@ Batman.DOM = {
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
         Batman.DOM.addEventListener node, 'keyup', (args...) ->
-          if e.keyCode is 13
+          if args[0].keyCode is 13
             callback node, args...
-            e.preventDefault()
+            args[0].preventDefault()
       else
         Batman.DOM.addEventListener node, 'submit', (args...) ->
           callback node, args...
-          e.preventDefault()
+          args[0].preventDefault()
 
       node
   }
