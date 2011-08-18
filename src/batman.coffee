@@ -22,9 +22,6 @@ Batman.typeOf = $typeOf = (object) ->
 # Cache this function to skip property lookups.
 _objectToString = Object.prototype.toString
 
-# `$undef` is a shortcut for checking if something is undefined.
-Batman.undef = $undef = (object) -> typeof object is 'undefined'
-
 # `$mixin` applies every key from every argument after the first to the
 # first argument. If a mixin has an `initialize` method, it will be called in
 # the context of the `to` object, and it's key/values won't be applied.
@@ -251,13 +248,13 @@ Batman.Observable =
     Batman.initializeObject @
     Batman.Keypath.for(@, key)
   get: (key) ->
-    return undefined if $undef(key)
+    return undefined if typeof key is 'undefined'
     @property(key).getValue()
   set: (key, val) ->
-    return undefined if $undef(key)
+    return undefined if typeof key is 'undefined'
     @property(key).setValue(val)
   unset: (key) ->
-    return undefined if $undef(key)
+    return undefined if typeof key is 'undefined'
     @property(key).unsetValue()
 
   # `forget` removes an observer from an object. If the callback is passed in,
@@ -311,7 +308,7 @@ Batman.EventEmitter =
   # function argument. Notice that the `$block` helper is used here so events can be declared in
   # class definitions using the second function application syntax and no wrapping brackets.
   event: $block (key, context, callback) ->
-    if not callback and !$undef(context)
+    if not callback and typeof context isnt 'undefined'
       callback = context
       context = null
     if not callback and $typeOf(key) isnt 'String'
@@ -345,7 +342,7 @@ Batman.EventEmitter =
           # Get and cache the arguments for the event listeners. Add the value if
           # its not undefined, and then concat any more arguments passed to this
           # event when fired.
-          f._firedArgs = unless $undef(value)
+          f._firedArgs = unless typeof value is 'undefined'
               [value].concat arguments...
             else
               if arguments.length == 0
@@ -572,15 +569,15 @@ class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
-  hasKey: (key) -> ! $undef(@get(key))
+  hasKey: (key) -> typeof @get(key) isnt 'undefined'
   get: (key) ->
-    return undefined if $undef(key)
+    return undefined if typeof key is 'undefined'
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
   set: (key, val) ->
-    return undefined if $undef(key)
-    return @unset(key) if $undef(val)
+    return undefined if typeof key is 'undefined'
+    return @unset(key) if typeof val is 'undefined'
     matches = @_storage[key] ||= []
     for match in matches
       if @equality(match[0], key)
@@ -599,7 +596,7 @@ class Batman.SimpleHash
           @length--
           return
   equality: (lhs, rhs) ->
-    return false if $undef(lhs) or $undef(rhs)
+    return false if typeof lhs is 'undefined' or typeof rhs is 'undefined'
     if typeof lhs.isEqual is 'function'
       lhs.isEqual rhs
     else if typeof rhs.isEqual is 'function'
@@ -1026,7 +1023,7 @@ Batman.Object.redirect = Batman.App.redirect = $redirect = Batman.redirect
 $mixin Batman.App,
   # `startRouting` starts listening for changes to the window hash and dispatches routes when they change.
   startRouting: ->
-    return if $undef(window)
+    return if typeof window is 'undefined'
     parseUrl = =>
       hash = window.location.hash.replace(Batman.HASH_PATTERN, '')
       return if hash is @_cachedRoute
@@ -1341,9 +1338,9 @@ class Batman.Model extends Batman.Object
     unless !encoders or encoders.isEmpty()
       encoders.each (key, encoder) =>
         val = @get key
-        if ! $undef(val)
+        if typeof val isnt 'undefined'
           encodedVal = encoder(@get key)
-          if ! $undef(encodedVal)
+          if typeof encodedVal isnt 'undefined'
             obj[key] = encodedVal
 
     obj
@@ -1939,7 +1936,7 @@ class RenderContext
       else
         val = context[base]
 
-      if !$undef(val)
+      if typeof val isnt 'undefined'
         # we need to pass the check if the basekey exists, even if the intermediary keys do not.
         return [$get(context, key), context]
 
@@ -2331,7 +2328,7 @@ helpers = Batman.helpers = {
 # make life a little easier.
 buntUndefined = (f) ->
   (value) ->
-    if $undef(value)
+    if typeof value is 'undefined'
       undefined
     else
       f.apply(@, arguments)
