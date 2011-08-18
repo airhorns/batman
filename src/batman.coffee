@@ -324,7 +324,7 @@ Batman.EventEmitter =
       Batman.initializeObject @
 
       key ||= $findName(f, @)
-      fired = @_batman._oneShotFired?[key]
+      fired = @_batman.oneShotFired?[key]
 
       # Pass a function to the event to register it as an observer.
       if typeof observer is 'function'
@@ -356,7 +356,7 @@ Batman.EventEmitter =
           @fire(args...)
 
           if f.isOneShot
-            firings = @_batman._oneShotFired ||= {}
+            firings = @_batman.oneShotFired ||= {}
             firings[key] = yes
 
         value
@@ -369,7 +369,6 @@ Batman.EventEmitter =
     $mixin f,
       isEvent: yes
       action: callback
-      isOneShot: @isOneShot
 
   # One shot events can be used for something that only fires once. Any observers
   # added after it has already fired will simply be executed immediately. This is useful
@@ -381,7 +380,12 @@ Batman.EventEmitter =
   eventOneShot: (callback) ->
     $mixin Batman.EventEmitter.event.apply(@, arguments),
       isOneShot: yes
+      oneShotFired: @oneShotFired.bind @
 
+  oneShotFired: (key) ->
+    Batman.initializeObject @
+    firings = @_batman.oneShotFired ||= {}
+    firings[key]
 
 # `$event` lets you create an ephemeral event without needing an EventEmitter.
 # If you already have an EventEmitter object, you should call .event() on it.
@@ -393,7 +397,10 @@ Batman.event = $event = (callback) ->
 # If you already have an EventEmitter object, you should call .eventOneShot() on it.
 Batman.eventOneShot = $eventOneShot = (callback) ->
   context = new Batman.Object
-  context.eventOneShot('_event', context, callback)
+  oneShot = context.eventOneShot('_event', context, callback)
+  oneShot.oneShotFired = ->
+    context.oneShotFired('_event')
+  oneShot
 
 # Objects
 # -------

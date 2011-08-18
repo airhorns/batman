@@ -165,6 +165,23 @@ test "should fire exactly once", ->
   event true
 
   equal observer.callCount, 1
+  ok event.oneShotFired(), 'event marked itself as fired'
+
+test "should not fire another instance's oneShot event", ->
+  class A extends Batman.Object
+    single: @eventOneShot ->
+  class B extends A
+
+  a = new A
+  b = new B
+
+  ok !a.oneShotFired('single')
+  ok !b.oneShotFired('single')
+
+  resultA = a.single()
+
+  ok a.oneShotFired('single')
+  ok !b.oneShotFired('single')
 
 test "should fire handlers added after the first fire immediately and pass the original arguments in", ->
   event = $eventOneShot -> "result"
