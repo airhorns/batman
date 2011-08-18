@@ -916,7 +916,7 @@ class Batman.App extends Batman.Object
     return false if @hasRun
     Batman.currentApp = @
 
-    if $undef @layout
+    if typeof @layout is 'undefined'
       @set 'layout', new Batman.View
         node: document
         contexts: [@]
