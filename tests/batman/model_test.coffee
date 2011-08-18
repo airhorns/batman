@@ -1,7 +1,30 @@
 QUnit.module "Batman.Model",
   setup: ->
     class @Product extends Batman.Model
-      isProduct: true
+
+test "identifier is undefined on new models", ->
+  product = new @Product
+  ok product.isNew()
+  equal typeof product.get('identifier'), 'undefined'
+
+test "identifier is 'id' by default", ->
+  product = new @Product(id: 10)
+  equal product.get('identifier'), 10
+
+test "identifier can be changed by setting identifier on the model class", ->
+  @Product.identifier = 'uuid'
+  product = new @Product(uuid: "abc123")
+  equal product.get('identifier'), 'abc123'
+
+
+QUnit.module "Batman.Model state transitions",
+  setup: ->
+    class @Product extends Batman.Model
+
+test "new instances start empty", ->
+  product = new @Product
+  ok product.isNew()
+  equal product.state(), 'empty'
 
 test "is state machine", ->
   product = new @Product
@@ -175,7 +198,6 @@ asyncTest "async", 2, ->
 
   p = new Product email: 'nick@shopify.com'
   p.validated -> equal(p.errors.length, 1); start()
-  debugger
   ok !p.isValid()
 
 
