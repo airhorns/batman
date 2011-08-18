@@ -29,7 +29,6 @@ QUnit.module 'Batman.Property',
     @customBaseAccessor =
       get: createSpy().whichReturns('customBaseValue')
 
-
     @prototypeBaseAccessor =
       get: createSpy().whichReturns('customKeyValue')
       set: createSpy().whichReturns('customKeyValue')

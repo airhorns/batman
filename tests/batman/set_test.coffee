@@ -62,3 +62,20 @@ test "merge(other) returns a merged set without changing the original", ->
 
   ok !@set.has('qux')
   ok !@set.has('buzz')
+
+test "merge, add, remove, and clear fire length observers", ->
+  spy = createSpy()
+  @set.observe('length', spy)
+
+  @set.add('foo', 'bar')
+  equal spy.callCount, 1, 'add(items...) fires length observers'
+
+  @set.remove('foo')
+  equal spy.callCount, 2, 'remove(items...) fires length observers'
+
+  @set.clear()
+  equal spy.callCount, 3, 'clear() fires length observers'
+
+  @set.merge(new Batman.Set('qux', 'baz'))
+  equal spy.callCount, 4, 'merge() fires length observers'
+

@@ -638,7 +638,7 @@ class Batman.Hash extends Batman.Object
 
   @accessor 'isEmpty', -> @isEmpty()
 
-  for k in ['hasKey', 'equality', 'each', 'keys', 'merge', 'clear', 'isEmpty']
+  for k in ['hasKey', 'equality', 'each', 'keys', 'isEmpty', 'merge', 'clear']
     @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
@@ -669,7 +669,12 @@ class Batman.SimpleSet
   each: (iterator) ->
     @_storage.each (key, value) -> iterator(key)
   isEmpty: -> @length is 0
-  clear: -> @remove @toArray()
+  clear: ->
+    items = @toArray()
+    @_storage = new Batman.SimpleHash
+    @length = 0
+    @itemsWereRemoved(items)
+    items
   toArray: ->
     @_storage.keys()
 
@@ -687,10 +692,20 @@ class Batman.Set extends Batman.Object
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
-  for k in ['add', 'remove', 'has', 'each', 'isEmpty', 'toArray', 'clear', 'merge']
+  for k in ['has', 'each', 'isEmpty', 'toArray']
     @::[k] = Batman.SimpleSet::[k]
 
+  for k in ['add', 'remove', 'clear', 'merge']
+    do (k) =>
+      @::[k] = ->
+        oldLength = @length
+        results = Batman.SimpleSet::[k].apply(@, arguments)
+        @fire('length', @length, oldLength)
+        @property('length').fireDependents()
+        results
+
   @accessor 'isEmpty', -> @isEmpty()
+  @accessor 'length', -> @length
 
 class Batman.SortableSet extends Batman.Set
   constructor: ->
@@ -840,6 +855,8 @@ class Batman.Request extends Batman.Object
   success: @event ->
   error: @event ->
 
+  # `send` is implmented in the platform layer files. One of those must be required for
+  # `Batman.Request` to be useful.
   send: () -> throw "Please source a dependency file for a request implementation"
 
   cancel: ->
@@ -1181,7 +1198,7 @@ class Batman.Model extends Batman.Object
     key = model.id?() || model.id || 'id'
 
     if arguments.length > 0
-      id = "#{id}" # normalize to a string
+      id = @[key] = "#{id}" # normalize to a string
 
       Batman.initializeObject model
       records = model._batman.records ||= {}
@@ -1545,8 +1562,7 @@ class Batman.LocalStorage extends Batman.StorageMechanism
     for k, v of localStorage
       if re.test(k)
         data = JSON.parse(v)
-        record = new model -1
-        record.fromJSON data
+        record = new model(data)
 
     callback()
     return
@@ -2179,7 +2195,7 @@ Batman.DOM = {
 
     formfor: (node, localName, key, context) ->
       binding = context.addKeyToScopeForNode(node, key, localName)
-      Batman.DOM.events.submit node, (e) -> e.preventDefault()
+      Batman.DOM.events.submit node, (node, e) -> e.preventDefault()
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
