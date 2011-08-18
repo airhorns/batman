@@ -516,24 +516,45 @@ class Batman.Object
   @mixin: -> @classMixin.apply @prototype, arguments
   mixin: @classMixin
 
+  # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
+  # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
+  # `defineProperty` without as much goodness.
+  #
+  # Accessors track which other properties they rely on for computation, and when those other properties change,
+  # an accessor will recalculate its value and notifiy its observers. This way, when a source value is changed,
+  # any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish
+  # this feat by tracking `get` calls, so be sure to use `get` to retrieve properties inside accessors.
+  #
+  # `@accessor` or `@classAccessor` can be called with zero, one, or many keys to attach the accessor to. This
+  # has the following effects:
+  #
+  #   * zero: create a `defaultAccessor`, which will be called when no other properties or accessors on an object
+  #   match a keypath. This is similar to `method_missing` in Ruby or `#doesNotUnderstand` in Smalltalk.
+  #   * one: create a `keyAccessor` at the given key, which will only be called when that key is `get`ed.
+  #   * many: create `keyAccessors` for each given key, which will then be called whenever each key is `get`ed.
+  #
+  # Note: This function gets called in all sorts of different contexts by various
+  # other pointers to it, but it acts the same way on `this` in all cases.
+  getAccessorObject = (accessor) ->
+    accessor = {get: accessor} if !accessor.get && !accessor.set && !accessor.unset
+    accessor
+
   @classAccessor: (keys..., accessor) ->
     Batman.initializeObject @
+    # Create a default accessor if no keys have been given.
     if keys.length is 0
-      if accessor.get or accessor.set
-        @_batman.defaultAccessor = accessor
-      else if $typeOf(accessor) is 'Function'
-        @_batman.defaultAccessor = {get: accessor}
-      else
-        @_batman.keyAccessors ||= new Batman.SimpleHash
-        for key, value of accessor
-          @_batman.keyAccessors.set(key, {get: value, set: value})
-          @[key] = value
+      # The `accessor` argument is wrapped in `getAccessorObject` which allows functions to be passed in
+      # as a shortcut to {get: function}
+      @_batman.defaultAccessor = getAccessorObject(accessor)
     else
+      # Otherwise, add key accessors for each key given.
       @_batman.keyAccessors ||= new Batman.SimpleHash
-      accessor = {get: accessor} if !accessor.get && !accessor.set && !accessor.unset
-      @_batman.keyAccessors.set(key, accessor) for key in keys
+      @_batman.keyAccessors.set(key, getAccessorObject(accessor)) for key in keys
 
+  # Support adding accessors to the prototype from within class defintions or after the class has been created
+  # with `KlassExtendingBatmanObject.accessor(keys..., accessorObject)`
   @accessor: -> @classAccessor.apply @prototype, arguments
+  # Support adding accessors to instances after creation
   accessor: @classAccessor
 
   constructor: (mixins...) ->
