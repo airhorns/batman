@@ -700,7 +700,6 @@ class Batman.Set extends Batman.Object
       @::[k] = ->
         oldLength = @length
         results = Batman.SimpleSet::[k].apply(@, arguments)
-        @fire('length', @length, oldLength)
         @property('length').fireDependents()
         results
 
