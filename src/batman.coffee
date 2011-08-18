@@ -2192,7 +2192,7 @@ Batman.DOM = {
         # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
         # This is useful for iterating over hashes or other things that pass (key, value) instead of (value)
         if collection.each
-          collection.each (korv, v) -> add(if v? then v else korv)
+          collection.each (korv, v) -> add(korv)
         else if collection.forEach
           collection.forEach (x) -> add(x)
         else for k, v of collection
