@@ -1616,33 +1616,73 @@ class Batman.StorageAdapter
 
 class Batman.LocalStorage extends Batman.StorageAdapter
   constructor: ->
-    return null if not 'localStorage' in window
-    @id = 0
+    if typeof window.localStorage is 'undefined'
+      return null
     super
+    @storage = localStorage
+    re = new RegExp("$#{@modelKey}(\d+)")
+    @nextId = 1
+    for k, v of @storage
+      if matches = re.exec(k)
+        @nextId = Math.max(@nextId, parseInt(matches[1], 10))
+    return
 
-  write: (record, callback) ->
-    key = @modelKey
-    id = record.get('id') || record.set('id', ++@id)
-    localStorage[key + id] = JSON.stringify(record) if key and id
-    callback()
-
-  read: (record, callback) ->
-    key = @modelKey
+  update: (record, options, callback) ->
     id = record.get('id')
-    json = localStorage[key + id] if key and id
-    record.fromJSON JSON.parse json
-    callback()
+    if id?
+      @storage.setItem(@modelKey + id, JSON.stringify(record))
+      callback(undefined, record)
+    else
+      callback(new Error("Couldn't get record primary key."))
 
-  readAll: (model, callback) ->
-    re = new RegExp("$#{@modelKey}")
-    for k, v of localStorage
-      if re.test(k)
-        data = JSON.parse(v)
-        record = new model(data)
+  create: (record, options, callback) ->
+    id = record.get('id') || record.set('id', @nextId++)
+    if id?
+      key = @modelKey + id
+      if @storage.getItem(key)
+        callback(new Error("Can't create because the record already exists!"))
+      else
+        @storage.setItem(key, JSON.stringify(record))
+        callback(undefined, record)
+    else
+      callback(new Error("Couldn't set record primary key on create!"))
 
-    callback()
+  read: (record, options, callback) ->
+    id = record.get('id')
+    if id?
+      attrs = JSON.parse(@storage.getItem(@modelKey + id))
+      if attrs
+        record.fromJSON(attrs)
+        callback(undefined, record)
+      else
+        callback(new Error("Couldn't find record!"))
+    else
+      callback(new Error("Couldn't get record primary key."))
 
-  destroy: ->
+  readAll: (_, options, callback) ->
+    records = []
+    for storageKey, data of @storage
+      match = true
+      data = JSON.parse(data)
+      for k, v of options
+        if data[k] != v
+          match = false
+          break
+      records.push data if match
+
+    callback(undefined, @getRecordsFromData(records))
+
+  destroy: (record, options, callback) ->
+    id = record.get('id')
+    if id?
+      key = @modelKey + id
+      if @storage.getItem key
+        @storage.removeItem key
+        callback(undefined, record)
+      else
+        callback(new Error("Can't delete nonexistant record!"), record)
+    else
+      callback(new Error("Can't delete record without an primary key!"), record)
 
 class Batman.RestStorage extends Batman.StorageAdapter
   optionsForRecord: (record) ->
