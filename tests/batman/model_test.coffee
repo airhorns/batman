@@ -349,30 +349,62 @@ test "passing a function should shortcut to passing an encoder", ->
 
 QUnit.module "Batman.Model: validations"
 
-test "length", ->
+asyncTest "isValid shouldn't leave errors on the record", ->
+  class Product extends Batman.Model
+    @validate 'name', presence: yes
+
+  p = new Product
+  p.isValid (result, errors) ->
+    ok errors.length > 0
+    equal p.errors.length, 0
+    QUnit.start()
+
+asyncTest "length", 3, ->
   class Product extends Batman.Model
     @validate 'exact', length: 5
     @validate 'max', maxLength: 4
     @validate 'range', lengthWithin: [3, 5]
 
   p = new Product exact: '12345', max: '1234', range: '1234'
-  ok p.isValid()
+  p.isValid (result) ->
+    ok result
 
-  p.set 'exact', '123'
-  p.set 'max', '12345'
-  p.set 'range', '12'
-  ok !p.isValid()
-  equal p.errors.length, 3
+    p.set 'exact', '123'
+    p.set 'max', '12345'
+    p.set 'range', '12'
 
-test "presence", ->
+    p.isValid (result, errors) ->
+      ok !result
+      equal errors.length, 3
+      QUnit.start()
+
+asyncTest "presence", 2, ->
   class Product extends Batman.Model
     @validate 'name', presence: yes
 
   p = new Product name: 'nick'
-  ok p.isValid()
+  p.isValid (result, errors) ->
+    ok result
+    p.unset 'name'
+    p.isValid (result, errors) ->
+      ok !result
+      QUnit.start()
 
-  p.unset 'name'
-  ok !p.isValid()
+asyncTest "custom async validations", ->
+  letItPass = true
+  class Product extends Batman.Model
+    @validate 'name', (errors, record, key, callback) ->
+      setTimeout ->
+        errors.add "didn't validate" unless letItPass
+        callback()
+      , 0
+  p = new Product
+  p.validate (result, errors) ->
+    ok result
+    letItPass = false
+    p.validate (result, errors) ->
+      ok !result
+      QUnit.start()
 
 QUnit.module "Batman.Model: storage"
 
