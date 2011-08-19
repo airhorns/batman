@@ -1318,9 +1318,8 @@ class Batman.Model extends Batman.Object
 
   # ### Query methods
   @classAccessor 'all',
-    get: ->
-      @load() if not @all
-      @all
+    get: -> @all ||= new Batman.Set
+    set: (k,v)-> @all = v
 
   @classAccessor 'first', -> @get('all').toArray()[0]
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
@@ -1342,8 +1341,6 @@ class Batman.Model extends Batman.Object
       callback = options
       options = {}
 
-    @all ||= new Batman.Set
-
     throw new Error("Can't load model #{@name} without any storage adapters!") unless @::_batman.getAll('storage').length > 0
 
     do @loading
@@ -1357,19 +1354,23 @@ class Batman.Model extends Batman.Object
   @_mapIdentities: (records) ->
     all = @get('all').toArray()
     newRecords = []
-    records = for record in records
-      existingRecord = false
-      for potential in all
-        if record.get('identifier') == potential.get('identifier')
-          existingRecord = potential
-          break
-      if existingRecord
-        existingRecord
+    returnRecords = []
+    for record in records
+      if typeof (id = record.get('identifier')) == 'undefined' || id == ''
+        returnRecords.push record
       else
-        newRecords.push record
-        record
+        existingRecord = false
+        for potential in all
+          if record.get('identifier') == potential.get('identifier')
+            existingRecord = potential
+            break
+        if existingRecord
+          returnRecords.push existingRecord
+        else
+          newRecords.push record
+          returnRecords.push record
     @get('all').add(newRecords...) if newRecords.length > 0
-    records
+    returnRecords
 
   # ### Record API
 
@@ -1459,15 +1460,6 @@ class Batman.Model extends Batman.Object
   @classState 'loading'
   @classState 'loaded'
 
-  doStorageMethod = (target, methodName, callback) ->
-    allMechanisms = target._batman.getAll 'storage'
-    fireImmediately = !allMechanisms.length
-    for mechanisms in allMechanisms
-      fireImmediately = fireImmediately || !mechanisms.length
-      m[methodName] @, callback for m in mechanisms
-
-    do callback if fireImmediately
-
   _doStorageOperation: (operation, options, callback) ->
     mechanisms = @_batman.get('storage') || []
     throw new Error("Can't #{operation} model #{@constructor.name} without any storage adapters!") unless mechanisms.length > 0
@@ -1489,53 +1481,58 @@ class Batman.Model extends Batman.Object
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
   save: (callback) =>
-    return if not @isValid()
+    @validate (isValid, errors) =>
+      if !isValid
+        callback(errors)
+        return
+      creating = @isNew()
 
-    creating = @isNew()
-
-    do @saving
-    do @creating if creating
-    @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
-      unless err
-        do @created if creating
-        do @saved
-        @dirtyKeys.clear()
-      callback?(err, record)
+      do @saving
+      do @creating if creating
+      @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
+        unless err
+          do @created if creating
+          do @saved
+          @dirtyKeys.clear()
+        callback?(err, record)
 
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
-  validate: ->
-    console.log @validating, @_batman.isTransitioning
+  validate: (callback) ->
     do @validating
 
-    # Start off assuming the validation is synchronous, and as they are each run, ensure each in fact is.
-    async = no
+    validators = @_batman.get('validators') || []
+    unless validators.length > 0
+      do @validated
+      callback?(true, new Batman.Set)
+    else
+      for validator in validators
+        v = validator.validator
 
-    for validator in @_batman.get('validators') || []
-      v = validator.validator
+        # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
+        # and passing it to the appropriate function along with the key and the value to be validated.
+        for key in validator.keys
+          promise = new Batman.ValidatorPromise @
+          if v
+            v.validateEach promise, @, key, @get key
+          else
+            validator.callback promise, @, key, @get key
 
-      # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
-      # and passing it to the appropriate function along with the key and the value to be validated.
-      for key in validator.keys
-        promise = new Batman.ValidatorPromise @
-        if v
-          v.validateEach promise, @, key, @get key
-        else
-          validator.callback promise, @, key, @get key
-
-        # In the event the validation is async (marked this way because the promise is paused), then
-        # prevent the after callback from running, and run it only after all the promises have resolved.
-        if promise.paused
-          @prevent 'validated'
-          promise.resume => @allow('validated'); do @validated
-          async = yes
-        else
-          promise.success() if promise.canSucceed
-
-    # Return the result of the validation if synchronous, otherwise call the validation callback.
-    # FIXME: Is this really right?
-    return if async then no else do @validated; yes
+          # In the event the validation is async (marked this way because the promise is paused), then
+          # prevent the after callback from running, and run it only after all the promises have resolved.
+          if promise.paused
+            @prevent 'validated'
+            promise.resume =>
+              @allow('validated')
+              # If all the validators have returned, the validated event will be back to being allowed.
+              if @allowed('validated')
+                do @validated
+                callback?(true, @errors)
+            async = yes
+          else
+            promise.success() if promise.canSucceed
+    return
 
   isNew: -> typeof @get('identifier') is 'undefined'
 

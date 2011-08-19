@@ -26,7 +26,11 @@ class TestStorageAdapter extends Batman.StorageAdapter
     id = record.get('identifier')
     if id
       attrs = @storage[@modelKey + id]
-      callback(undefined, record.fromJSON(attrs))
+      if attrs
+        record.fromJSON(attrs)
+        callback(undefined, record)
+      else
+        callback(new Error("Couldn't find record!"))
     else
       callback(new Error("Couldn't get record identifier."))
 
@@ -144,10 +148,6 @@ asyncTest "new record lifecycle callbacks fire in order", ->
 
 asyncTest "existing record lifecycle callbacks fire in order", ->
   callOrder = []
-  classCallOrder = []
-
-  @Product.loading -> classCallOrder.push 1
-  @Product.loaded -> classCallOrder.push 2
 
   @Product.find 10, (err, product) ->
     product.validating -> callOrder.push(1)
@@ -157,7 +157,6 @@ asyncTest "existing record lifecycle callbacks fire in order", ->
     product.save(-> callOrder.push(5))
 
     deepEqual(callOrder, [1,2,3,4,5])
-    deepEqual(classCallOrder, [1,2])
     QUnit.start()
 
 QUnit.module "Batman.Model class loading"
@@ -167,8 +166,8 @@ QUnit.module "Batman.Model class loading"
 
     @adapter = new TestStorageAdapter(@Product)
     @adapter.storage =
-      'product1': {name: "One", cost: 10, id:1}
-      'product2': {name: "Two", cost: 5, id:2}
+      'products1': {name: "One", cost: 10, id:1}
+      'products2': {name: "Two", cost: 5, id:2}
 
     @Product.persist @adapter
 
@@ -178,6 +177,15 @@ asyncTest "models will load all their records", ->
     equal products.length, 2
     equal @Product.get('all.length'), 2
     QUnit.start()
+
+asyncTest "classes fire their loading/loaded callbacks", ->
+  callOrder = []
+  @Product.loading -> callOrder.push 1
+  @Product.loaded -> callOrder.push 2
+
+  @Product.load (err, products) =>
+    delay ->
+      deepEqual callOrder, [1,2]
 
 asyncTest "models will load all their records matching an options hash", ->
   @Product.load {name: 'One'}, (err, products) ->
@@ -196,12 +204,72 @@ asyncTest "models will maintain the all set", ->
 
         QUnit.start()
 
+asyncTest "loading the same models will return the same instances", ->
+  @Product.load {name: 'One'}, (err, productsOne) =>
+    equal @Product.get('all').length, 1
+
+    @Product.load {name: 'One'}, (err, productsTwo) =>
+      deepEqual productsOne, productsTwo
+      equal @Product.get('all').length, 1
+      QUnit.start()
+
 test "models without storage adapters should throw errors when trying to be loaded", 1, ->
   class Silly extends Batman.Model
   try
     Silly.load()
   catch e
     ok e
+
+QUnit.module "Batman.Model instance loading"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @adapter.storage =
+      'products1': {name: "One", cost: 10, id:1}
+
+    @Product.persist @adapter
+
+asyncTest "instantiated instances can load their values", ->
+  product = new @Product(1)
+  product.load (err, product) =>
+    throw err if err
+    equal product.get('name'), 'One'
+    equal product.get('identifier'), 1
+    QUnit.start()
+
+asyncTest "instantiated instances can load their values", ->
+  product = new @Product(1110000) # Non existant identifier.
+  product.load (err, product) =>
+    ok err
+    QUnit.start()
+
+QUnit.module "Batman.Model instance saving"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @Product.persist @adapter
+
+test "model instances should save", ->
+  product = new @Product()
+  product.save (err, product) =>
+    throw err if err?
+    ok product.get('identifier') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
+
+test "model instances should throw if they can't be saved", ->
+  product = new @Product()
+  @adapter.create = (record, options, callback) -> callback(new Error("couldn't save for some reason"))
+  product.save (err, product) =>
+    ok err
+
+test "model instances shouldn't save if they don't validate", ->
+  @Product.validate 'name', presence: yes
+  product = new @Product()
+  product.save (err, product) ->
+    equal err.get('length'), 1
 
 QUnit.module "Batman.Model: encoding/decoding to/from JSON"
   setup: ->
@@ -304,25 +372,6 @@ test "presence", ->
   ok p.isValid()
 
   p.unset 'name'
-  ok !p.isValid()
-
-asyncTest "async", 2, ->
-  hasFailed = no
-  class Product extends Batman.Model
-    @validate 'email', (validator, record, key, value) ->
-      validator.wait()
-      setTimeout (->
-        if hasFailed
-          validator.success()
-        else
-          validator.error 'email is already taken'
-          hasFailed = yes
-
-        validator.resume()
-      ), 500
-
-  p = new Product email: 'nick@shopify.com'
-  p.validated -> equal(p.errors.length, 1); start()
   ok !p.isValid()
 
 QUnit.module "Batman.Model: storage"
