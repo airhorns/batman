@@ -1333,23 +1333,49 @@ class Batman.Model extends Batman.Object
         return
 
     record = new @(id)
-    record.load(-> callback(undefined, record))
+    record.load callback
     return
 
-  # `load` fetches the record from all sources possible
-  @load: (callback) ->
+  # `load` fetches records from all sources possible
+  @load: (options, callback) ->
+    if !callback
+      callback = options
+      options = {}
+
     @all ||= new Batman.Set
 
+    throw new Error("Can't load model #{@name} without any storage adapters!") unless @::_batman.getAll('storage').length > 0
+
     do @loading
-    doStorageMethod.call @, @prototype, 'readAllFromStorage', =>
-      callback?.call @, @
-      do @loaded
+    @::_doStorageOperation 'readAll', options, (err, records) =>
+      if err?
+        callback?(err, [])
+      else
+        callback?(err, @_mapIdentities(records))
+        do @loaded
+
+  @_mapIdentities: (records) ->
+    all = @get('all').toArray()
+    newRecords = []
+    records = for record in records
+      existingRecord = false
+      for potential in all
+        if record.get('identifier') == potential.get('identifier')
+          existingRecord = potential
+          break
+      if existingRecord
+        existingRecord
+      else
+        newRecords.push record
+        record
+    @get('all').add(newRecords...) if newRecords.length > 0
+    records
 
   # ### Record API
 
   @accessor 'identifier',
     get: -> @get(@constructor.get('identifier'))
-    set: (k, v) -> @set(@constructor.get('identifier'), v)
+    set: (k, v) -> @set(@constructor.get('identifier'), v); v
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
@@ -1374,11 +1400,12 @@ class Batman.Model extends Batman.Object
     return if oldValue is value
 
     # Actually set the value and note what the old value was in the tracking array.
-    super
+    result = super
     @dirtyKeys.set(key, oldValue)
 
     # Mark the model as dirty if isn't already.
-    @dirty() if @state() isnt 'dirty'
+    @dirty() unless @state() in ['dirty', 'loading', 'creating']
+    result
 
   toString: ->
     "#{@constructor.name}: #{@get('identifier')}"
@@ -1441,12 +1468,23 @@ class Batman.Model extends Batman.Object
 
     do callback if fireImmediately
 
+  _doStorageOperation: (operation, options, callback) ->
+    mechanisms = @_batman.get('storage') || []
+    throw new Error("Can't #{operation} model #{@constructor.name} without any storage adapters!") unless mechanisms.length > 0
+    for mechanism in mechanisms
+      mechanism[operation] @, options, callback
+    true
+
+  _processStorageResults: ->
+
+  _hasStorage: -> @_batman.getAll('storage').length > 0
+
   # `load` fetches the record from all sources possible
-  load: (callback) ->
+  load: (callback) =>
     do @loading
-    doStorageMethod.call @, @, 'readAllFromStorage', =>
-      do @loaded
-      callback?.call @, @
+    @_doStorageOperation 'read', {}, (err, record) =>
+      do @loaded unless err
+      callback?(err, record)
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
@@ -1457,10 +1495,12 @@ class Batman.Model extends Batman.Object
 
     do @saving
     do @creating if creating
-    doStorageMethod.call @, @, 'writeToStorage', =>
-      do @created if creating
-      do @saved
-      callback?.call @, @
+    @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
+      unless err
+        do @created if creating
+        do @saved
+        @dirtyKeys.clear()
+      callback?(err, record)
 
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
@@ -1576,31 +1616,35 @@ Validators = Batman.Validators = [
         validator.error "#{key} must be present"
 ]
 
-class Batman.StorageMechanism
+class Batman.StorageAdapter
   constructor: (@model) ->
     @modelKey = helpers.pluralize(helpers.underscore(@model.name))
   isStorageAdapter: true
+  getRecordsFromData: (datas) -> @getRecordFromData(data) for data in datas
+  getRecordFromData: (data) ->
+    data = @transformData(data) if @transformData?
+    record = new @model(data)
 
-class Batman.LocalStorage extends Batman.StorageMechanism
+class Batman.LocalStorage extends Batman.StorageAdapter
   constructor: ->
     return null if not 'localStorage' in window
     @id = 0
     super
 
-  writeToStorage: (record, callback) ->
+  write: (record, callback) ->
     key = @modelKey
     id = record.get('identifier') || record.set('identifier', ++@id)
     localStorage[key + id] = JSON.stringify(record) if key and id
     callback()
 
-  readFromStorage: (record, callback) ->
+  read: (record, callback) ->
     key = @modelKey
     id = record.get('identifier')
     json = localStorage[key + id] if key and id
     record.fromJSON JSON.parse json
     callback()
 
-  readAllFromStorage: (model, callback) ->
+  readAll: (model, callback) ->
     re = new RegExp("$#{@modelKey}")
     for k, v of localStorage
       if re.test(k)
@@ -1608,9 +1652,10 @@ class Batman.LocalStorage extends Batman.StorageMechanism
         record = new model(data)
 
     callback()
-    return
 
-class Batman.RestStorage extends Batman.StorageMechanism
+  destroy: ->
+
+class Batman.RestStorage extends Batman.StorageAdapter
   optionsForRecord: (record) ->
     options =
       type: 'json'
@@ -1620,7 +1665,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
 
     options
 
-  writeToStorage: (record, callback, options) ->
+  write: (record, callback, options) ->
     options = $mixin @optionsForRecord(record), {
       method: if record.isNew() then 'put' else 'post'
       data: JSON.stringify record
@@ -1632,7 +1677,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
 
     new Batman.Request(options)
 
-  readFromStorage: (record, callback) ->
+  read: (record, callback) ->
     options = $mixin @optionsForRecord(record),
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
@@ -1645,7 +1690,7 @@ class Batman.RestStorage extends Batman.StorageMechanism
 
     new Batman.Request(options)
 
-  readAllFromStorage: (model, callback) ->
+  readAll: (model, callback) ->
     options = $mixin @optionsForRecord(),
       success: (data) ->
         data = JSON.parse(data) if typeof data is 'string'
@@ -1662,6 +1707,8 @@ class Batman.RestStorage extends Batman.StorageMechanism
         return
 
     new Batman.Request options
+
+  destroy: ->
 
 # Views
 # -----------
