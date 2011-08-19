@@ -1,3 +1,52 @@
+class TestStorageAdapter extends Batman.StorageAdapter
+  constructor: ->
+    super
+    @counter = 10
+    @storage = {}
+    @lastQuery = false
+    @create(new @model, {}, ->)
+
+  update: (record, options, callback) ->
+    id = record.get('identifier')
+    if id
+      @storage[@modelKey + id] = record.toJSON()
+      callback(undefined, record)
+    else
+      callback(new Error("Couldn't get record identifier."))
+
+  create: (record, options, callback) ->
+    id = record.set('identifier', @counter++)
+    if id
+      @storage[@modelKey + id] = record.toJSON()
+      callback(undefined, record)
+    else
+      callback(new Error("Couldn't get record identifier."))
+
+  read: (record, options, callback) ->
+    id = record.get('identifier')
+    if id
+      attrs = @storage[@modelKey + id]
+      callback(undefined, record.fromJSON(attrs))
+    else
+      callback(new Error("Couldn't get record identifier."))
+
+  readAll: (_, options, callback) ->
+    records = []
+    for storageKey, data of @storage
+      match = true
+      for k, v of options
+        if data[k] != v
+          match = false
+          break
+      records.push data if match
+
+    callback(undefined, @getRecordsFromData(records))
+
+  destroy: () ->
+
+class @Product extends Batman.Model
+  @persist TestStorageAdapter
+
 QUnit.module "Batman.Model",
   setup: ->
     class @Product extends Batman.Model
@@ -19,6 +68,7 @@ test "identifier can be changed by setting identifier on the model class", ->
 QUnit.module "Batman.Model state transitions",
   setup: ->
     class @Product extends Batman.Model
+      @persist TestStorageAdapter
 
 test "new instances start 'empty'", ->
   product = new @Product
@@ -26,7 +76,8 @@ test "new instances start 'empty'", ->
   equal product.state(), 'empty'
 
 asyncTest "loaded instances start 'loaded'", 2, ->
-  @Product.find 10, (error, product) ->
+  @Product.find 10, (err, product) ->
+    throw err if err
     ok !product.isNew()
     equal product.state(), 'loaded'
     QUnit.start()
@@ -43,6 +94,7 @@ asyncTest "instances has state transitions for observation", 1, ->
 QUnit.module "Batman.Model dirty key tracking",
   setup: ->
     class @Product extends Batman.Model
+      @persist TestStorageAdapter
 
 test "no keys are dirty upon creation", ->
   product = new @Product
@@ -60,8 +112,9 @@ test "creating instances by passing attributes sets those attributes as dirty", 
   equal(product.get('state'), 'dirty')
 
 asyncTest "saving clears dirty keys", ->
-  product = new @Product foo: 'bar'
-  product.save ->
+  product = new @Product foo: 'bar', id: 1
+  product.save (err) ->
+    throw err if err
     equal(product.dirtyKeys.length, 0)
     notEqual(product.get('state'), 'dirty')
     QUnit.start()
@@ -69,11 +122,12 @@ asyncTest "saving clears dirty keys", ->
 QUnit.module "Batman.Model record lifecycle",
   setup: ->
     class @Product extends Batman.Model
+      @persist TestStorageAdapter
 
 asyncTest "new record lifecycle callbacks fire in order", ->
   callOrder = []
 
-  product = new @Product
+  product = new @Product()
   product.dirty -> callOrder.push(0)
   product.validating -> callOrder.push(1)
   product.validated -> callOrder.push(2)
@@ -82,7 +136,8 @@ asyncTest "new record lifecycle callbacks fire in order", ->
   product.created -> callOrder.push(5)
   product.saved -> callOrder.push(6)
   product.set('foo', 'bar')
-  product.save ->
+  product.save (err) ->
+    throw err if err
     callOrder.push(7)
     deepEqual(callOrder, [0,1,2,3,4,5,6,7])
     QUnit.start()
@@ -105,12 +160,48 @@ asyncTest "existing record lifecycle callbacks fire in order", ->
     deepEqual(classCallOrder, [1,2])
     QUnit.start()
 
-QUnit.module "Batman.Model finding and loading"
+QUnit.module "Batman.Model class loading"
   setup: ->
     class @Product extends Batman.Model
       @encode 'name', 'cost'
-      @accessor 'excitingName'
-        get: -> @get('name').toUpperCase()
+
+    @adapter = new TestStorageAdapter(@Product)
+    @adapter.storage =
+      'product1': {name: "One", cost: 10, id:1}
+      'product2': {name: "Two", cost: 5, id:2}
+
+    @Product.persist @adapter
+
+asyncTest "models will load all their records", ->
+  @Product.load (err, products) =>
+    throw err if err
+    equal products.length, 2
+    equal @Product.get('all.length'), 2
+    QUnit.start()
+
+asyncTest "models will load all their records matching an options hash", ->
+  @Product.load {name: 'One'}, (err, products) ->
+    equal products.length, 1
+    QUnit.start()
+
+asyncTest "models will maintain the all set", ->
+  @Product.load {name: 'One'}, (err, products) =>
+    equal @Product.get('all').length, 1, 'Products loaded are added to the set'
+
+    @Product.load {name: 'Two'}, (err, products) =>
+      equal @Product.get('all').length, 2, 'Products loaded are added to the set'
+
+      @Product.load {name: 'Two'}, (err, products) =>
+        equal @Product.get('all').length, 2, "Duplicate products aren't added to the set."
+
+        QUnit.start()
+
+test "models without storage adapters should throw errors when trying to be loaded", 1, ->
+  class Silly extends Batman.Model
+  try
+    Silly.load()
+  catch e
+    ok e
 
 QUnit.module "Batman.Model: encoding/decoding to/from JSON"
   setup: ->
@@ -233,8 +324,6 @@ asyncTest "async", 2, ->
   p = new Product email: 'nick@shopify.com'
   p.validated -> equal(p.errors.length, 1); start()
   ok !p.isValid()
-
-
 
 QUnit.module "Batman.Model: storage"
 
