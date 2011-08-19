@@ -7,23 +7,23 @@ class TestStorageAdapter extends Batman.StorageAdapter
     @create(new @model, {}, ->)
 
   update: (record, options, callback) ->
-    id = record.get('identifier')
+    id = record.get('id')
     if id
       @storage[@modelKey + id] = record.toJSON()
       callback(undefined, record)
     else
-      callback(new Error("Couldn't get record identifier."))
+      callback(new Error("Couldn't get record primary key."))
 
   create: (record, options, callback) ->
-    id = record.set('identifier', @counter++)
+    id = record.set('id', @counter++)
     if id
       @storage[@modelKey + id] = record.toJSON()
       callback(undefined, record)
     else
-      callback(new Error("Couldn't get record identifier."))
+      callback(new Error("Couldn't get record primary key."))
 
   read: (record, options, callback) ->
-    id = record.get('identifier')
+    id = record.get('id')
     if id
       attrs = @storage[@modelKey + id]
       if attrs
@@ -32,7 +32,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
       else
         callback(new Error("Couldn't find record!"))
     else
-      callback(new Error("Couldn't get record identifier."))
+      callback(new Error("Couldn't get record primary key."))
 
   readAll: (_, options, callback) ->
     records = []
@@ -46,7 +46,17 @@ class TestStorageAdapter extends Batman.StorageAdapter
 
     callback(undefined, @getRecordsFromData(records))
 
-  destroy: () ->
+  destroy: (record, options, callback) ->
+    id = record.get('id')
+    if id
+      key = @modelKey + id
+      if @storage[key]
+        delete @storage[key]
+        callback(undefined, record)
+      else
+        callback(new Error("Can't delete nonexistant record!"), record)
+    else
+      callback(new Error("Can't delete record without an primary key!"), record)
 
 class @Product extends Batman.Model
   @persist TestStorageAdapter
@@ -55,19 +65,19 @@ QUnit.module "Batman.Model",
   setup: ->
     class @Product extends Batman.Model
 
-test "identifier is undefined on new models", ->
+test "primary key is undefined on new models", ->
   product = new @Product
   ok product.isNew()
-  equal typeof product.get('identifier'), 'undefined'
+  equal typeof product.get('id'), 'undefined'
 
-test "identifier is 'id' by default", ->
+test "primary key is 'id' by default", ->
   product = new @Product(id: 10)
-  equal product.get('identifier'), 10
+  equal product.get('id'), 10
 
-test "identifier can be changed by setting identifier on the model class", ->
-  @Product.identifier = 'uuid'
+test "primary key can be changed by setting primary key on the model class", ->
+  @Product.primaryKey = 'uuid'
   product = new @Product(uuid: "abc123")
-  equal product.get('identifier'), 'abc123'
+  equal product.get('id'), 'abc123'
 
 QUnit.module "Batman.Model state transitions",
   setup: ->
@@ -80,7 +90,8 @@ test "new instances start 'empty'", ->
   equal product.state(), 'empty'
 
 asyncTest "loaded instances start 'loaded'", 2, ->
-  @Product.find 10, (err, product) ->
+  product = new @Product(10)
+  product.load (err, product) ->
     throw err if err
     ok !product.isNew()
     equal product.state(), 'loaded'
@@ -139,12 +150,16 @@ asyncTest "new record lifecycle callbacks fire in order", ->
   product.creating -> callOrder.push(4)
   product.created -> callOrder.push(5)
   product.saved -> callOrder.push(6)
+  product.destroying -> callOrder.push(8)
+  product.destroyed -> callOrder.push(9)
   product.set('foo', 'bar')
   product.save (err) ->
     throw err if err
     callOrder.push(7)
-    deepEqual(callOrder, [0,1,2,3,4,5,6,7])
-    QUnit.start()
+    product.destroy (err) ->
+      throw err if err
+      deepEqual(callOrder, [0,1,2,3,4,5,6,7,8,9])
+      QUnit.start()
 
 asyncTest "existing record lifecycle callbacks fire in order", ->
   callOrder = []
@@ -154,10 +169,48 @@ asyncTest "existing record lifecycle callbacks fire in order", ->
     product.validated -> callOrder.push(2)
     product.saving -> callOrder.push(3)
     product.saved -> callOrder.push(4)
-    product.save(-> callOrder.push(5))
+    product.destroying -> callOrder.push(6)
+    product.destroyed -> callOrder.push(7)
+    product.save (err) ->
+      throw err if err
+      callOrder.push(5)
+      product.destroy (err) ->
+        throw err if err
+        deepEqual(callOrder, [1,2,3,4,5,6,7])
+        QUnit.start()
 
-    deepEqual(callOrder, [1,2,3,4,5])
+QUnit.module "Batman.Model class finding"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @adapter.storage =
+      'products1': {name: "One", cost: 10, id:1}
+      'products2': {name: "Two", cost: 5, id:2}
+
+    @Product.persist @adapter
+
+asyncTest "models will find an instance in the store", ->
+  @Product.find 1, (err, product) ->
+    throw err if err
+    equal product.get('name'), 'One'
     QUnit.start()
+
+asyncTest "found models should end up in the all set", ->
+  @Product.find 1, (err, firstProduct) =>
+    throw err if err
+    equal @Product.get('all').length, 1
+    QUnit.start()
+
+asyncTest "models will find the same instance if called twice", ->
+  @Product.find 1, (err, firstProduct) =>
+    throw err if err
+    @Product.find 1, (err, secondProduct) =>
+      throw err if err
+      equal firstProduct, secondProduct
+      equal @Product.get('all').length, 1
+      QUnit.start()
 
 QUnit.module "Batman.Model class loading"
   setup: ->
@@ -236,11 +289,11 @@ asyncTest "instantiated instances can load their values", ->
   product.load (err, product) =>
     throw err if err
     equal product.get('name'), 'One'
-    equal product.get('identifier'), 1
+    equal product.get('id'), 1
     QUnit.start()
 
 asyncTest "instantiated instances can load their values", ->
-  product = new @Product(1110000) # Non existant identifier.
+  product = new @Product(1110000) # Non existant primary key.
   product.load (err, product) =>
     ok err
     QUnit.start()
@@ -257,7 +310,7 @@ test "model instances should save", ->
   product = new @Product()
   product.save (err, product) =>
     throw err if err?
-    ok product.get('identifier') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
+    ok product.get('id') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
 
 test "model instances should throw if they can't be saved", ->
   product = new @Product()
@@ -270,6 +323,30 @@ test "model instances shouldn't save if they don't validate", ->
   product = new @Product()
   product.save (err, product) ->
     equal err.get('length'), 1
+
+QUnit.module "Batman.Model instance destruction"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @Product.persist @adapter
+
+asyncTest "model instances should be destroyable", ->
+  @Product.find 10, (err, product) =>
+    throw err if err
+    equal @Product.get('all').length, 1
+
+    product.destroy (err) =>
+      throw err if err
+      equal @Product.get('all').length, 0, 'instances should be removed from the identity map upon destruction'
+      QUnit.start()
+
+asyncTest "model instances which don't exist in the store shouldn't be destroyable", ->
+  p = new @Product(11000)
+  p.destroy (err) =>
+    ok err
+    QUnit.start()
 
 QUnit.module "Batman.Model: encoding/decoding to/from JSON"
   setup: ->
