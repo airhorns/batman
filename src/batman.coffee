@@ -1293,8 +1293,10 @@ class Batman.Model extends Batman.Object
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
   # what they have entered and forgo waiting on a round trip to the server.
   # `validate` allows the attachment of validations to the model on particular keys, where the validation is
-  # either a built in one (by use of options to pass to them) or a cusom one (by use of a custom function as
-  # the second argument).
+  # either a built in one (by use of options to pass to them) or a custom one (by use of a custom function as
+  # the second argument). Custom validators should have the signature `(errors, record, key, callback)`. They
+  # should add strings to the `errors` set based on the record (maybe depending on the `key` they were attached
+  # to) and then always call the callback. Again: the callback must always be called.
   @validate: (keys..., optionsOrFunction) ->
     Batman.initializeObject @prototype
     validators = @::_batman.validators ||= []
@@ -1499,7 +1501,8 @@ class Batman.Model extends Batman.Object
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
-  validate: (callback) ->
+  validate: (callback, errors = @get('errors')) ->
+    errors.clear()
     do @validating
 
     validators = @_batman.get('validators') || []
@@ -1507,59 +1510,27 @@ class Batman.Model extends Batman.Object
       do @validated
       callback?(true, new Batman.Set)
     else
+      count = validators.length
+      validationCallback = =>
+        if --count == 0
+          do @validated
+          callback?(errors.length == 0, errors)
       for validator in validators
         v = validator.validator
 
         # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
         # and passing it to the appropriate function along with the key and the value to be validated.
         for key in validator.keys
-          promise = new Batman.ValidatorPromise @
           if v
-            v.validateEach promise, @, key, @get key
+            v.validateEach errors, @, key, validationCallback
           else
-            validator.callback promise, @, key, @get key
-
-          # In the event the validation is async (marked this way because the promise is paused), then
-          # prevent the after callback from running, and run it only after all the promises have resolved.
-          if promise.paused
-            @prevent 'validated'
-            promise.resume =>
-              @allow('validated')
-              # If all the validators have returned, the validated event will be back to being allowed.
-              if @allowed('validated')
-                do @validated
-                callback?(true, @errors)
-            async = yes
-          else
-            promise.success() if promise.canSucceed
+            validator.callback errors, @, key, validationCallback
     return
 
   isNew: -> typeof @get('identifier') is 'undefined'
-
-  isValid: ->
-    @errors.clear()
-    return no if @validate() is no
-    @errors.isEmpty()
-
-
-class Batman.ValidatorPromise extends Batman.Object
-  constructor: (@record) ->
-    @canSucceed = yes
-
-  error: (err) ->
-    @record.errors.add err
-    @canSucceed = no
-
-  wait: ->
-    @paused = yes
-    @canSucceed = no
-
-  resume: @event ->
-    @paused = no
-    true
-
-  success: ->
-    @canSucceed = no
+  isValid: (callback) ->
+    errors = new Batman.Set
+    @validate(callback, errors)
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
@@ -1567,9 +1538,6 @@ class Batman.Validator extends Batman.Object
 
   validate: (record) ->
     throw "You must override validate in Batman.Validator subclasses."
-
-  @kind: -> helpers.underscore(@name).replace('_validator', '')
-  kind: -> @constructor.kind()
 
   @options: (options...) ->
     Batman.initializeObject @
@@ -1596,21 +1564,24 @@ Validators = Batman.Validators = [
 
       super
 
-    validateEach: (validator, record, key, value) ->
+    validateEach: (errors, record, key, callback) ->
       options = @options
+      value = record.get(key)
       if options.minLength and value.length < options.minLength
-        validator.error "#{key} must be at least #{options.minLength} characters"
+        errors.add "#{key} must be at least #{options.minLength} characters"
       if options.maxLength and value.length > options.maxLength
-        validator.error "#{key} must be less than #{options.maxLength} characters"
+        errors.add "#{key} must be less than #{options.maxLength} characters"
       if options.length and value.length isnt options.length
-        validator.error "#{key} must be #{options.length} characters"
+        errors.add "#{key} must be #{options.length} characters"
+      callback()
 
   class Batman.PresenceValidator extends Batman.Validator
     @options 'presence'
-    validateEach: (validator, record, key, value) ->
-      options = @options
-      if options.presence and !value?
-        validator.error "#{key} must be present"
+    validateEach: (errors, record, key, callback) ->
+      value = record.get(key)
+      if @options.presence and !value?
+        errors.add "#{key} must be present"
+      callback()
 ]
 
 class Batman.StorageAdapter
