@@ -1253,7 +1253,7 @@ class Batman.Model extends Batman.Object
 
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
-  @identifier: 'id'
+  @primaryKey: 'id'
 
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
@@ -1327,14 +1327,9 @@ class Batman.Model extends Batman.Object
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
 
   @find: (id, callback) ->
-    id = "#{id}"
-    for record in @get('all').toArray()
-      if record.get('identifier') is id
-        callback(undefined, record)
-        return
-
     record = new @(id)
-    record.load callback
+    newRecord = @_mapIdentities([record])[0]
+    newRecord.load callback
     return
 
   # `load` fetches records from all sources possible
@@ -1358,12 +1353,12 @@ class Batman.Model extends Batman.Object
     newRecords = []
     returnRecords = []
     for record in records
-      if typeof (id = record.get('identifier')) == 'undefined' || id == ''
+      if typeof (id = record.get('id')) == 'undefined' || id == ''
         returnRecords.push record
       else
         existingRecord = false
         for potential in all
-          if record.get('identifier') == potential.get('identifier')
+          if record.get('id') == potential.get('id')
             existingRecord = potential
             break
         if existingRecord
@@ -1376,9 +1371,19 @@ class Batman.Model extends Batman.Object
 
   # ### Record API
 
-  @accessor 'identifier',
-    get: -> @get(@constructor.get('identifier'))
-    set: (k, v) -> @set(@constructor.get('identifier'), v); v
+  @accessor 'id',
+    get: ->
+      pk = @constructor.get('primaryKey')
+      if pk == 'id'
+        @id
+      else
+        @get(pk)
+    set: (k, v) ->
+      pk = @constructor.get('primaryKey')
+      if pk == 'id'
+        @id = v
+      else
+        @set(pk, v)
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
@@ -1392,7 +1397,7 @@ class Batman.Model extends Batman.Object
       super(idOrAttributes)
     else
       super()
-      @set('identifier', idOrAttributes)
+      @set('id', idOrAttributes)
 
     @empty() if not @state()
 
@@ -1411,7 +1416,7 @@ class Batman.Model extends Batman.Object
     result
 
   toString: ->
-    "#{@constructor.name}: #{@get('identifier')}"
+    "#{@constructor.name}: #{@get('id')}"
 
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
@@ -1453,7 +1458,7 @@ class Batman.Model extends Batman.Object
   @actsAsStateMachine yes
 
   # Add the various states to the model.
-  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'creating', 'created', 'validated']
+  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'creating', 'created', 'validated', 'destroying', 'destroyed']
     @state k
 
   @state 'saved', -> @dirtyKeys.clear()
@@ -1475,6 +1480,10 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches the record from all sources possible
   load: (callback) =>
+    if @get('state') in ['destroying', 'distroyed']
+      callback?(new Error("Can't save a destroyed record!"))
+      return
+
     do @loading
     @_doStorageOperation 'read', {}, (err, record) =>
       do @loaded unless err
@@ -1485,7 +1494,10 @@ class Batman.Model extends Batman.Object
   save: (callback) =>
     @validate (isValid, errors) =>
       if !isValid
-        callback(errors)
+        callback?(errors)
+        return
+      if @get('state') in ['destroying', 'distroyed']
+        callback?(new Error("Can't save a destroyed record!"))
         return
       creating = @isNew()
 
@@ -1497,6 +1509,15 @@ class Batman.Model extends Batman.Object
           do @saved
           @dirtyKeys.clear()
         callback?(err, record)
+
+  # `destroy` destroys a record in all the stores.
+  destroy: (callback) =>
+    do @destroying
+    @_doStorageOperation 'destroy', {}, (err, record) =>
+      unless err
+        @constructor.get('all').remove(@)
+        do @destroyed
+      callback?(err)
 
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
@@ -1527,7 +1548,7 @@ class Batman.Model extends Batman.Object
             validator.callback errors, @, key, validationCallback
     return
 
-  isNew: -> typeof @get('identifier') is 'undefined'
+  isNew: -> typeof @get('id') is 'undefined'
   isValid: (callback) ->
     errors = new Batman.Set
     @validate(callback, errors)
@@ -1601,13 +1622,13 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
   write: (record, callback) ->
     key = @modelKey
-    id = record.get('identifier') || record.set('identifier', ++@id)
+    id = record.get('id') || record.set('id', ++@id)
     localStorage[key + id] = JSON.stringify(record) if key and id
     callback()
 
   read: (record, callback) ->
     key = @modelKey
-    id = record.get('identifier')
+    id = record.get('id')
     json = localStorage[key + id] if key and id
     record.fromJSON JSON.parse json
     callback()
@@ -1629,7 +1650,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       type: 'json'
 
     options.url = record?.url?() || record?.url || @model.url?() || @model.url || @modelKey
-    options.url += "/#{record.get('identifier')}" if record and not record.url
+    options.url += "/#{record.get('id')}" if record and not record.url
 
     options
 
