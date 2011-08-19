@@ -385,7 +385,7 @@ Batman.EventEmitter =
   oneShotFired: (key) ->
     Batman.initializeObject @
     firings = @_batman.oneShotFired ||= {}
-    firings[key]
+    !!firings[key]
 
 # `$event` lets you create an ephemeral event without needing an EventEmitter.
 # If you already have an EventEmitter object, you should call .event() on it.
