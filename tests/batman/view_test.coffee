@@ -784,6 +784,14 @@ asyncTest 'sort', 1, ->
     equals node.html(), "1abc"
     QUnit.start()
 
+asyncTest 'not', 1, ->
+  render '<div data-showif="foo | not"></div>',
+    foo: true
+  , (node) ->
+    equals node[0].style.display, "none"
+    QUnit.start()
+
+
 asyncTest 'map', 1, ->
   render '<div data-bind="posts | map \'name\' | join \', \'"></div>',
     posts: [

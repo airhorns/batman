@@ -1915,7 +1915,7 @@ class Binding extends Batman.Object
           else
             @filterArguments.push []
         else
-          throw new Error("Unrecognized filter #{filter} in key \"#{@keyPath}\"!")
+          throw new Error("Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!")
 
       # Map over each array of arguments to grab the context for any keypaths.
       @filterArguments = @filterArguments.map (argumentList) =>
@@ -2107,9 +2107,9 @@ Batman.DOM = {
 
     bind: (node, attr, key, context) ->
       switch attr
-        when 'checked'
-          contextChange = (value) -> node.checked = !!value
-          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.checked))
+        when 'checked', 'disabled'
+          contextChange = (value) -> node[attr] = !!value
+          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
         when 'value'
           contextChange = (value) -> node.value = value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
@@ -2375,6 +2375,9 @@ filters = Batman.Filters =
       value.get(key)
     else
       value[key]
+
+  not: (value) ->
+    ! !!value
 
   truncate: buntUndefined (value, length, end = "...") ->
     if value.length > length
