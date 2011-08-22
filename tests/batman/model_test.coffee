@@ -158,7 +158,7 @@ asyncTest "new record lifecycle callbacks fire in order", ->
     callOrder.push(7)
     product.destroy (err) ->
       throw err if err
-      deepEqual(callOrder, [0,1,2,3,4,5,6,7,8,9])
+      deepEqual(callOrder, [0,1,2,0,3,4,5,6,7,8,9])
       QUnit.start()
 
 asyncTest "existing record lifecycle callbacks fire in order", ->
@@ -340,6 +340,13 @@ test "model instances shouldn't save if they don't validate", ->
   product.save (err, product) ->
     equal err.get('length'), 1
 
+test "model instances shouldn't save if they have been destroyed", ->
+  p = new @Product(10)
+  p.destroy (err) =>
+    throw err if err
+    p.save (err) ->
+      ok err
+
 QUnit.module "Batman.Model instance destruction"
   setup: ->
     class @Product extends Batman.Model
@@ -450,6 +457,16 @@ asyncTest "isValid shouldn't leave errors on the record", ->
   p.isValid (result, errors) ->
     ok errors.length > 0
     equal p.errors.length, 0
+    QUnit.start()
+
+asyncTest "validation shouldn leave the model in the same state it left it", ->
+  class Product extends Batman.Model
+    @validate 'name', presence: yes
+
+  p = new Product
+  oldState = p.state()
+  p.isValid (result, errors) ->
+    equal p.state(), oldState
     QUnit.start()
 
 asyncTest "length", 3, ->

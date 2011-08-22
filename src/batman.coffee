@@ -1476,7 +1476,7 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches the record from all sources possible
   load: (callback) =>
-    if @get('state') in ['destroying', 'distroyed']
+    if @get('state') in ['destroying', 'destroyed']
       callback?(new Error("Can't save a destroyed record!"))
       return
 
@@ -1488,12 +1488,12 @@ class Batman.Model extends Batman.Object
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
   save: (callback) =>
+    if @get('state') in ['destroying', 'destroyed']
+      callback?(new Error("Can't save a destroyed record!"))
+      return
     @validate (isValid, errors) =>
       if !isValid
         callback?(errors)
-        return
-      if @get('state') in ['destroying', 'distroyed']
-        callback?(new Error("Can't save a destroyed record!"))
         return
       creating = @isNew()
 
@@ -1526,7 +1526,7 @@ class Batman.Model extends Batman.Object
 
     finish = () =>
       do @validated
-      @state(oldState)
+      @[oldState]()
       callback?(errors.length == 0, errors)
 
     validators = @_batman.get('validators') || []

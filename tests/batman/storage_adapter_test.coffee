@@ -136,7 +136,6 @@ class MockRequest extends MockClass
         {request, response} = expected
         if request.method != requestOptions.method
           throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
-        console.error "Responding to #{requestOptions.url} with", response
         if response.error
           @fireError response.error
         else
