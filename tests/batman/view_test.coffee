@@ -241,7 +241,7 @@ QUnit.module "Batman.View rendering loops"
 asyncTest 'it should render new items as they are added', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
   objects = new Batman.Set('foo', 'bar')
-  
+
   render source, {objects}, (node, view) ->
     objects.add('foo', 'baz', 'qux')
     delay =>
@@ -252,7 +252,7 @@ asyncTest 'it should render new items as they are added', ->
 asyncTest 'it should remove items from the DOM as they are removed from the set', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
   objects = new Batman.Set('foo', 'bar')
-  
+
   render source, {objects}, (node, view) ->
     delay =>
       objects.remove('foo', 'baz', 'qux')
@@ -264,7 +264,7 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object.name"></p></div>'
   objects = new Batman.SortableSet({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
   objects.sortBy 'id'
-  
+
   render source, {objects}, (node, view) ->
     setTimeout =>
       names = ($('p', view.get('node')).map -> @innerHTML).toArray()
@@ -283,7 +283,7 @@ asyncTest 'it should add items in order', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object.name"></p>'
   objects = new Batman.SortableSet({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
   objects.sortBy 'id'
-  
+
   render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
     delay =>
@@ -314,6 +314,33 @@ asyncTest 'it should continue to render nodes after the loop', 1, ->
   render source, false, {bar: objects, foo: "qux"}, (node) ->
     delay => equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
 
+
+asyncTest 'it should update the whole set of nodes if the collection changes', ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  context = new Batman.Object
+    objects: new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, context, (node, view) ->
+    setTimeout => # new renderer's are used for each loop node, must wait longer
+      equal $('.present', node).length, 3
+      context.set('objects', new Batman.Set('qux', 'corge'))
+      delay =>
+        equal $('.present', node).length, 2
+    , ASYNC_TEST_DELAY*3
+
+
+asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  oldObjects = new Batman.Set('foo', 'bar', 'baz')
+  context = new Batman.Object(objects: oldObjects)
+
+  render source, false, context, (node, view) ->
+    setTimeout => # new renderer's are used for each loop node, must wait longer
+      context.set('objects', new Batman.Set('qux', 'corge'))
+      oldObjects.add('no effect')
+      delay =>
+        equal $('.present', node).length, 2
+    , ASYNC_TEST_DELAY
 
 asyncTest 'it should order loops among their siblings properly', 5, ->
   source = '<div><span data-bind="baz"></span><p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"></span></div>'

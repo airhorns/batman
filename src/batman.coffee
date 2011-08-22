@@ -2156,9 +2156,19 @@ Batman.DOM = {
         setTimeout (-> parent.removeChild node), 0
 
       nodeMap = new Batman.Hash
-
+      observers = {}
+      oldCollection = false
       context.bind(node, key, (collection) ->
-        add = (items...) ->
+        # Track the old collection so that if it changes, we can remove the observers we attached,
+        # and only observe the new collection.
+        if oldCollection
+          nodeMap.each (item, node) -> parent.removeChild node
+          oldCollection.forget 'itemsWereAdded', observers.add
+          oldCollection.forget 'itemsWereRemoved', observers.remove
+          oldCollection.forget 'setWasSorted', observers.reorder
+        oldCollection = collection
+
+        observers.add = (items...) ->
           for item in items
             newNode = prototype.cloneNode true
             nodeMap.set item, newNode
@@ -2172,40 +2182,41 @@ Batman.DOM = {
             new Batman.Renderer newNode, do (newNode) ->
               ->
                 if collection.isSorted?()
-                  reorder()
+                  observers.reorder()
                 else
                   parent.insertBefore newNode, sibling
                 parentRenderer.allow 'ready'
             , localClone
-        remove = (items...) ->
+
+        observers.remove = (items...) ->
           for item in items
             oldNode = nodeMap.get item
             nodeMap.unset item
             oldNode?.parentNode?.removeChild oldNode
-        reorder = ->
+
+        observers.reorder = ->
           items = collection.toArray()
           for item in items
             parent.insertBefore(nodeMap.get(item), sibling)
-        
-        
+
         # Observe the collection for events in the future
         if collection?.observe
-          collection.observe 'itemsWereAdded', add
-          collection.observe 'itemsWereRemoved', remove
-          collection.observe 'setWasSorted', reorder
+          collection.observe 'itemsWereAdded', observers.add
+          collection.observe 'itemsWereRemoved', observers.remove
+          collection.observe 'setWasSorted', observers.reorder
 
         # Add all the already existing items.
         # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
         # This is useful for iterating over hashes or other things that pass (key, value) instead of (value)
         if collection.each
-          collection.each (korv, v) -> add(korv)
+          collection.each (korv, v) -> observers.add(korv)
         else if collection.forEach
-          collection.forEach (x) -> add(x)
+          collection.forEach (x) -> observers.add(x)
         else for k, v of collection
-          add(v)
+          observers.add(v)
       , -> )
 
-      false
+      false # Return false so the Renderer doesn't descend into this node's children.
 
     formfor: (node, localName, key, context) ->
       binding = context.addKeyToScopeForNode(node, key, localName)
