@@ -2416,6 +2416,18 @@ for k in ['capitalize', 'singularize', 'underscore', 'camelize']
 # Mixins
 # ------
 mixins = Batman.mixins = new Batman.Object
+  animation:
+    initialize: () ->
+      @style['MoxTransition'] = @style['WebkitTransition'] = @style['OTransition'] = @style['transition'] = "opacity .25s linear"
+    show: ->
+      @style.visibility = 'visible'
+      @style.opacity = 1
+    hide: ->
+      @style.opacity = 0
+      setTimeout =>
+        @style.visibility = 'hidden'
+      , 26
+
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
