@@ -1353,6 +1353,7 @@ class Batman.Model extends Batman.Object
     newRecords = []
     returnRecords = []
     for record in records
+      continue if typeof record is 'undefined'
       if typeof (id = record.get('id')) == 'undefined' || id == ''
         returnRecords.push record
       else
@@ -1458,14 +1459,11 @@ class Batman.Model extends Batman.Object
   @actsAsStateMachine yes
 
   # Add the various states to the model.
-  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'creating', 'created', 'validated', 'destroying', 'destroyed']
+  for k in ['empty', 'dirty', 'loading', 'loaded', 'saving', 'saved', 'creating', 'created', 'validating', 'validated', 'destroying', 'destroyed']
     @state k
 
-  @state 'saved', -> @dirtyKeys.clear()
-  @state 'validating', ->
-  @state 'validated', -> @[@_oldState]?()
-  @classState 'loading'
-  @classState 'loaded'
+  for k in ['loading', 'loaded']
+    @classState k
 
   _doStorageOperation: (operation, options, callback) ->
     mechanisms = @_batman.get('storage') || []
@@ -1473,8 +1471,6 @@ class Batman.Model extends Batman.Object
     for mechanism in mechanisms
       mechanism[operation] @, options, callback
     true
-
-  _processStorageResults: ->
 
   _hasStorage: -> @_batman.getAll('storage').length > 0
 
@@ -1487,7 +1483,7 @@ class Batman.Model extends Batman.Object
     do @loading
     @_doStorageOperation 'read', {}, (err, record) =>
       do @loaded unless err
-      callback?(err, record)
+      callback?(err, @constructor._mapIdentities([record])[0])
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
@@ -1505,10 +1501,11 @@ class Batman.Model extends Batman.Object
       do @creating if creating
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
         unless err
-          do @created if creating
+          if creating
+            do @created
           do @saved
           @dirtyKeys.clear()
-        callback?(err, record)
+        callback?(err, @constructor._mapIdentities([record])[0])
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
@@ -1523,19 +1520,23 @@ class Batman.Model extends Batman.Object
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
   validate: (callback, errors = @get('errors')) ->
+    oldState = @state()
     errors.clear()
     do @validating
 
+    finish = () =>
+      do @validated
+      @state(oldState)
+      callback?(errors.length == 0, errors)
+
     validators = @_batman.get('validators') || []
     unless validators.length > 0
-      do @validated
-      callback?(true, new Batman.Set)
+      finish()
     else
       count = validators.length
       validationCallback = =>
         if --count == 0
-          do @validated
-          callback?(errors.length == 0, errors)
+          finish()
       for validator in validators
         v = validator.validator
 
@@ -1620,12 +1621,17 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       return null
     super
     @storage = localStorage
-    re = new RegExp("$#{@modelKey}(\d+)")
+    @key_re = new RegExp("^#{@modelKey}(\\d+)$")
     @nextId = 1
     for k, v of @storage
-      if matches = re.exec(k)
-        @nextId = Math.max(@nextId, parseInt(matches[1], 10))
+      if matches = @key_re.exec(k)
+        @nextId = Math.max(@nextId, parseInt(matches[1], 10) + 1)
     return
+
+  getRecordFromData: (data) ->
+    record = super
+    @nextId = Math.max(@nextId, record.get('id') + 1)
+    record
 
   update: (record, options, callback) ->
     id = record.get('id')
@@ -1662,13 +1668,15 @@ class Batman.LocalStorage extends Batman.StorageAdapter
   readAll: (_, options, callback) ->
     records = []
     for storageKey, data of @storage
-      match = true
-      data = JSON.parse(data)
-      for k, v of options
-        if data[k] != v
-          match = false
-          break
-      records.push data if match
+      if keyMatches = @key_re.exec(storageKey)
+        match = true
+        data = JSON.parse(data)
+        data[@model.primaryKey] ||= keyMatches[1]
+        for k, v of options
+          if data[k] != v
+            match = false
+            break
+        records.push data if match
 
     callback(undefined, @getRecordsFromData(records))
 
