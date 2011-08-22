@@ -312,6 +312,22 @@ test "model instances should save", ->
     throw err if err?
     ok product.get('id') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
 
+test "new instances should be added to the identity map", ->
+  product = new @Product()
+  equal @Product.get('all.length'), 0
+  product.save (err, product) =>
+    throw err if err?
+    equal @Product.get('all.length'), 1
+
+test "existing instances shouldn't be re added to the identity map", ->
+  product = new @Product(10)
+  product.load (err, product) =>
+    throw err if err
+    equal @Product.get('all.length'), 1
+    product.save (err, product) =>
+      throw err if err?
+      equal @Product.get('all.length'), 1
+
 test "model instances should throw if they can't be saved", ->
   product = new @Product()
   @adapter.create = (record, options, callback) -> callback(new Error("couldn't save for some reason"))

@@ -114,7 +114,7 @@ test "parent classes shouldn't fire observers on newly created classes", ->
 test "it should allow observation via the class", ->
   a = createSpy()
   class Custom extends Batman.Object
-    @::observe 'foo', a
+    @observe 'foo', a
 
   @obj = new Custom
   @obj2 = new Custom
@@ -142,7 +142,7 @@ test 'Batman: runtime integration test', ->
   ok spy.called
 
   class Binding extends Batman.Object
-    @::accessor
+    @accessor
       get: () -> b.get 'foo'
 
   c = new Binding
