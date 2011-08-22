@@ -38,6 +38,9 @@ Batman.mixin = $mixin = (to, mixins...) ->
       else
         to[key] = value
 
+    if typeof mixin.initialize is 'function'
+      mixin.initialize.call to
+
   to
 
 # `$unmixin` removes every key/value from every argument after the first
@@ -50,8 +53,8 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 
       delete from[key]
 
-    if typeof mixin.deinitialize is 'function'
-      mixin.deinitialize.call from
+    if typeof mixin.uninitialize is 'function'
+      mixin.uninitialize.call from
 
   from
 

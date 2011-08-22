@@ -12,13 +12,13 @@ test "shouldn't affect the source objects", ->
   $mixin @base, more
   deepEqual more, x: "y"
 
-test "reserved words don't get applied", ->
+test "initializers get run and not mixed in", ->
   obj =
     initialize: createSpy()
     uninitialize: ->
 
   $mixin @base, obj
-  ok !obj.initialize.called, "initialized was never called on the object"
+  ok obj.initialize.called
   ok !@base.initialize
   ok !@base.uninitialize
 
