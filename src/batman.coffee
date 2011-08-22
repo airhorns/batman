@@ -116,7 +116,7 @@ class Batman.Property
     set: (key, val) -> @[key] = val
     unset: (key) -> x = @[key]; delete @[key]; x
   @triggerTracker: null
-  @for: (base, key) ->
+  @forBaseAndKey: (base, key) ->
     if base._batman
       Batman.initializeObject base
       properties = base._batman.properties ||= new Batman.SimpleHash
@@ -228,8 +228,8 @@ class Batman.Keypath extends Batman.ObservableProperty
   slice: (begin, end) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Keypath.for(base, segment).getValue()
-    Batman.Keypath.for base, @segments.slice(begin, end).join('.')
+      return unless base? and base = Batman.Keypath.forBaseAndKey(base, segment).getValue()
+    Batman.Keypath.forBaseAndKey base, @segments.slice(begin, end).join('.')
   terminalProperty: -> @slice -1
   getValue: ->
     @registerAsTrigger()
@@ -246,7 +246,7 @@ Batman.Observable =
   isObservable: true
   property: (key) ->
     Batman.initializeObject @
-    Batman.Keypath.for(@, key)
+    Batman.Keypath.forBaseAndKey(@, key)
   get: (key) ->
     return undefined if typeof key is 'undefined'
     @property(key).getValue()
