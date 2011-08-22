@@ -50,8 +50,17 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           fs.mkdirSync(distDir, 0777) unless path.existsSync(distDir)
           destination = "#{distDir}/batman.#{platformName}.js"
           compile = muffin.compileScript(joinedCoffeePath, destination, options)
-          q.when compile, ->
+          compile.then( ->
             muffin.minifyScript destination, options
+          ).then( ->
+            finalPath = destination.split('.')
+            finalPath.pop()
+            finalPath = finalPath.join('.')
+            [child, promise] = muffin.exec "gzip --stdout --best #{finalPath}.min.js > #{finalPath}.js.gz"
+            promise
+          ).then( ->
+            muffin.notify(destination, "File #{destination} minified and gzipped.")
+          )
 
     # Run a task which concats the coffeescript, compiles it, and then minifies it
     first = true
