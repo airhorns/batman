@@ -113,5 +113,13 @@ asyncTest 'hash manager', ->
 
   setTimeout(->
     equal spy2.callCount, 1
-    start()
+    QUnit.start()
   , 220)
+
+asyncTest '404', 1, ->
+  @App.route '404', ->
+    ok true, '404 called'
+    QUnit.start()
+  @App.run()
+
+  $redirect 'something/random'

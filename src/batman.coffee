@@ -927,6 +927,10 @@ class Batman.App extends Batman.Object
   # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
   @run: @eventOneShot ->
+    if Batman.currentApp
+      return if Batman.currentApp is @
+      Batman.currentApp.stop()
+
     return false if @hasRun
     Batman.currentApp = @
 
@@ -935,9 +939,18 @@ class Batman.App extends Batman.Object
         node: document
         contexts: [@]
 
-    @dispatcher = new Batman.Dispatcher @
-    @historyManager ||= new Batman.HashHistory @
+    @dispatcher ||= new Batman.Dispatcher @
+
+    @historyManager ||= Batman.historyManager = new Batman.HashHistory @
+    @historyManager.start()
+
     @hasRun = yes
+    @
+
+  @stop: @eventOneShot ->
+    @historyManager?.stop()
+    @hasRun = no
+    @
 
 # Dispatcher
 # ----------
@@ -1000,7 +1013,7 @@ class Batman.Route extends Batman.Object
     if $typeOf(url) is 'String'
       params = @parameterize url
 
-    $redirect('404') if not (action = params.action)
+    $redirect('/404') if not (action = params.action) and url isnt '/404'
     return action(params) if typeof action is 'function'
     return params.target?[action](params)
 
@@ -1044,14 +1057,16 @@ class Batman.Dispatcher extends Batman.Object
         return url
 
   dispatch: (url) ->
-    @findRoute(url)?.dispatch(url)
+    route = @findRoute(url)
+    if route
+      route.dispatch(url)
+    else if url isnt '/404'
+      $redirect('/404')
 
 # History Manager
 # ---------------
 class Batman.HistoryManager
   constructor: (@app) ->
-    Batman.historyManager = @
-    setTimeout(@start, 0) if @start and @app.dispatcher
   dispatch: (url) ->
     url = "/#{url}" if url.indexOf('/') isnt 0
     @app.dispatcher.dispatch url
@@ -1130,13 +1145,13 @@ Batman.App.classMixin
 
     if callback
       app = @
-      obj =
+      ops =
         collection: (collectionCallback) ->
           collectionCallback?.call route: (url, methodName) -> app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
         member: (memberCallback) ->
           memberCallback?.call route: (url, methodName) -> app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
 
-      callback.call obj
+      callback.call ops
 
   redirect: $redirect
 
@@ -1150,21 +1165,6 @@ class Batman.Controller extends Batman.Object
   @beforeFilter: (nameOrFunction) ->
     filters = @_batman.beforeFilters ||= []
     filters.push(nameOrFunction) if ~filters.indexOf(nameOrFunction)
-
-  @resources: (base) ->
-    # FIXME: MUST find a non-deferred way to do this
-    f = =>
-      @::index = @route("/#{base}", @::index) if @::index
-      @::create = @route("/#{base}/new", @::create) if @::create
-      @::show = @route("/#{base}/:id", @::show) if @::show
-      @::edit = @route("/#{base}/:id/edit", @::edit) if @::edit
-    setTimeout f, 0
-
-    #name = helpers.underscore(@name.replace('Controller', ''))
-
-    #$route "/#{base}", "#{name}#index"
-    #$route "/#{base}/:id", "#{name}#show"
-    #$route "/#{base}/:id/edit", "#{name}#edit"
 
   # You shouldn't call this method directly. It will be called by the dispatcher when a route is called.
   # If you need to call a route manually, use `$redirect()`.
