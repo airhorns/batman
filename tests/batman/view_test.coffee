@@ -90,6 +90,12 @@ asyncTest 'it should allow the inner value to be bound', 1, ->
     equals node.html(), "bar"
     QUnit.start()
 
+asyncTest 'it should bind undefined values as empty strings', 1, ->
+  render '<div data-bind="foo"></div>',
+    foo: undefined
+  , (node) =>
+    equals node.html(), ""
+    QUnit.start()
 
 asyncTest 'it should allow a class to be bound', 6, ->
   source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'

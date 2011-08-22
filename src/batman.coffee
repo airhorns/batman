@@ -1848,27 +1848,26 @@ class Binding extends Batman.Object
     # Pull out the key and filter from the `@keyPath`.
     @parseFilter()
 
+    # Define the default observers.
+    @nodeChange ||= (node, value) =>
+      if @key
+        @get('keyContext').set @key, @node.value
+    @dataChange ||= (value, node) ->
+      Batman.DOM.valueForNode @node, value
+
     shouldSet = yes
 
+    # And attach them.
     if Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
-        if @nodeChange
-          @nodeChange(@node, @_keyContext || @value, @)
-        else
-          if @key
-            @get('keyContext').set @key, @node.value
+        @nodeChange(@node, @_keyContext || @value, @)
         shouldSet = yes
-
-    # Observe the value of this binding's `binding` and fire it immediately to update the node.
+    # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     @observe 'filteredValue', yes, (value) =>
       if shouldSet
-        if @dataChange
-          @dataChange(value, @node, @)
-        else
-          Batman.DOM.valueForNode @node, value
+        @dataChange(value, @node, @)
     @
-
 
   parseFilter: ->
     # Store the function which does the filtering and the arguments (all except the actual value to apply the
@@ -2288,7 +2287,7 @@ Batman.DOM = {
       yield.innerHTML = ''
       yield.appendChild(node) if node
 
-  valueForNode: (node, value) ->
+  valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
 
     switch node.nodeName.toUpperCase()
