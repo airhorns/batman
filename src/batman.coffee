@@ -1849,7 +1849,7 @@ class Binding extends Batman.Object
     @parseFilter()
 
     # Define the default observers.
-    @nodeChange ||= (node, value) =>
+    @nodeChange ||= (node, context) =>
       if @key
         @get('keyContext').set @key, @node.value
     @dataChange ||= (value, node) ->
@@ -2289,11 +2289,16 @@ Batman.DOM = {
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
-
     switch node.nodeName.toUpperCase()
-      when 'INPUT' then (if isSetting then (node.value = value) else node.value)
-      else (if isSetting then (node.innerHTML = value) else node.innerHTML)
-
+      when 'INPUT'
+        if isSetting then (node.value = value) else node.value
+      when 'TEXTAREA'
+        if isSetting
+          node.innerHTML = node.value = value
+        else
+          node.innerHTML
+      else
+        if isSetting then (node.innerHTML = value) else node.innerHTML
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA']
 

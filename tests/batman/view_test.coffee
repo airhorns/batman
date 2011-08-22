@@ -35,14 +35,10 @@ asyncTest 'should update its node with the contents of its view', 1, ->
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.ready (observer = createSpy())
 
-  setTimeout(=>
+  delay =>
     MockRequest.lastInstance.fireSuccess('view contents')
-  , ASYNC_TEST_DELAY)
-
-  setTimeout(=>
-    ok observer.called
-    QUnit.start()
-  , ASYNC_TEST_DELAY*2)
+    delay =>
+      ok observer.called
 
 QUnit.module 'Batman.View rendering'
 
@@ -187,6 +183,40 @@ asyncTest 'it should bind the input value and update the object when it changes'
     delay =>
       equal context.get('one'), 'bar'
 
+asyncTest 'it should bind the value of textareas', 2, ->
+  context = new Batman.Object
+    one: "qux"
+
+  render '<textarea data-bind="one"></textarea>', context, (node) ->
+    equal node[0].innerText, 'qux'
+    context.set('one', "bar")
+    delay =>
+      equal node[0].innerText, 'bar'
+
+asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
+  context = new Batman.Object
+    one: "qux"
+
+  render '<textarea data-bind="one"></textarea><input data-bind="one" type="text"/>', context, (node) ->
+    f = (v) =>
+      equal $(node[0]).val(), v
+      equal $(node[1]).val(), v
+    f('qux')
+
+    $(node[1]).val('bar')
+    triggerChange(node[1])
+
+    delay =>
+      f('bar')
+      $(node[0]).val('baz')
+      triggerChange(node[0])
+      delay =>
+        f('baz')
+        $(node[1]).val('foo')
+        triggerChange(node[1])
+        delay =>
+          f('foo')
+
 asyncTest 'it should allow events to be bound', 2, ->
   context =
     doSomething: spy = createSpy()
@@ -272,7 +302,7 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
   objects.sortBy 'id'
 
   render source, {objects}, (node, view) ->
-    setTimeout =>
+    delay =>
       names = ($('p', view.get('node')).map -> @innerHTML).toArray()
       deepEqual names, ['foo', 'bar']
       objects.addIndex('name')
@@ -283,7 +313,6 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
       delay =>
         names = ($('p', view.get('node')).map -> @innerHTML).toArray()
         deepEqual names, ['bar', 'foo']
-    , ASYNC_TEST_DELAY
 
 asyncTest 'it should add items in order', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object.name"></p>'
@@ -327,12 +356,11 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
     objects: new Batman.Set('foo', 'bar', 'baz')
 
   render source, false, context, (node, view) ->
-    setTimeout => # new renderer's are used for each loop node, must wait longer
+    delay => # new renderer's are used for each loop node, must wait longer
       equal $('.present', node).length, 3
       context.set('objects', new Batman.Set('qux', 'corge'))
       delay =>
         equal $('.present', node).length, 2
-    , ASYNC_TEST_DELAY*3
 
 
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
@@ -341,12 +369,11 @@ asyncTest 'previously observed collections shouldn\'t have any effect if they ar
   context = new Batman.Object(objects: oldObjects)
 
   render source, false, context, (node, view) ->
-    setTimeout => # new renderer's are used for each loop node, must wait longer
+    delay => # new renderer's are used for each loop node, must wait longer
       context.set('objects', new Batman.Set('qux', 'corge'))
       oldObjects.add('no effect')
       delay =>
         equal $('.present', node).length, 2
-    , ASYNC_TEST_DELAY
 
 asyncTest 'it should order loops among their siblings properly', 5, ->
   source = '<div><span data-bind="baz"></span><p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"></span></div>'

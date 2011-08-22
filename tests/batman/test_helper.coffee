@@ -50,7 +50,7 @@ createSpy = (original) ->
     f.lastCallArguments = f.lastCall.arguments
     f.lastCallContext = f.lastCall.context
     f.calls.push f.lastCall
-    
+
     unless f.fixedReturn
       f.original?.call(this, args...)
     else
@@ -185,10 +185,13 @@ mockClassDuring = (namespace, name, mock = MockClass, fn) ->
   [mock, result]
 
 # Handy for async tests which usually follow this pattern
+inDelay = 0
 delay = (fn) ->
+  inDelay++
   setTimeout(->
     fn()
-    QUnit.start()
+    if --inDelay == 0
+      QUnit.start()
   , ASYNC_TEST_DELAY)
 
 for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay}
