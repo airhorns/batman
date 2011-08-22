@@ -151,12 +151,11 @@ class MockClass
   #
 
   @chainedCallback: (name) ->
-    @::_callbackStacks[name] = []
     @::[name] = (f) ->
-      @_callbackStacks[name].push f
+      (@callbackStacks[name] ||= []).push f
       @
     @::["fire#{name.charAt(0).toUpperCase() + name.slice(1)}"] = () ->
-      f.apply(@, arguments) for f in @_callbackStacks[name]
+      f.apply(@, arguments) for f in @callbackStacks[name]
 
   _callbackStacks: {}
 
@@ -167,6 +166,7 @@ class MockClass
     @constructor.lastConstructorArguments = arguments
     @constructor.constructorArguments.push arguments
     @constructor.instanceCount++
+    @callbackStacks = {}
 
     for k, v of options
       if @[k]
