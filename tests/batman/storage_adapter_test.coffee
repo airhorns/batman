@@ -1,14 +1,18 @@
-# This at some point should be exported so it can be run on custom storage adapters. BUT HOOWWW
-sharedStorageTestSuite = ->
+# This at some point should be exported so it can be run on custom storage adapters.
+sharedStorageTestSuite = (hooks = {}) ->
+  asyncTestWithHooks = (name, count, f) ->
+    QUnit.asyncTest name, count, ->
+      hooks[name].call(@) if hooks[name]?
+      f.call(@)
 
-  asyncTest 'creating in storage: should succeed if the record doesn\'t already exist', 1, ->
+  asyncTestWithHooks 'creating in storage: should succeed if the record doesn\'t already exist', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, record) =>
       throw err if err
       ok record
       QUnit.start()
 
-  asyncTest 'creating in storage: should fail if the record does already exist', 1, ->
+  asyncTestWithHooks 'creating in storage: should fail if the record does already exist', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, record) =>
       throw err if err
@@ -17,14 +21,14 @@ sharedStorageTestSuite = ->
         ok err
         QUnit.start()
 
-  asyncTest "creating in storage: should create a primary key if the record doesn't already have one", 1, ->
+  asyncTestWithHooks "creating in storage: should create a primary key if the record doesn't already have one", 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, record) =>
       throw err if err
       ok record.get('id')
       QUnit.start()
 
-  asyncTest 'reading from storage: should callback with the record if the record has been created', 2, ->
+  asyncTestWithHooks 'reading from storage: should callback with the record if the record has been created', 2, ->
     product = new @Product(name: "test")
 
     @adapter.create product, {}, (err, record) =>
@@ -36,13 +40,13 @@ sharedStorageTestSuite = ->
         ok foundRecord.get('id')
         QUnit.start()
 
-  asyncTest 'reading from storage: should callback with an error if the record hasn\'t been created', 1, ->
+  asyncTestWithHooks 'reading from storage: should callback with an error if the record hasn\'t been created', 1, ->
     product = new @Product(name: "test")
     @adapter.read product, {}, (err, foundRecord) ->
       ok err
       QUnit.start()
 
-  asyncTest 'reading many for storage: should callback with the records if they exist', 1, ->
+  asyncTestWithHooks 'reading many for storage: should callback with the records if they exist', 1, ->
     product1 = new @Product(name: "testA", cost: 20)
     product2 = new @Product(name: "testB", cost: 10)
     @adapter.create product1, {}, (err, createdRecord1) =>
@@ -56,13 +60,13 @@ sharedStorageTestSuite = ->
           deepEqual t(readProducts), t([createdRecord1, createdRecord2])
           QUnit.start()
 
-  asyncTest 'reading many for storage: should callback with an empty array if no records exist', 1, ->
+  asyncTestWithHooks 'reading many for storage: should callback with an empty array if no records exist', 1, ->
     @adapter.readAll undefined, {}, (err, readProducts) ->
       throw err if err
       deepEqual readProducts, []
       QUnit.start()
 
-  asyncTest 'updating in storage: should callback with the record if it exists', 1, ->
+  asyncTestWithHooks 'updating in storage: should callback with the record if it exists', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, createdRecord) =>
       throw err if err
@@ -74,13 +78,13 @@ sharedStorageTestSuite = ->
           equal readProduct.get('cost', 10), 10
           QUnit.start()
 
-  asyncTest 'updating in storage: should callback with an error if the record hasn\'t been created', 1, ->
+  asyncTestWithHooks 'updating in storage: should callback with an error if the record hasn\'t been created', 1, ->
     product = new @Product(name: "test")
     @adapter.update product, {}, (err, foundRecord) ->
       ok err
       QUnit.start()
 
-  asyncTest 'destroying in storage: should succeed if the record exists', 1, ->
+  asyncTestWithHooks 'destroying in storage: should succeed if the record exists', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, createdRecord) =>
       throw err if err
@@ -90,7 +94,7 @@ sharedStorageTestSuite = ->
           ok err
           QUnit.start()
 
-  asyncTest 'destroying in storage: should callback with an error if the record hasn\'t been created', 1, ->
+  asyncTestWithHooks 'destroying in storage: should callback with an error if the record hasn\'t been created', 1, ->
     product = new @Product(name: "test")
     @adapter.destroy product, {}, (err, foundRecord) ->
       ok err
@@ -105,4 +109,165 @@ if typeof window.localStorage isnt 'undefined'
       @adapter = new Batman.LocalStorage(@Product)
       @Product.persist @adapter
 
-  sharedStorageTestSuite()
+  sharedStorageTestSuite({})
+
+class MockRequest extends MockClass
+  @chainedCallback 'success'
+  @chainedCallback 'error'
+
+  @reset: ->
+    MockClass.reset.call(@)
+    @expects = {}
+
+  @expect: (request, response) ->
+    responses = @expects[request.url] ||= []
+    responses.push {request, response}
+
+  constructor: (requestOptions) ->
+    super()
+    @success(requestOptions.success) if requestOptions.success?
+    @error(requestOptions.error) if requestOptions.error?
+    allExpected = @constructor.expects[requestOptions.url] || []
+    expected = allExpected.shift()
+    if ! expected?
+      @fireError "Unrecognized mocked request!"
+    else
+      setTimeout =>
+        {request, response} = expected
+        if request.method != requestOptions.method
+          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
+        console.error "Responding to #{requestOptions.url} with", response
+        if response.error
+          @fireError response.error
+        else
+          @fireSuccess response
+      , 1
+
+oldRequest = Batman.Request
+
+QUnit.module "Batman.RestStorage"
+  setup: ->
+    Batman.Request = MockRequest
+    MockRequest.reset()
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+    @adapter = new Batman.RestStorage(@Product)
+    @Product.persist @adapter
+
+  teardown: ->
+    Batman.Request = oldRequest
+
+productJSON =
+  product:
+    name: 'test'
+    id: 10
+
+sharedStorageTestSuite
+  'creating in storage: should succeed if the record doesn\'t already exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+
+  'creating in storage: should fail if the record does already exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    ,
+      error: "Product already exists!"
+
+  "creating in storage: should create a primary key if the record doesn't already have one": ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+
+  'reading from storage: should callback with the record if the record has been created': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , productJSON
+
+  'reading from storage: should callback with an error if the record hasn\'t been created': ->
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , error: 'specified record doesn\'t exist'
+  'reading many for storage: should callback with the records if they exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    ,product:
+        name: "testA"
+        cost: 20
+
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , product:
+        name: "testB"
+        cost: 10
+
+    MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    , products: [
+        name: "testA"
+        cost: 20
+      ,
+        name: "testB"
+        cost: 10
+      ]
+  'reading many for storage: should callback with an empty array if no records exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    , products: []
+  'updating in storage: should callback with the record if it exists': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'POST'
+    , product:
+        name: 'test'
+        cost: 10
+        id: 10
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , product:
+        name: 'test'
+        cost: 10
+        id: 10
+  'updating in storage: should callback with an error if the record hasn\'t been created': ->
+  'destroying in storage: should succeed if the record exists': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'PUT'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'DELETE'
+    , success: true
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , error: 'specified product couldn\'t be found!'
+
+  'destroying in storage: should callback with an error if the record hasn\'t been created': ->

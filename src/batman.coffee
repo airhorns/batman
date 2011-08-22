@@ -1610,9 +1610,12 @@ class Batman.StorageAdapter
   constructor: (@model) ->
     @modelKey = helpers.pluralize(helpers.underscore(@model.name))
   isStorageAdapter: true
-  getRecordsFromData: (datas) -> @getRecordFromData(data) for data in datas
+  getRecordsFromData: (datas) ->
+    datas = @transformCollectionData(datas) if @transformCollectionData?
+    for data in datas
+       @getRecordFromData(data)
   getRecordFromData: (data) ->
-    data = @transformData(data) if @transformData?
+    data = @transformRecordData(data) if @transformRecordData?
     record = new @model(data)
 
 class Batman.LocalStorage extends Batman.StorageAdapter
@@ -1693,59 +1696,102 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       callback(new Error("Can't delete record without an primary key!"), record)
 
 class Batman.RestStorage extends Batman.StorageAdapter
-  optionsForRecord: (record) ->
-    options =
-      type: 'json'
+  defaultOptions:
+    type: 'json'
+  recordJsonNamespace: false
+  collectionJsonNamespace: false
+  constructor: ->
+    super
+    @recordJsonNamespace = helpers.singularize(@modelKey)
+    @collectionJsonNamespace = helpers.pluralize(@modelKey)
+    @model.encode('id')
+  transformRecordData: (data) ->
+    return data[@recordJsonNamespace] if data[@recordJsonNamespace]
+    data
+  transformCollectionData: (data) ->
+    return data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
+    data
+  optionsForRecord: (record, idRequired, callback) ->
+    if record.url
+      url = if typeof record.url is 'function' then record.url() else record.url
+    else
+      url = "/#{@modelKey}"
+      if idRequired || !record.isNew()
+        id = record.get('id')
+        if !id?
+          callback(new Error("Couldn't get record primary key!"))
+          return
+        url = url + "/" + id
+    unless url
+      callback.call @, new Error("Couldn't get model url!")
+    else
+      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: JSON.stringify(record)}
 
-    options.url = record?.url?() || record?.url || @model.url?() || @model.url || @modelKey
-    options.url += "/#{record.get('id')}" if record and not record.url
+  optionsForCollection: (recordsOptions, callback) ->
+    url = @model.url?() || @model.url || "/#{@modelKey}"
+    unless url
+      callback.call @, new Error("Couldn't get collection url!")
+    else
+      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: JSON.stringify(recordsOptions)}
 
-    options
-
-  write: (record, callback, options) ->
-    options = $mixin @optionsForRecord(record), {
-      method: if record.isNew() then 'put' else 'post'
-      data: JSON.stringify record
-      success: ->
-        callback()
-      error: (error) ->
-        callback(error)
-    }, options
-
-    new Batman.Request(options)
-
-  read: (record, callback) ->
-    options = $mixin @optionsForRecord(record),
-      success: (data) ->
-        data = JSON.parse(data) if typeof data is 'string'
-        for key of data
-          data = data[key]
-          break
-
-        record.fromJSON data
-        callback()
-
-    new Batman.Request(options)
-
-  readAll: (model, callback) ->
-    options = $mixin @optionsForRecord(),
-      success: (data) ->
-        data = JSON.parse(data) if typeof data is 'string'
-        if !Array.isArray(data)
-          for key of data
-            data = data[key]
-            break
-
-        for obj in data
-          record = new model ''+obj[model.id]
-          record.fromJSON obj
-
-        callback()
+  create: (record, recordOptions, callback) ->
+    @optionsForRecord record, false, (err, options) ->
+      if err
+        callback(err)
         return
 
-    new Batman.Request options
+      new Batman.Request $mixin options,
+        method: 'PUT'
+        success: (data) =>
+          record.fromJSON(@transformRecordData(data))
+          callback(undefined, record)
+        error: (err) -> callback(err)
 
-  destroy: ->
+  update: (record, recordOptions, callback) ->
+    @optionsForRecord record, true, (err, options) ->
+      if err
+        callback(err)
+        return
+
+      new Batman.Request $mixin options,
+        method: 'POST'
+        success: (data) =>
+          record.fromJSON(@transformRecordData(data))
+          callback(undefined, record)
+        error: (err) -> callback(err)
+
+  read: (record, recordOptions, callback) ->
+    @optionsForRecord record, true, (err, options) ->
+      if err
+        callback(err)
+        return
+
+      new Batman.Request $mixin options,
+        method: 'GET'
+        success: (data) =>
+          record.fromJSON(@transformRecordData(data))
+          callback(undefined, record)
+        error: (err) -> callback(err)
+
+  readAll: (_, recordsOptions, callback) ->
+    @optionsForCollection recordsOptions, (err, options) ->
+      if err
+        callback(err)
+        return
+      new Batman.Request $mixin options,
+        method: 'GET'
+        success: (data) => callback(undefined, @getRecordsFromData(data))
+        error: (err) -> callback(err)
+
+  destroy: (record, optiosn, callback) ->
+    @optionsForRecord record, true, (err, options) ->
+      if err
+        callback(err)
+        return
+      new Batman.Request $mixin options,
+        method: 'DELETE'
+        success: -> callback(undefined, record)
+        error: (err) -> callback(err)
 
 # Views
 # -----------
