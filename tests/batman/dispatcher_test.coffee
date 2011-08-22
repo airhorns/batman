@@ -12,16 +12,17 @@ QUnit.module 'Batman.Dispatcher defining routes',
         @dispatcher.get controller + '.' + action
 
     class @App.TestController extends Batman.Controller
-      index: ->
-      index2: ->
+      index: -> false
+      index2: -> false
 
     class @App.Product extends Batman.Model
     class @App.ProductsController extends Batman.Controller
-      index: ->
+      index: -> false
       show: (params) ->
         equal params.id, 1, 'id is correct'
         QUnit.start()
-      edit: ->
+        false
+      edit: -> false
   teardown: ->
     @App.historyManager?.stop()
     window.location.hash = ''
@@ -86,8 +87,8 @@ asyncTest 'resources', ->
     @member ->
       @route 'test', 'testMember'
 
-  @App.ProductsController::testCollection = ->
-  @App.ProductsController::testMember = ->
+  @App.ProductsController::testCollection = -> false
+  @App.ProductsController::testMember = -> false
 
   equal @App.test('products'), @App.ProductsController::index
   equal @App.test('products/1'), @App.ProductsController::show

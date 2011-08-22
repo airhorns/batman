@@ -939,16 +939,19 @@ class Batman.App extends Batman.Object
         node: document
         contexts: [@]
 
-    @dispatcher ||= new Batman.Dispatcher @
+    if typeof @dispatcher is 'undefined'
+      @dispatcher ||= new Batman.Dispatcher @
 
-    @historyManager ||= Batman.historyManager = new Batman.HashHistory @
-    @historyManager.start()
+    if typeof @historyManager is 'undefined'
+      @historyManager = Batman.historyManager = new Batman.HashHistory @
+      @historyManager.start()
 
     @hasRun = yes
     @
 
   @stop: @eventOneShot ->
     @historyManager?.stop()
+    Batman.historyManager = null
     @hasRun = no
     @
 
@@ -1015,6 +1018,7 @@ class Batman.Route extends Batman.Object
 
     $redirect('/404') if not (action = params.action) and url isnt '/404'
     return action(params) if typeof action is 'function'
+    return params.target.dispatch(action, params) if params.target.dispatch
     return params.target?[action](params)
 
 class Batman.Dispatcher extends Batman.Object
@@ -1113,7 +1117,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     window.location.hash = @HASH_PREFIX + url
 
 Batman.redirect = $redirect = (url) ->
-  Batman.historyManager.redirect url
+  Batman.historyManager?.redirect url
 
 # Route Declarators
 # -----------------
@@ -1166,32 +1170,55 @@ class Batman.Controller extends Batman.Object
     filters = @_batman.beforeFilters ||= []
     filters.push(nameOrFunction) if ~filters.indexOf(nameOrFunction)
 
+  @accessor 'controllerName',
+    get: -> @_controllerName ||= helpers.underscore(@constructor.name.replace('Controller', ''))
+
+  @accessor 'action',
+    get: -> @_currentAction
+    set: (key, value) -> @_currentAction = value
+
   # You shouldn't call this method directly. It will be called by the dispatcher when a route is called.
   # If you need to call a route manually, use `$redirect()`.
-  dispatch: (route, params...) ->
-    key = $findName route, @
+  dispatch: (action, params = {}) ->
+    params.controller ||= @get 'controllerName'
+    params.action ||= action
+    params.target ||= @
+
+    oldRedirect = Batman.historyManager?.redirect
+    Batman.historyManager?.redirect = @redirect
 
     @_actedDuringAction = no
-    @_currentAction = key
+    @set 'action', action
 
-    filters = @constructor._beforeFilters
-    if filters
-      for filter in filters
-        filter.call @
+    if filters = @constructor._batman?.beforeFilters
+      filter.call @ for filter in filters
 
-    result = route.fire params, @
+    result = @[action](params)
 
     if not @_actedDuringAction and result isnt false
       @render()
 
-    delete @_actedDuringAction
-    delete @_currentAction
+    if filters = @constructor._batman?.afterFilters
+      filter.call @ for filter in filters
 
-  redirect: (url) ->
-    @_actedDuringAction = yes
-    $redirect url
+    delete @_actedDuringAction
+    @set 'action', null
+
+    Batman.historyManager?.redirect = oldRedirect
+
+    $redirect(@_afterFilterRedirect) if @_afterFilterRedirect
+    delete @_afterFilterRedirect
+
+  redirect: (url) =>
+    throw 'DoubleRedirectError' if @_actedDuringAction
+    if @get 'action'
+      @_actedDuringAction = yes
+      @_afterFilterRedirect = url
+    else
+      $redirect url
 
   render: (options = {}) ->
+    throw 'DoubleRenderError' if @_actedDuringAction
     @_actedDuringAction = yes
 
     if not options.view
@@ -2478,7 +2505,7 @@ $mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
-  for k in ['mixin', 'unmixin', 'route', 'redirect', 'event', 'eventOneShot', 'typeOf']
+  for k in ['mixin', 'unmixin', 'route', 'redirect', 'event', 'eventOneShot', 'typeOf', 'redirect']
     onto["$#{k}"] = Batman[k]
   onto
 

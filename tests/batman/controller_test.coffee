@@ -1,5 +1,6 @@
 class TestController extends Batman.Controller
   _currentAction: "show"
+  show: ->
 
 class MockView extends MockClass
   @chainedCallback 'ready'
@@ -29,3 +30,36 @@ test 'it should pull in views if not present already', ->
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
       deepEqual contentFor.lastCallArguments, ['main', 'view contents']
+
+test 'dispatching routes that return false do nothing', 1, ->
+  @controller.test = ->
+    ok true, 'action called'
+    false
+  @controller.render = ->
+    throw "shouldn't be called"
+
+  @controller.dispatch 'test'
+
+test 'dispatching routes without any actions calls render', 1, ->
+  @controller.test = ->
+  @controller.render = ->
+    ok true, 'render called'
+
+  @controller.dispatch 'test'
+
+test 'redirecting a dispatch prevents implicit render', 2, ->
+  Batman.historyManager = new Batman.HashHistory
+  Batman.historyManager.redirect = ->
+    ok true, 'redirecting history manager'
+  @controller.render = ->
+    ok true, 'redirecting controller'
+  @controller.render = ->
+    throw "shouldn't be called"
+
+  @controller.test1 = ->
+    @redirect 'foo'
+  @controller.test2 = ->
+    $redirect 'foo2'
+
+  @controller.dispatch 'test1'
+  @controller.dispatch 'test2'
