@@ -186,7 +186,7 @@ class Batman.ObservableProperty extends Batman.Property
   allow: -> @_preventCount-- if @_preventCount > 0
   isAllowedToFire: -> @_preventCount <= 0
   fire: (args...) ->
-    return unless @hasObserversToFire()
+    return unless @isAllowedToFire() and @hasObserversToFire()
     key = @key
     base = @base
     observers = [@observers].concat(@base._batman.ancestors((ancestor) -> ancestor.property?(key).observers)).reduce((a, b) -> a.merge(b))
