@@ -29,7 +29,7 @@ Fire it up:
     cd my_app
     batman server # (or just "batman s")
 
-Now visit [http://localhost:8124](http://localhost:8124) and start playing around!
+Now visit [http://localhost:1047](http://localhost:1047) and start playing around!
 
 ## The Basics
 
@@ -301,7 +301,7 @@ To run in the browser (so you can interactively debug perhaps), start a web serv
 
     batman server
 
-...then visit `http://localhost:8124/test/batman/test.html` in your browser.
+...then visit `http://localhost:1047/test/batman/test.html` in your browser.
 
 #### 3. Write some test-driven code
 
