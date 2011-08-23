@@ -19,7 +19,7 @@ If you haven't already, you'll need to install [node.js](http://nodejs.org) and 
 
     npm install -g batman
 
-Generate a new batman.js app somewhere, called bat_belt:
+Generate a new batman.js app somewhere, called my_app:
 
     cd ~/code
     batman new my_app
