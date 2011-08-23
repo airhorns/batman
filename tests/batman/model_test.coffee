@@ -338,7 +338,7 @@ test "model instances shouldn't save if they don't validate", ->
   @Product.validate 'name', presence: yes
   product = new @Product()
   product.save (err, product) ->
-    equal err.get('length'), 1
+    equal err.length, 1
 
 test "model instances shouldn't save if they have been destroyed", ->
   p = new @Product(10)
@@ -449,23 +449,13 @@ test "passing a function should shortcut to passing an encoder", ->
 
 QUnit.module "Batman.Model: validations"
 
-asyncTest "isValid shouldn't leave errors on the record", ->
-  class Product extends Batman.Model
-    @validate 'name', presence: yes
-
-  p = new Product
-  p.isValid (result, errors) ->
-    ok errors.length > 0
-    equal p.errors.length, 0
-    QUnit.start()
-
 asyncTest "validation shouldn leave the model in the same state it left it", ->
   class Product extends Batman.Model
     @validate 'name', presence: yes
 
   p = new Product
   oldState = p.state()
-  p.isValid (result, errors) ->
+  p.validate (result, errors) ->
     equal p.state(), oldState
     QUnit.start()
 
@@ -476,14 +466,14 @@ asyncTest "length", 3, ->
     @validate 'range', lengthWithin: [3, 5]
 
   p = new Product exact: '12345', max: '1234', range: '1234'
-  p.isValid (result) ->
+  p.validate (result) ->
     ok result
 
     p.set 'exact', '123'
     p.set 'max', '12345'
     p.set 'range', '12'
 
-    p.isValid (result, errors) ->
+    p.validate (result, errors) ->
       ok !result
       equal errors.length, 3
       QUnit.start()
@@ -493,10 +483,10 @@ asyncTest "presence", 2, ->
     @validate 'name', presence: yes
 
   p = new Product name: 'nick'
-  p.isValid (result, errors) ->
+  p.validate (result, errors) ->
     ok result
     p.unset 'name'
-    p.isValid (result, errors) ->
+    p.validate (result, errors) ->
       ok !result
       QUnit.start()
 
@@ -505,7 +495,7 @@ asyncTest "custom async validations", ->
   class Product extends Batman.Model
     @validate 'name', (errors, record, key, callback) ->
       setTimeout ->
-        errors.add "didn't validate" unless letItPass
+        errors.get('name').add "didn't validate" unless letItPass
         callback()
       , 0
   p = new Product

@@ -1395,7 +1395,7 @@ class Batman.Model extends Batman.Object
   constructor: (idOrAttributes = {}) ->
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
-    @errors = new Batman.Set
+    @errors = new Batman.ErrorsHash
 
     # Find the ID from either the first argument or the attributes.
     if $typeOf(idOrAttributes) is 'Object'
@@ -1523,15 +1523,15 @@ class Batman.Model extends Batman.Object
   # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
   # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
   # listening to the `afterValidation` lifecycle callback.
-  validate: (callback, errors = @get('errors')) ->
+  validate: (callback) ->
     oldState = @state()
-    errors.clear()
+    @errors.clear()
     do @validating
 
     finish = () =>
       do @validated
       @[oldState]()
-      callback?(errors.length == 0, errors)
+      callback?(@errors.length == 0, @errors)
 
     validators = @_batman.get('validators') || []
     unless validators.length > 0
@@ -1548,15 +1548,32 @@ class Batman.Model extends Batman.Object
         # and passing it to the appropriate function along with the key and the value to be validated.
         for key in validator.keys
           if v
-            v.validateEach errors, @, key, validationCallback
+            v.validateEach @errors, @, key, validationCallback
           else
-            validator.callback errors, @, key, validationCallback
+            validator.callback @errors, @, key, validationCallback
     return
 
   isNew: -> typeof @get('id') is 'undefined'
-  isValid: (callback) ->
-    errors = new Batman.Set
-    @validate(callback, errors)
+
+# `ErrorHash` is a simple subclass of `Hash` which makes it a bit easier to
+# manage the errors on a model.
+class Batman.ErrorsHash extends Batman.Hash
+  constructor: -> super(_sets: {})
+
+  # Define a default accessor to instantiate a set for any requested key.
+  @accessor
+    get: (key) ->
+      unless @_sets[key]
+        @_sets[key] = new Batman.Set
+        @length++
+      @_sets[key]
+    set: Batman.Property.defaultAccessor.set
+
+  # Define a shorthand method for adding errors to a key.
+  add: (key, error) -> @get(key).add(error)
+  clear: ->
+    @_sets = {}
+    super
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
@@ -1594,11 +1611,11 @@ Validators = Batman.Validators = [
       options = @options
       value = record.get(key)
       if options.minLength and value.length < options.minLength
-        errors.add "#{key} must be at least #{options.minLength} characters"
+        errors.add key, "#{key} must be at least #{options.minLength} characters"
       if options.maxLength and value.length > options.maxLength
-        errors.add "#{key} must be less than #{options.maxLength} characters"
+        errors.add key, "#{key} must be less than #{options.maxLength} characters"
       if options.length and value.length isnt options.length
-        errors.add "#{key} must be #{options.length} characters"
+        errors.add key, "#{key} must be #{options.length} characters"
       callback()
 
   class Batman.PresenceValidator extends Batman.Validator
@@ -1606,7 +1623,7 @@ Validators = Batman.Validators = [
     validateEach: (errors, record, key, callback) ->
       value = record.get(key)
       if @options.presence and !value?
-        errors.add "#{key} must be present"
+        errors.add key, "#{key} must be present"
       callback()
 ]
 
