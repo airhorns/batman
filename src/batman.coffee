@@ -1101,13 +1101,19 @@ class Batman.Route extends Batman.Object
 class Batman.Dispatcher extends Batman.Object
   constructor: (@app) ->
     @app.route @
+
+    @app.controllers = new Batman.Object
     for key, controller of @app
       continue unless controller?.prototype instanceof Batman.Controller
       @prepareController controller
 
   prepareController: (controller) ->
     name = helpers.underscore(controller.name.replace('Controller', ''))
-    @accessor(name, get: -> @[name] = controller.get('sharedController')) if name
+    return unless name
+
+    getter = -> @[name] = controller.get 'sharedController'
+    @accessor name, getter
+    @app.controllers.accessor name, getter
 
   register: (url, options) ->
     url = "/#{url}" if url.indexOf('/') isnt 0

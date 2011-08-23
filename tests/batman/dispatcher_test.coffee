@@ -24,8 +24,13 @@ QUnit.module 'Batman.Dispatcher defining routes',
         false
       edit: -> false
   teardown: ->
-    @App.historyManager?.stop()
+    @App.stop()
     window.location.hash = ''
+
+test 'controller aliases', ->
+  @App.dispatcher = new Batman.Dispatcher @App
+  equal @App.dispatcher.get('products'), @App.ProductsController.get('sharedController')
+  equal @App.get('controllers.products'), @App.ProductsController.get('sharedController')
 
 test 'simple route match', ->
   @App.route 'products', 'test#index'
