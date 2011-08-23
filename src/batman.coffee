@@ -1052,15 +1052,23 @@ class Batman.Dispatcher extends Batman.Object
 
   findUrl: (params) ->
     for url, route of @routeMap
-      action = route.get 'action'
-      continue if typeof action is 'function'
+      matches = no
+      if params.resource
+        if route.options.resource is params.resource
+          matches = yes
+      else
+        action = route.get 'action'
+        continue if typeof action is 'function'
 
-      {controller, action} = action
-      if controller is params.controller and action is (params.action || 'index')
-        for key, value of params
-          url = url.replace new RegExp('[:|\*]' + key), value
+        {controller, action} = action
+        if controller is params.controller and action is (params.action || 'index')
+          matches = yes
 
-        return url
+      continue if not matches
+      for key, value of params
+        url = url.replace new RegExp('[:|\*]' + key), value
+
+      return url
 
   dispatch: (url) ->
     route = @findRoute(url)
@@ -1105,6 +1113,9 @@ class Batman.HashHistory extends Batman.HistoryManager
       window.removeEventListener 'hashchange', @parseHash
 
     @started = no
+
+  urlFor: (url) ->
+    @HASH_PREFIX + url
 
   parseHash: =>
     hash = window.location.hash.replace @HASH_PREFIX, ''
@@ -1151,10 +1162,11 @@ Batman.App.classMixin
   resources: (resource, options, callback) ->
     (callback = options; options = null) if typeof options is 'function'
     controller = options?.controller || resource
-    @route resource, "#{controller}#index"
-    @route "#{resource}/:id", "#{controller}#show"
-    @route "#{resource}/:id/edit", "#{controller}#edit"
-    @route "#{resource}/:id/destroy", "#{controller}#destroy"
+
+    @route(resource, "#{controller}#index").resource = controller
+    @route("#{resource}/:id", "#{controller}#show").resource = controller
+    @route("#{resource}/:id/edit", "#{controller}#edit").resource = controller
+    @route("#{resource}/:id/destroy", "#{controller}#destroy").resource = controller
 
     if callback
       app = @
@@ -2122,34 +2134,25 @@ Batman.DOM = {
       Batman.DOM.readers.showif args..., yes
 
     route: (node, key, context) ->
-
-
+      # you must specify the / in front to route directly to hash route
       if key.substr(0, 1) is '/'
-        route = Batman.redirect.bind Batman, key
-        routeName = key
-      else if (index = key.indexOf('#')) isnt -1
-        controllerName = helpers.camelize(key.substr(0, index)) + 'Controller'
-        controller = context.get controllerName
-
-        route = controller?.sharedInstance()[key.substr(index + 1)]
-        routeName = route?.pattern
+        url = key
       else
         route = context.get key
 
         if route instanceof Batman.Model
-          controllerName = helpers.camelize(helpers.pluralize(key)) + 'Controller'
-          controller = context.get(controllerName).sharedInstance()
+          name = helpers.underscore(helpers.pluralize(route.constructor.name))
+          url = context.get('dispatcher')?.findUrl({resource: name, id: route._id()})
+        else if route.prototype
+          name = helpers.underscore(helpers.pluralize(route.name))
+          url = context.get('dispatcher')?.findUrl({resource: name})
 
-          id = route._id()
-          route = controller.show?.bind(controller, {id: id})
-          routeName = '/' + helpers.pluralize(key) + '/' + id
-        else
-          routeName = route.pattern
+      return unless url
 
       if node.nodeName.toUpperCase() is 'A'
-        node.href = Batman.HASH_PATTERN + (routeName || '')
+        node.href = Batman.HashHistory::urlFor url
 
-      Batman.DOM.events.click node, (-> route?())
+      Batman.DOM.events.click node, (-> $redirect url)
 
     partial: (node, path, context) ->
       view = new Batman.View

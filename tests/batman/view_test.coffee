@@ -840,3 +840,11 @@ asyncTest 'should render a user defined filter', 2, ->
     equals node.html(), "testValue"
     deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
     QUnit.start()
+
+QUnit.module 'Batman.View rendering routes'
+
+asyncTest 'should set href', 1, ->
+  render '<a data-route="/test">click</a>', {},
+  (node) =>
+    equal node.attr('href'), '#!/test'
+    QUnit.start()
