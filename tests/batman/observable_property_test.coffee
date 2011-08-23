@@ -55,3 +55,15 @@ test "property() works on non Batman objects", ->
 
   property = new Batman.ObservableProperty({}, 'foo')
   ok ! property.hasObserversToFire()
+
+test "only fires when its prevents and allows are balanced", ->
+  property = new Batman.ObservableProperty(window, 'Array')
+  property.observe spy = createSpy()
+
+  property.prevent()
+  property.fire()
+  ok !spy.called
+
+  property.allow()
+  property.fire()
+  ok spy.called
