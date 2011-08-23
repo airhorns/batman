@@ -228,7 +228,7 @@ class Batman.Keypath extends Batman.ObservableProperty
       @segments = [key]
       @depth = 1
     super
-  slice: (begin, end) ->
+  slice: (begin, end = @depth) ->
     base = @base
     for segment in @segments.slice(0, begin)
       return unless base? and base = Batman.Keypath.forBaseAndKey(base, segment).getValue()
@@ -435,6 +435,8 @@ Batman._Batman = class _Batman
   check: (object) ->
     if object != @object
       object._batman = new _Batman(object)
+      return false
+    return true
 
   # `get` is a prototype and class aware property access method. `get` will traverse the prototype chain, asking
   # for the passed key at each step, and then attempting to merge the results into one object.
@@ -467,7 +469,6 @@ Batman._Batman = class _Batman
   # `getAll` is a prototype and class chain iterator. When passed a key or function, it applies it to each
   # parent class or parent prototype, and returns the undefined values, closest ancestor first.
   getAll: (keyOrGetter) ->
-
     # Get a function which pulls out the key from the ancestor's `_batman` or use the passed function.
     if typeof keyOrGetter is 'function'
       getter = keyOrGetter
@@ -490,10 +491,10 @@ Batman._Batman = class _Batman
     parent = if isClass
       @object.__super__?.constructor
     else
-      if (cons = @object.constructor):: == @object
-        cons.__super__
+      if (proto = Object.getPrototypeOf(@object)) == @object
+        @object.constructor.__super__
       else
-        cons::
+        proto
 
     if parent?
       # Apply the function and store the result if it isn't undefined.
@@ -530,7 +531,7 @@ class Batman.Object
   # Accessors track which other properties they rely on for computation, and when those other properties change,
   # an accessor will recalculate its value and notifiy its observers. This way, when a source value is changed,
   # any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish
-  # this feat by tracking `get` calls, so be sure to use `get` to retrieve properties inside accessors.
+  # this feat by tracking `get` calls, do be sure to use `get` to retrieve properties inside accessors.
   #
   # `@accessor` or `@classAccessor` can be called with zero, one, or many keys to attach the accessor to. This
   # has the following effects:
@@ -578,6 +579,80 @@ class Batman.Object
   @singleton: (singletonMethodName) ->
     @classAccessor singletonMethodName,
       get: -> @["_#{singletonMethodName}"] ||= new @
+
+# `Batman.Object` is the base class for all other Batman objects. It is not abstract.
+class BatmanObject
+  # Setting `isGlobal` to true will cause the class name to be defined on the
+  # global object. For example, Batman.Model will be aliased to window.Model.
+  # This should be used sparingly; it's mostly useful for debugging.
+  @global: (isGlobal) ->
+    return if isGlobal is false
+    container[@name] = @
+
+  # Apply mixins to this class.
+  @classMixin: -> $mixin @, arguments...
+
+  # Apply mixins to instances of this class.
+  @mixin: -> @classMixin.apply @prototype, arguments
+  mixin: @classMixin
+
+  # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
+  # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
+  # `defineProperty` without as much goodness.
+  #
+  # Accessors track which other properties they rely on for computation, and when those other properties change,
+  # an accessor will recalculate its value and notifiy its observers. This way, when a source value is changed,
+  # any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish
+  # this feat by tracking `get` calls, do be sure to use `get` to retrieve properties inside accessors.
+  #
+  # `@accessor` or `@classAccessor` can be called with zero, one, or many keys to attach the accessor to. This
+  # has the following effects:
+  #
+  #   * zero: create a `defaultAccessor`, which will be called when no other properties or accessors on an object
+  #   match a keypath. This is similar to `method_missing` in Ruby or `#doesNotUnderstand` in Smalltalk.
+  #   * one: create a `keyAccessor` at the given key, which will only be called when that key is `get`ed.
+  #   * many: create `keyAccessors` for each given key, which will then be called whenever each key is `get`ed.
+  #
+  # Note: This function gets called in all sorts of different contexts by various
+  # other pointers to it, but it acts the same way on `this` in all cases.
+  getAccessorObject = (accessor) ->
+    accessor = {get: accessor} if !accessor.get && !accessor.set && !accessor.unset
+    accessor
+
+  @classAccessor: (keys..., accessor) ->
+    Batman.initializeObject @
+    # Create a default accessor if no keys have been given.
+    if keys.length is 0
+      # The `accessor` argument is wrapped in `getAccessorObject` which allows functions to be passed in
+      # as a shortcut to {get: function}
+      @_batman.defaultAccessor = getAccessorObject(accessor)
+    else
+      # Otherwise, add key accessors for each key given.
+      @_batman.keyAccessors ||= new Batman.SimpleHash
+      @_batman.keyAccessors.set(key, getAccessorObject(accessor)) for key in keys
+
+  # Support adding accessors to the prototype from within class defintions or after the class has been created
+  # with `KlassExtendingBatmanObject.accessor(keys..., accessorObject)`
+  @accessor: -> @classAccessor.apply @prototype, arguments
+  # Support adding accessors to instances after creation
+  accessor: @classAccessor
+
+  constructor: (mixins...) ->
+    @_batman = new _Batman(@)
+    @mixin mixins...
+
+  # Make every subclass and their instances observable.
+  @classMixin Batman.Observable, Batman.EventEmitter
+  @mixin Batman.Observable, Batman.EventEmitter
+
+  # Observe this property on every instance of this class.
+  @observeAll: -> @::observe.apply @prototype, arguments
+
+  @singleton: (singletonMethodName) ->
+    @classAccessor singletonMethodName,
+      get: -> @["_#{singletonMethodName}"] ||= new @
+
+Batman.Object = BatmanObject
 
 class Batman.SimpleHash
   constructor: ->
@@ -1647,10 +1722,15 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     @storage = localStorage
     @key_re = new RegExp("^#{@modelKey}(\\d+)$")
     @nextId = 1
-    for k, v of @storage
+    @_forAllRecords (k, v) ->
       if matches = @key_re.exec(k)
         @nextId = Math.max(@nextId, parseInt(matches[1], 10) + 1)
     return
+
+  _forAllRecords: (f) ->
+    for i in [0...@storage.length]
+      k = @storage.key(i)
+      f.call(@, k, @storage.getItem(k))
 
   getRecordFromData: (data) ->
     record = super
@@ -1691,7 +1771,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
   readAll: (_, options, callback) ->
     records = []
-    for storageKey, data of @storage
+    @_forAllRecords (storageKey, data) ->
       if keyMatches = @key_re.exec(storageKey)
         match = true
         data = JSON.parse(data)

@@ -309,14 +309,21 @@ QUnit.module "_Batman",
     class @BlackMamba extends @Snake
       Batman.initializeObject @::
 
-    @mamba = new @BlackMamba
-    @snake = new @Snake
+    @mamba = new @BlackMamba()
+    @snake = new @Snake()
+    true
 
 deepSortedEqual = (a,b,message) ->
   deepEqual(a.sort(), b.sort(), message)
 
 test "correct ancestors are returned", ->
-  deepEqual @snake._batman.ancestors(), [@Snake::, @Animal::, Batman.Object::]
+  deepEqual @snake._batman.object, @snake
+  expected = [@Snake::, @Animal::, Batman.Object::, Object.prototype]
+  window.SnakeClass = @Snake
+  @snake._batman.ancestors()
+
+  for k, v of @snake._batman.ancestors()
+    equal v, expected[k]
 
 test "primitives are traversed in _batman lookups", ->
   @Animal::_batman.set 'primitive_key', 1
