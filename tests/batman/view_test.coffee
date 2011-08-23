@@ -216,7 +216,7 @@ asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
         delay =>
           f('foo')
 
-asyncTest 'it should allow events to be bound', 2, ->
+asyncTest 'it should allow click events to be bound', 2, ->
   context =
     doSomething: spy = createSpy()
 
@@ -234,6 +234,16 @@ asyncTest 'it should allow events to be bound', 2, ->
     equal spy.lastCallArguments[0], node[0]
 
     QUnit.start()
+
+asyncTest 'it should allow form submit events to be bound', 1, ->
+  context =
+    doSomething: spy = createSpy()
+
+  source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
+  render source, context, (node) ->
+    $("#submit", node).click()
+    delay =>
+      ok spy.called
 
 asyncTest 'it should allow mixins to be applied', 1, ->
   Batman.mixins.set 'test',
