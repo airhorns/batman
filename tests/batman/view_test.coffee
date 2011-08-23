@@ -406,7 +406,27 @@ asyncTest 'it should loop over hashes', ->
         equal node.className,  'present'
 
       for k in ['mario', 'link', 'crono']
-        ok tracking[k], "Object #{k} was found in the source"
+        ok tracking[k], "Object #{k} should be in the source"
+
+asyncTest 'it should loop over js objects', ->
+  source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
+  playerScores = 
+    mario: 5
+    link: 5
+    crono: 10
+
+  render source, {playerScores}, (node, view) ->
+    delay => # new renderer's are used for each loop node, must wait longer
+      tracking = {mario: false, link: false, crono: false}
+      nodes = $(view.get('node')).children()
+      for i in [0...nodes.length]
+        node = nodes[i]
+        id = node.id
+        tracking[id] = (parseInt(node.innerHTML, 10) == playerScores[id])
+        equal node.className,  'present'
+
+      for k in ['mario', 'link', 'crono']
+        ok tracking[k], "Object #{k} should be in the source"
 
 QUnit.module "Batman.View rendering nested loops"
   setup: ->

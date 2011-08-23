@@ -2364,15 +2364,11 @@ Batman.DOM = {
           collection.observe 'itemsWereRemoved', observers.remove
           collection.observe 'setWasSorted', observers.reorder
 
-        # Add all the already existing items.
-        # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
-        # This is useful for iterating over hashes or other things that pass (key, value) instead of (value)
+        # Add all the already existing items. For hash-likes, add the key.
         if collection.forEach
-          collection.forEach (korv, v) -> observers.add(korv)
-        else if collection.forEach
-          collection.forEach (x) -> observers.add(x)
+          collection.forEach (item) -> observers.add(item)
         else for k, v of collection
-          observers.add(v)
+          observers.add(k)
       , -> )
 
       false # Return false so the Renderer doesn't descend into this node's children.
