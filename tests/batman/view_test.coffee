@@ -9,6 +9,10 @@ triggerChange = (domNode) ->
   evt = document.createEvent("HTMLEvents")
   evt.initEvent("change", true, true)
   domNode.dispatchEvent(evt)
+triggerClick = (domNode) ->
+  evt = document.createEvent("MouseEvents")
+  evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+  domNode.dispatchEvent(evt)
 
 count = 0
 QUnit.module 'Batman.View'
@@ -241,8 +245,9 @@ asyncTest 'it should allow form submit events to be bound', 1, ->
 
   source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
   render source, context, (node) ->
-    $("#submit", node).click()
+    triggerClick($("#submit", node)[0])
     delay =>
+      console.log spy
       ok spy.called
 
 asyncTest 'it should allow mixins to be applied', 1, ->
@@ -420,7 +425,7 @@ asyncTest 'it should loop over hashes', ->
 
 asyncTest 'it should loop over js objects', ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
-  playerScores = 
+  playerScores =
     mario: 5
     link: 5
     crono: 10
