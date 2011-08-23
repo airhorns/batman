@@ -576,7 +576,7 @@ class BatmanObject
   # Observe this property on every instance of this class.
   @observeAll: -> @::observe.apply @prototype, arguments
 
-  @singleton: (singletonMethodName) ->
+  @singleton: (singletonMethodName="sharedInstance") ->
     @classAccessor singletonMethodName,
       get: -> @["_#{singletonMethodName}"] ||= new @
 
