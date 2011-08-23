@@ -1035,6 +1035,10 @@ class Batman.Dispatcher extends Batman.Object
     @accessor(name, get: -> @[name] = controller.get('sharedController')) if name
 
   register: (url, options) ->
+    url = "/#{url}" if url.indexOf('/') isnt 0
+    route = if $typeOf(options) is 'Function'
+      new Batman.Route url: url, action: options, dispatcher: @
+    else
       new Batman.Route url: url, options: options, dispatcher: @
 
     @routeMap ||= {}
