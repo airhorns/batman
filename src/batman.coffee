@@ -979,11 +979,16 @@ class Batman.Route extends Batman.Object
     get: ->
       return @action if @action
 
-      if @signature
-        components = @signature.split('#')
-        components[1] = 'index' if components.length is 1
-        target = @dispatcher.get components[0]
-        @set 'action', [components[0], components[1], target]
+      if @options
+        result = $mixin {}, @options
+
+        if signature = result.signature
+          components = signature.split('#')
+          result.controller = components[0]
+          result.action = components[1] || 'index'
+
+        result.target = @dispatcher.get result.controller
+        @set 'action', result
     set: (key, action) ->
       @action = action
 
@@ -996,9 +1001,7 @@ class Batman.Route extends Batman.Object
     if typeof action is 'function'
       params.action = action
     else
-      params.controller = action[0]
-      params.action = action[1]
-      params.target = action[2]
+      $mixin params, action
 
     if array
       for param, index in array
@@ -1017,12 +1020,12 @@ class Batman.Route extends Batman.Object
 
     $redirect('/404') if not (action = params.action) and url isnt '/404'
     return action(params) if typeof action is 'function'
-    return params.target.dispatch(action, params) if params.target.dispatch
+    return params.target.dispatch(action, params) if params.target?.dispatch
     return params.target?[action](params)
 
 class Batman.Dispatcher extends Batman.Object
   constructor: (@app) ->
-    @app._flushToDispatcher @
+    @app.route @
     for key, controller of @app
       continue unless controller?.prototype instanceof Batman.Controller
       @prepareController controller
@@ -1031,12 +1034,12 @@ class Batman.Dispatcher extends Batman.Object
     name = helpers.underscore(controller.name.replace('Controller', ''))
     @accessor(name, get: -> @[name] = controller.get('sharedController')) if name
 
-  register: (url, route) ->
+  register: (url, options) ->
     url = "/#{url}" if url.indexOf('/') isnt 0
-    if (typeOf = $typeOf(route)) is 'String'
-      route = new Batman.Route url: url, signature: route, dispatcher: @
-    else if typeOf is 'Function'
-      route = new Batman.Route url: url, action: route, dispatcher: @
+    route = if $typeOf(options) is 'Function'
+      new Batman.Route url: url, action: options, dispatcher: @
+    else
+      new Batman.Route url: url, options: options, dispatcher: @
 
     @routeMap ||= {}
     @routeMap[url] = route
@@ -1052,7 +1055,7 @@ class Batman.Dispatcher extends Batman.Object
       action = route.get 'action'
       continue if typeof action is 'function'
 
-      [controller, action] = action
+      {controller, action} = action
       if controller is params.controller and action is (params.action || 'index')
         for key, value of params
           url = url.replace new RegExp('[:|\*]' + key), value
@@ -1122,21 +1125,28 @@ Batman.redirect = $redirect = (url) ->
 # -----------------
 
 Batman.App.classMixin
-  _flushToDispatcher: (url, route) ->
-    if $typeOf(url) is 'String'
-      @_dispatcherCache ||= {}
-      @_dispatcherCache[url] = route
-    else if url
+  route: (url, signature, options={}) ->
+    return if not url
+    if url instanceof Batman.Dispatcher
       dispatcher = url
       for key, value of @_dispatcherCache
         dispatcher.register key, value
+
       @_dispatcherCache = null
+      return dispatcher
 
-  route: (url, signature, options) ->
-    @_flushToDispatcher url, signature
+    if $typeOf(signature) is 'String'
+      options.signature = signature
+    else if $typeOf(signature) is 'Function'
+      options = signature
+    else if signature
+      $mixin options, signature
 
-  root: (signature) ->
-    @route '/', signature
+    @_dispatcherCache ||= {}
+    @_dispatcherCache[url] = options
+
+  root: (signature, options) ->
+    @route '/', signature, options
 
   resources: (resource, options, callback) ->
     (callback = options; options = null) if typeof options is 'function'
@@ -1160,7 +1170,6 @@ Batman.App.classMixin
 
 # Controllers
 # -----------
-
 
 class Batman.Controller extends Batman.Object
   @singleton 'sharedController'

@@ -8,7 +8,7 @@ QUnit.module 'Batman.Dispatcher defining routes',
       @layout: null
       @test: (url) ->
         @run() if not @hasRun
-        [controller, action] = @dispatcher.findRoute(url).get('action')
+        {controller, action} = @dispatcher.findRoute(url).get('action')
         @dispatcher.get controller + '.' + action
 
     class @App.TestController extends Batman.Controller
@@ -46,9 +46,9 @@ asyncTest 'redirecting', 1, ->
     QUnit.start()
   @App.run()
 
-  $redirect 'foo'
+  $redirect '/foo'
 
-asyncTest 'redirecting with parans', ->
+asyncTest 'redirecting with params', ->
   @App.route 'products/:id', 'products#show'
   @App.run()
   $redirect controller: 'products', action: 'show', id: '1'
@@ -79,6 +79,13 @@ asyncTest 'query params', ->
   @App.run()
 
   $redirect '/?foo=bar&x=true'
+
+asyncTest 'route match with default params', 2, ->
+  @App.root controller: 'test', action: 'index'
+  @App.route 'show', controller: 'products', action: 'show', id: 1
+
+  equal @App.test('/'), @App.TestController::index
+  $redirect '/show'
 
 asyncTest 'resources', ->
   @App.resources 'products', ->
