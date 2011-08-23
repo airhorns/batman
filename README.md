@@ -313,6 +313,6 @@ If it's good code that fits with the goals of the project, we'll merge it in!
 
 # License
 
-batman.js is copyright 2011 by [Shopify](http://www.shopify.com), released under the MIT license (see LICENSE for details).
+batman.js is copyright 2011 by [Shopify](http://www.shopify.com), released under the MIT License (see LICENSE for details).
 
 
