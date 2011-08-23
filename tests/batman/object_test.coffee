@@ -114,7 +114,7 @@ test "parent classes shouldn't fire observers on newly created classes", ->
 test "it should allow observation via the class", ->
   a = createSpy()
   class Custom extends Batman.Object
-    @observe 'foo', a
+    @observeAll 'foo', a
 
   @obj = new Custom
   @obj2 = new Custom

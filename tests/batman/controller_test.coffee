@@ -59,7 +59,7 @@ test 'redirecting a dispatch prevents implicit render', 2, ->
   @controller.test1 = ->
     @redirect 'foo'
   @controller.test2 = ->
-    $redirect 'foo2'
+    Batman.redirect 'foo2'
 
   @controller.dispatch 'test1'
   @controller.dispatch 'test2'

@@ -188,10 +188,10 @@ asyncTest 'it should bind the value of textareas', 2, ->
     one: "qux"
 
   render '<textarea data-bind="one"></textarea>', context, (node) ->
-    equal node[0].innerText, 'qux'
+    equal node.val(), 'qux'
     context.set('one', "bar")
     delay =>
-      equal node[0].innerText, 'bar'
+      equal node.val(), 'bar'
 
 asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
   context = new Batman.Object
@@ -205,7 +205,6 @@ asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
 
     $(node[1]).val('bar')
     triggerChange(node[1])
-
     delay =>
       f('bar')
       $(node[0]).val('baz')
@@ -412,9 +411,11 @@ asyncTest 'it should loop over hashes', ->
 QUnit.module "Batman.View rendering nested loops"
   setup: ->
     @context = obj
-      posts: new Batman.Set
+      posts: new Batman.Set()
       tagColor: "green"
+
     @context.posts.add obj(tags:new Batman.Set("funny", "satire", "nsfw"), name: "post-#{i}") for i in [0..2]
+
     @source = '''
       <div>
         <div data-foreach-post="posts" class="post">
@@ -431,26 +432,15 @@ asyncTest 'it should allow nested loops', 2, ->
       QUnit.start()
     , ASYNC_TEST_DELAY*3
 
-asyncTest 'it should allow access to variables in higher scopes during loops', 3*3 + 3, ->
-  postCounts = [0,0,0]
+asyncTest 'it should allow access to variables in higher scopes during loops', 3*3, ->
   render @source, @context, (node, view) ->
     setTimeout ->
       node = view.get('node')
       for postNode, i in $('.post', node)
         for tagNode, j in $('.tag', postNode)
           equal $(tagNode).attr('color'), "green"
-
-          # Each tag node has a "post-#{i}" binding to show it has access to the enclosing scope.
-          # Since the order the tags come out is undefined, we increment the ith index in a
-          # tracking array. At the end, each position in the tracking array should read 3,
-          # because each post has three tags.
-          postRef = $(tagNode).attr('post')
-          postCounts[parseInt(postRef.slice(5,6), 10)]++
-
-      for count, i in postCounts
-        equal count, 3, "There are 3 tags referencing post-#{i}"
       QUnit.start()
-    , ASYNC_TEST_DELAY*3
+    , ASYNC_TEST_DELAY*10
 
 asyncTest 'it should not render past its original node', ->
   @context.class1 = 'foo'
