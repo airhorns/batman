@@ -576,9 +576,8 @@ class Batman.Object
   @observeAll: -> @::observe.apply @prototype, arguments
 
   @singleton: (singletonMethodName) ->
-    obj = {}
-    obj[singletonMethodName] = -> @["_#{singletonMethodName}"] ||= new @
-    @classAccessor obj
+    @classAccessor singletonMethodName,
+      get: -> @["_#{singletonMethodName}"] ||= new @
 
 class Batman.SimpleHash
   constructor: ->
@@ -1029,8 +1028,8 @@ class Batman.Dispatcher extends Batman.Object
       @prepareController controller
 
   prepareController: (controller) ->
-    name = helpers.underscore(controller.name.slice(0, Math.max(controller.name.indexOf('Controller'), 0)))
-    @accessor(name, get: -> @[name] = controller.sharedController()) if name
+    name = helpers.underscore(controller.name.replace('Controller', ''))
+    @accessor(name, get: -> @[name] = controller.get('sharedController')) if name
 
   register: (url, route) ->
     url = "/#{url}" if url.indexOf('/') isnt 0

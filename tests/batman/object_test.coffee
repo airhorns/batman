@@ -32,6 +32,12 @@ test "@accessor takes a function argument for the accessor as a shortcut for {ge
   deepEqual Thing::_batman.defaultAccessor, {get: defaultAccessorSpy}
   deepEqual Thing::_batman.keyAccessors.get('foo'), {get: keyAccessorSpy}
 
+test "@singleton creates a singleton", ->
+  class Thing extends Batman.Object
+    @singleton 'sharedThing'
+
+  strictEqual(Thing.get('sharedThing'), Thing.get('sharedThing'))
+
 QUnit.module "Batman.Object sub-classes and sub-sub-classes",
   setup: ->
     @subClass = class SubClass extends Batman.Object
