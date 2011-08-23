@@ -1,8 +1,14 @@
 {
-  "author": "Nicholas Small <nick@shopify.com>",
   "name": "batman",
-  "description": "A full-stack Javascript framework that helps you build rich, single-page, Javascript applications.",
-  "version": "0.2.0",
+  "description": "A full-stack JavaScript framework that helps you build rich, single-page applications with power and speed.",
+  "author": "Nick Small <nick@shopify.com> (http://github.com/nciagra)",
+  "contributors": [
+    "Harry Brundage <harry.brundage@shopify.com> (http://github.com/hornairs)",
+    "James MacAulay <james@shopify.com> (http://github.com/jamesmacaulay)",
+    "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/Kktusznio)"
+  ],
+
+  "version": "0.5.0",
   "homepage": "http://batmanjs.org",
   "repository": {
     "type": "git",
