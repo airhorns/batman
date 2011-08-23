@@ -195,7 +195,7 @@ batman.js uses a bunch of these data attributes for different things:
 
 #### Managing contexts
 
-* `data-context="foo.bar"`: pushes a new context onto the context stack for children of this node. If the context is `foo.bar`, then children of this node may access properties on `foo.bar` directly, as if they were properties of the controller. For example:
+* `data-context="foo.bar"`: pushes a new context onto the context stack for children of this node. If the context is `foo.bar`, then children of this node may access properties on `foo.bar` directly, as if they were properties of the controller.
   
 #### Rendering Views
 
