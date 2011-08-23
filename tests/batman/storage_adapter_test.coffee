@@ -112,9 +112,7 @@ if typeof window.localStorage isnt 'undefined'
   sharedStorageTestSuite({})
 
 class MockRequest extends MockClass
-  @chainedCallback 'success'
-  @chainedCallback 'error'
-
+  @expects = {}
   @reset: ->
     MockClass.reset.call(@)
     @expects = {}
@@ -122,6 +120,9 @@ class MockRequest extends MockClass
   @expect: (request, response) ->
     responses = @expects[request.url] ||= []
     responses.push {request, response}
+
+  @chainedCallback 'success'
+  @chainedCallback 'error'
 
   constructor: (requestOptions) ->
     super()

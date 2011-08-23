@@ -1100,7 +1100,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     @started = yes
 
     if 'onhashchange' of window
-      window.addEventListener 'hashchange', @parseHash
+      window.addEventListener 'hashchange', @parseHash, false
     else
       @interval = setInterval @parseHash, 100
 
@@ -1110,7 +1110,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     if @interval
       @interval = clearInterval @interval
     else
-      window.removeEventListener 'hashchange', @parseHash
+      window.removeEventListener 'hashchange', @parseHash, false
 
     @started = no
 

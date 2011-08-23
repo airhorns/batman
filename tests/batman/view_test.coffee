@@ -9,6 +9,7 @@ triggerChange = (domNode) ->
   evt = document.createEvent("HTMLEvents")
   evt.initEvent("change", true, true)
   domNode.dispatchEvent(evt)
+
 triggerClick = (domNode) ->
   evt = document.createEvent("MouseEvents")
   evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
@@ -226,18 +227,10 @@ asyncTest 'it should allow click events to be bound', 2, ->
 
   source = '<button data-event-click="doSomething"></button>'
   render source, context, (node) ->
-    if IN_NODE
-      # Use DOM level 2 event dispatch, which doesn't seem to work with jQuery
-      evt = document.createEvent("MouseEvents")
-      evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
-      node[0].dispatchEvent(evt)
-    else
-      node.trigger('click')
-
-    ok spy.called
-    equal spy.lastCallArguments[0], node[0]
-
-    QUnit.start()
+    triggerClick(node[0])
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow form submit events to be bound', 1, ->
   context =
