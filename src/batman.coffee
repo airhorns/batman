@@ -164,10 +164,10 @@ class Batman.ObservableProperty extends Batman.Property
     return
   cacheDependentValues: ->
     if @dependents
-      @dependents.each (prop) -> prop.cachedValue = prop.getValue()
+      @dependents.forEach (prop) -> prop.cachedValue = prop.getValue()
   fireDependents: ->
     if @dependents
-      @dependents.each (prop) ->
+      @dependents.forEach (prop) ->
         prop.fire(prop.getValue(), prop.cachedValue) if prop.hasObserversToFire?()
   observe: (fireImmediately..., callback) ->
     fireImmediately = fireImmediately[0] is true
@@ -190,7 +190,7 @@ class Batman.ObservableProperty extends Batman.Property
     key = @key
     base = @base
     observers = [@observers].concat(@base._batman.ancestors((ancestor) -> ancestor.property?(key).observers)).reduce((a, b) -> a.merge(b))
-    observers.each (callback) ->
+    observers.forEach (callback) ->
       callback?.apply base, args
     @refreshTriggers()
   forget: (observer) ->
@@ -203,16 +203,16 @@ class Batman.ObservableProperty extends Batman.Property
     Batman.Property.triggerTracker = new Batman.SimpleSet
     @getValue()
     if @triggers
-      @triggers.each (property) =>
+      @triggers.forEach (property) =>
         unless Batman.Property.triggerTracker.has(property)
           property.dependents?.remove @
     @triggers = Batman.Property.triggerTracker
-    @triggers.each (property) =>
+    @triggers.forEach (property) =>
       property.dependents ||= new Batman.SimpleSet
       property.dependents.add @
     delete Batman.Property.triggerTracker
   clearTriggers: ->
-    @triggers.each (property) =>
+    @triggers.forEach (property) =>
       property.dependents.remove @
     @triggers = new Batman.SimpleSet
 
@@ -267,7 +267,7 @@ Batman.Observable =
     if key
       @property(key).forget(observer)
     else
-      @_batman.properties.each (key, property) -> property.forget()
+      @_batman.properties.forEach (key, property) -> property.forget()
     @
 
   # `allowed` returns a boolean describing whether or not the key is
@@ -622,12 +622,12 @@ class Batman.SimpleHash
       rhs.isEqual lhs
     else
       lhs is rhs
-  each: (iterator) ->
+  forEach: (iterator) ->
     for key, values of @_storage
       iterator(obj, value) for [obj, value] in values
   keys: ->
     result = []
-    @each (obj) -> result.push obj
+    @forEach (obj) -> result.push obj
     result
   clear: ->
     @_storage = {}
@@ -638,7 +638,7 @@ class Batman.SimpleHash
     merged = new @constructor
     others.unshift(@)
     for hash in others
-      hash.each (obj, value) ->
+      hash.forEach (obj, value) ->
         merged.set obj, value
     merged
 
@@ -654,7 +654,7 @@ class Batman.Hash extends Batman.Object
 
   @accessor 'isEmpty', -> @isEmpty()
 
-  for k in ['hasKey', 'equality', 'each', 'keys', 'isEmpty', 'merge', 'clear']
+  for k in ['hasKey', 'equality', 'forEach', 'keys', 'isEmpty', 'merge', 'clear']
     @::[k] = Batman.SimpleHash::[k]
 
 class Batman.SimpleSet
@@ -682,8 +682,8 @@ class Batman.SimpleSet
         @length--
     @itemsWereRemoved(removedItems...) unless removedItems.length is 0
     removedItems
-  each: (iterator) ->
-    @_storage.each (key, value) -> iterator(key)
+  forEach: (iterator) ->
+    @_storage.forEach (key, value) -> iterator(key)
   isEmpty: -> @length is 0
   clear: ->
     items = @toArray()
@@ -698,7 +698,7 @@ class Batman.SimpleSet
     merged = new @constructor
     others.unshift(@)
     for set in others
-      set.each (v) -> merged.add v
+      set.forEach (v) -> merged.add v
     merged
   itemsWereAdded: ->
   itemsWereRemoved: ->
@@ -708,7 +708,7 @@ class Batman.Set extends Batman.Object
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
-  for k in ['has', 'each', 'isEmpty', 'toArray']
+  for k in ['has', 'forEach', 'isEmpty', 'toArray']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['add', 'remove', 'clear', 'merge']
@@ -745,7 +745,7 @@ class Batman.SortableSet extends Batman.Set
     delete @_indexes[index]
     @unset('activeIndex') if @activeIndex is index
     index
-  each: (iterator) ->
+  forEach: (iterator) ->
     iterator(el) for el in @toArray()
   sortBy: (index) ->
     @addIndex(index) unless @_indexes[index]
@@ -1432,7 +1432,7 @@ class Batman.Model extends Batman.Object
     # Encode each key into a new object
     encoders = @_batman.get('encoders')
     unless !encoders or encoders.isEmpty()
-      encoders.each (key, encoder) =>
+      encoders.forEach (key, encoder) =>
         val = @get key
         if typeof val isnt 'undefined'
           encodedVal = encoder(@get key)
@@ -1454,7 +1454,7 @@ class Batman.Model extends Batman.Object
         obj[helpers.camelize(key, yes)] = value
     else
       # If we do have decoders, use them to get the data.
-      decoders.each (key, decoder) ->
+      decoders.forEach (key, decoder) ->
         obj[key] = decoder(data[key])
 
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
@@ -2235,7 +2235,7 @@ Batman.DOM = {
         # Track the old collection so that if it changes, we can remove the observers we attached,
         # and only observe the new collection.
         if oldCollection
-          nodeMap.each (item, node) -> parent.removeChild node
+          nodeMap.forEach (item, node) -> parent.removeChild node
           oldCollection.forget 'itemsWereAdded', observers.add
           oldCollection.forget 'itemsWereRemoved', observers.remove
           oldCollection.forget 'setWasSorted', observers.reorder
@@ -2281,8 +2281,8 @@ Batman.DOM = {
         # Add all the already existing items.
         # Fandangle with the iterator so that we always add the last argument of whatever calls this function.
         # This is useful for iterating over hashes or other things that pass (key, value) instead of (value)
-        if collection.each
-          collection.each (korv, v) -> observers.add(korv)
+        if collection.forEach
+          collection.forEach (korv, v) -> observers.add(korv)
         else if collection.forEach
           collection.forEach (x) -> observers.add(x)
         else for k, v of collection
