@@ -8,14 +8,6 @@ class $App$.$Name$ extends Batman.Model
   #
   # @persist Batman.RestStorage
 
-  # Make Batman aware of this model's associations with
-  #
-  # @hasMany 'other_models'
-  #
-  # or
-  #
-  # @belongsTo 'parent_model'
-
   # Make this model available in the global scope with
   # @global true
 
@@ -40,8 +32,8 @@ class $App$.$Name$ extends Batman.Model
 
   # Add an event to instances of this model with
   #
-  # @event 'someEvent', -> ... # return value of event, passed to observers
+  # someEvent: @event -> ... # return value of event, passed to observers
   #
   # and fire it with
   #
-  # modelInstance.fire('someEvent')
+  # modelInstance.someEvent()
