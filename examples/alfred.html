@@ -21,7 +21,7 @@
 
         <ul id="items">
             <li data-foreach-todo="Todo.all" data-mixin="animation">
-                <input type="checkbox" data-bind="todo.isDone" />
+                <input type="checkbox" data-bind="todo.isDone" data-event-change="todo.save" />
                 <label data-bind="todo.body" data-addclass-done="todo.isDone" data-mixin="editable"></label>
                 <a data-event-click="todo.destroy">delete</a>
             </li>
@@ -52,7 +52,6 @@
       # just some defaults, but these are optional
       body: ''
       isDone: false
-
 
     class Alfred.TodosController extends Batman.Controller
       constructor: ->
