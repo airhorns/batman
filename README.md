@@ -14,6 +14,35 @@ The APIs are heavily inspired by [Rails](http://rubyonrails.org/) and designed t
 
 We're targeting Chrome, Safari 4+, Firefox 3+, and IE 7+ for compatibility, although some of those require you to include [es5shim](https://github.com/kriskowal/es5-shim).
 
+Here's some code:
+
+```coffeescript
+class Shopify extends Batman.App
+  @root 'products#index'
+  @resources 'products'
+
+class Shopify.Product extends Batman.Model
+  @persist Batman.RestStorage
+
+class Shopify.ProductsController extends Batman.Model
+  index: ->
+    @redirect action: 'show', id: 1
+
+  show: (params) ->
+    @product = Shopify.Product.find params.id
+```
+
+#### views/products/index.html
+
+```html
+<ul id="products">
+  <li data-foreach-product="Product.all" data-mixin="animation">
+    <a data-route="product" data-bind="product.name">name will go here</a>
+  </li>
+
+  <li><span data-bind="products.length"></span> <span data-bind="'products' | pluralize products.length"></span></li>
+</ul>
+```
 
 ## Installation
 
