@@ -425,7 +425,7 @@ To run in the browser, start a web server to serve up the tests:
 
     batman server
 
-...then visit `http://localhost:1047/test/batman/test.html`.
+...then visit `http://localhost:1047/tests/batman/test.html`.
 
 #### 3. Write some test-driven code
 
