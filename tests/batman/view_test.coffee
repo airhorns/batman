@@ -185,9 +185,7 @@ asyncTest 'it should bind the value of a select box and update when the value ch
     heros: heros
     selected: selected
   }, (node) ->
-    #debugger
     delay => # delay for foreach nodes
-      console.log 'done', node[0]
       equals node[0].value, 'crono'
       selected.set 'name', 'link'
       delay =>
