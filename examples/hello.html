@@ -13,8 +13,7 @@
 </head>
 
 <body>
-    <div id="container" data-context="Hello">
-
+    <div id="container">
         <h1 data-mixin="animation" data-hideif="person.hasName">Please enter your name</h1>
 
         <form class="span-12">
@@ -33,21 +32,23 @@
 
         <h2 data-showif="person.hasName" data-mixin="animation">Hello, <span data-bind="person.fullName"></span></h2>
 
-        <button data-bind-disabled="person.hasName | not" data-event-click="reset">Reset</button>
+        <button data-bind-disabled="person.hasName | not" data-event-click="person.reset">Reset</button>
     </div>
 
     <script type="text/coffeescript">
-      class window.Hello extends Batman.App
-        @reset: (->
-          @set 'person', new Person(firstName: '', lastName: '')
-          @
-        ).bind(Hello)
+      class Hello extends Batman.App
 
       class Person extends Batman.Model
-        @accessor 'fullName', -> @get('firstName') + " " + @get('lastName')
+        @accessor 'fullName', -> "#{@get 'firstName'} #{@get 'lastName'}"
         @accessor 'hasName', -> @get('fullName').length > 1
 
-      Hello.reset().run()
+        reset: =>
+          @set 'firstName', ''
+          @set 'lastName', ''
+          @
+
+      Hello.person = (new Person()).reset()
+      Hello.run()
     </script>
 </body>
 </html>
