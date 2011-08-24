@@ -1,7 +1,10 @@
-# generator.js
-# Batman
-# Copyright Shopify, 2011
-
+#
+# generator.coffee
+# batman.js
+#
+# Created by Nick Small
+# Copyright 2011, Shopify
+#
 
 fs = require 'fs'
 path = require 'path'

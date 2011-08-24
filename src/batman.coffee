@@ -1,8 +1,8 @@
 #
 # batman.js
 #
-# Created by Nicholas Small
-# Copyright 2011, JadedPixel Technologies, Inc.
+# Created by Nick Small
+# Copyright 2011, Shopify
 #
 
 # The global namespace, the `Batman` function will also create also create a new

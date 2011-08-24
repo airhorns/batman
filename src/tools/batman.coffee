@@ -1,8 +1,12 @@
 `#!/usr/bin/env node
 `
+#
+# batman.coffee
 # batman.js
-# Batman
-# Copyright Shopify, 2011
+#
+# Created by Nick Small
+# Copyright 2011, Shopify
+#
 
 cli = require './cli'
 Batman = require '../lib/batman.js'

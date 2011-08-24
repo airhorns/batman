@@ -1,3 +1,11 @@
+#
+# utils.coffee
+# batman.js
+#
+# Created by Nick Small
+# Copyright 2011, Shopify
+#
+
 connect = require 'connect'
 path    = require 'path'
 fs      = require 'fs'

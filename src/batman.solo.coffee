@@ -2,8 +2,8 @@
 # batman.nodep.coffee
 # batman.js
 #
-# Created by Nicholas Small
-# Copyright 2011, JadedPixel Technologies, Inc.
+# Created by Nick Small
+# Copyright 2011, Shopify
 #
 
 `
