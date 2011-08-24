@@ -48,16 +48,10 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
         q.when write, (result) ->
           # Compile the temp coffeescript to the build dir
           fs.mkdirSync(distDir, 0777) unless path.existsSync(distDir)
-          destination = "#{distDir}/batman.#{platformName}.js"
+          destination = "#{distDir}/batman#{if platformName is 'solo' then '' else '.' + platformName}.js"
           compile = muffin.compileScript(joinedCoffeePath, destination, options)
           compile.then( ->
             muffin.minifyScript destination, options
-          ).then( ->
-            finalPath = destination.split('.')
-            finalPath.pop()
-            finalPath = finalPath.join('.')
-            [child, promise] = muffin.exec "gzip --stdout --best #{finalPath}.min.js > #{finalPath}.js.gz"
-            promise
           ).then( ->
             muffin.notify(destination, "File #{destination} minified and gzipped.")
           )
