@@ -1900,10 +1900,11 @@ class Batman.View extends Batman.Object
           @contentFor.innerHTML = ''
           @contentFor.appendChild(node)
 
+        # fire the rendered event just in case
+        @_renderer.rendered()
       , @contexts)
 
       @_renderer.rendered =>
-        debugger
         @ready node
 
       # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
