@@ -246,6 +246,17 @@ asyncTest 'it should allow click events to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
+asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
+  context = new Batman.Object
+    one: true
+    doSomething: createSpy()
+
+  render '<input type="checkbox" data-bind="one" data-event-change="doSomething"/>', context, (node) ->
+    node[0].checked = false
+    triggerChange(node[0])
+    delay =>
+      ok context.doSomething.called
+
 if typeof IN_NODE == 'undefined'
   # Can't figure out a way to get JSDOM to fire the form submit event.
   asyncTest 'it should allow form submit events to be bound', 1, ->

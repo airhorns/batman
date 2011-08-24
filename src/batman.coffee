@@ -1950,7 +1950,22 @@ class Batman.Renderer extends Batman.Object
 
   rendered: @eventOneShot ->
 
-  regexp = /data\-(.*)/
+  bindingRegexp = /data\-(.*)/
+  sortBindings = (a, b) ->
+    if a[0] == 'foreach'
+      -1
+    else if b[0] == 'foreach'
+      1
+    else if a[0] == 'formfor'
+      -1
+    else if b[0] == 'formfor'
+      1
+    else if a[0] == 'bind'
+      -1
+    else if b[0] == 'bind'
+      1
+    else
+      0
 
   parseNode: (node) ->
     if new Date - @startTime > 50
@@ -1959,16 +1974,19 @@ class Batman.Renderer extends Batman.Object
       return
 
     if node.getAttribute
-      @context.set 'node', node
-
-      for attr in node.attributes
-        name = attr.nodeName.match(regexp)?[1]
+      bindings = for attr in node.attributes
+        name = attr.nodeName.match(bindingRegexp)?[1]
         continue if not name
-
-        result = if (index = name.indexOf('-')) is -1
-          Batman.DOM.readers[name]?(node, attr.value, @context, @)
+        if ~(varIndex = name.indexOf('-'))
+          [name.substr(0, varIndex), name.substr(varIndex + 1), attr.value]
         else
-          Batman.DOM.attrReaders[name.substr(0, index)]?(node, name.substr(index + 1), attr.value, @context, @)
+          [name, attr.value]
+
+      for readerArgs in bindings.sort(sortBindings)
+        result = if readerArgs.length == 2
+          Batman.DOM.readers[readerArgs[0]]?(node, readerArgs[1], @context, @)
+        else
+          Batman.DOM.attrReaders[readerArgs[0]]?(node, readerArgs[1], readerArgs[2], @context, @)
 
         if result is false
           skipChildren = true
@@ -2342,7 +2360,8 @@ Batman.DOM = {
         confirmText = node.getAttribute('data-confirm')
         if confirmText and not confirm(confirmText)
           return
-
+        x = eventName
+        x = key
         callback?.apply subContext, arguments
 
     addclass: (node, className, key, context, parentRenderer, invert) ->
@@ -2478,9 +2497,6 @@ Batman.DOM = {
       for eventName in eventNames
         Batman.DOM.addEventListener node, eventName, (args...) ->
           callback node, args...
-
-      Batman.DOM.addEventListener node, eventName, (args...) ->
-        callback node, args...
 
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
