@@ -1900,8 +1900,11 @@ class Batman.View extends Batman.Object
           @contentFor.innerHTML = ''
           @contentFor.appendChild(node)
 
-        @ready node
       , @contexts)
+
+      @_renderer.rendered =>
+        debugger
+        @ready node
 
       # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
       @_renderer.context.push(@context) if @context
@@ -1933,6 +1936,8 @@ class Batman.Renderer extends Batman.Object
     @callback?()
 
   forgetAll: ->
+
+  rendered: @eventOneShot ->
 
   regexp = /data\-(.*)/
 
@@ -2224,6 +2229,9 @@ Batman.DOM = {
     bind: (node, key, context) ->
       if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
         Batman.DOM.attrReaders.bind(node, 'checked', key, context)
+      else if node.nodeName.toLowerCase() == 'select'
+        # TODO delay binding until children are rendered
+        Batman.DOM.attrReaders.bind(node, 'value', key, context)
       else
         context.bind(node, key)
 
@@ -2360,6 +2368,8 @@ Batman.DOM = {
 
         observers.add = (items...) ->
           for item in items
+            parentRenderer.prevent 'rendered'
+
             newNode = prototype.cloneNode true
             nodeMap.set item, newNode
 
@@ -2369,14 +2379,28 @@ Batman.DOM = {
             localClone.push iteratorContext
             localClone.push item
 
-            new Batman.Renderer newNode, do (newNode) ->
+            renderer = new Batman.Renderer newNode, do (newNode) ->
               ->
                 if collection.isSorted?()
                   observers.reorder()
                 else
                   parent.insertBefore newNode, sibling
+
+                #debugger
+                console.log 'inserted node', newNode, parentRenderer
                 parentRenderer.allow 'ready'
+                parentRenderer.allow 'rendered'
+                parentRenderer.fire 'rendered'
+
+                @fire 'rendered'
             , localClone
+
+            console.log 'created renderer', renderer.node, parentRenderer.node
+
+            renderer.rendered? ->
+              console.log 'rendered listener fired!', @node
+
+            renderer
 
         observers.remove = (items...) ->
           for item in items
@@ -2485,10 +2509,12 @@ Batman.DOM = {
           node.innerHTML = node.value = value
         else
           node.innerHTML
+      when 'SELECT'
+        node.value = value
       else
         if isSetting then (node.innerHTML = value) else node.innerHTML
   nodeIsEditable: (node) ->
-    node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA']
+    node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA', 'SELECT']
 
   addEventListener: (node, eventName, callback) ->
     if node.addEventListener

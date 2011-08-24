@@ -177,6 +177,22 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
     delay =>
       equal context.get('one'), false
 
+asyncTest 'it should bind the value of a select box and update when the value changes', 2, ->
+  heros = new Batman.Set('mario', 'crono', 'link')
+  selected = new Batman.Object(name: 'crono')
+
+  render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', {
+    heros: heros
+    selected: selected
+  }, (node) ->
+    #debugger
+    delay => # delay for foreach nodes
+      console.log 'done', node[0]
+      equals node[0].value, 'crono'
+      selected.set 'name', 'link'
+      delay =>
+        equal node[0].value, 'link'
+
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object
     one: "qux"
