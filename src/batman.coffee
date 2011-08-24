@@ -1902,9 +1902,6 @@ class Batman.View extends Batman.Object
         if @contentFor and node
           @contentFor.innerHTML = ''
           @contentFor.appendChild(node)
-
-        # fire the rendered event just in case
-        @_renderer.rendered()
       , @contexts)
 
       @_renderer.rendered =>
@@ -1938,6 +1935,7 @@ class Batman.Renderer extends Batman.Object
   finish: ->
     @startTime = null
     @callback?()
+    @fire 'rendered'
 
   forgetAll: ->
 
@@ -2396,8 +2394,6 @@ Batman.DOM = {
                 parentRenderer.allow 'ready'
                 parentRenderer.allow 'rendered'
                 parentRenderer.fire 'rendered'
-
-                @fire 'rendered'
             , localClone
 
         observers.remove = (items...) ->
