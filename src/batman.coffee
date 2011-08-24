@@ -1716,7 +1716,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       if keyMatches = @key_re.exec(storageKey)
         match = true
         data = JSON.parse(data)
-        data[@model.primaryKey] ||= keyMatches[1]
+        data[@model.primaryKey] ||= parseInt(keyMatches[1], 10)
         for k, v of options
           if data[k] != v
             match = false
