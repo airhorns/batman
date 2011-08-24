@@ -936,13 +936,13 @@ class Batman.App extends Batman.Object
     return false if @hasRun
     Batman.currentApp = @
 
-    if typeof @layout is 'undefined'
-      @set 'layout', new Batman.View
-        node: document
-        contexts: [@]
-
     if typeof @dispatcher is 'undefined'
       @dispatcher ||= new Batman.Dispatcher @
+
+    if typeof @layout is 'undefined'
+      @set 'layout', new Batman.View
+        contexts: [@]
+        node: document
 
     if typeof @historyManager is 'undefined'
       @historyManager = Batman.historyManager = new Batman.HashHistory @
