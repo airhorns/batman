@@ -33,16 +33,23 @@
     # Create our application and namespace.
     class Alfred extends Batman.App
       @global yes
+
+      # setup our root route. When the app starts up, it will automatically call TodosController::index
       @root 'todos#index'
 
 
     # Define the principal Todo model with `body` and `isDone` attributes, and tell it to persist itself using Local Storage.
     class Alfred.Todo extends Batman.Model
-      @global yes # global exposes this class on the global object, so you can access `Todo` directly.
+      # @global exposes this class on the global object, so you can access `Todo` directly.
+      @global yes
 
+      # @persist tells a model which storage mechanism it should use to load and save. Batman.LocalStorage is the simplest, simply persisting your records to the browser storage.
       @persist Batman.LocalStorage
+
+      # @encode tells the persistance mechanism which fields to archive. You can also setup specific encoder and decoder functions to handle specific types of data.
       @encode 'body', 'isDone'
 
+      # just some defaults, but these are optional
       body: ''
       isDone: false
 
@@ -55,6 +62,7 @@
       index: ->
         # add some example todos to show off.
         Todo.load (error, todos) ->
+          # you always want to make sure you handle errors (more elegantly than this) when writing connection code
           throw error if error
           if not todos.length
             callback = (error) -> throw error if error
@@ -68,12 +76,14 @@
       create: =>
         @emptyTodo.save (error, record) =>
           throw error if error
+
+          # we use set so that our form will automatically update with the new Todo instance
           @set 'emptyTodo', new Todo
 
         return false
 
 
-    # Start the app
+    # Start the app. This will start up the dispatcher and a number of other mechanisms.
     Alfred.run()
     </script>
 </body>
