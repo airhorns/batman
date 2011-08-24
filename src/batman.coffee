@@ -738,11 +738,11 @@ class Batman.SortableSet extends Batman.Set
   setWasSorted: @event ->
     return false if @length is 0
   add: ->
-    results = Batman.SimpleSet::add.apply @, arguments
+    results = super
     @_reIndex()
     results
   remove: ->
-    results = Batman.SimpleSet::remove.apply @, arguments
+    results = super
     @_reIndex()
     results
   addIndex: (index) ->
