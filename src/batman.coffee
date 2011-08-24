@@ -1340,7 +1340,12 @@ class Batman.Model extends Batman.Object
 
   # ### Query methods
   @classAccessor 'all',
-    get: -> @all ||= new Batman.Set
+    get: ->
+      unless @all
+        @all = new Batman.SortableSet
+        @all.sortBy "id asc"
+      @all
+
     set: (k,v)-> @all = v
 
   @classAccessor 'first', -> @get('all').toArray()[0]
