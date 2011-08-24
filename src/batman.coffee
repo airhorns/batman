@@ -2400,7 +2400,7 @@ Batman.DOM = {
                   observers.reorder()
                 else
                   if typeof newNode.show is 'function'
-                    newNode.show?(before: sibling)
+                    newNode.show before: sibling
                   else
                     parent.insertBefore newNode, sibling
 
@@ -2422,7 +2422,11 @@ Batman.DOM = {
         observers.reorder = ->
           items = collection.toArray()
           for item in items
-            parent.insertBefore(nodeMap.get(item), sibling)
+            thisNode = nodeMap.get(item)
+            if typeof thisNode.show is 'function'
+              thisNode.show before: sibling
+            else
+              parent.insertBefore(thisNode, sibling)
 
         # Observe the collection for events in the future
         if collection?.observe
