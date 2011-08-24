@@ -25,7 +25,7 @@
                 <label data-bind="todo.body" data-addclass-done="todo.isDone" data-mixin="editable"></label>
                 <a data-event-click="todo.destroy">delete</a>
             </li>
-            <li><span data-bind="Todo.all.length"></span> <span data-bind="'item' | pluralize Todo.all.length"></span>
+            <li><span data-bind="Todo.all.length"></span> <span data-bind="'item' | pluralize Todo.all.length"></span></li>
         </ul>
     </div>
 
@@ -36,9 +36,9 @@
       @root 'todos#index'
 
 
-    # Define the principle Todo model with `body` and `isDone` attributes, and tell it to persit itself using Local Storage.
+    # Define the principle Todo model with `body` and `isDone` attributes, and tell it to persist itself using Local Storage.
     class Alfred.Todo extends Batman.Model
-      @global yes
+      @global yes # global exposes this class on the global object, so you can access `Todo` directly.
 
       @persist Batman.LocalStorage
       @encode 'body', 'isDone'
@@ -48,8 +48,6 @@
 
 
     class Alfred.TodosController extends Batman.Controller
-      @global yes
-
       index: ->
         # setup a binding for the new form
         @set 'emptyTodo', new Todo
@@ -57,7 +55,7 @@
         # add some example todos to show off.
         Todo.load (error, todos) ->
           throw error if error
-          if not Todo.get('all').length
+          if not todos.length
             callback = (error) -> throw error if error
             new Todo(body: 'joker escaped arkham again', isDone: true).save(callback)
             new Todo(body: 'riddler sent riemann hypothesis').save(callback)
