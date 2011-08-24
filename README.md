@@ -10,6 +10,8 @@ It's got:
 * pure HTML views
 * toolchain support built on [node.js](http://nodejs.org) and [cake](http://jashkenas.github.com/coffee-script/#cake)
 
+The APIs are heavily inspired by [Rails](http://rubyonrails.org/) and designed to make Rails devs feel right at home.
+
 We're targeting Chrome, Safari 4+, Firefox 3+, and IE 7+ for compatibility, although some of those require you to include [es5shim](https://github.com/kriskowal/es5-shim).
 
 
@@ -39,7 +41,7 @@ Most of the classes you work with in your app code will descend from `Batman.Obj
 
 If you want to define observable events on your objects, just wrap a function with the `@event` macro in a class definition:
 
-    class Gadget extends Batman.Object
+    class BatBelt.Gadget extends Batman.Object
       constructor: -> @usesLeft = 5
       use: @event (times) ->
         return false unless (@usesLeft - times) >= 0
@@ -146,20 +148,66 @@ The MVC architecture of batman.js fits together like this:
 A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app is handled via [hash-bang fragment identifers](http://www.w3.org/QA/2011/05/hash_uris.html), with [pushState](https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries) support forthcoming.
 
 
+### The App Class
+
+Sitting in front of everything else is a subclass of `Batman.App` which represents your application as a whole and acts as a namespace for your other app classes. The app class never gets instantiated; your main interactions with it are using macros in its class definition, and calling `run()` on it when it's time to fire up your app.
+
+Here's a simple app class:
+
+    class BatBelt extends Batman.App
+      @global yes
+
+      @controller 'app', 'gadgets'
+      @model 'gadget'
+      
+      @root 'app#index'
+      @route 'faq/:questionID', 'app#faq'
+      @resources 'gadgets'
+      
+The `@global yes` declaration just makes the class global on the browser's `window` object.
+
+The calls to `@controller` and `@model` load external app classes with XHRs. For the controllers, this ends up fetching `/controllers/app_controller.coffee` and `/controllers/gadgets_controller.coffee`. The gadget model gets loaded from `/models/gadget.coffee`.
+
+#### Routes
+
+Routes are defined in a few different ways.
+
+`@route` takes two strings, one representing a path pattern and the other representing a controller action. In the above example, `'faq/:questionID'` matches any path starting with "/faq/" and having one other segment. That segment is then passed as a named param to the controller action function specified by the second string argument.
+
+For the FAQ route, `'app#faq'` specifies the `faq` function on `BatBelt.AppController`, which should take a `params` argument and do something sensible with `params.questionID`.
+
+`@root 'app#index'` is just a shorthand for `@route '/', 'app#index'`.
+
+The `@resources` macro takes a resource name which should ideally be the underscored-pluralized name of one of your models. It sets up three routes, as if you'd used the `@route` macro like so:
+
+    @route 'gadgets', 'gadgets#index'
+    @route 'gadgets/:id', 'gadgets#show'
+    @route 'gadgets/:id/edit', 'gadgets#edit'
+
+In addition to setting up these routes, the call to `@resources` keeps track of the fact that the `Gadget` model can be accessed in these ways. This lets you load these routes in your controllers or views by using model instances and classes on their own:
+
+    class BatBelt.GadgetsController extends Batman.Controller
+      someEventHandler: (node, event) ->
+        @redirect BatBelt.Gadget.find(1) # redirects to "/gadgets/1"
+      someOtherHandler: (node, event) ->
+        @redirect BatBelt.Gadget # redirects to "/gadgets"
+
+
 ### Controllers
 
-batman.js controllers are singleton classes with one or more instance methods that can serve as routable actions. Because they're singletons, instance variables persist as long as the app is running. You normally define your routes along with your actions, like so:
+batman.js controllers are singleton classes with one or more instance methods that can serve as routable actions. Because they're singletons, instance variables persist as long as the app is running.
 
-    class MyApp.UsersController extends Batman.Controller
-      index: @route('/users') ->
-        @users ||= MyApp.User.get('all')
+    class BatBelt.AppController extends Batman.Controller
+      index: ->
+      faq: (params) ->
+        @question = @questions.get(params.questionID)
 
-Now when you navigate to `/#!/users`, the dispatcher runs this `index` action with an implicit call to `@render`, which by default will look for a view at `/views/users/index.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML.
+Now when you navigate to `/#!/faq/what-is-art`, the dispatcher runs this `faq` action with `{questionID: "what-is-art"}`. It also makes an implicit call to `@render`, which by default will look for a view at `/views/app/faq.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML.
 
 Controllers are also a fine place to put event handlers used by your views. Here's one that uses [jQuery](http://jquery.com/) to toggle a CSS class on a button:
 
     class MyApp.BigRedButtonController extends Batman.Controller
-      index: @route('/button') ->
+      index: ->
       
       buttonWasClicked: (node, event) ->
         $(node).toggleClass('activated')
@@ -204,6 +252,8 @@ batman.js uses a bunch of these data attributes for different things:
 * `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area.
 
 * `data-partial="/views/shared/sidebar"`: renders the view at the path `/views/shared/sidebar.html` within this node.
+
+* `data-route="/some/path"` or `data-route="some.model"`: loads a route when this node is clicked. The route can either be specified by a path beginning with a slash "/", or by a property leading to either a model instance (resulting in a resource's "show" action) or a model class (for the resource's "index" action).
 
 
 ### Models
@@ -280,7 +330,6 @@ If you have a REST backend you want to connect to, `Batman.RestStorage` is a sim
       @url = "/admin/products"
       url: -> "/admin/products/#{@id}"
 
-
 # Contributing
 
 Well-tested contributions are always welcome! Here's what you should do:
@@ -297,11 +346,11 @@ To run on the command line, run the following command from the project root:
 
     cake test
 
-To run in the browser (so you can interactively debug perhaps), start a web server to serve up the tests:
+To run in the browser, start a web server to serve up the tests:
 
     batman server
 
-...then visit `http://localhost:1047/test/batman/test.html` in your browser.
+...then visit `http://localhost:1047/test/batman/test.html`.
 
 #### 3. Write some test-driven code
 
