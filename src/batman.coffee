@@ -1675,7 +1675,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
   getRecordFromData: (data) ->
     record = super
-    @nextId = Math.max(@nextId, record.get('id') + 1)
+    @nextId = Math.max(@nextId, parseInt(record.get('id'), 10) + 1)
     record
 
   update: (record, options, callback) ->
