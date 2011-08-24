@@ -54,11 +54,11 @@
       isDone: false
 
     class Alfred.TodosController extends Batman.Controller
-      constructor: ->
-        # setup a binding for the new form
-        @set 'emptyTodo', new Todo
+      emptyTodo: null
 
       index: ->
+        @set 'emptyTodo', new Todo
+
         # add some example todos to show off.
         Todo.load (error, todos) ->
           # you always want to make sure you handle errors (more elegantly than this) when writing connection code
