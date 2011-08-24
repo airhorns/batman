@@ -178,7 +178,7 @@ class Batman.ObservableProperty extends Batman.Property
     @
   hasObserversToFire: ->
     return true if @observers.length > 0
-    if @base._batman?
+    if @base._batman
       @base._batman.ancestors().some((ancestor) => ancestor.property?(@key)?.observers?.length > 0)
     else
       false
@@ -189,9 +189,13 @@ class Batman.ObservableProperty extends Batman.Property
     return unless @isAllowedToFire() and @hasObserversToFire()
     key = @key
     base = @base
-    observers = [@observers].concat(@base._batman.ancestors((ancestor) -> ancestor.property?(key).observers)).reduce((a, b) -> a.merge(b))
-    observers.forEach (callback) ->
+    observerSets = [@observers]
+    @observers.forEach (callback) ->
       callback?.apply base, args
+    if @base._batman
+      @base._batman.ancestors (ancestor) ->
+        ancestor.property?(key).observers.forEach (callback) ->
+          callback?.apply base, args
     @refreshTriggers()
   forget: (observer) ->
     if observer

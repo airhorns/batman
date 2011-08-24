@@ -52,9 +52,15 @@ test "refreshTriggers() sets this.triggers to all properties that this one is de
 test "property() works on non Batman objects", ->
   property = new Batman.ObservableProperty(window, 'Array')
   ok ! property.hasObserversToFire()
+  property.observe spy = createSpy()
+  property.fire()
+  ok spy.called
 
   property = new Batman.ObservableProperty({}, 'foo')
   ok ! property.hasObserversToFire()
+  property.observe spy = createSpy()
+  property.fire()
+  ok spy.called
 
 test "only fires when its prevents and allows are balanced", ->
   property = new Batman.ObservableProperty(window, 'Array')
