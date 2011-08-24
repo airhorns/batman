@@ -1244,6 +1244,9 @@ class Batman.Controller extends Batman.Object
       @_actedDuringAction = yes
       @_afterFilterRedirect = url
     else
+      if $typeOf(url) is 'Object'
+        url.controller = @ if not url.controller
+
       $redirect url
 
   render: (options = {}) ->
