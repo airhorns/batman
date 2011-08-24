@@ -48,10 +48,11 @@
 
 
     class Alfred.TodosController extends Batman.Controller
-      index: ->
+      constructor: ->
         # setup a binding for the new form
         @set 'emptyTodo', new Todo
 
+      index: ->
         # add some example todos to show off.
         Todo.load (error, todos) ->
           throw error if error
