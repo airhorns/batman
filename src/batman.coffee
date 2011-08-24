@@ -2021,35 +2021,35 @@ class Binding extends Batman.Object
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
-      value = @get('unfilteredValue')
-      if @filterFunctions.length > 0
-        @filterFunctions.reduce((value, fn, i) =>
-          # Get any argument keypaths from the context stored at parse time.
-          args = @filterArguments[i].map (argument) ->
-            if argument._keypath
-              argument.context.get(argument._keypath)
-            else
-              argument
-          # Apply the filter.
-          fn(value, args...)
-        , value)
-      else
-        value
+    value = @get('unfilteredValue')
+    if @filterFunctions.length > 0
+      @filterFunctions.reduce((value, fn, i) =>
+        # Get any argument keypaths from the context stored at parse time.
+        args = @filterArguments[i].map (argument) ->
+          if argument._keypath
+            argument.context.get(argument._keypath)
+          else
+            argument
+        # Apply the filter.
+        fn(value, args...)
+      , value)
+    else
+      value
 
   # The `unfilteredValue` is whats evaluated each time any dependents change.
   @accessor 'unfilteredValue', ->
-      # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
-      # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
-      if @get('key')
-        @get("keyContext.#{@get('key')}")
-      else
-        @get('value')
+    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
+    # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
+    if k = @get('key')
+      @get("keyContext.#{k}")
+    else
+      @get('value')
 
   # The `keyContext` accessor is
   @accessor 'keyContext', ->
-      unless @_keyContext
-        [unfilteredValue, @_keyContext] = @renderContext.findKey @key
-      @_keyContext
+    unless @_keyContext
+      [unfilteredValue, @_keyContext] = @renderContext.findKey @key
+    @_keyContext
 
   constructor: ->
     super
