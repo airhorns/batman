@@ -948,7 +948,7 @@ class Batman.App extends Batman.Object
         contexts: [@]
         node: document
 
-    if typeof @historyManager is 'undefined'
+    if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @historyManager = Batman.historyManager = new Batman.HashHistory @
       @historyManager.start()
 
