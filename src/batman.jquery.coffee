@@ -1,7 +1,7 @@
 #
 # batman.jquery.coffee
 # batman.js
-# 
+#
 # Created by Nicholas Small
 # Copyright 2011, JadedPixel Technologies, Inc.
 #
@@ -19,15 +19,35 @@ Batman.Request::send = (data) ->
     password: @get 'password'
     beforeSend: =>
       @loading yes
-    
+
     success: (response) =>
       @set 'response', response
       @success response
-    
+
     error: (xhr, status, error) =>
       @set 'response', error
       @error error
-    
+
     complete: =>
       @loading no
       @loaded yes
+
+Batman.mixins.animation =
+  show: (addToParent) ->
+    jq = $(@)
+    show = ->
+      jq.show 600
+
+    if addToParent
+      addToParent.append?.appendChild @
+      addToParent.before?.parentNode.insertBefore @, addToParent.before
+
+      jq.hide()
+      setTimeout show, 0
+    else
+      show()
+    @
+  hide: (removeFromParent) ->
+    $(@).hide 600, =>
+      @parentNode?.removeChild @
+    @

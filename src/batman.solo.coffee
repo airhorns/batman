@@ -1,7 +1,7 @@
 #
 # batman.nodep.coffee
 # batman.js
-# 
+#
 # Created by Nicholas Small
 # Copyright 2011, JadedPixel Technologies, Inc.
 #
@@ -20,21 +20,55 @@
 
 Batman.Request::send = (data) ->
   @loading yes
-  
+
   reqwest
     url: @get 'url'
     method: @get 'method'
     type: @get 'type'
     data: data || @get 'data'
-    
+
     success: (response) =>
       @set 'response', response
       @success response
-    
+
     failure: (error) =>
       @set 'response', error
       @error error
-    
+
     complete: =>
       @loading no
       @loaded yes
+
+prefixes = ['Webkit', 'Moz', 'O', 'ms', '']
+Batman.mixins.animation =
+  initialize: ->
+    for prefix in prefixes
+      @style["#{prefix}Transform"] = 'scale(0, 0)'
+      @style.opacity = 0
+
+      @style["#{prefix}TransitionProperty"] = "#{if prefix then '-' + prefix.toLowerCase() + '-' else ''}transform, opacity"
+      @style["#{prefix}TransitionDuration"] = "0.8s, 0.55s"
+      @style["#{prefix}TransformOrigin"] = "left top"
+    @
+  show: (addToParent) ->
+    show = =>
+      @style.opacity = 1
+      for prefix in prefixes
+        @style["#{prefix}Transform"] = 'scale(1, 1)'
+      @
+
+    if addToParent
+      addToParent.append?.appendChild @
+      addToParent.before?.parentNode.insertBefore @, addToParent.before
+
+      setTimeout show, 0
+    else
+      show()
+    @
+  hide: (shouldRemove) ->
+    @style.opacity = 0
+    for prefix in prefixes
+      @style["#{prefix}Transform"] = 'scale(0, 0)'
+
+    setTimeout((=> @parentNode?.removeChild @), 600) if shouldRemove
+    @

@@ -2264,7 +2264,8 @@ Batman.DOM = {
 
       context.bind(node, key, (value) ->
         if !!value is !invert
-          if typeof node.show is 'function' then node.show() else node.style.display = originalDisplay
+          node.show?()
+          node.style.display = originalDisplay
         else
           if typeof node.hide is 'function' then node.hide() else node.style.display = 'none'
       , -> )
@@ -2398,7 +2399,10 @@ Batman.DOM = {
                 if collection.isSorted?()
                   observers.reorder()
                 else
-                  parent.insertBefore newNode, sibling
+                  if typeof newNode.show is 'function'
+                    newNode.show?(before: sibling)
+                  else
+                    parent.insertBefore newNode, sibling
 
                 parentRenderer.allow 'ready'
                 parentRenderer.allow 'rendered'
@@ -2409,7 +2413,11 @@ Batman.DOM = {
           for item in items
             oldNode = nodeMap.get item
             nodeMap.unset item
-            oldNode?.parentNode?.removeChild oldNode
+            if typeof oldNode.hide is 'function'
+              oldNode.hide yes
+            else
+              oldNode?.parentNode?.removeChild oldNode
+          true
 
         observers.reorder = ->
           items = collection.toArray()
@@ -2633,18 +2641,6 @@ for k in ['capitalize', 'singularize', 'underscore', 'camelize']
 # Mixins
 # ------
 mixins = Batman.mixins = new Batman.Object
-  animation:
-    initialize: () ->
-      @style['MozTransition'] = @style['WebkitTransition'] = @style['OTransition'] = @style['transition'] = "opacity .25s linear"
-    show: ->
-      @style.visibility = 'visible'
-      @style.opacity = 1
-    hide: ->
-      node = @
-      node.style.opacity = 0
-      setTimeout =>
-        node.style.visibility = 'hidden'
-      , 26
 
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.

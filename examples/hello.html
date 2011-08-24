@@ -6,8 +6,10 @@
     <link rel="stylesheet" href="resources/reset.css" type="text/css">
     <link rel="stylesheet" href="resources/hello.css" type="text/css">
 
-    <script src="/batman/dist/batman.solo.js"></script>
-    <script src="/batman/coffee-script.js"></script>
+    <script src="../lib/coffee-script.js"></script>
+    <script src="../lib/es5-shim.js"></script>
+    <script src="../lib/batman.js"></script>
+    <script src="../lib/batman.solo.js"></script>
 </head>
 
 <body>
@@ -29,7 +31,7 @@
             </fieldset>
         </form>
 
-        <h2 data-mixin="animation" data-showif="person.hasName">Hello, <span data-bind="person.fullName"></span>.</h2>
+        <h2 data-showif="person.hasName" data-mixin="animation">Hello, <span data-bind="person.fullName"></span></h2>
 
         <button data-bind-disabled="person.hasName | not" data-event-click="reset">Reset</button>
     </div>
