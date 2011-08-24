@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <title>batman.js{% if page.key or page.subkey %} &mdash; {% if page.subkey %}{{ page.subkey }}{% else %}{{ page.key }}{% endif %}{% endif %}</title>
-  
+
   <!-- Begin CSS -->
   <link rel="stylesheet" href="/css/reset.css">
   <link rel="stylesheet" href="/css/styles.css">
@@ -13,11 +13,11 @@
   <link rel="stylesheet" href="/css/syntax.css">
   <!--[if !IE 7]><style type="text/css">#content-wrapper{display:table;height:100%}</style><![endif]-->
   <!-- End CSS -->
-  
+
   <!-- Begin jquery -->
   <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
   <!-- End jquery -->
-  
+
   <!-- Begin scripts -->
   <script type="text/javascript" src="http://use.typekit.com/kek3ffx.js"></script>
   <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
@@ -43,13 +43,13 @@
   <!-- Begin header-wrapper -->
   <div id="header-wrapper">
     <div id="header">
-      
+
       <!-- Begin logo -->
       <h1 id="logo">
         <a href="/">batman.js</a>
       </h1>
       <!-- End logo -->
-      
+
       <!-- Begin navigation -->
       <div id="navigation">
         <ul>
@@ -61,16 +61,16 @@
         </ul>
       </div><div style="clear:both;"></div>
       <!-- End navigation -->
-      
+
       {% if page.use_intro %}{% include intro.html %}{% endif %}
     </div>
   </div>
   <!-- End header-wrapper -->
-  
+
   <!-- Begin content-wrapper -->
   <div id="content-wrapper">
     <div id="content">
-      
+
       {% if page.use_wrapper %}
       <div class="listy" id="content-column-wrapper">
         <h2>{{ page.title }}</h2>
@@ -78,15 +78,15 @@
       {% endif %}
 
         {{ content }}
-      
+
       {% if page.use_wrapper %}
       </div>
       {% endif %}
-      
+
     </div>
   </div>
   <!-- Begin content-wrapper -->
-  
+
   <!-- Begin footer-wrapper -->
   <div id="footer-wrapper">
    <div id="footer-content">
@@ -101,6 +101,11 @@
    </div>
   </div>
   <!-- End footer-wrapper -->
+
+<script type="text/javascript" src="http://www.observerapp.com/record.js"></script>
+<script type="text/javascript">
+try { Observerapp.record("4dc091148a0bee537a0225d9"); } catch(e) {};
+</script>
 
 </body>
 </html>
