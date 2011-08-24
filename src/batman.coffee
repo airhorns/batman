@@ -2635,14 +2635,15 @@ for k in ['capitalize', 'singularize', 'underscore', 'camelize']
 mixins = Batman.mixins = new Batman.Object
   animation:
     initialize: () ->
-      @style['MoxTransition'] = @style['WebkitTransition'] = @style['OTransition'] = @style['transition'] = "opacity .25s linear"
+      @style['MozTransition'] = @style['WebkitTransition'] = @style['OTransition'] = @style['transition'] = "opacity .25s linear"
     show: ->
       @style.visibility = 'visible'
       @style.opacity = 1
     hide: ->
-      @style.opacity = 0
+      node = @
+      node.style.opacity = 0
       setTimeout =>
-        @style.visibility = 'hidden'
+        node.style.visibility = 'hidden'
       , 26
 
 
