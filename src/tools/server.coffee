@@ -41,7 +41,7 @@ if typeof RUNNING_IN_BATMAN isnt 'undefined'
   cli.enable('daemon')
      .setUsage('batman server [OPTIONS]')
      .parse
-        port: ['p', "Port to run HTTP server on", "number", 8124]
+        port: ['p', "Port to run HTTP server on", "number", 1047]
         build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean", true]
         'build-dir': [false, "Where to store built coffeescript files (default is ./build)", "path"]
 
