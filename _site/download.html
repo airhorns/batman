@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>batman.js &mdash; download</title>
+  
+  <!-- Begin CSS -->
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/fancybox.css">
+  <link rel="stylesheet" href="/css/syntax.css">
+  <!--[if !IE 7]><style type="text/css">#content-wrapper{display:table;height:100%}</style><![endif]-->
+  <!-- End CSS -->
+  
+  <!-- Begin jquery -->
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  <!-- End jquery -->
+  
+  <!-- Begin scripts -->
+  <script type="text/javascript" src="http://use.typekit.com/kek3ffx.js"></script>
+  <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+  <script type="text/javascript" src="/js/scripts.js"></script>
+  <script type="text/javascript" src="/js/jquery.tweet.js"></script>
+  <script type="text/javascript" src="/js/jquery.fancybox-1.3.4.js"></script>
+  <script type="text/javascript" src="/js/jquery.easing-1.3.pack.js"></script>
+  <!-- End scripts -->
+
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-25319166-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+</head>
+<body id="sub">
+
+  <!-- Begin header-wrapper -->
+  <div id="header-wrapper">
+    <div id="header">
+      
+      <!-- Begin logo -->
+      <h1 id="logo">
+        <a href="/">batman.js</a>
+      </h1>
+      <!-- End logo -->
+      
+      <!-- Begin navigation -->
+      <div id="navigation">
+        <ul>
+          <li ><a href="/">Overview</a></li>
+          <li class="active"><a href="/download.html">Download</a></li>
+          <li ><a href="/examples.html">Examples</a></li>
+          <li ><a href="/documentation.html">Documentation</a></li>
+          <li ><a href="/community.html">Community</a></li>
+        </ul>
+      </div><div style="clear:both;"></div>
+      <!-- End navigation -->
+      
+      
+    </div>
+  </div>
+  <!-- End header-wrapper -->
+  
+  <!-- Begin content-wrapper -->
+  <div id="content-wrapper">
+    <div id="content">
+      
+      
+
+        <!-- Begin content-column-wrapper-full -->
+<div id="content-column-wrapper-full">
+  
+  <!-- Begin download-box -->
+  <div id="download-box">
+    <a class="btn-download" href="/downloads/batman.js-0.5.0.zip">Download Batman.js</a>
+    <p>
+      <span class="title">Latest version:</span> 0.5.0 alpha <br />
+      <span class="title">Updated:</span> August 23, 2011<br />
+      <span class="title">Size:</span> 15kb gzipped
+    </p>
+    <p>Initial alpha release of batman.js. Please see the blog post or release notes for more information.</p>
+  </div>
+  <!-- End download-box -->
+  
+  <h2>Starter Package</h2>
+  <p>The fastest way to try out batman.js is with the starter package. This simple zip file contains a prebuilt version of batman.js and an empty project directory for you to use as a playground. </p>
+  <p>The starter package only includes the front-end JavaScript, so you won't be able to use the tools or edit batman.js itself. If you want to experience batman.js at its fullest, see <a href="#installation">Regular Installation</a>.</p>
+  <h3>jQuery Adapter</h3>
+  <p>batman.js has no hard browser-land dependencies. That said, there are a number of things that are beyond the scope of the microframework, for example XHR and animation. These things are wrapped by batman objects, but the default build includes a small dependency file that outsources these things to other micro libraries.</p>
+  <p>The batman.solo.js dependency file adds less than 5kb to the framework, and is likely something you'll want to include. However, if you're already using jQuery in your app, jQuery can do all of these things for you. We've included an alternate jQuery adapter that will add no additional size to batman.js aside from the weight of jQuery itself.</p>
+  <p>If you would like to use jQuery in your project, simply source batman.jquery.js instead of batman.js, in addition to your jquery.js.</p>
+  
+  <h2 id="installation">Regular Installation</h2>
+  <p>To get full enjoyment from batman.js, you'll probably want to install the entire batman.js toolchain. Luckily, it couldn't be simpler than three easy steps.</p>
+  
+  <h3 class="clear">1. Install Node<img src="/images/logo-node.png" style="float:right;margin-top:-10px" /></h3>
+  <h6><a href="http://github.com/joyent/node/wiki/Installation">Installation Instructions</a></h6>
+  <p></p><br />
+  
+  <h3 class="clear">2. Install NPM<img src="/images/logo-npm.png" style="float:right;margin:25px;margin-right:4px;margin-top:2px" /></h3>
+  <div style="width:650px">
+<div class="highlight"><pre><code class="bash">curl http://npmjs.org/install.sh | sh
+</code></pre>
+</div>
+
+  </div>
+  
+  <h3 class="clear">3. Install batman.js<img src="/images/logo-black.png" style="float:right;margin:25px;margin-right:15px;margin-top:2px" /></h3>
+  <div style="width:650px">
+<div class="highlight"><pre><code class="bash">npm install -g batman
+</code></pre>
+</div>
+
+  </div>
+  
+  <h4>Start Kicking Apps</h4>
+  <div style="width:650px">
+<div class="highlight"><pre><code class="bash"><span class="nb">cd</span> ~/code
+batman new my_app
+</code></pre>
+</div>
+
+  </div>
+  <p><a href="/examples.html">Get started building things</a>...</p>
+
+</div>
+<!-- End content-column-wrapper-full -->
+
+      
+      
+      
+    </div>
+  </div>
+  <!-- Begin content-wrapper -->
+  
+  <!-- Begin footer-wrapper -->
+  <div id="footer-wrapper">
+   <div id="footer-content">
+
+    <ul>
+      <li>
+        <a class="shopify-logo" href="http://www.shopify.com" target="_blank"><img src="/images/logo-shopify.png" width="185" height="54" /></a>
+        Copyright 2011 &ndash; Shopify. Released under the <a href="http://www.opensource.org/licenses/mit-license.php" target="_blank">MIT license</a>.<br />
+        batman.js is a Shopify project, created by <a href="http://github.com/nciagra">Nick Small</a>. <a href="http://github.com/shopify/batman" class="inline-link">GitHub</a> <a href="http://twitter.com/nciagra" class="inline-link">Twitter</a></li>
+    </ul>
+
+   </div>
+  </div>
+  <!-- End footer-wrapper -->
+
+</body>
+</html>

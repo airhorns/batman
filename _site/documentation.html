@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>batman.js &mdash; documentation</title>
+  
+  <!-- Begin CSS -->
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/fancybox.css">
+  <link rel="stylesheet" href="/css/syntax.css">
+  <!--[if !IE 7]><style type="text/css">#content-wrapper{display:table;height:100%}</style><![endif]-->
+  <!-- End CSS -->
+  
+  <!-- Begin jquery -->
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  <!-- End jquery -->
+  
+  <!-- Begin scripts -->
+  <script type="text/javascript" src="http://use.typekit.com/kek3ffx.js"></script>
+  <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+  <script type="text/javascript" src="/js/scripts.js"></script>
+  <script type="text/javascript" src="/js/jquery.tweet.js"></script>
+  <script type="text/javascript" src="/js/jquery.fancybox-1.3.4.js"></script>
+  <script type="text/javascript" src="/js/jquery.easing-1.3.pack.js"></script>
+  <!-- End scripts -->
+
+  <script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-25319166-1']);
+    _gaq.push(['_trackPageview']);
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+</head>
+<body id="sub">
+
+  <!-- Begin header-wrapper -->
+  <div id="header-wrapper">
+    <div id="header">
+      
+      <!-- Begin logo -->
+      <h1 id="logo">
+        <a href="/">batman.js</a>
+      </h1>
+      <!-- End logo -->
+      
+      <!-- Begin navigation -->
+      <div id="navigation">
+        <ul>
+          <li ><a href="/">Overview</a></li>
+          <li ><a href="/download.html">Download</a></li>
+          <li ><a href="/examples.html">Examples</a></li>
+          <li class="active"><a href="/documentation.html">Documentation</a></li>
+          <li ><a href="/community.html">Community</a></li>
+        </ul>
+      </div><div style="clear:both;"></div>
+      <!-- End navigation -->
+      
+      
+    </div>
+  </div>
+  <!-- End header-wrapper -->
+  
+  <!-- Begin content-wrapper -->
+  <div id="content-wrapper">
+    <div id="content">
+      
+      
+
+        <script type='text/javascript'>
+$(function() {
+  var toc = $("<div id='left-sidebar' />")
+  var subnav = $("<ul class='subnav' />")
+  subnav.appendTo(toc)
+  
+  var wrapper = $('#content-column-wrapper')
+  wrapper.find('ul').css('list-style', 'disc inside none')
+  wrapper.find('h1,h2,h3').each(function(i, element){
+    subnav.append("<li><a href='#" + element.id + "'>" + element.innerHTML + "</a></li>")
+  })
+  
+  toc.insertBefore(wrapper)
+})
+
+</script>
+<div id='content-column-wrapper'><p>We are working on more substantial documentation for batman.js. In the meantime, this README documents your perspective as a client fairly thoroughly, and the <span style='font-weight:bold'><a href='/source.html'>annotated source</a></span> documents a large majority of the code. Both of these things are works in progress.</p>
+<h2 id='introduction'>Introduction</h2>
+
+<p><a href='http://batmanjs.org/'>batman.js</a> is a framework for building rich single-page browser applications. It is written in <a href='http://jashkenas.github.com/coffee-script/'>CoffeeScript</a> and its API is developed with CoffeeScript in mind, but of course you can use plain old JavaScript too.</p>
+
+<p>It&#8217;s got:</p>
+
+<ul>
+<li>a stateful MVC architecture</li>
+
+<li>a powerful binding system</li>
+
+<li>routable controller actions</li>
+
+<li>pure HTML views</li>
+
+<li>toolchain support built on <a href='http://nodejs.org'>node.js</a> and <a href='http://jashkenas.github.com/coffee-script/#cake'>cake</a></li>
+</ul>
+
+<p>We&#8217;re targeting Chrome, Safari 4+, Firefox 3+, and IE 7+ for compatibility, although some of those require you to include <a href='https://github.com/kriskowal/es5-shim'>es5shim</a>.</p>
+
+<h2 id='installation'>Installation</h2>
+
+<p>If you haven&#8217;t already, you&#8217;ll need to install <a href='http://nodejs.org'>node.js</a> and <a href='http://npmjs.org/'>npm</a>. Then:</p>
+<div class='highlight'><pre><code class='bash'>npm install -g batman
+</code></pre>
+</div>
+<p>Generate a new batman.js app somewhere, called bat_belt:</p>
+<div class='highlight'><pre><code class='bash'><span class='nb'>cd</span> ~/code
+batman new my_app
+</code></pre>
+</div>
+<p>Fire it up:</p>
+<div class='highlight'><pre><code class='bash'><span class='nb'>cd </span>my_app
+batman server <span class='c'># (or just &quot;batman s&quot;)</span>
+</code></pre>
+</div>
+<p>Now visit <a href='http://localhost:1047'>http://localhost:1047</a> and start playing around!</p>
+
+<h2 id='the_basics'>The Basics</h2>
+
+<p>Most of the classes you work with in your app code will descend from <code>Batman.Object</code>, which gives you some nice things that are used extensively by the rest of the system.</p>
+
+<h3 id='events'>Events</h3>
+
+<p>If you want to define observable events on your objects, just wrap a function with the <code>@event</code> macro in a class definition:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Gadget</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nb'>Object</span>
+  <span class='nv'>constructor: </span><span class='o'>-&gt;</span> <span class='vi'>@usesLeft = </span><span class='mi'>5</span>
+  <span class='nv'>use: </span><span class='nx'>@event</span> <span class='nf'>(times) -&gt;</span>
+    <span class='k'>return</span> <span class='kc'>false</span> <span class='nx'>unless</span> <span class='p'>(</span><span class='nx'>@usesLeft</span> <span class='o'>-</span> <span class='nx'>times</span><span class='p'>)</span> <span class='o'>&gt;=</span> <span class='mi'>0</span>
+    <span class='nx'>@usesLeft</span> <span class='o'>-=</span> <span class='nx'>times</span>
+</code></pre>
+</div>
+<p>You can observe the event with some callback, and fire it by just calling the event function directly. The observer callback gets whichever arguments were passed into the event function. But if the even function returns <code>false</code>, then the observers won&#8217;t fire:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>observe</span> <span class='s1'>&#39;use&#39;</span><span class='p'>,</span> <span class='nf'>(times) -&gt;</span>
+  <span class='nx'>console</span><span class='p'>.</span><span class='nx'>log</span> <span class='s2'>&quot;gadget was used #{times} times!&quot;</span>
+<span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>use</span><span class='p'>(</span><span class='mi'>2</span><span class='p'>)</span>
+<span class='c1'># console output: &quot;gadget was used 2 times!&quot;</span>
+<span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>use</span><span class='p'>(</span><span class='mi'>6</span><span class='p'>)</span>
+<span class='c1'># nothing happened!</span>
+</code></pre>
+</div>
+<h3 id='observable_properties'>Observable Properties</h3>
+
+<p>The <code>observe</code> function is also used to observe changes to properties. This forms the basis of the binding system. Here&#8217;s a simple example:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>observe</span> <span class='s1'>&#39;name&#39;</span><span class='p'>,</span> <span class='nf'>(newVal, oldVal) -&gt;</span>
+  <span class='nx'>console</span><span class='p'>.</span><span class='nx'>log</span> <span class='s2'>&quot;name changed from #{oldVal} to #{newVal}!&quot;</span>
+<span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>set</span> <span class='s1'>&#39;name&#39;</span><span class='p'>,</span> <span class='s1'>&#39;Batarang&#39;</span>
+<span class='c1'># console output: &quot;name changed from undefined to Batarang!&quot;</span>
+</code></pre>
+</div>
+<p>You can also <code>get</code> properties to return their values, and if you want to remove them completely then you can <code>unset</code> them:</p>
+<div class='highlight'><pre><code class='coffeescript'>    
+<span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>get</span> <span class='s1'>&#39;name&#39;</span>
+<span class='c1'># returns: &#39;Batarang&#39;</span>
+<span class='nx'>gadget</span><span class='p'>.</span><span class='nx'>unset</span> <span class='s1'>&#39;name&#39;</span>
+<span class='c1'># console output: &quot;name changed from Batarang to undefined!&quot;</span>
+</code></pre>
+</div>
+<p>By default, these properties are stored like plain old JavaScript properties: that is, <code>gadget.name</code> would return &#8220;Batarang&#8221; just like you&#8217;d expect. But if you set the gadget&#8217;s name with <code>gadget.name = &#39;Shark Spray&#39;</code>, then the observer function you set on <code>gadget</code> will not fire. So when you&#8217;re working with batman.js properties, use <code>get</code>/<code>set</code>/<code>unset</code> to read/write/delete properties (unless you )</p>
+
+<h3 id='custom_accessors'>Custom Accessors</h3>
+
+<p>What&#8217;s the point of using <code>gadget.get &#39;name&#39;</code> instead of just <code>gadget.name</code>? Well, a Batman properties doesn&#8217;t need to correspond with a vanilla JS property. Let&#8217;s write a <code>Box</code> class with a custom getter for its volume:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Box</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nb'>Object</span>
+  <span class='nv'>constructor: </span><span class='nf'>(@length, @width, @height) -&gt;</span>
+  <span class='nx'>@accessor</span> <span class='s1'>&#39;volume&#39;</span><span class='p'>,</span>
+    <span class='nv'>get: </span><span class='nf'>(key) -&gt;</span> <span class='nx'>@get</span><span class='p'>(</span><span class='s1'>&#39;length&#39;</span><span class='p'>)</span> <span class='o'>*</span> <span class='nx'>@get</span><span class='p'>(</span><span class='s1'>&#39;width&#39;</span><span class='p'>)</span> <span class='o'>*</span> <span class='nx'>@get</span><span class='p'>(</span><span class='s1'>&#39;height&#39;</span><span class='p'>)</span>
+    
+<span class='nv'>box = </span><span class='k'>new</span> <span class='nx'>Box</span><span class='p'>(</span><span class='mi'>16</span><span class='p'>,</span><span class='mi'>16</span><span class='p'>,</span><span class='mi'>12</span><span class='p'>)</span>
+<span class='nx'>box</span><span class='p'>.</span><span class='nx'>get</span> <span class='s1'>&#39;volume&#39;</span>
+<span class='c1'># returns 3072</span>
+</code></pre>
+</div>
+<p>The really cool thing about this is that, because we used <code>@get</code> to access the component properties of <code>volume</code>, batman.js can keep track of those dependencies and let us observe the <code>volume</code> directly:</p>
+<div class='highlight'><pre><code class='coffeescript'>    
+<span class='nx'>box</span><span class='p'>.</span><span class='nx'>observe</span> <span class='s1'>&#39;volume&#39;</span><span class='p'>,</span> <span class='nf'>(newVal, oldVal) -&gt;</span>
+  <span class='nx'>console</span><span class='p'>.</span><span class='nx'>log</span> <span class='s2'>&quot;volume changed from #{oldVal} to #{newVal}!&quot;</span>
+<span class='nx'>box</span><span class='p'>.</span><span class='nx'>set</span> <span class='s1'>&#39;height&#39;</span><span class='p'>,</span> <span class='mi'>6</span>
+<span class='c1'># console output: &quot;volume changed from 3072 to 1536!&quot;</span>
+</code></pre>
+</div>
+<p>The box&#8217;s <code>volume</code> is a read-only attribute here, because we only provided a getter in the accessor we defined. Here&#8217;s a <code>Person</code> class with a (rather naive) read-write accessor for their name:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Person</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nb'>Object</span>
+  <span class='nv'>constructor: </span><span class='nf'>(name) -&gt;</span> <span class='nx'>@set</span> <span class='s1'>&#39;name&#39;</span><span class='p'>,</span> <span class='nx'>name</span>
+  <span class='nx'>@accessor</span> <span class='s1'>&#39;name&#39;</span><span class='p'>,</span>
+    <span class='nv'>get: </span><span class='nf'>(key) -&gt;</span> <span class='p'>[</span><span class='nx'>@get</span><span class='p'>(</span><span class='s1'>&#39;firstName&#39;</span><span class='p'>),</span> <span class='nx'>@get</span><span class='p'>(</span><span class='s1'>&#39;lastName&#39;</span><span class='p'>)].</span><span class='nx'>join</span><span class='p'>(</span><span class='s1'>&#39; &#39;</span><span class='p'>)</span>
+    <span class='nv'>set: </span><span class='nf'>(key, val) -&gt;</span>
+      <span class='p'>[</span><span class='nx'>first</span><span class='p'>,</span> <span class='nx'>last</span><span class='p'>]</span> <span class='o'>=</span> <span class='nx'>val</span><span class='p'>.</span><span class='nx'>split</span><span class='p'>(</span><span class='s1'>&#39; &#39;</span><span class='p'>)</span>
+      <span class='nx'>@set</span> <span class='s1'>&#39;firstName&#39;</span><span class='p'>,</span> <span class='nx'>first</span>
+      <span class='nx'>@set</span> <span class='s1'>&#39;lastName&#39;</span><span class='p'>,</span> <span class='nx'>last</span>
+    <span class='nv'>unset: </span><span class='nf'>(key) -&gt;</span>
+      <span class='nx'>@unset</span> <span class='s1'>&#39;firstName&#39;</span>
+      <span class='nx'>@unset</span> <span class='s1'>&#39;lastName&#39;</span>
+</code></pre>
+</div>
+<h3 id='keypaths'>Keypaths</h3>
+
+<p>If you want to get at properties of properties, use keypaths:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='nx'>employee</span><span class='p'>.</span><span class='nx'>get</span> <span class='s1'>&#39;team.manager.name&#39;</span>
+</code></pre>
+</div>
+<p>This does what you expect and is pretty much the same as <code>employee.get(&#39;team&#39;).get(&#39;manager&#39;).get(&#39;name&#39;)</code>. If you want to observe a deep keypath for changes, go ahead:</p>
+<div class='highlight'><pre><code class='coffeescript'>    
+<span class='nx'>employee</span><span class='p'>.</span><span class='nx'>observe</span> <span class='s1'>&#39;team.manager.name&#39;</span><span class='p'>,</span> <span class='nf'>(newVal, oldVal) -&gt;</span>
+  <span class='nx'>console</span><span class='p'>.</span><span class='nx'>log</span> <span class='s2'>&quot;you now answer to #{newVal || &#39;nobody&#39;}!&quot;</span>
+<span class='nv'>manager = </span><span class='nx'>employee</span><span class='p'>.</span><span class='nx'>get</span> <span class='s1'>&#39;team.manager&#39;</span>
+<span class='nx'>manager</span><span class='p'>.</span><span class='nx'>set</span> <span class='s1'>&#39;name&#39;</span><span class='p'>,</span> <span class='s1'>&#39;Bill&#39;</span>
+<span class='c1'># console output: &quot;you now answer to Bill!&quot;</span>
+</code></pre>
+</div>
+<p>If any component of the keypath is set to something that would change the overall value, then observers will fire:</p>
+<div class='highlight'><pre><code class='coffeescript'>    
+<span class='nx'>employee</span><span class='p'>.</span><span class='nx'>set</span> <span class='s1'>&#39;team&#39;</span><span class='p'>,</span> <span class='nx'>larrysTeam</span>
+<span class='c1'># console output: &quot;you now answer to Larry!&quot;</span>
+<span class='nx'>employee</span><span class='p'>.</span><span class='nx'>team</span><span class='p'>.</span><span class='nx'>unset</span> <span class='s1'>&#39;manager&#39;</span>
+<span class='c1'># console output: &quot;you now answer to nobody!&quot;</span>
+<span class='nx'>employee</span><span class='p'>.</span><span class='nx'>set</span> <span class='s1'>&#39;team&#39;</span><span class='p'>,</span> <span class='nx'>jessicasTeam</span>
+<span class='c1'># console output: &quot;you now answer to Jessica!&quot;</span>
+</code></pre>
+</div>
+<p>batman.js&#8217;s dependency tracking system makes sure that no matter how weird your object graph gets, your observers will fire exactly when they should.</p>
+
+<h2 id='architecture'>Architecture</h2>
+
+<p>The MVC architecture of batman.js fits together like this:</p>
+
+<ul>
+<li>Controllers are persistent objects which render the views and give them mediated access to the model layer.</li>
+
+<li>Views are written in pure HTML, and use <code>data-*</code> attributes to create bindings with model data and event handlers exposed by the controllers.</li>
+
+<li>Models have validations, lifecycle events, a built-in identity map, and can use arbitrary storage backends (<code>Batman.LocalStorage</code> and <code>Batman.RestStorage</code> are included).</li>
+</ul>
+
+<p>A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app is handled via <a href='http://www.w3.org/QA/2011/05/hash_uris.html'>hash-bang fragment identifers</a>, with <a href='https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries'>pushState</a> support forthcoming.</p>
+
+<h3 id='controllers'>Controllers</h3>
+
+<p>batman.js controllers are singleton classes with one or more instance methods that can serve as routable actions. Because they&#8217;re singletons, instance variables persist as long as the app is running. You normally define your routes along with your actions, like so:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>MyApp</span><span class='p'>.</span><span class='nx'>UsersController</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Controller</span>
+  <span class='nv'>index: </span><span class='nx'>@route</span><span class='nf'>(&#39;/users&#39;) -&gt;</span>
+    <span class='nx'>@users</span> <span class='o'>||=</span> <span class='nx'>MyApp</span><span class='p'>.</span><span class='nx'>User</span><span class='p'>.</span><span class='nx'>get</span><span class='p'>(</span><span class='s1'>&#39;all&#39;</span><span class='p'>)</span>
+</code></pre>
+</div>
+<p>Now when you navigate to <code>/#!/users</code>, the dispatcher runs this <code>index</code> action with an implicit call to <code>@render</code>, which by default will look for a view at <code>/views/users/index.html</code>. The view is rendered within the main content container of the page, which is designated by setting <code>data-yield=&quot;main&quot;</code> on some tag in the layout&#8217;s HTML.</p>
+
+<p>Controllers are also a fine place to put event handlers used by your views. Here&#8217;s one that uses <a href='http://jquery.com/'>jQuery</a> to toggle a CSS class on a button:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>MyApp</span><span class='p'>.</span><span class='nx'>BigRedButtonController</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Controller</span>
+  <span class='nv'>index: </span><span class='nx'>@route</span><span class='nf'>(&#39;/button&#39;) -&gt;</span>
+  
+  <span class='nv'>buttonWasClicked: </span><span class='nf'>(node, event) -&gt;</span>
+    <span class='nx'>$</span><span class='p'>(</span><span class='nx'>node</span><span class='p'>).</span><span class='nx'>toggleClass</span><span class='p'>(</span><span class='s1'>&#39;activated&#39;</span><span class='p'>)</span>
+</code></pre>
+</div>
+<h3 id='views'>Views</h3>
+
+<p>You write views in plain HTML. These aren&#8217;t templates in the usual sense: the HTML is rendered in the page as-is, and you use <code>data-*</code> attributes to specify how different parts of the view bind to your app&#8217;s data. Here&#8217;s a very small view which displays a user&#8217;s name and avatar:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='o'>&lt;</span><span class='nx'>div</span> <span class='k'>class</span><span class='o'>=</span><span class='s2'>&quot;user&quot;</span><span class='o'>&gt;</span>
+  <span class='o'>&lt;</span><span class='nx'>img</span> <span class='nx'>data</span><span class='o'>-</span><span class='nx'>bind</span><span class='o'>-</span><span class='nx'>src</span><span class='o'>=</span><span class='s2'>&quot;user.avatarURL&quot;</span> <span class='o'>/&gt;</span>
+  <span class='o'>&lt;</span><span class='nx'>p</span> <span class='nx'>data</span><span class='o'>-</span><span class='nx'>bind</span><span class='o'>=</span><span class='s2'>&quot;user.name&quot;</span><span class='o'>&gt;&lt;</span><span class='err'>/p&gt;</span>
+<span class='o'>&lt;</span><span class='err'>/div&gt;</span>
+</code></pre>
+</div>
+<p>The <code>data-bind</code> attribute on the <code>&lt;p&gt;</code> tag sets up a binding between the user&#8217;s <code>name</code> property and the content of the tag. The <code>data-bind-src</code> attribute on the <code>&lt;img&gt;</code> tag binds the user&#8217;s <code>avatarURL</code> property to the <code>src</code> attribute of the tag. You can do the same thing for arbitrary attribute names, so for example <code>data-bind-href</code> would bind to the <code>href</code> attribute.</p>
+
+<p>batman.js uses a bunch of these data attributes for different things:</p>
+
+<h4 id='binding_properties'>Binding properties</h4>
+
+<ul>
+<li>
+<p><code>data-bind=&quot;foo.bar&quot;</code>: for most tags, this defines a one-way binding with the contents of the node: when the given property <code>foo.bar</code> changes, the contents of the node are set to that value. When <code>data-bind</code> is set on a form input tag, a <em>two-way</em> binding is defined with the <em>value</em> of the node, such that any changes from the user will update the property in realtime.</p>
+</li>
+
+<li>
+<p><code>data-bind-foo=&quot;bar.baz&quot;</code>: defines a one-way binding from the given property <code>bar.baz</code> to any attribute <code>foo</code> on the node.</p>
+</li>
+
+<li>
+<p><code>data-foreach-bar=&quot;foo.bars&quot;</code>: used to render a collection of zero or more items. If the collection descends from <code>Batman.Set</code>, then the DOM will be updated when items are added, removed. If it&#8217;s a descendent of <code>Batman.SortableSet</code>, then its current sort.</p>
+</li>
+</ul>
+
+<h4 id='handling_dom_events'>Handling DOM events</h4>
+
+<ul>
+<li>
+<p><code>data-event-click=&quot;foo.bar&quot;</code>: when this node is clicked, the function specified by the keypath <code>foo.bar</code> is called with the node object as the first argument, and the click event as the second argument.</p>
+</li>
+
+<li>
+<p><code>data-event-change=&quot;foo.bar&quot;</code>: like <code>data-event-click</code>, but fires on change events.</p>
+</li>
+
+<li>
+<p><code>data-event-submit=&quot;foo.bar&quot;</code>: like <code>data-event-click</code>, but fires either when a form is submitted (in the case of <code>&lt;form&gt;</code> nodes) or when a user hits the enter key when an <code>&lt;input&gt;</code> or <code>&lt;textarea&gt;</code> has focus.</p>
+</li>
+</ul>
+
+<h4 id='managing_contexts'>Managing contexts</h4>
+
+<ul>
+<li><code>data-context=&quot;foo.bar&quot;</code>: pushes a new context onto the context stack for children of this node. If the context is <code>foo.bar</code>, then children of this node may access properties on <code>foo.bar</code> directly, as if they were properties of the controller.</li>
+</ul>
+
+<h4 id='rendering_views'>Rendering Views</h4>
+
+<ul>
+<li>
+<p><code>data-yield=&quot;identifier&quot;</code>: used in your layout to specify the locations that other views get rendered into when they are rendered. By default, a controller action renders each whole view into whichever node is set up to yield <code>&quot;main&quot;</code>. If you want some content in a view to be rendered into a different <code>data-yield</code> node, you can use <code>data-contentfor</code>.</p>
+</li>
+
+<li>
+<p><code>data-contentfor=&quot;identifier&quot;</code>: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has <code>data-yield=&quot;identifier&quot;</code>. For example, if your layout has <code>&quot;main&quot;</code> and <code>&quot;sidebar&quot;</code> yields, then you may put a <code>data-contentfor=&quot;sidebar&quot;</code> node in a view and it will be rendered in the sidebar instead of the main content area.</p>
+</li>
+
+<li>
+<p><code>data-partial=&quot;/views/shared/sidebar&quot;</code>: renders the view at the path <code>/views/shared/sidebar.html</code> within this node.</p>
+</li>
+</ul>
+
+<h3 id='models'>Models</h3>
+
+<p>batman.js models:</p>
+
+<ul>
+<li>can persist to various storage backends</li>
+
+<li>only serialize a defined subset of their properties as JSON</li>
+
+<li>use a state machine to expose lifecycle events</li>
+
+<li>can validate with synchronous or asynchronous operations</li>
+</ul>
+
+<h4 id='attributes'>Attributes</h4>
+
+<p>A model object may have arbitrary properties set on it, just like any JS object. Only some of those properties are serialized and persisted to its storage backends, however. You define persisted attributes on a model with the <code>encode</code> macro:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Article</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Model</span>
+  <span class='nx'>@encode</span> <span class='s1'>&#39;body_html&#39;</span><span class='p'>,</span> <span class='s1'>&#39;title&#39;</span><span class='p'>,</span> <span class='s1'>&#39;author&#39;</span><span class='p'>,</span> <span class='s1'>&#39;summary_html&#39;</span><span class='p'>,</span> <span class='s1'>&#39;blog_id&#39;</span><span class='p'>,</span> <span class='s1'>&#39;id&#39;</span><span class='p'>,</span> <span class='s1'>&#39;user_id&#39;</span>
+  <span class='nx'>@encode</span> <span class='s1'>&#39;created_at&#39;</span><span class='p'>,</span> <span class='s1'>&#39;updated_at&#39;</span><span class='p'>,</span> <span class='s1'>&#39;published_at&#39;</span><span class='p'>,</span>
+    <span class='nv'>encode: </span><span class='nf'>(time) -&gt;</span> <span class='nx'>time</span><span class='p'>.</span><span class='nx'>toISOString</span><span class='p'>()</span>
+    <span class='nv'>decode: </span><span class='nf'>(timeString) -&gt;</span> <span class='nb'>Date</span><span class='p'>.</span><span class='nx'>parse</span><span class='p'>(</span><span class='nx'>timeString</span><span class='p'>)</span>
+  <span class='nx'>@encode</span> <span class='s1'>&#39;tags&#39;</span><span class='p'>,</span>
+    <span class='nv'>encode: </span><span class='nf'>(tagSet) -&gt;</span> <span class='nx'>tagSet</span><span class='p'>.</span><span class='nx'>toArray</span><span class='p'>().</span><span class='nx'>join</span><span class='p'>(</span><span class='s1'>&#39;, &#39;</span><span class='p'>)</span>
+    <span class='nv'>decode: </span><span class='nf'>(tagString) -&gt;</span> <span class='k'>new</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Set</span><span class='p'>(</span><span class='nx'>tagString</span><span class='p'>.</span><span class='nx'>split</span><span class='p'>(</span><span class='s1'>&#39;, &#39;</span><span class='p'>)...)</span>
+</code></pre>
+</div>
+<p>Given one or more strings as arguments, <code>@encode</code> will register these properties as persisted attributes of the model, to be serialized in the model&#8217;s <code>toJSON()</code> output and extracted in its <code>fromJSON()</code>. Properties that aren&#8217;t specified with <code>@encode</code> will be ignored for both serialization and deserialization. If an optional coder object is provided as the last argument, its <code>encode</code> and <code>decode</code> functions will be used by the model for serialization and deserialization, respectively.</p>
+
+<p>By default, a model&#8217;s primary key (the unchanging property which uniquely indexes its instances) is its <code>id</code> property. If you want your model to have a different primary key, specify it with the <code>@id</code> macro:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>User</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Model</span>
+  <span class='nx'>@encode</span> <span class='s1'>&#39;handle&#39;</span><span class='p'>,</span> <span class='s1'>&#39;email&#39;</span>
+  <span class='nx'>@id</span> <span class='s1'>&#39;handle&#39;</span>
+</code></pre>
+</div>
+<h4 id='states'>States</h4>
+
+<ul>
+<li><code>empty</code>: a new model instance remains in this state until some persisted attribute is set on it.</li>
+
+<li><code>loading</code>: entered when the model instance&#8217;s <code>load()</code> method is called.</li>
+
+<li><code>loaded</code>: entered after the model&#8217;s storage adapter has completed loading updated attributes for the instance. Immediately transitions to the <code>clean</code> state.</li>
+
+<li><code>dirty</code>: entered when one of the model&#8217;s persisted attributes changes.</li>
+
+<li><code>validating</code>: entered when the validation process has started.</li>
+
+<li><code>validated</code>: entered when the validation process has completed. Immediately after entering this state, the model instance transitions back to either the <code>dirty</code> or <code>clean</code> state.</li>
+
+<li><code>saving</code>: entered when the storage adapter has begun saving the model.</li>
+
+<li><code>saved</code>: entered after the model&#8217;s storage adapter has completed saving the model. Immediately transitions to the <code>clean</code> state.</li>
+
+<li><code>clean</code>: indicates that none of an instance&#8217;s attributes have been changed since the model was <code>saved</code> or <code>loaded</code>.</li>
+
+<li><code>destroying</code>: entered when the model instance&#8217;s <code>destroy()</code> method is called.</li>
+
+<li><code>destroyed</code>: indicates that the storage adapter has completed destroying this instance.</li>
+</ul>
+
+<h4 id='validation'>Validation</h4>
+
+<p>Before models are saved to persistent storage, they run through any validations you&#8217;ve defined and the save is cancelled if any errors were added to the model during that process.</p>
+
+<p>Validations are defined with the <code>@validate</code> macro by passing it the properties to be validated and an options object representing the particular validations to perform:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>User</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Model</span>
+  <span class='nx'>@encode</span> <span class='s1'>&#39;login&#39;</span><span class='p'>,</span> <span class='s1'>&#39;password&#39;</span>
+  <span class='nx'>@validate</span> <span class='s1'>&#39;login&#39;</span><span class='p'>,</span> <span class='nv'>presence: </span><span class='kc'>yes</span><span class='p'>,</span> <span class='nv'>maxLength: </span><span class='mi'>16</span>
+  <span class='nx'>@validate</span> <span class='s1'>&#39;password&#39;</span><span class='p'>,</span> <span class='s1'>&#39;passwordConfirmation&#39;</span><span class='p'>,</span> <span class='nv'>presence: </span><span class='kc'>yes</span><span class='p'>,</span> <span class='nv'>lengthWithin: </span><span class='p'>[</span><span class='mi'>6</span><span class='p'>,</span><span class='mi'>255</span><span class='p'>]</span>
+      
+<span class='nx'>The</span> <span class='nx'>options</span> <span class='nx'>get</span> <span class='nx'>their</span> <span class='nx'>meaning</span> <span class='nx'>from</span> <span class='nx'>subclasses</span> <span class='k'>of</span> <span class='o'>`</span><span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Validator</span><span class='o'>`</span> <span class='nx'>which</span> <span class='nx'>have</span> <span class='nx'>been</span> <span class='nx'>registered</span> <span class='k'>by</span> <span class='nx'>adding</span> <span class='nx'>them</span> <span class='nx'>to</span> <span class='nx'>the</span> <span class='o'>`</span><span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Validators</span><span class='o'>`</span> <span class='nx'>array</span><span class='p'>.</span> <span class='nx'>For</span> <span class='nx'>example</span><span class='p'>,</span> <span class='nx'>the</span> <span class='o'>`</span><span class='nx'>maxLength</span><span class='o'>`</span> <span class='o'>and</span> <span class='o'>`</span><span class='nx'>lengthWithin</span><span class='o'>`</span> <span class='nx'>options</span> <span class='nx'>are</span> <span class='nx'>used</span> <span class='k'>by</span> <span class='o'>`</span><span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>LengthValidator</span><span class='o'>`</span><span class='p'>.</span>
+</code></pre>
+</div>
+<h4 id='persistence'>Persistence</h4>
+
+<p>To specify a storage adapter for persisting a model, use the <code>@persist</code> macro in its class definition:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Product</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Model</span>
+  <span class='nx'>@persist</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>LocalStorage</span>
+</code></pre>
+</div>
+<p>Now when you call <code>save()</code> or <code>load()</code> on a product, it will use the browser window&#8217;s <a href='https://developer.mozilla.org/en/dom/storage'>localStorage</a> to retrieve or store the serialized data.</p>
+
+<p>If you have a REST backend you want to connect to, <code>Batman.RestStorage</code> is a simple storage adapter which can be subclassed and extended to suit your needs. By default, it will assume your CamelCased-singular <code>Product</code> model is accessible at the underscored-pluralized &#8220;/products&#8221; path, with instances of the resource accessible at <code>/products/:id</code>. You can override these path defaults by assigning either a string or a function-returning-a-string to the <code>url</code> property of your model class (for the collection path) or to the prototype (for the member path). For example:</p>
+<div class='highlight'><pre><code class='coffeescript'><span class='k'>class</span> <span class='nx'>Product</span> <span class='k'>extends</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>Model</span>
+  <span class='nx'>@persist</span> <span class='nx'>Batman</span><span class='p'>.</span><span class='nx'>RestStorage</span>
+  <span class='vi'>@url = </span><span class='s2'>&quot;/admin/products&quot;</span>
+  <span class='nv'>url: </span><span class='o'>-&gt;</span> <span class='s2'>&quot;/admin/products/#{@id}&quot;</span>
+</code></pre>
+</div>
+<h2 id='contributing'>Contributing</h2>
+
+<p>Well-tested contributions are always welcome! Here&#8217;s what you should do:</p>
+
+<h4 id='1_clone_the_repo'>1. Clone the repo</h4>
+<div class='highlight'><pre><code class='bash'>git clone https://github.com/Shopify/batman.git
+</code></pre>
+</div>
+<h4 id='2_run_the_tests'>2. Run the tests</h4>
+
+<p>You can test batman.js locally either on the command line or in the browser and both should work. Tests are written in Coffeescript using <a href='http://docs.jquery.com/QUnit#API_documentation'>QUnit</a>.</p>
+
+<p>To run on the command line, run the following command from the project root:</p>
+<div class='highlight'><pre><code class='bash'>cake <span class='nb'>test</span>
+</code></pre>
+</div>
+<p>To run in the browser (so you can interactively debug perhaps), start a web server to serve up the tests:</p>
+<div class='highlight'><pre><code class='bash'>batman server
+</code></pre>
+</div>
+<p>&#8230;then visit <a href='http://localhost:1047/test/batman/test.html'>http://localhost:1047/test/batman/test.html</a> in your browser.</p>
+
+<h4 id='3_write_some_testdriven_code'>3. Write some test-driven code</h4>
+
+<p>The tests are in <code>tests/batman</code>. You&#8217;ll need to source any new test files in <code>tests/batman/test.html</code>.</p>
+
+<h4 id='4_create_a_pull_request'>4. Create a pull request</h4>
+
+<p>If it&#8217;s good code that fits with the goals of the project, we&#8217;ll merge it in!</p>
+
+<h2 id='license'>License</h2>
+
+<p>batman.js is copyright 2011 by <a href='http://www.shopify.com'>Shopify</a>, released under the MIT License (see LICENSE for details).</p>
+</div>
+      
+      
+      
+    </div>
+  </div>
+  <!-- Begin content-wrapper -->
+  
+  <!-- Begin footer-wrapper -->
+  <div id="footer-wrapper">
+   <div id="footer-content">
+
+    <ul>
+      <li>
+        <a class="shopify-logo" href="http://www.shopify.com" target="_blank"><img src="/images/logo-shopify.png" width="185" height="54" /></a>
+        Copyright 2011 &ndash; Shopify. Released under the <a href="http://www.opensource.org/licenses/mit-license.php" target="_blank">MIT license</a>.<br />
+        batman.js is a Shopify project, created by <a href="http://github.com/nciagra">Nick Small</a>. <a href="http://github.com/shopify/batman" class="inline-link">GitHub</a> <a href="http://twitter.com/nciagra" class="inline-link">Twitter</a></li>
+    </ul>
+
+   </div>
+  </div>
+  <!-- End footer-wrapper -->
+
+</body>
+</html>

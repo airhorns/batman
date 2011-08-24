@@ -1,0 +1,57 @@
+---
+key: community
+layout: default
+---
+
+<!-- Begin left-sidebar -->
+<div id="left-sidebar">
+
+<ul class="subnav">
+  <li><a href="{{ site.posts.first.url }}">Blog</a></li>
+  <li><a href="#issues">Issues</a></li>
+  <li><a href="#source">Source</a></li>
+  <li><a href="#list">Mailing List</a></li>
+  <li><a href="#irc">IRC Chat</a></li>
+</ul>
+
+</div>
+<!-- End left-sidebar -->
+
+<!-- Begin content-column-wrapper -->
+<div id="content-column-wrapper">
+  
+  <h2 id="issues">Issues</h2>
+  <p>Found a bug or other nasty in batman.js? It's alpha software, so it's bound to happen! We use GitHub's issue tracker to manage our issues.</p>
+  <p>Access the issue tracker at <a style="font-weight:bold"  href="http://github.com/Shopify/batman/issues">http://github.com/Shopify/batman/issues</a>.</p>
+  
+  <h2 id="source">Source</h2>
+  <p>batman.js is released as open source software under the MIT license. We invite you to download, modify, and use the code for any purpose the license allows. If you do anything you think other people would find useful, we love pull requests!</p>
+  <p>The entire project is hosted on GitHub. You can find the repo at <a style="font-weight:bold" href="http://github.com/Shopify/batman">http://github.com/Shopify/batman</a>.</p>
+  <p>GitHub makes collaboration super simple. You can easily fork your own copy of batman.js, and then submit pull requests to have your changes merged back into batman mainline. See the <a href="/documentation.html#contributing">Contributing section</a> of the README for more information on contributing.</p>
+  
+  <h2 id="list">Mailing List</h2>
+  <p>For the sake of asynchronous communication, most discussion and announcements about batman.js will take place via the mailing list, hosted on Google Groups.</p>
+  
+  <img src="http://groups.google.com/intl/en/images/logos/groups_logo_sm.gif"
+         height=30 width=140 alt="Google Groups">
+  <form action="http://groups.google.com/group/batmanjs/boxsubscribe">
+    <input type="text" class="email-signup" placeholder="Email Address" name="email" />
+    <input type="submit" class="email-submit" value="Subscribe" name="sub"/>
+  </form>
+  <a href="http://groups.google.com/group/batmanjs">Visit the group</a>
+  <div class="clearfix"></div>
+  <p>&nbsp;</p>
+  
+  <h2 id="irc">IRC Chat</h2>
+  <p>If you need an answer fast, you may find help in our IRC room.</p>
+{% highlight yaml %}
+server: irc.freenode.net
+room: #batmanjs
+{% endhighlight %}
+
+  <p>If you don't have an IRC client, you can chat directly in the browser:</p>
+  
+  <iframe src="http://webchat.freenode.net?channels=batmanjs" style="width:100%" height="400"></iframe>
+  
+</div>
+<!-- End content-column-wrapper -->

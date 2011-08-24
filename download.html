@@ -1,0 +1,60 @@
+---
+key: download
+layout: default
+---
+
+<!-- Begin content-column-wrapper-full -->
+<div id="content-column-wrapper-full">
+  
+  <!-- Begin download-box -->
+  <div id="download-box">
+    <a class="btn-download" href="{{ site.download.filename }}">Download Batman.js</a>
+    <p>
+      <span class="title">Latest version:</span> {{ site.download.version }} <br />
+      <span class="title">Updated:</span> {{ site.download.date }}<br />
+      <span class="title">Size:</span> {{ site.download.size }}
+    </p>
+    <p>{{ site.download.blurb }}</p>
+  </div>
+  <!-- End download-box -->
+  
+  <h2>Starter Package</h2>
+  <p>The fastest way to try out batman.js is with the starter package. This simple zip file contains a prebuilt version of batman.js and an empty project directory for you to use as a playground. </p>
+  <p>The starter package only includes the front-end JavaScript, so you won't be able to use the tools or edit batman.js itself. If you want to experience batman.js at its fullest, see <a href="#installation">Regular Installation</a>.</p>
+  <h3>jQuery Adapter</h3>
+  <p>batman.js has no hard browser-land dependencies. That said, there are a number of things that are beyond the scope of the microframework, for example XHR and animation. These things are wrapped by batman objects, but the default build includes a small dependency file that outsources these things to other micro libraries.</p>
+  <p>The batman.solo.js dependency file adds less than 5kb to the framework, and is likely something you'll want to include. However, if you're already using jQuery in your app, jQuery can do all of these things for you. We've included an alternate jQuery adapter that will add no additional size to batman.js aside from the weight of jQuery itself.</p>
+  <p>If you would like to use jQuery in your project, simply source batman.jquery.js instead of batman.js, in addition to your jquery.js.</p>
+  
+  <h2 id="installation">Regular Installation</h2>
+  <p>To get full enjoyment from batman.js, you'll probably want to install the entire batman.js toolchain. Luckily, it couldn't be simpler than three easy steps.</p>
+  
+  <h3 class="clear">1. Install Node<img src="/images/logo-node.png" style="float:right;margin-top:-10px" /></h3>
+  <h6><a href="http://github.com/joyent/node/wiki/Installation">Installation Instructions</a></h6>
+  <p></p><br />
+  
+  <h3 class="clear">2. Install NPM<img src="/images/logo-npm.png" style="float:right;margin:25px;margin-right:4px;margin-top:2px" /></h3>
+  <div style="width:650px">
+{% highlight bash %}
+curl http://npmjs.org/install.sh | sh
+{% endhighlight %}
+  </div>
+  
+  <h3 class="clear">3. Install batman.js<img src="/images/logo-black.png" style="float:right;margin:25px;margin-right:15px;margin-top:2px" /></h3>
+  <div style="width:650px">
+{% highlight bash %}
+npm install -g batman
+{% endhighlight %}
+  </div>
+  
+  <h4>Start Kicking Apps</h4>
+  <div style="width:650px">
+{% highlight bash %}
+cd ~/code
+batman new my_app
+{% endhighlight %}
+  </div>
+  <p><a href="/examples.html">Get started building things</a>...</p>
+
+</div>
+<!-- End content-column-wrapper-full -->

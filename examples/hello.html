@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello Batman</title>
+
+    <link rel="stylesheet" href="resources/reset.css" type="text/css">
+    <link rel="stylesheet" href="resources/hello.css" type="text/css">
+
+    <script src="lib/coffee-script.js"></script>
+    <script src="lib/es5-shim.js"></script>
+    <script src="lib/dist/batman.min.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <h1 data-mixin="animation" data-hideif="person.hasName">Please enter your name</h1>
+
+        <form class="span-12">
+            <fieldset>
+              <p>
+                  <label>First Name</label><br />
+                  <input class="title" type="text" data-bind="person.firstName" />
+              </p>
+
+              <p>
+                  <label>Last Name</label><br />
+                  <input class="title" type="text" data-bind="person.lastName" />
+              </p>
+            </fieldset>
+        </form>
+
+        <h2 data-showif="person.hasName" data-mixin="animation">Hello, <span data-bind="person.fullName"></span></h2>
+
+        <button data-bind-disabled="person.hasName | not" data-event-click="person.reset">Reset</button>
+    </div>
+
+    <script type="text/coffeescript">
+      class Hello extends Batman.App
+
+      class Person extends Batman.Model
+        @accessor 'fullName', -> "#{@get 'firstName'} #{@get 'lastName'}"
+        @accessor 'hasName', -> @get('fullName').length > 1
+
+        reset: =>
+          @set 'firstName', ''
+          @set 'lastName', ''
+          @
+
+      Hello.person = (new Person()).reset()
+      Hello.run()
+    </script>
+</body>
+</html>

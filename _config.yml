@@ -1,0 +1,15 @@
+pygments: true
+download:
+    version: 0.5.0 alpha
+    filename: /downloads/batman.js-0.5.0.zip
+    
+    date: "August 23, 2011"
+    size: 15kb gzipped
+    blurb: Initial alpha release of batman.js. Please see the blog post or release notes for more information.
+    
+examples:
+    - title: Hello World
+      key: hello world
+    
+    - title: Alfred - Batman's Todos
+      key: alfred

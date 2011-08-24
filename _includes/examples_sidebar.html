@@ -1,0 +1,15 @@
+<!-- Begin left-sidebar -->
+<div id="left-sidebar">
+
+<ul class="subnav">
+  {% for example in site.examples %}
+  {% if page.subkey == example.key %}
+  <li class="active">{{ example.title }}</li>
+  {% else %}
+  <li><a href="/{{ example.key | replace: ' ', '_' }}.html">{{ example.title }}</a></li>
+  {% endif %}
+  {% endfor %}
+</ul>
+
+</div>
+<!-- End left-sidebar -->
