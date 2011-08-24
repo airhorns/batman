@@ -212,6 +212,13 @@ Controllers are also a fine place to put event handlers used by your views. Here
       buttonWasClicked: (node, event) ->
         $(node).toggleClass('activated')
 
+If you want to redirect to some route, you can use `@redirect`:
+
+    buttonWasClicked: (node, event) ->
+      $(node).toggleClass('activated')
+      @redirect '/apocalypse/'
+      
+
 ### Views
 
 You write views in plain HTML. These aren't templates in the usual sense: the HTML is rendered in the page as-is, and you use `data-*` attributes to specify how different parts of the view bind to your app's data. Here's a very small view which displays a user's name and avatar:
