@@ -523,6 +523,21 @@ QUnit.module 'Batman.View rendering formfor'
     @User = class User extends MockClass
       name: 'default name'
 
+asyncTest 'it should update to a binding upon its creation', 2, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+  context = new Batman.Object()
+
+  node = render source, context, (node) =>
+    equals $('input', node).val(), ""
+    context.set 'instanceOfUser', new @User
+    delay =>
+      equals $('input', node).val(), "default name"
+
+
 asyncTest 'it should pull in objects for form rendering', 1, ->
   source = '''
   <form data-formfor-user="instanceOfUser">
