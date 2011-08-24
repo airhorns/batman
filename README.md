@@ -2,7 +2,7 @@
 
 [batman.js](http://batmanjs.org/) is a framework for building rich single-page browser applications. It is written in [CoffeeScript](http://jashkenas.github.com/coffee-script/) and its API is developed with CoffeeScript in mind, but of course you can use plain old JavaScript too.
 
-It's got:
+#### It's got:
 
 * a stateful MVC architecture
 * a powerful binding system
@@ -14,7 +14,7 @@ The APIs are heavily inspired by [Rails](http://rubyonrails.org/) and designed t
 
 We're targeting Chrome, Safari 4+, Firefox 3+, and IE 7+ for compatibility, although some of those require you to include [es5shim](https://github.com/kriskowal/es5-shim).
 
-Here's some code:
+#### Here's some code:
 
 ```coffeescript
 class Shopify extends Batman.App
