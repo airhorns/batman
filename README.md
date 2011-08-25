@@ -48,17 +48,23 @@ class Shopify.ProductsController extends Batman.Controller
 
 If you haven't already, you'll need to install [node.js](http://nodejs.org) and [npm](http://npmjs.org/). Then:
 
-    npm install -g batman
+```bash
+npm install -g batman
+```
 
 Generate a new batman.js app somewhere, called my_app:
 
-    cd ~/code
-    batman new my_app
+```bash
+cd ~/code
+batman new my_app
+```
 
 Fire it up:
 
-    cd my_app
-    batman server # (or just "batman s")
+```bash
+cd my_app
+batman server # (or just "batman s")
+```
 
 Now visit [http://localhost:1047](http://localhost:1047) and start playing around!
 
@@ -413,7 +419,9 @@ Well-tested contributions are always welcome! Here's what you should do:
 
 #### 1. Clone the repo
 
-    git clone https://github.com/Shopify/batman.git
+```bash
+git clone https://github.com/Shopify/batman.git
+```
 
 #### 2. Run the tests
 
@@ -421,11 +429,15 @@ You can test batman.js locally either on the command line or in the browser and 
 
 To run on the command line, run the following command from the project root:
 
-    cake test
+```bash
+cake test
+```
 
 To run in the browser, start a web server to serve up the tests:
 
-    batman server
+```bash
+batman server
+```
 
 ...then visit `http://localhost:1047/tests/batman/test.html`.
 
