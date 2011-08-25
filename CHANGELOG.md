@@ -7,16 +7,22 @@ Maintenance Release
   - CI support with [Travis](http://travis-ci.org/#!/Shopify/batman)
 
 Bugfixes:
+
   - RestStorage uses correct HTTP methods and contentType
   - Some improvements for `batman new`, more coming in 0.5.2
   - DOM manipulation performance improvement
 
+Known issues:
+
+  - Apps generated with `batman new` are somewhat broken
+  - Generators allow too many non-alphanumeric characters
 
 ## 0.5.0 (August 23, 2011)
 
 Initial Release
 
 Known issues:
+
   - Inflector support is naive
   - Code is too big
   - Performance hasn't been investigated
@@ -24,6 +30,7 @@ Known issues:
   - Model error handling is callback based
 
 Missing features:
+
   - Model assosciations
   - Model scopes
   - Model pagination
