@@ -32,4 +32,4 @@ In other words, this is an alpha release. It should give you a good idea of wher
 
 It takes about 10 seconds to get a bare app generated and running on localhost, so it's easy to [start exploring](/download.html). Take a look at the [documentation](/documentation.html) and [examples](/examples.html), build some cool stuff, and [tell us all about it](http://groups.google.com/group/batmanjs) :)
 
-#### &mdash; Nick, James, Harry, and Kamil
+#### &mdash; [Nick](http://twitter.com/nciagra), [James](http://twitter.com/jamesmacaulay), [Harry](http://twitter.com/harrybrundage), and [Kamil](http://twitter.com/ktusznio)
