@@ -407,6 +407,8 @@ class Product extends Batman.Model
 
 # Contributing
 
+[![Build Status](https://secure.travis-ci.org/Shopify/batman.png)](http://travis-ci.org/Shopify/batman)
+
 Well-tested contributions are always welcome! Here's what you should do:
 
 #### 1. Clone the repo
