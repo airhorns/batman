@@ -23,6 +23,7 @@
     "build": "cake build"
   },
   "dependencies": {
+    "coffee-script": "~1.1",
     "connect": "~1.6.1"
   },
   "devDependencies": {
