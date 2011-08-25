@@ -50,7 +50,7 @@ cli.setArgv(process.argv)
 
 # Finally, we can actually start doing some work.
 switch cli.command
-  when 'server'
+  when 'serve', 'server'
     require('./server')
   when 'generate', 'new'
     require('./generator')

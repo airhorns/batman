@@ -22,6 +22,7 @@ cli.fatal = oldFatal;
 cli.enable('help');
 cli.setArgv(process.argv);
 switch (cli.command) {
+  case 'serve':
   case 'server':
     require('./server');
     break;
