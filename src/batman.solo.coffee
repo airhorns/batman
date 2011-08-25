@@ -315,8 +315,6 @@ Batman.Request::send = (data) ->
 
   options.headers['Content-type'] = @get 'contentType' if options.method in ['PUT', 'POST']
   reqwest options
-  debugger
-  true
 
 prefixes = ['Webkit', 'Moz', 'O', 'ms', '']
 Batman.mixins.animation =
