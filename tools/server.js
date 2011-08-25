@@ -16,11 +16,12 @@
       }));
     }
     server.use('/batman', connect.static(path.join(__dirname, '..', 'lib')));
-    server.listen(options.port, '127.0.0.1');
+    server.listen(options.port, options.host);
     return server;
   };
   if (typeof RUNNING_IN_BATMAN !== 'undefined') {
     cli.enable('daemon').setUsage('batman server [OPTIONS]').parse({
+      host: ['h', "Host to run HTTP server on", "string", "127.0.0.1"],
       port: ['p', "Port to run HTTP server on", "number", 1047],
       build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean", true],
       'build-dir': [false, "Where to store built coffeescript files (default is ./build)", "path"]
@@ -32,7 +33,7 @@
         options.buildDir = options['build-dir'];
       }
       server = getServer(options);
-      return this.ok('Batman is waiting at http://127.0.0.1:' + options.port);
+      return this.ok('Batman is waiting at http://' + options.host + ':' + options.port);
     });
   } else {
     module.exports = getServer;
