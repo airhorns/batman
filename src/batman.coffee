@@ -1228,7 +1228,7 @@ class Batman.Controller extends Batman.Object
 
     result = @[action](params)
 
-    if not @_actedDuringAction and result isnt false
+    if not @_actedDuringAction
       @render()
 
     if filters = @constructor._batman?.afterFilters
@@ -1256,6 +1256,7 @@ class Batman.Controller extends Batman.Object
   render: (options = {}) ->
     throw 'DoubleRenderError' if @_actedDuringAction
     @_actedDuringAction = yes
+    return if options is false
 
     if not options.view
       options.source = helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'

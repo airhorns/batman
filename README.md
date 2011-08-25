@@ -255,7 +255,7 @@ class BatBelt.AppController extends Batman.Controller
     @question = @questions.get(params.questionID)
 ```
 
-Now when you navigate to `/#!/faq/what-is-art`, the dispatcher runs this `faq` action with `{questionID: "what-is-art"}`. It also makes an implicit call to `@render`, which by default will look for a view at `/views/app/faq.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML.
+Now when you navigate to `/#!/faq/what-is-art`, the dispatcher runs this `faq` action with `{questionID: "what-is-art"}`. It also makes an implicit call to `@render`, which by default will look for a view at `/views/app/faq.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML. You can prevent this implicit rendering by calling `@render false` in your action.
 
 Controllers are also a fine place to put event handlers used by your views. Here's one that uses [jQuery](http://jquery.com/) to toggle a CSS class on a button:
 
