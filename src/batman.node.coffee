@@ -1,5 +1,5 @@
 #
-# batman.jquery.coffee
+# batman.node.coffee
 # batman.js
 #
 # Created by Nick Small
@@ -48,7 +48,9 @@ Batman.Request::send = (data) ->
     if auth
       options.headers["Authorization"] = "Basic #{new Buffer(auth).toString('base64')}"
 
-    console.log options
+    if options.method in ["PUT", "POST"]
+      options.headers["Content-type"] = @get 'contentType'
+
     request = requestModule.request options, (response) =>
 
       # Buffer all the chunks of data into an array

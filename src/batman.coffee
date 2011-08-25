@@ -864,8 +864,8 @@ class Batman.Request extends Batman.Object
   url: ''
   data: ''
   method: 'get'
-
   response: null
+  contentType: 'application/json'
 
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-;var Batman, Commands, cli, noCommandGiven, oldFatal;
+;
+var Batman, Commands, cli, noCommandGiven, oldFatal;
 cli = require('./cli');
 Batman = require('../lib/batman.js');
 global.RUNNING_IN_BATMAN = true;

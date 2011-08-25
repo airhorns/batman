@@ -11,7 +11,7 @@
 # batman.js methods to existing jQuery methods.
 
 Batman.Request::send = (data) ->
-  jQuery.ajax @get('url'),
+  options =
     type: @get 'method'
     dataType: @get 'type'
     data: data || @get 'data'
@@ -31,6 +31,10 @@ Batman.Request::send = (data) ->
     complete: =>
       @loading no
       @loaded yes
+
+  if @get 'method' in ['PUT', 'POST']
+    options.contentType = @get 'contentType'
+  jQuery.ajax @get('url'), options
 
 Batman.mixins.animation =
   show: (addToParent) ->
