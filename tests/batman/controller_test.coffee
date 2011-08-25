@@ -31,19 +31,17 @@ test 'it should pull in views if not present already', ->
       deepEqual view.get.lastCallArguments, ['node']
       deepEqual contentFor.lastCallArguments, ['main', 'view contents']
 
-test 'dispatching routes that return false do nothing', 1, ->
-  @controller.test = ->
-    ok true, 'action called'
-    false
-  @controller.render = ->
-    throw "shouldn't be called"
-
-  @controller.dispatch 'test'
-
 test 'dispatching routes without any actions calls render', 1, ->
   @controller.test = ->
   @controller.render = ->
     ok true, 'render called'
+
+  @controller.dispatch 'test'
+
+test '@render false disables implicit render', 1, ->
+  @controller.test = ->
+    ok true, 'action called'
+    @render false
 
   @controller.dispatch 'test'
 
