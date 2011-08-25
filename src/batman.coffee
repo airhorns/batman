@@ -2384,6 +2384,8 @@ Batman.DOM = {
 
       parent = node.parentNode
       sibling = node.nextSibling
+      fragment = document.createDocumentFragment()
+      numPendingChildren = 0
       node.onParseExit = ->
         setTimeout (-> parent.removeChild node), 0
 
@@ -2401,6 +2403,7 @@ Batman.DOM = {
         oldCollection = collection
 
         observers.add = (items...) ->
+          numPendingChildren += items.length
           for item in items
             parentRenderer.prevent 'rendered'
 
@@ -2421,7 +2424,11 @@ Batman.DOM = {
                   if typeof newNode.show is 'function'
                     newNode.show before: sibling
                   else
-                    parent.insertBefore newNode, sibling
+                    fragment.appendChild newNode
+
+                if --numPendingChildren == 0
+                  parent.insertBefore fragment, sibling
+                  fragment = document.createDocumentFragment()
 
                 parentRenderer.allow 'ready'
                 parentRenderer.allow 'rendered'
