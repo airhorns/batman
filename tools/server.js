@@ -33,7 +33,7 @@
         options.buildDir = options['build-dir'];
       }
       server = getServer(options);
-      return this.ok('Batman is waiting at http://' + options.host + ':' + options.port);
+      return this.ok("Batman is waiting at http://" + options.host + ":" + options.port);
     });
   } else {
     module.exports = getServer;
