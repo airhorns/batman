@@ -16,7 +16,7 @@ class Shopify extends Batman.App
 class Shopify.Product extends Batman.Model
   @persist Batman.RestStorage
 
-class Shopify.ProductsController extends Batman.Model
+class Shopify.ProductsController extends Batman.Controller
   index: ->
     @redirect action: 'show', id: 1
 
@@ -31,13 +31,17 @@ class Shopify.ProductsController extends Batman.Model
     <a data-route="product" data-bind="product.name">name will go here</a>
   </li>
   
-  <li><span data-bind="products.length"></span> <span data-bind="'products' | pluralize products.length"></span></li>
+  <li>
+    <span data-bind="products.length"></span> 
+    <span data-bind="'products' | pluralize products.length"></span>
+  </li>
 </ul>
 {% endhighlight %}
   </div>
   
   <h3>Ready for more?</h3>
-  <h2><a href="/download.html">Get started</a> now or read<br />through some <a href="/examples.html">examples</a>.</h2>
+  <h2><a href="/download.html">Get started</a> now or read<br />
+  through some <a href="/examples.html">examples</a>.</h2>
 </div>
 <!-- End content-column-wrapper -->
 
