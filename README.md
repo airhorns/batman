@@ -24,7 +24,7 @@ class Shopify extends Batman.App
 class Shopify.Product extends Batman.Model
   @persist Batman.RestStorage
 
-class Shopify.ProductsController extends Batman.Model
+class Shopify.ProductsController extends Batman.Controller
   index: ->
     @redirect action: 'show', id: 1
 
