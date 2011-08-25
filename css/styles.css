@@ -6,7 +6,7 @@
 img { border:0px; }
 html, body { height: 100%; }
 body { background: url(../images/content-bg.png); font-family: "ff-meta-web-pro-1","ff-meta-web-pro-2", sans-serif; font-size:13px; font-style: normal; font-weight: 400; color:#828393; }
-body p { line-height: 20px; margin-bottom: 20px; }
+body p { color: #222; line-height: 20px; margin-bottom: 20px; }
 
 h1, h2, h3, h4, h5, h6 { font-family: "ff-meta-web-pro-1","ff-meta-web-pro-2", sans-serif; font-size:13px; font-style: normal; font-weight: 700; }
 h2 { font-size: 30px; color: #373862; margin-bottom: 15px; }
