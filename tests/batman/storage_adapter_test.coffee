@@ -166,30 +166,30 @@ sharedStorageTestSuite
   'creating in storage: should succeed if the record doesn\'t already exist': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
 
   'creating in storage: should fail if the record does already exist': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     ,
       error: "Product already exists!"
 
   "creating in storage: should create a primary key if the record doesn't already have one": ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
 
   'reading from storage: should callback with the record if the record has been created': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
 
     MockRequest.expect
@@ -205,14 +205,14 @@ sharedStorageTestSuite
   'reading many for storage: should callback with the records if they exist': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     ,product:
         name: "testA"
         cost: 20
 
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , product:
         name: "testB"
         cost: 10
@@ -235,12 +235,12 @@ sharedStorageTestSuite
   'updating in storage: should callback with the record if it exists': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
 
     MockRequest.expect
       url: '/products/10'
-      method: 'POST'
+      method: 'PUT'
     , product:
         name: 'test'
         cost: 10
@@ -257,7 +257,7 @@ sharedStorageTestSuite
   'destroying in storage: should succeed if the record exists': ->
     MockRequest.expect
       url: '/products'
-      method: 'PUT'
+      method: 'POST'
     , productJSON
 
     MockRequest.expect

@@ -1788,7 +1788,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         return
 
       new Batman.Request $mixin options,
-        method: 'PUT'
+        method: 'POST'
         success: (data) =>
           record.fromJSON(@transformRecordData(data))
           callback(undefined, record)
@@ -1801,7 +1801,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         return
 
       new Batman.Request $mixin options,
-        method: 'POST'
+        method: 'PUT'
         success: (data) =>
           record.fromJSON(@transformRecordData(data))
           callback(undefined, record)
