@@ -84,7 +84,7 @@ class BatBelt.Gadget extends Batman.Object
     @usesLeft -= times
 ```
 
-You can observe the event with some callback, and fire it by just calling the event function directly. The observer callback gets whichever arguments were passed into the event function. But if the even function returns `false`, then the observers won't fire:
+You can observe the event with some callback, and fire it by just calling the event function directly. The observer callback gets whichever arguments were passed into the event function. But if the event function returns `false`, then the observers won't fire:
 
 ```coffeescript
 gadget.observe 'use', (times) ->
