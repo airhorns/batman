@@ -1090,6 +1090,8 @@ class Batman.Dispatcher extends Batman.Object
     else if url isnt '/404'
       $redirect('/404')
 
+    @app.set 'currentURL', url
+
 # History Manager
 # ---------------
 class Batman.HistoryManager
