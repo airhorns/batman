@@ -15,6 +15,23 @@ triggerClick = (domNode) ->
   evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
   domNode.dispatchEvent(evt)
 
+keyIdentifers =
+  13: 'Enter'
+
+window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
+  evt = document.createEvent("KeyboardEvent")
+  if evt.initKeyEvent
+    evt.initKeyEvent(eventName, true, true, window, 0, 0, 0, 0, keyCode, keyCode)
+  else
+    evt.initKeyboardEvent(eventName, true, true, window, keyIdentifers[keyCode], keyIdentifers[keyCode])
+  evt.which = evt.keyCode = keyCode
+  evt
+
+triggerKey = (domNode, keyCode) ->
+  domNode.dispatchEvent(_getKeyEvent("keydown", keyCode))
+  domNode.dispatchEvent(_getKeyEvent("keypress", keyCode))
+  domNode.dispatchEvent(_getKeyEvent("keyup", keyCode))
+
 count = 0
 QUnit.module 'Batman.View'
   setup: ->
@@ -253,6 +270,7 @@ asyncTest 'it should allow click events to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
+
 asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
   context = new Batman.Object
     one: true
@@ -264,7 +282,19 @@ asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
     delay =>
       ok context.doSomething.called
 
-if typeof IN_NODE == 'undefined'
+if typeof IN_NODE == 'undefined' || IN_NODE == false
+  # Can't figure out how to trigger key events in jsdom.
+  asyncTest 'it should allow submit events on inputs to be bound', 2, ->
+    context =
+      doSomething: spy = createSpy()
+
+    source = '<form><input data-event-submit="doSomething" /></form>'
+    render source, context, (node) ->
+      triggerKey(node[0].childNodes[0], 13)
+      delay ->
+        ok spy.called
+        equal spy.lastCallArguments[0], node[0].childNodes[0]
+
   # Can't figure out a way to get JSDOM to fire the form submit event.
   asyncTest 'it should allow form submit events to be bound', 1, ->
     context =
@@ -582,6 +612,7 @@ asyncTest 'it should update objects when form rendering', 1, ->
     delay =>
       equals @User.lastInstance.name, "new name"
 
+
 asyncTest 'it should update the context for the form if the context changes', 2, ->
   source = '''
   <form data-formfor-user="instanceOfUser">
@@ -596,6 +627,8 @@ asyncTest 'it should update the context for the form if the context changes', 2,
     context.set 'instanceOfUser', new @User
     delay =>
       equals $('input', node).val(), "default name"
+
+
 
 QUnit.module 'Batman.View rendering yielding and contentFor'
 
