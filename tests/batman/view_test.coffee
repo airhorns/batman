@@ -209,7 +209,7 @@ asyncTest 'it should bind the value of a select box and update when the value ch
     heros: heros
     selected: selected
   }, (node) ->
-    delay => # delay for foreach nodes
+    delay => # wait for select's data-bind listener to receive the rendered event 
       equals node[0].value, 'crono'
       selected.set 'name', 'link'
       delay =>
@@ -378,8 +378,8 @@ asyncTest 'it should remove items from the DOM as they are removed from the set'
   objects = new Batman.Set('foo', 'bar')
 
   render source, {objects}, (node, view) ->
+    objects.remove('foo', 'baz', 'qux')
     delay =>
-      objects.remove('foo', 'baz', 'qux')
       names = $('p', view.get('node')).map -> @innerHTML
       names = names.toArray()
       deepEqual names, ['bar']
@@ -390,17 +390,16 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
   objects.sortBy 'id'
 
   render source, {objects}, (node, view) ->
+    names = ($('p', view.get('node')).map -> @innerHTML).toArray()
+    deepEqual names, ['foo', 'bar']
+    objects.addIndex('name')
+    # multiple reordering all at once should not end up with duplicate DOM nodes
+    objects.set 'activeIndex', 'name'
+    objects.set 'activeIndex', 'id'
+    objects.set 'activeIndex', 'name'
     delay =>
       names = ($('p', view.get('node')).map -> @innerHTML).toArray()
-      deepEqual names, ['foo', 'bar']
-      objects.addIndex('name')
-      # multiple reordering all at once should not end up with duplicate DOM nodes
-      objects.set 'activeIndex', 'name'
-      objects.set 'activeIndex', 'id'
-      objects.set 'activeIndex', 'name'
-      delay =>
-        names = ($('p', view.get('node')).map -> @innerHTML).toArray()
-        deepEqual names, ['bar', 'foo']
+      deepEqual names, ['bar', 'foo']
 
 asyncTest 'it should add items in order', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object.name"></p>'
@@ -414,7 +413,50 @@ asyncTest 'it should add items in order', ->
       names = names.toArray()
       deepEqual names, ['zero', 'foo', 'bar']
 
+asyncTest 'it should allow simple loops', ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
 
+  render source, {objects}, (node, view) ->
+    delay => # new renderer's are used for each loop node, must wait longer
+      tracking = {foo: false, bar: false, baz: false}
+      node = $(view.get('node')).children()
+      for i in [0...node.length]
+        # We must track these in a temp object because they are a set => undefined order, can't assume
+        tracking[node[i].innerHTML] = true
+        equal node[i].className,  'present'
+
+      for k in ['foo', 'bar', 'baz']
+        ok tracking[k], "Object #{k} was found in the source"
+
+asyncTest 'the ready event should wait for all children to be rendered', ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+  node = document.createElement 'div'
+  node.innerHTML = source
+  view = new Batman.View
+    contexts: [obj(), obj({objects})]
+    node: node
+  ok !view.oneShotFired 'ready', 'make sure views render async'
+  view._renderer.parsed => 
+    ok !view.oneShotFired 'ready', 'make sure parsed fires before rendered'
+  view.ready =>
+    tracking = {foo: false, bar: false, baz: false}
+    node = $(view.get('node')).children()
+    for i in [0...node.length]
+      tracking[node[i].innerHTML] = true
+      equal node[i].className,  'present'
+    for k in ['foo', 'bar', 'baz']
+      ok tracking[k], "Object #{k} was found in the source"
+    QUnit.start()
+
+asyncTest 'it should continue to render nodes after the loop', 1, ->
+  source = '<p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"/>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, {bar: objects, foo: "qux"}, (node) ->
+    equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
+    QUnit.start()
 
 asyncTest 'it should update the whole set of nodes if the collection changes', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
@@ -422,11 +464,10 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
     objects: new Batman.Set('foo', 'bar', 'baz')
 
   render source, false, context, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      equal $('.present', node).length, 3
-      context.set('objects', new Batman.Set('qux', 'corge'))
-      delay =>
-        equal $('.present', node).length, 2
+    equal $('.present', node).length, 3
+    context.set('objects', new Batman.Set('qux', 'corge'))
+    delay =>
+      equal $('.present', node).length, 2
 
 
 asyncTest 'it should not fail if the collection is cleared', ->
@@ -448,24 +489,23 @@ asyncTest 'previously observed collections shouldn\'t have any effect if they ar
   context = new Batman.Object(objects: oldObjects)
 
   render source, false, context, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      context.set('objects', new Batman.Set('qux', 'corge'))
-      oldObjects.add('no effect')
-      delay =>
-        equal $('.present', node).length, 2
+    context.set('objects', new Batman.Set('qux', 'corge'))
+    oldObjects.add('no effect')
+    delay =>
+      equal $('.present', node).length, 2
 
 asyncTest 'it should order loops among their siblings properly', 5, ->
   source = '<div><span data-bind="baz"></span><p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"></span></div>'
   objects = new Batman.Set('foo', 'bar', 'baz')
 
   render source, false, {baz: "corn", bar: objects, foo: "qux"}, (node) ->
-    delay =>
-      div = node.childNodes[0]
-      equal 'corn', $('span', div).get(0).innerHTML, "Node before the loop is rendered"
-      equal 'qux', $('span', div).get(1).innerHTML, "Node before the loop is rendered"
-      equal 'p', div.childNodes[1].tagName.toLowerCase(), "Order of nodes is preserved"
-      equal 'span', div.childNodes[4].tagName.toLowerCase(), "Order of nodes is preserved"
-      equal 'span', div.childNodes[0].tagName.toLowerCase(), "Order of nodes is preserved"
+    div = node.childNodes[0]
+    equal 'corn', $('span', div).get(0).innerHTML, "Node before the loop is rendered"
+    equal 'qux', $('span', div).get(1).innerHTML, "Node before the loop is rendered"
+    equal 'p', div.childNodes[1].tagName.toLowerCase(), "Order of nodes is preserved"
+    equal 'span', div.childNodes[4].tagName.toLowerCase(), "Order of nodes is preserved"
+    equal 'span', div.childNodes[0].tagName.toLowerCase(), "Order of nodes is preserved"
+    QUnit.start()
 
 asyncTest 'it should loop over hashes', ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
@@ -476,17 +516,16 @@ asyncTest 'it should loop over hashes', ->
   )
 
   render source, {playerScores}, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      tracking = {mario: false, link: false, crono: false}
-      nodes = $(view.get('node')).children()
-      for i in [0...nodes.length]
-        node = nodes[i]
-        id = node.id
-        tracking[id] = (parseInt(node.innerHTML, 10) == playerScores.get(id))
-        equal node.className,  'present'
-
-      for k in ['mario', 'link', 'crono']
-        ok tracking[k], "Object #{k} should be in the source"
+    tracking = {mario: false, link: false, crono: false}
+    nodes = $(view.get('node')).children()
+    for i in [0...nodes.length]
+      node = nodes[i]
+      id = node.id
+      tracking[id] = (parseInt(node.innerHTML, 10) == playerScores.get(id))
+      equal node.className,  'present'
+    for k in ['mario', 'link', 'crono']
+      ok tracking[k], "Object #{k} should be in the source"
+    QUnit.start()
 
 asyncTest 'it should loop over js objects', ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
@@ -496,17 +535,16 @@ asyncTest 'it should loop over js objects', ->
     crono: 10
 
   render source, {playerScores}, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      tracking = {mario: false, link: false, crono: false}
-      nodes = $(view.get('node')).children()
-      for i in [0...nodes.length]
-        node = nodes[i]
-        id = node.id
-        tracking[id] = (parseInt(node.innerHTML, 10) == playerScores[id])
-        equal node.className,  'present'
-
-      for k in ['mario', 'link', 'crono']
-        ok tracking[k], "Object #{k} should be in the source"
+    tracking = {mario: false, link: false, crono: false}
+    nodes = $(view.get('node')).children()
+    for i in [0...nodes.length]
+      node = nodes[i]
+      id = node.id
+      tracking[id] = (parseInt(node.innerHTML, 10) == playerScores[id])
+      equal node.className,  'present'
+    for k in ['mario', 'link', 'crono']
+      ok tracking[k], "Object #{k} should be in the source"
+    QUnit.start()
 
 asyncTest 'it shouldn\'t become desynchronized if the foreach collection observer fires with the same collection', ->
   x = Batman(all: new Batman.Set("a", "b", "c", "d", "e"))
@@ -554,21 +592,17 @@ QUnit.module "Batman.View rendering nested loops"
 
 asyncTest 'it should allow nested loops', 2, ->
   render @source, @context, (node, view) ->
-    setTimeout ->
+    delay => # extra delay because foreach parsing ignores children
       equal $('.post', node).length, 3
       equal $('.tag', node).length, 9
-      QUnit.start()
-    , ASYNC_TEST_DELAY*10
 
 asyncTest 'it should allow access to variables in higher scopes during loops', 3*3, ->
   render @source, @context, (node, view) ->
-    setTimeout ->
+    delay => # extra delay because foreach parsing ignores children
       node = view.get('node')
       for postNode, i in $('.post', node)
         for tagNode, j in $('.tag', postNode)
           equal $(tagNode).attr('color'), "green"
-      QUnit.start()
-    , ASYNC_TEST_DELAY*10
 
 asyncTest 'it should not render past its original node', ->
   @context.class1 = 'foo'
