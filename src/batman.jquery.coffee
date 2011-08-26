@@ -53,5 +53,5 @@ Batman.mixins.animation =
     @
   hide: (removeFromParent) ->
     $(@).hide 600, =>
-      @parentNode?.removeChild @
+      @parentNode?.removeChild @ if removeFromParent
     @
