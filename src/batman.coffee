@@ -2626,6 +2626,9 @@ filters = Batman.Filters =
     else
       value[key]
 
+  equals: buntUndefined (lhs, rhs) ->
+    lhs is rhs
+
   not: (value) ->
     ! !!value
 
