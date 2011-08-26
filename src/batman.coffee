@@ -1831,7 +1831,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         success: (data) => callback(undefined, @getRecordsFromData(data))
         error: (err) -> callback(err)
 
-  destroy: (record, optiosn, callback) ->
+  destroy: (record, options, callback) ->
     @optionsForRecord record, true, (err, options) ->
       if err
         callback(err)
