@@ -1202,8 +1202,9 @@ class Batman.Controller extends Batman.Object
   @singleton 'sharedController'
 
   @beforeFilter: (nameOrFunction) ->
+    Batman.initializeObject @
     filters = @_batman.beforeFilters ||= []
-    filters.push(nameOrFunction) if ~filters.indexOf(nameOrFunction)
+    filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
 
   @accessor 'controllerName',
     get: -> @_controllerName ||= helpers.underscore(@constructor.name.replace('Controller', ''))
@@ -1225,16 +1226,18 @@ class Batman.Controller extends Batman.Object
     @_actedDuringAction = no
     @set 'action', action
 
-    if filters = @constructor._batman?.beforeFilters
-      filter.call @ for filter in filters
+    if filters = @constructor._batman?.get('beforeFilters')
+      for filter in filters
+        if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
-    result = @[action](params)
+    @[action](params)
 
     if not @_actedDuringAction
       @render()
 
-    if filters = @constructor._batman?.afterFilters
-      filter.call @ for filter in filters
+    if filters = @constructor._batman?.get('afterFilters')
+      for filter in filters
+        if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
     delete @_actedDuringAction
     @set 'action', null
