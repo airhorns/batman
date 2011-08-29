@@ -729,6 +729,45 @@ class Batman.Set extends Batman.Object
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', -> @length
 
+class Batman.SetIndex extends Batman.Object
+  constructor: (@base, @key) ->
+    @_storage = new Batman.Hash
+    @_itemObservers = new Batman.Hash
+    @_itemsWereAddedCallback = (items...) => @_addItem(item) for item in items
+    @_itemsWereRemovedCallback = (items...) => @_removeItem(item) for item in items
+    @base.observe 'itemsWereAdded', @_itemsWereAddedCallback
+    @base.observe 'itemsWereRemoved', @_itemsWereRemovedCallback
+    @base.forEach @_addItem.bind(@)
+  @accessor
+    get: (key) -> @_getOrInitialize(@_storage, key, -> new Batman.Set)
+  stopUpdating: ->
+    @base.forEach (item) =>
+      @_forgetItem item
+    @base.forget 'itemsWereAdded', @_itemsWereAddedCallback
+    @base.forget 'itemsWereRemoved', @_itemsWereRemovedCallback
+  _observerForItem: (item) ->
+    @_getOrInitialize @_itemObservers, item, =>
+      (newValue, oldValue) =>
+        @get(oldValue).remove item
+        @get(newValue).add item
+  _getOrInitialize: (hash, key, lazyDefault) ->
+    set = hash.get(key)
+    unless set
+      set = lazyDefault()
+      hash.set(key, set)
+    set
+  _addItem: (item) ->
+    @_resultSetForItem(item).add item
+    item.observe @key, @_observerForItem(item)
+  _forgetItem: (item) ->
+    item.forget @key, @_observerForItem(item)
+    @_itemObservers.unset(item)
+  _removeItem: (item) ->
+    @_resultSetForItem(item).remove item
+    @_forgetItem item
+  _resultSetForItem: (item) ->
+    @get(Batman.Keypath.forBaseAndKey(item, @key).getValue())
+
 class Batman.SortableSet extends Batman.Set
   constructor: ->
     super
