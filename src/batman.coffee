@@ -1066,9 +1066,10 @@ class Batman.Dispatcher extends Batman.Object
   findUrl: (params) ->
     for url, route of @routeMap
       matches = no
+      options = route.options
       if params.resource
-        if route.options.resource is params.resource
-          matches = yes
+        matches = options.resource is params.resource and
+          options.action is params.action
       else
         action = route.get 'action'
         continue if typeof action is 'function'
@@ -1178,10 +1179,10 @@ Batman.App.classMixin
     (callback = options; options = null) if typeof options is 'function'
     controller = options?.controller || resource
 
-    @route(resource, "#{controller}#index").resource = controller
-    @route("#{resource}/:id", "#{controller}#show").resource = controller
-    @route("#{resource}/:id/edit", "#{controller}#edit").resource = controller
-    @route("#{resource}/:id/destroy", "#{controller}#destroy").resource = controller
+    @route(resource, "#{controller}#index", resource:controller, action:'index')
+    @route("#{resource}/:id", "#{controller}#show", resource:controller, action:'show')
+    @route("#{resource}/:id/edit", "#{controller}#edit", resource:controller, action:'edit')
+    @route("#{resource}/:id/destroy", "#{controller}#destroy", resource:controller, action:'destroy')
 
     if callback
       app = @
@@ -2305,6 +2306,7 @@ Batman.DOM = {
       Batman.DOM.readers.showif args..., yes
 
     route: (node, key, context) ->
+      [key, action] = key.split '/'
       # you must specify the / in front to route directly to hash route
       if key.substr(0, 1) is '/'
         url = key
@@ -2313,11 +2315,12 @@ Batman.DOM = {
         [model, container] = context.findKey key
 
         if dispatcher and model instanceof Batman.Model
-          name = helpers.underscore(model.constructor.name)
-          url = dispatcher.findUrl({resource: name, id: model.get('id')})
+          action ||= 'show'
+          name = helpers.underscore(helpers.pluralize(model.constructor.name))
+          url = dispatcher.findUrl({resource: name, id: model.get('id'), action: action})
         else if model?.prototype # TODO write test for else case
           name = helpers.underscore(helpers.pluralize(model.name))
-          url = dispatcher.findUrl({resource: name})
+          url = dispatcher.findUrl({resource: name, action: 'index'})
 
       return unless url
 

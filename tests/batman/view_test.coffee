@@ -908,10 +908,10 @@ asyncTest 'should set href', 1, ->
     equal node.attr('href'), '#!/test'
     QUnit.start()
 
-asyncTest 'should set model instance', 1, ->
+asyncTest 'should set corresponding href for model instance / action', 1, ->
   class @App extends Batman.App
     @layout: null
-    @route 'tweet/:id', 'tweets#show', resource: 'tweet'
+    @resources 'tweets'
   class @App.Tweet extends Batman.Model
     @persist Batman.LocalStorage
   class @App.TweetsController extends Batman.Controller
@@ -923,7 +923,10 @@ asyncTest 'should set model instance', 1, ->
   tweet.save()
   @App.set 'tweet', tweet
 
-  source = '<a data-route="tweet">click</a>'
+  source = '<a data-route="Tweet">index</a>' +
+    '<a data-route="tweet">show</a>' +
+    '<a data-route="tweet/edit">edit</a>' +
+    '<a data-route="tweet/destroy">destroy</a>'
   node = document.createElement 'div'
   node.innerHTML = source
 
@@ -931,7 +934,7 @@ asyncTest 'should set model instance', 1, ->
     contexts: []
     node: node
   view.ready ->
-    node = $(view.get('node').children[0])
-    equal node.attr('href'), '#!/tweet/1'
+    urls = ($(a).attr('href') for a in view.get('node').children)
+    deepEqual urls, ['#!/tweets', '#!/tweets/1', '#!/tweets/1/edit', '#!/tweets/1/destroy']
     QUnit.start()
   view.get 'node'
