@@ -907,3 +907,31 @@ asyncTest 'should set href', 1, ->
   (node) =>
     equal node.attr('href'), '#!/test'
     QUnit.start()
+
+asyncTest 'should set model instance', 1, ->
+  class @App extends Batman.App
+    @layout: null
+    @route 'tweet/:id', 'tweets#show', resource: 'tweet'
+  class @App.Tweet extends Batman.Model
+    @persist Batman.LocalStorage
+  class @App.TweetsController extends Batman.Controller
+    show: (params) ->
+
+  @App.run()
+
+  tweet = new @App.Tweet(id: 1)
+  tweet.save()
+  @App.set 'tweet', tweet
+
+  source = '<a data-route="tweet">click</a>'
+  node = document.createElement 'div'
+  node.innerHTML = source
+
+  view = new Batman.View
+    contexts: []
+    node: node
+  view.ready ->
+    node = $(view.get('node').children[0])
+    equal node.attr('href'), '#!/tweet/1'
+    QUnit.start()
+  view.get 'node'

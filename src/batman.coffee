@@ -1852,6 +1852,13 @@ class Batman.RestStorage extends Batman.StorageAdapter
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
+  constructor: (options) ->
+    # ensure the app is at the bottom of the context stack
+    if Batman.currentApp
+      options.contexts ||= []
+      options.contexts.unshift Batman.currentApp
+    super
+
   viewSources = {}
 
   # Set the source attribute to an html file to have that file loaded.
@@ -2168,7 +2175,7 @@ class Binding extends Batman.Object
     JSON.parse( "[" + segment.replace(keypath_rx, "{\"_keypath\": \"$1\"}") + "]" )
 
 
-# The Render context class manages the stack of contexts accessible to a view during rendering.
+# The RenderContext class manages the stack of contexts accessible to a view during rendering.
 # Every, and I really mean every method which uses filters has to be defined in terms of a new
 # binding, or by using the RenderContext.bind method. This is so that the proper order of objects
 # is traversed and any observers are properly attached.
@@ -2302,14 +2309,15 @@ Batman.DOM = {
       if key.substr(0, 1) is '/'
         url = key
       else
-        route = context.get key
+        [dispatcher, app] = context.findKey 'dispatcher'
+        [model, container] = context.findKey key
 
-        if route instanceof Batman.Model
-          name = helpers.underscore(helpers.pluralize(route.constructor.name))
-          url = context.get('dispatcher')?.findUrl({resource: name, id: route.get('id')})
-        else if route.prototype
-          name = helpers.underscore(helpers.pluralize(route.name))
-          url = context.get('dispatcher')?.findUrl({resource: name})
+        if dispatcher and model instanceof Batman.Model
+          name = helpers.underscore(model.constructor.name)
+          url = dispatcher.findUrl({resource: name, id: model.get('id')})
+        else if model?.prototype # TODO write test for else case
+          name = helpers.underscore(helpers.pluralize(model.name))
+          url = dispatcher.findUrl({resource: name})
 
       return unless url
 
