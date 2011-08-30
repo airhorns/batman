@@ -1269,9 +1269,10 @@ class Batman.Controller extends Batman.Object
       for filter in filters
         if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
-    @[action](params)
+    # actions can return false-y values to prevent view rendering
+    preventRender = !@[action](params)
 
-    if not @_actedDuringAction
+    if not @_actedDuringAction and not preventRender
       @render()
 
     if filters = @constructor._batman?.get('afterFilters')
