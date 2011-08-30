@@ -2441,6 +2441,7 @@ Batman.DOM = {
         # Track the old collection so that if it changes, we can remove the observers we attached,
         # and only observe the new collection.
         if oldCollection
+          return if collection == oldCollection
           nodeMap.forEach (item, node) -> parent.removeChild node
           oldCollection.forget 'itemsWereAdded', observers.add
           oldCollection.forget 'itemsWereRemoved', observers.remove

@@ -344,6 +344,24 @@ asyncTest 'it should allow contexts to be specified using filters', 2, ->
 
 QUnit.module "Batman.View rendering loops"
 
+asyncTest 'it should allow simple loops', 1, ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  render source, {objects}, (node, view) ->
+    delay => # new renderer's are used for each loop node, must wait longer
+      names = $('p', view.get('node')).map -> @innerHTML
+      names = names.toArray()
+      deepEqual names, ['foo', 'bar', 'baz']
+
+asyncTest 'it should continue to render nodes after the loop', 1, ->
+  source = '<p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"/>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, {bar: objects, foo: "qux"}, (node) ->
+    delay => equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
+
+
 asyncTest 'it should render new items as they are added', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
   objects = new Batman.Set('foo', 'bar')
@@ -396,28 +414,6 @@ asyncTest 'it should add items in order', ->
       names = names.toArray()
       deepEqual names, ['zero', 'foo', 'bar']
 
-asyncTest 'it should allow simple loops', ->
-  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
-  objects = new Batman.Set('foo', 'bar', 'baz')
-
-  render source, {objects}, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      tracking = {foo: false, bar: false, baz: false}
-      node = $(view.get('node')).children()
-      for i in [0...node.length]
-        # We must track these in a temp object because they are a set => undefined order, can't assume
-        tracking[node[i].innerHTML] = true
-        equal node[i].className,  'present'
-
-      for k in ['foo', 'bar', 'baz']
-        ok tracking[k], "Object #{k} was found in the source"
-
-asyncTest 'it should continue to render nodes after the loop', 1, ->
-  source = '<p data-foreach-object="bar" class="present" data-bind="object"></p><span data-bind="foo"/>'
-  objects = new Batman.Set('foo', 'bar', 'baz')
-
-  render source, false, {bar: objects, foo: "qux"}, (node) ->
-    delay => equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
 
 
 asyncTest 'it should update the whole set of nodes if the collection changes', ->
@@ -511,6 +507,34 @@ asyncTest 'it should loop over js objects', ->
 
       for k in ['mario', 'link', 'crono']
         ok tracking[k], "Object #{k} should be in the source"
+
+asyncTest 'it shouldn\'t become desynchronized if the foreach collection observer fires with the same collection', ->
+  x = Batman(all: new Batman.Set("a", "b", "c", "d", "e"))
+  x.accessor 'filtered',
+    get: ->
+      unless @filtered?
+        @filtered = new Batman.SortableSet()
+        @filtered.add @get('all').toArray()...
+      @filtered
+    set: (k,v) ->
+      set = @get('filtered')
+      @get('all').forEach (e) ->
+        if v is '' or e == v then set.add(e) else set.remove(e)
+      set
+
+  source = '<p data-foreach-obj="x.filtered" data-bind="obj"></p>'
+  render source, {x}, (node, view) ->
+    delay ->
+      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+      deepEqual names, ['a', 'b', 'c', 'd', 'e']
+      x.set 'filtered', 'a'
+      delay ->
+        names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+        deepEqual names, ['a']
+        x.set 'filtered', ''
+        delay ->
+          names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+          deepEqual names, ['a', 'b', 'c', 'd', 'e']
 
 QUnit.module "Batman.View rendering nested loops"
   setup: ->
