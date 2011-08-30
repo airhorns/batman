@@ -2160,7 +2160,7 @@ class Binding extends Batman.Object
       key = @parseSegment(orig = filters.shift())[0]
     catch e
       throw "Bad binding keypath \"#{orig}\"!"
-    if key._keypath
+    if key and key._keypath
       @key = key._keypath
     else
       @value = key
