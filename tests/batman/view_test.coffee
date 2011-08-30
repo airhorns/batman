@@ -396,6 +396,19 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
         equal $('.present', node).length, 2
 
 
+asyncTest 'it should not fail if the collection is cleared', ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  context = new Batman.Object
+    objects: new Batman.Set('foo', 'bar', 'baz')
+
+  render source, false, context, (node, view) ->
+    delay => # new renderer's are used for each loop node, must wait longer
+      equal $('.present', node).length, 3
+      context.get('objects').clear()
+      delay =>
+        equal $('.present', node).length, 0
+
+
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   oldObjects = new Batman.Set('foo', 'bar', 'baz')
@@ -902,7 +915,7 @@ asyncTest 'should render a user defined filter', 2, ->
 
 QUnit.module 'Batman.View rendering routes'
 
-asyncTest 'should set href', 1, ->
+asyncTest 'should set href for URL fragment', 1, ->
   render '<a data-route="/test">click</a>', {},
   (node) =>
     equal node.attr('href'), '#!/test'

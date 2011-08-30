@@ -696,7 +696,7 @@ class Batman.SimpleSet
     items = @toArray()
     @_storage = new Batman.SimpleHash
     @length = 0
-    @itemsWereRemoved(items)
+    @itemsWereRemoved(items...)
     items
   toArray: ->
     @_storage.keys()
