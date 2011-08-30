@@ -2028,10 +2028,12 @@ class Batman.Renderer extends Batman.Object
           [name, attr.value]
 
       for readerArgs in bindings.sort(sortBindings)
+        key = readerArgs[1]
+        throw "property is a reserved keyword" if key == 'property'
         result = if readerArgs.length == 2
-          Batman.DOM.readers[readerArgs[0]]?(node, readerArgs[1], @context, @)
+          Batman.DOM.readers[readerArgs[0]]?(node, key, @context, @)
         else
-          Batman.DOM.attrReaders[readerArgs[0]]?(node, readerArgs[1], readerArgs[2], @context, @)
+          Batman.DOM.attrReaders[readerArgs[0]]?(node, key, readerArgs[2], @context, @)
 
         if result is false
           skipChildren = true
