@@ -69,8 +69,8 @@
             new Todo(body: 'riddler sent riemann hypothesis').save(callback)
             new Todo(body: 'bane wants to meet, not worried').save(callback)
 
-        # return false to prevent the implicit render of views/todos/index.html
-        return false
+        # prevent the implicit render of views/todos/index.html
+        @render false
 
       create: =>
         @emptyTodo.save (error, record) =>
@@ -79,7 +79,7 @@
           # we use set so that our form will automatically update with the new Todo instance
           @set 'emptyTodo', new Todo
 
-        return false
+        # since this isn't actually a route action, nothing will be rendered here.
 
 
     # Start the app. This will start up the dispatcher and a number of other mechanisms.
