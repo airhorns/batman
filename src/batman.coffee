@@ -263,6 +263,13 @@ Batman.Observable =
   unset: (key) ->
     return undefined if typeof key is 'undefined'
     @property(key).unsetValue()
+    
+  getOrSet: (key, valueFunction) ->
+    currentValue = @get(key)
+    unless currentValue
+      currentValue = valueFunction()
+      @set(key, currentValue)
+    currentValue
 
   # `forget` removes an observer from an object. If the callback is passed in,
   # its removed. If no callback but a key is passed in, all the observers on
@@ -728,43 +735,91 @@ class Batman.Set extends Batman.Object
 
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', -> @length
-
+  
+class Batman.SetObserver extends Batman.Object
+  constructor: (@base) ->
+    @_itemObservers = new Batman.Hash
+    @_setObservers = new Batman.Hash
+    @_setObservers.set("itemsWereAdded", @itemsWereAdded.bind(@))
+    @_setObservers.set("itemsWereRemoved", @itemsWereRemoved.bind(@))
+    @observe 'itemsWereAdded', @startObservingItems.bind(@)
+    @observe 'itemsWereRemoved', @stopObservingItems.bind(@)
+  
+  itemsWereAdded: @event ->
+  itemsWereRemoved: @event ->
+  
+  observedItemKeys: []
+  observerForItemAndKey: (item, key) ->
+    
+  _getOrSetObserverForItemAndKey: (item, key) ->
+    @_itemObservers.getOrSet item, =>
+      observersByKey = new Batman.Hash
+      observersByKey.getOrSet key, =>
+        @observerForItemAndKey(item, key)
+  startObserving: ->
+    @_manageItemObservers("observe")
+    @_manageSetObservers("observe")
+  stopObserving: ->
+    @_manageItemObservers("forget")
+    @_manageSetObservers("forget")
+  startObservingItems: (items...) ->
+    @_manageObserversForItem(item, "observe") for item in items
+  stopObservingItems: (items...) ->
+    @_manageObserversForItem(item, "forget") for item in items
+  _manageObserversForItem: (item, method) ->
+    for key in @observedItemKeys
+      item[method] key, @_getOrSetObserverForItemAndKey(item, key)
+    @_itemObservers.unset(item) if method is "forget"
+  _manageItemObservers: (method) ->
+    @base.forEach (item) => @_manageObserversForItem(item, method)
+  _manageSetObservers: (method) ->
+    return unless @base.isObservable
+    @_setObservers.forEach (key, observer) =>
+      @base[method](key, observer)
+        
+class Batman.SetSort extends Batman.SetObserver
+  constructor: (@base, @sortKey) ->
+    super(base)
+    @observedItemKeys = [@sortKey]
+    @_boundReIndex = @_reIndex.bind(@)
+    @observe 'itemsWereAdded', @_boundReIndex
+    @observe 'itemsWereRemoved', @_boundReIndex
+    @startObserving()
+    @_reIndex()
+  toArray: -> @get('_storage')
+  @accessor 'toArray', @::toArray
+  forEach: (iterator) ->
+    iterator(e,i) for e,i in @get('_storage')
+  observerForItemAndKey: -> @_boundReIndex
+  _reIndex: ->
+    newOrder = @base.toArray().sort (a,b) =>
+      valueA = (Batman.Observable.property.call(a, @sortKey)).getValue()?.valueOf()
+      valueB = (Batman.Observable.property.call(b, @sortKey)).getValue()?.valueOf()
+      if valueA < valueB then -1 else if valueA > valueB then 1 else 0
+    @startObservingItems(newOrder...)
+    @set('_storage', newOrder)
+    
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
+    @_setObserver = new Batman.SetObserver(@base)
+    @_setObserver.observedItemKeys = [@key]
+    @_setObserver.observerForItemAndKey = @observerForItemAndKey.bind(@)
+    @_setObserver.observe 'itemsWereAdded', (items...) =>
+      @_addItem(item) for item in items
+    @_setObserver.observe 'itemsWereRemoved', (items...) =>
+      @_removeItem(item) for item in items
     @_storage = new Batman.Hash
-    @_itemObservers = new Batman.Hash
-    @_itemsWereAddedCallback = (items...) => @_addItem(item) for item in items
-    @_itemsWereRemovedCallback = (items...) => @_removeItem(item) for item in items
-    @base.observe 'itemsWereAdded', @_itemsWereAddedCallback
-    @base.observe 'itemsWereRemoved', @_itemsWereRemovedCallback
     @base.forEach @_addItem.bind(@)
-  @accessor
-    get: (key) -> @_getOrInitialize(@_storage, key, -> new Batman.Set)
-  stopUpdating: ->
-    @base.forEach (item) =>
-      @_forgetItem item
-    @base.forget 'itemsWereAdded', @_itemsWereAddedCallback
-    @base.forget 'itemsWereRemoved', @_itemsWereRemovedCallback
-  _observerForItem: (item) ->
-    @_getOrInitialize @_itemObservers, item, =>
-      (newValue, oldValue) =>
-        @get(oldValue).remove item
-        @get(newValue).add item
-  _getOrInitialize: (hash, key, lazyDefault) ->
-    set = hash.get(key)
-    unless set
-      set = lazyDefault()
-      hash.set(key, set)
-    set
-  _addItem: (item) ->
-    @_resultSetForItem(item).add item
-    item.observe @key, @_observerForItem(item)
-  _forgetItem: (item) ->
-    item.forget @key, @_observerForItem(item)
-    @_itemObservers.unset(item)
-  _removeItem: (item) ->
-    @_resultSetForItem(item).remove item
-    @_forgetItem item
+    @_setObserver.startObserving()
+  @accessor (key) -> @_storage.getOrSet(key, -> new Batman.Set)
+  startObserving: -> @_setObserver.startObserving()
+  stopObserving: -> @_setObserver.stopObserving()
+  observerForItemAndKey: (item, key) ->
+    (newValue, oldValue) =>
+      @get(oldValue).remove item
+      @get(newValue).add item
+  _addItem: (item) -> @_resultSetForItem(item).add item
+  _removeItem: (item) -> @_resultSetForItem(item).remove item
   _resultSetForItem: (item) ->
     @get(Batman.Keypath.forBaseAndKey(item, @key).getValue())
 

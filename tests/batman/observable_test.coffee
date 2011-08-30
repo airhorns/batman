@@ -120,6 +120,15 @@ test "unset(key) with a deep keypath should use the existing value's remove() me
 
 
 ###
+# getOrSet(key, valueFunction)
+###
+test "getOrSet(key, valueFunction) does conditional assignment with the return value of the given function", ->
+  equal @obj.foo, @obj.getOrSet("foo", -> "bar")
+  equal @obj.foo, @obj.get("foo")
+  equal "bar", @obj.getOrSet("foo2", -> "bar")
+  equal "bar", @obj.get("foo2")
+  
+###
 # observe(key [, fireImmediately], callback)
 ###
 test "observe(key, callback) stores the callback such that it is called with (value, oldValue) when the value of the key changes", ->

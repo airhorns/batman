@@ -97,8 +97,8 @@ test "setting a new value of the indexed property on an item which has been remo
   
   equal allByMary.has(@byFred), false
 
-test "stopUpdating() forgets all observers", ->
-  @authorNameIndex.stopUpdating()
+test "stopObserving() forgets all observers", ->
+  @authorNameIndex.stopObserving()
   
   @base.add @byJill
   equal @authorNameIndex.get("Jill").length, 0
