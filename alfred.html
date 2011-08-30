@@ -8,18 +8,18 @@ layout: default
 
 <!-- Begin content-column-wrapper -->
 <div id="content-column-wrapper">
-  
+
   <h2>Alfred - Batman's Todos</h2>
   <p>Because no single-page app framework is complete without the canonical todo list example, here it is in just a few trivial lines of code.</p>
   <p>We'll setup our view in HTML, setup a model with inline CoffeeScript, and then bind everything together using batman.js.</p>
-  
+
   {% capture launch_links %}
   <p><a href="/examples/alfred.html">Launch Alfred</a>. The completed code can be found in the <a href="http://github.com/Shopify/batman/blob/master/examples/alfred.html">repo</a>.</p>
   {% endcapture %}
   {{ launch_links }}
-    
+
   <h4>Layout</h4>
-  
+
   {% highlight html %}
 <!DOCTYPE html>
 <html>
@@ -57,10 +57,10 @@ layout: default
 </html>
   {% endhighlight %}
   <p>All the included resources may be found in the download above.</p>
-  
+
   <h4>Application</h4>
   <p>First, we'll setup an instance of Batman.App. In addition to managing the our application lifecycle, the object acts as a namespace for all your other objects, like our Todo model.</p>
-  
+
   {% highlight coffeescript %}
 # Create our application and namespace.
 class Alfred extends Batman.App
@@ -91,20 +91,18 @@ class Alfred.TodosController extends Batman.Controller
         new Todo(body: 'riddler sent riemann hypothesis').save()
         new Todo(body: 'bane wants to meet, not worried').save()
 
-    # return false to prevent the implicit render of views/todos/index.html
-    return false
+    # prevent the implicit render of views/todos/index.html
+    @render false
 
   create: =>
     @emptyTodo.save =>
       @set 'emptyTodo', new Todo
 
-    return false
-
 
 # Start the app
 Alfred.run()
   {% endhighlight %}
-  
+
   <h4>Bindings</h4>
   <p>Finally, we can now setup our HTML to bind to our working application. This makes everything come to live, with no additional code!</p>
   <p>We start by iterating over Todo.all (a copy of this li will be made for each item, and whenever a new item is added). The iterated item will be available under the key we specify, in this case <code>todo</code>.</p>
@@ -114,7 +112,7 @@ Alfred.run()
   </li>
 </ul>
   {% endhighlight %}
-  
+
   <p>Next, we can use <code>data-bind</code> to set the value of nodes within our iterator. Input nodes, like the checkbox, are smart enough to set the correct attribute.</p>
   {% highlight html %}
 <li data-foreach-todo="Todo.all">
@@ -122,7 +120,7 @@ Alfred.run()
     <label data-bind="todo.body"></label>
 </li>
   {% endhighlight %}
-  
+
   <p>There are many other <code>data-*</code> attributes we can use to add complex behaviors. For example, here we'll add the class name <code>done</code> to our label when a certain binding evaluates to true.</p>
   {% highlight html %}
 <li data-foreach-todo="Todo.all">
@@ -130,7 +128,7 @@ Alfred.run()
     <label data-bind="todo.body" data-addclass-done="todo.isDone"></label>
 </li>
   {% endhighlight %}
-  
+
   <p>Two new attributes. <code>data-mixin</code> will apply all of the properties from the given named bucket to this node, allowing for more complex behavior.</p>
   <p><code>data-event-*</code> allows us to easily add event handlers to a node. There are a few advantages over <code>onclick</code>: it will use <code>addEventListener</code>, let us access runtime methods, and we can support some more specialized events.</p>
   {% highlight html %}
@@ -140,7 +138,7 @@ Alfred.run()
     <a data-event-click="todo.destroy">delete</a>
 </li>
   {% endhighlight %}
-  
+
   <p>Bindings also support a Liquid-like filter syntax, allowing you to create more complex bindings without any additional presenter logic or code.</p>
   {% highlight html %}
 <ul id="items">
@@ -155,9 +153,9 @@ Alfred.run()
     <input class="new-item" placeholder="add a todo item" data-bind="todo.body" />
   </form>
   {% endhighlight %}
-  
+
   <h4>Fin</h4>
   {{ launch_links }}
-  
+
 </div>
 <!-- End content-column-wrapper -->
