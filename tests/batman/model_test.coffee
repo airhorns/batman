@@ -65,6 +65,11 @@ QUnit.module "Batman.Model",
   setup: ->
     class @Product extends Batman.Model
 
+test "constructors should always be called with new", ->
+  raises (-> product = Product()),
+    (message) -> 
+      message is "constructors must be called with new"
+
 test "primary key is undefined on new models", ->
   product = new @Product
   ok product.isNew()
