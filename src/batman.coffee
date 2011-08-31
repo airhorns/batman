@@ -1611,7 +1611,7 @@ class Batman.Model extends Batman.Object
   # `load` fetches the record from all sources possible
   load: (callback) =>
     if @get('state') in ['destroying', 'destroyed']
-      callback?(new Error("Can't save a destroyed record!"))
+      callback?(new Error("Can't load a destroyed record!"))
       return
 
     do @loading
