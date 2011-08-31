@@ -12,6 +12,7 @@
 
 Batman.Request::send = (data) ->
   options =
+    url: @get 'url'
     type: @get 'method'
     dataType: @get 'type'
     data: data || @get 'data'
@@ -34,7 +35,8 @@ Batman.Request::send = (data) ->
 
   if @get 'method' in ['PUT', 'POST']
     options.contentType = @get 'contentType'
-  jQuery.ajax @get('url'), options
+
+  jQuery.ajax options
 
 Batman.mixins.animation =
   show: (addToParent) ->

@@ -46,7 +46,7 @@ sharedStorageTestSuite = (hooks = {}) ->
       ok err
       QUnit.start()
 
-  asyncTestWithHooks 'reading many for storage: should callback with the records if they exist', 1, ->
+  asyncTestWithHooks 'reading many from storage: should callback with the records if they exist', 1, ->
     product1 = new @Product(name: "testA", cost: 20)
     product2 = new @Product(name: "testB", cost: 10)
     @adapter.create product1, {}, (err, createdRecord1) =>
@@ -60,7 +60,7 @@ sharedStorageTestSuite = (hooks = {}) ->
           deepEqual t(readProducts), t([createdRecord1, createdRecord2])
           QUnit.start()
 
-  asyncTestWithHooks 'reading many for storage: should callback with an empty array if no records exist', 1, ->
+  asyncTestWithHooks 'reading many from storage: should callback with an empty array if no records exist', 1, ->
     @adapter.readAll undefined, {}, (err, readProducts) ->
       throw err if err
       deepEqual readProducts, []
@@ -202,7 +202,8 @@ sharedStorageTestSuite
       url: '/products/10'
       method: 'GET'
     , error: 'specified record doesn\'t exist'
-  'reading many for storage: should callback with the records if they exist': ->
+
+  'reading many from storage: should callback with the records if they exist': ->
     MockRequest.expect
       url: '/products'
       method: 'POST'
@@ -227,11 +228,13 @@ sharedStorageTestSuite
         name: "testB"
         cost: 10
       ]
-  'reading many for storage: should callback with an empty array if no records exist': ->
+
+  'reading many from storage: should callback with an empty array if no records exist': ->
     MockRequest.expect
       url: '/products'
       method: 'GET'
     , products: []
+
   'updating in storage: should callback with the record if it exists': ->
     MockRequest.expect
       url: '/products'
@@ -253,6 +256,7 @@ sharedStorageTestSuite
         name: 'test'
         cost: 10
         id: 10
+
   'updating in storage: should callback with an error if the record hasn\'t been created': ->
   'destroying in storage: should succeed if the record exists': ->
     MockRequest.expect

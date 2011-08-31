@@ -1885,14 +1885,13 @@ class Batman.RestStorage extends Batman.StorageAdapter
     unless url
       callback.call @, new Error("Couldn't get model url!")
     else
-      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: JSON.stringify(record)}
-
+      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: record}
   optionsForCollection: (recordsOptions, callback) ->
     url = @model.url?() || @model.url || "/#{@modelKey}"
     unless url
       callback.call @, new Error("Couldn't get collection url!")
     else
-      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: JSON.stringify(recordsOptions)}
+      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: $mixin({}, @defaultOptions.data, recordsOptions)}
 
   create: (record, recordOptions, callback) ->
     @optionsForRecord record, false, (err, options) ->

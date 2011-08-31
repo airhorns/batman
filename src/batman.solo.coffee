@@ -5,14 +5,7 @@
 # Created by Nick Small
 # Copyright 2011, Shopify
 #
-
 `
-/*!
-  * Reqwest! A x-browser general purpose XHR connection manager
-  * copyright Dustin Diaz 2011
-  * https://github.com/ded/reqwest
-  * license MIT
-  */
 /*!
   * Reqwest! A x-browser general purpose XHR connection manager
   * copyright Dustin Diaz 2011
@@ -25,6 +18,7 @@ function(context, win) {
     var twoHundo = /^20\d$/,
         doc = document,
         byTag = 'getElementsByTagName',
+        contentType = 'Content-Type',
         head = doc[byTag]('head')[0],
         uniqid = 0,
         lastValue // data stored by the most recent JSONP callback
@@ -57,7 +51,7 @@ function(context, win) {
             }
 
             if (o.data) {
-                headers['Content-type'] = headers['Content-type'] || 'application/x-www-form-urlencoded'
+                headers[contentType] = headers[contentType] || 'application/x-www-form-urlencoded'
             }
             for (var h in headers) {
                 headers.hasOwnProperty(h) && http.setRequestHeader(h, headers[h], false)
@@ -184,7 +178,6 @@ function(context, win) {
                         case 'html':
                             resp = r
                             break;
-                            // default is the response from server
                         }
                     }
 
@@ -204,8 +197,9 @@ function(context, win) {
         Reqwest.prototype = {
             abort: function() {
                 this.request.abort()
-            },
+            }
 
+            ,
             retry: function() {
                 init.call(this, this.o, this.fn)
             }
@@ -281,15 +275,51 @@ function(context, win) {
     }
 
     // defined as extern for Closure Compilation
-    if (typeof module !== 'undefined') {
-      module.exports = reqwest;
-    }
+    if (typeof module !== 'undefined') module.exports = reqwest
     context['reqwest'] = reqwest
 
 }(this, window)
-`
 
+`
 (exports ? this).reqwest = if window? then window.reqwest else reqwest
+
+# `param` and `buildParams` stolen from jQuery
+#
+# jQuery JavaScript Library v1.6.1
+# http://jquery.com/
+#
+# Copyright 2011, John Resig
+# Dual licensed under the MIT or GPL Version 2 licenses.
+# http://jquery.org/license
+rbracket = /\[\]$/
+r20 = /%20/g
+param = (a, traditional) ->
+  s = []
+  add = (key, value) ->
+    value = (if Batman.typeOf(value) is 'function' then value() else value)
+    s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value)
+
+  traditional = jQuery.ajaxSettings.traditional  if traditional == undefined
+  if Batman.typeOf(a) is 'Array'
+    for value, name of a
+      add name, value
+  else
+    for k, v of a
+      buildParams k, v, traditional, add
+  s.join("&").replace r20, "+"
+
+buildParams = (prefix, obj, traditional, add) ->
+  if Batman.typeOf(obj) is 'Array'
+    for v, i in obj
+      if traditional or rbracket.test(prefix)
+        add prefix, v
+      else
+        buildParams prefix + "[" + (if typeof v == "object" or Batman.typeOf(v) is 'Array' then i else "") + "]", v, traditional, add
+  else if not traditional and obj? and typeof obj == "object"
+    for name of obj
+      buildParams prefix + "[" + name + "]", obj[name], traditional, add
+  else
+    add prefix, obj
 
 Batman.Request::send = (data) ->
   @loading yes
@@ -298,7 +328,6 @@ Batman.Request::send = (data) ->
     url: @get 'url'
     method: @get 'method'
     type: @get 'type'
-    data: data || @get 'data'
     headers: {}
 
     success: (response) =>
@@ -314,6 +343,13 @@ Batman.Request::send = (data) ->
       @loaded yes
 
   options.headers['Content-type'] = @get 'contentType' if options.method in ['PUT', 'POST']
+  data = data || @get('data')
+  if data
+    if options.method is 'GET'
+      options.url += param(data)
+    else
+      options.data = param(data)
+  console.log options
   reqwest options
 
 prefixes = ['Webkit', 'Moz', 'O', 'ms', '']
