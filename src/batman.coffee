@@ -788,15 +788,17 @@ class Batman.SetSort extends Batman.SetObserver
   observerForItemAndKey: -> @_boundReIndex
   compare: (a,b) ->
     return 0 if a is b
-    return -1 if a is undefined
-    return 1 if b is undefined
-    return -1 if a is null
-    return 1 if b is null
-    return -1 if typeof a is 'number' and isNaN(a)
-    return 1 if typeof b is 'number' and isNaN(b)
+    return 1 if a is undefined
+    return -1 if b is undefined
+    return 1 if a is null
+    return -1 if b is null
     return 0 if a.isEqual?(b) and b.isEqual?(a)
+    typeComparison = Batman.SetSort::compare($typeOf(a), $typeOf(b))
+    return typeComparison if typeComparison isnt 0
+    return 1 if a isnt a # means a is NaN
+    return -1 if b isnt b # means b is NaN
+    return 1 if a > b
     return -1 if a < b
-    return 1 if b < a
     return 0
   _reIndex: ->
     newOrder = @base.toArray().sort (a,b) =>

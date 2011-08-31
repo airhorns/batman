@@ -21,21 +21,37 @@ test "new Batman.SetSort(set, sortKey) constructs a sort on the set for that key
   equal @authorNameSort.base, @base
   equal @authorNameSort.sortKey, 'author.name'
 
-test "items with undefined values for the sorted key come first, then null values, then NaN values", ->
-  noAuthorName = Batman()
-  anotherNoAuthorName = Batman()
-  nullAuthorName = Batman
+test "items with null or undefined values for the sorted key come last and in that order. values of different types are grouped. NaN comes immediately after other numbers.", ->
+  noName = Batman()
+  anotherNoName = Batman()
+  nullName = Batman
     author: Batman
       name: null
-  naNAuthorName = Batman
+  naNName = Batman
     author: Batman
       name: NaN
-  @base.add naNAuthorName
-  @base.add noAuthorName
-  @base.add nullAuthorName
-  @base.add anotherNoAuthorName
+  numberedName = Batman
+    author: Batman
+      name: 9
+  anotherNumberedName = Batman
+    author: Batman
+      name: 80
+  trueName = Batman
+    author: Batman
+      name: true
+  falseName = Batman
+    author: Batman
+      name: false
+  @base.add noName
+  @base.add nullName
+  @base.add anotherNoName
+  @base.add anotherNumberedName
+  @base.add naNName
+  @base.add numberedName
+  @base.add trueName
+  @base.add falseName
   
-  expected = [noAuthorName, anotherNoAuthorName, nullAuthorName, naNAuthorName, @byFred, @anotherByFred, @byMary, @byZeke]
+  expected = [falseName, trueName, numberedName, anotherNumberedName, naNName, @byFred, @anotherByFred, @byMary, @byZeke, nullName, noName, anotherNoName]
   deepEqual @authorNameSort.toArray(), expected
   
 test "forEach(iterator) loops in the correct order", ->
