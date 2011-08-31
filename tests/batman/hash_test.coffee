@@ -51,10 +51,6 @@ test "set(key, val) keeps unequal keys distinct", ->
   equal @hash.get(key1), 1
   equal @hash.get(key2), 2
 
-test "set(undefined, val) doesn't set", ->
-  equal typeof(@hash.set undefined, true), 'undefined'
-  equal @hash.length, 0
-
 test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
   equal @hash.length, 1
@@ -140,6 +136,40 @@ test "keys() returns an array of the hash's keys", ->
   notEqual keys.indexOf(o1), -1
   notEqual keys.indexOf(o2), -1
   notEqual keys.indexOf('bar'), -1
+
+test "get/set/unset/hasKey with an undefined or null key works like any other, and they don't collide with each other", ->
+  equal @hash.hasKey(undefined), false
+  equal @hash.hasKey(null), false
+  
+  equal @hash.set(undefined, 1), 1
+  equal @hash.get(undefined), 1
+  equal @hash.hasKey(undefined), true
+  equal @hash.hasKey(null), false
+  equal @hash.get(null), undefined
+  
+  equal @hash.set(null, 1), 1
+  equal @hash.get(null), 1
+  equal @hash.hasKey(null), true
+  
+  @hash.unset(null)
+  equal @hash.hasKey(null), false
+  equal @hash.hasKey(undefined), true
+  
+  @hash.unset(undefined)
+  equal @hash.hasKey(undefined), false
+
+test "get/set/unset with an undefined or null value works like any other", ->
+  equal @hash.set(1, undefined), undefined
+  equal @hash.get(1), undefined
+  equal @hash.hasKey(1), true
+  @hash.unset(1)
+  equal @hash.hasKey(1), false
+  
+  equal @hash.set(1, null), null
+  equal @hash.get(1), null
+  equal @hash.hasKey(1), true
+  @hash.unset(1)
+  equal @hash.hasKey(1), false
 
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}

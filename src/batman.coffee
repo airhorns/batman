@@ -255,13 +255,10 @@ Batman.Observable =
     Batman.initializeObject @
     Batman.Keypath.forBaseAndKey(@, key)
   get: (key) ->
-    return undefined if typeof key is 'undefined'
     @property(key).getValue()
   set: (key, val) ->
-    return undefined if typeof key is 'undefined'
     @property(key).setValue(val)
   unset: (key) ->
-    return undefined if typeof key is 'undefined'
     @property(key).unsetValue()
     
   getOrSet: (key, valueFunction) ->
@@ -605,12 +602,10 @@ class Batman.SimpleHash
         return true
     return false
   get: (key) ->
-    return undefined if typeof key is 'undefined'
     if matches = @_storage[key]
       for [obj,v] in matches
         return v if @equality(obj, key)
   set: (key, val) ->
-    return undefined if typeof key is 'undefined'
     matches = @_storage[key] ||= []
     for match in matches
       if @equality(match[0], key)
@@ -628,11 +623,11 @@ class Batman.SimpleHash
           matches.splice(index,1)
           @length--
           return
+  getOrSet: Batman.Observable.getOrSet
   equality: (lhs, rhs) ->
-    return false if typeof lhs is 'undefined' or typeof rhs is 'undefined'
-    if typeof lhs.isEqual is 'function'
+    if typeof lhs?.isEqual is 'function'
       lhs.isEqual rhs
-    else if typeof rhs.isEqual is 'function'
+    else if typeof rhs?.isEqual is 'function'
       rhs.isEqual lhs
     else
       lhs is rhs
