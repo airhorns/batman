@@ -257,6 +257,17 @@ asyncTest "models will maintain the all set", ->
 
         QUnit.start()
 
+asyncTest "models will maintain the all set if no callbacks are given", ->
+  @Product.load {name: 'One'}
+  delay =>
+    equal @Product.get('all').length, 1, 'Products loaded are added to the set'
+    @Product.load {name: 'Two'}
+    delay =>
+      equal @Product.get('all').length, 2, 'Products loaded are added to the set'
+      @Product.load {name: 'Two'}
+      delay =>
+        equal @Product.get('all').length, 2, "Duplicate products aren't added to the set."
+
 asyncTest "loading the same models will return the same instances", ->
   @Product.load {name: 'One'}, (err, productsOne) =>
     equal @Product.get('all').length, 1
@@ -298,6 +309,18 @@ asyncTest "instantiated instances can load their values", ->
     ok err
     QUnit.start()
 
+asyncTest "loading instances should add them to the all set", ->
+  product = new @Product(1)
+  product.load (err, product) =>
+    equal @Product.get('all').length, 1
+    QUnit.start()
+
+asyncTest "loading instances should add them to the all set if no callbacks are given", ->
+  product = new @Product(1)
+  product.load()
+  delay =>
+    equal @Product.get('all').length, 1
+
 QUnit.module "Batman.Model instance saving"
   setup: ->
     class @Product extends Batman.Model
@@ -318,6 +341,15 @@ test "new instances should be added to the identity map", ->
   product.save (err, product) =>
     throw err if err?
     equal @Product.get('all.length'), 1
+
+asyncTest "new instances should be added to the identity map even if no callback is given", ->
+  product = new @Product()
+  equal @Product.get('all.length'), 0
+  product.save()
+  delay =>
+    throw err if err?
+    equal @Product.get('all.length'), 1
+
 
 test "existing instances shouldn't be re added to the identity map", ->
   product = new @Product(10)

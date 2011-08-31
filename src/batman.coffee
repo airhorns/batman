@@ -1468,7 +1468,7 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches records from all sources possible
   @load: (options, callback) ->
-    if !callback
+    if $typeOf(options) is 'Function'
       callback = options
       options = {}
 
@@ -1479,8 +1479,9 @@ class Batman.Model extends Batman.Object
       if err?
         callback?(err, [])
       else
-        callback?(err, @_mapIdentities(records))
+        records = @_mapIdentities(records)
         do @loaded
+        callback?(err, records)
 
   @_mapIdentities: (records) ->
     all = @get('all').toArray()
@@ -1617,7 +1618,8 @@ class Batman.Model extends Batman.Object
     do @loading
     @_doStorageOperation 'read', {}, (err, record) =>
       do @loaded unless err
-      callback?(err, @constructor._mapIdentities([record])[0])
+      record = @constructor._mapIdentities([record])[0]
+      callback?(err, record)
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
@@ -1639,7 +1641,8 @@ class Batman.Model extends Batman.Object
             do @created
           do @saved
           @dirtyKeys.clear()
-        callback?(err, @constructor._mapIdentities([record])[0])
+        record = @constructor._mapIdentities([record])[0]
+        callback?(err, record)
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
