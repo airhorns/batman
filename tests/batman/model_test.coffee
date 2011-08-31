@@ -196,6 +196,10 @@ QUnit.module "Batman.Model class finding"
 
     @Product.persist @adapter
 
+test "will error unless a callback is provided", ->
+  raises (-> @Product.find 1),
+    (message) -> message is "missing callback"
+
 asyncTest "models will find an instance in the store", ->
   @Product.find 1, (err, product) ->
     throw err if err

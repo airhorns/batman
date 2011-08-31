@@ -1461,6 +1461,7 @@ class Batman.Model extends Batman.Object
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
 
   @find: (id, callback) ->
+    throw "missing callback" unless callback
     record = new @(id)
     newRecord = @_mapIdentities([record])[0]
     newRecord.load callback
