@@ -20,8 +20,26 @@ QUnit.module 'Batman.SetSort',
 test "new Batman.SetSort(set, sortKey) constructs a sort on the set for that keypath", ->
   equal @authorNameSort.base, @base
   equal @authorNameSort.sortKey, 'author.name'
+
+test "items with undefined values for the sorted key come first, then null values, then NaN values", ->
+  noAuthorName = Batman()
+  anotherNoAuthorName = Batman()
+  nullAuthorName = Batman
+    author: Batman
+      name: null
+  naNAuthorName = Batman
+    author: Batman
+      name: NaN
+  @base.add naNAuthorName
+  @base.add noAuthorName
+  @base.add nullAuthorName
+  @base.add anotherNoAuthorName
+  
+  expected = [noAuthorName, anotherNoAuthorName, nullAuthorName, naNAuthorName, @byFred, @anotherByFred, @byMary, @byZeke]
+  deepEqual @authorNameSort.toArray(), expected
   
 test "forEach(iterator) loops in the correct order", ->
+  expect 4
   expected = [@byFred, @anotherByFred, @byMary, @byZeke]
   @authorNameSort.forEach (item, i) ->
     ok item is expected[i]

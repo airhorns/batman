@@ -786,11 +786,25 @@ class Batman.SetSort extends Batman.SetObserver
   forEach: (iterator) ->
     iterator(e,i) for e,i in @get('_storage')
   observerForItemAndKey: -> @_boundReIndex
+  compare: (a,b) ->
+    return 0 if a is b
+    return -1 if a is undefined
+    return 1 if b is undefined
+    return -1 if a is null
+    return 1 if b is null
+    return -1 if typeof a is 'number' and isNaN(a)
+    return 1 if typeof b is 'number' and isNaN(b)
+    return 0 if a.isEqual?(b) and b.isEqual?(a)
+    return -1 if a < b
+    return 1 if b < a
+    return 0
   _reIndex: ->
     newOrder = @base.toArray().sort (a,b) =>
-      valueA = (Batman.Observable.property.call(a, @sortKey)).getValue()?.valueOf()
-      valueB = (Batman.Observable.property.call(b, @sortKey)).getValue()?.valueOf()
-      if valueA < valueB then -1 else if valueA > valueB then 1 else 0
+      valueA = Batman.Observable.property.call(a, @sortKey).getValue()
+      valueA = valueA.valueOf() if valueA?
+      valueB = Batman.Observable.property.call(b, @sortKey).getValue()
+      valueB = valueB.valueOf() if valueB?
+      @compare.call(@, valueA, valueB)
     @startObservingItems(newOrder...)
     @set('_storage', newOrder)
     

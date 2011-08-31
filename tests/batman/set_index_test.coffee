@@ -79,6 +79,20 @@ test "setting a new value of the indexed property on an item which has been remo
   
   equal allByMary.has(@byFred), false
 
+test "items with undefined values for the indexed key are grouped together as with any other value, and don't collide with null values", ->
+  noAuthor = Batman()
+  anotherNoAuthor = Batman()
+  nullAuthor = Batman
+    author: Batman
+      name: null
+  @base.add noAuthor
+  @base.add anotherNoAuthor
+  allByNobody = @authorNameIndex.get(undefined)
+  equal allByNobody.length, 2
+  equal allByNobody.has(noAuthor), true
+  equal allByNobody.has(anotherNoAuthor), true
+  equal allByNobody.has(Batman()), false
+
 test "stopObserving() forgets all observers", ->
   @authorNameIndex.stopObserving()
   
