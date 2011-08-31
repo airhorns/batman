@@ -5,35 +5,17 @@ QUnit.module 'Batman.SetIndex',
     @fred = Batman name: 'Fred'
     @jill = Batman name: 'Jill'
     
-    @byZeke = Batman
-      id: 1
-      updated_at: new Date("2008-01-10T11:00:00-05:00")
-      author: @zeke
-    @byMary = Batman
-      id: 2
-      updated_at: new Date("2008-01-10T11:00:00-05:00")
-      author: @mary
-    @byFred = Batman
-      id: 3
-      updated_at: new Date("2009-01-10T11:00:00-05:00")
-      author: @fred
-    @anotherByFred = Batman
-      id: 4
-      updated_at: new Date("2010-01-10T11:00:00-05:00")
-      author: @fred
+    @byZeke = Batman author: @zeke
+    @byMary = Batman author: @mary
+    @byFred = Batman author: @fred
+    @anotherByFred = Batman author: @fred
     
     @base = new Batman.Set(@byMary, @byFred, @byZeke, @anotherByFred)
     @authorNameIndex = new Batman.SetIndex(@base, 'author.name')
     
     # not yet in the set:
-    @byJill = Batman
-      id: 5
-      updated_at: new Date("2008-01-10T11:00:00-05:00")
-      author: @jill
-    @anotherByZeke = Batman
-      id: 5
-      updated_at: new Date("2008-01-10T11:00:00-05:00")
-      author: @zeke
+    @byJill = Batman author: @jill
+    @anotherByZeke = Batman author: @zeke
 
 test "new Batman.SetIndex(set, key) constructs an index on the set for that keypath", ->
   equal @authorNameIndex.base, @base
