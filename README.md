@@ -30,7 +30,8 @@ class Shopify.ProductsController extends Batman.Controller
     @redirect action: 'show', id: 1
 
   show: (params) ->
-    @product = Shopify.Product.find params.id
+    Shopify.Product.find params.id, (err, product) =>
+      @product = product
 ```
 
 #### views/products/index.html
