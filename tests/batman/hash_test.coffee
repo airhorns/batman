@@ -115,12 +115,14 @@ test "equality(lhs, rhs) uses === by default", ->
   equal @hash.equality(1, '1'), false
   equal @hash.equality('1', '1'), true
 
-test "equality(lhs, rhs) uses lhs.isEqual or rhs.isEqual if available", ->
-  o1 =
-    isEqual: -> true
-  o2 = {}
+test "equality(lhs, rhs) uses lhs.isEqual and rhs.isEqual if available", ->
+  o1 = isEqual: -> true
+  o2 = isEqual: -> true
   equal @hash.equality(o1, o2), true
   equal @hash.equality(o2, o1), true
+
+test "equality(lhs, rhs) returns true when both are NaN", ->
+  equal @hash.equality(NaN, NaN), true
 
 test "keys() returns an array of the hash's keys", ->
   @hash.set 'foo', 'bar'

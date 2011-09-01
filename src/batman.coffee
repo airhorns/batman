@@ -625,12 +625,10 @@ class Batman.SimpleHash
           return
   getOrSet: Batman.Observable.getOrSet
   equality: (lhs, rhs) ->
-    if typeof lhs?.isEqual is 'function'
-      lhs.isEqual rhs
-    else if typeof rhs?.isEqual is 'function'
-      rhs.isEqual lhs
-    else
-      lhs is rhs
+    return true if lhs is rhs
+    return true if lhs isnt lhs and rhs isnt rhs # when both are NaN
+    return true if lhs?.isEqual?(rhs) and rhs?.isEqual?(lhs)
+    return false
   forEach: (iterator) ->
     for key, values of @_storage
       iterator(obj, value) for [obj, value] in values
