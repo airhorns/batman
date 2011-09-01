@@ -2419,11 +2419,11 @@ Batman.DOM = {
       Batman.DOM.readers.showif args..., yes
 
     route: (node, key, context) ->
-      [key, action] = key.split '/'
       # you must specify the / in front to route directly to hash route
       if key.substr(0, 1) is '/'
         url = key
       else
+        [key, action] = key.split '/'
         [dispatcher, app] = context.findKey 'dispatcher'
         [model, container] = context.findKey key
 
