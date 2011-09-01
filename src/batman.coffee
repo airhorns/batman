@@ -2430,8 +2430,7 @@ Batman.DOM = {
       context.pop()
 
     showif: (node, key, context, renderer, invert) ->
-      originalDisplay = node.style.display
-      originalDisplay = 'block' if !originalDisplay or originalDisplay is 'none'
+      originalDisplay = node.style.display || ''
 
       context.bind(node, key, (value) ->
         if !!value is !invert

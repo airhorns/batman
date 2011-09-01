@@ -141,12 +141,25 @@ asyncTest 'it should allow a class to be bound', 6, ->
       ok node.hasClass('two')
       QUnit.start()
 
-asyncTest 'it should allow visibility to be bound', 2, ->
-  source = '<div data-showif="foo" style="display: block;"></div>'
+asyncTest 'it should allow visibility to be bound on block elements', 2, ->
+  source = '<div data-showif="foo"></div>'
   render source,
     foo: true
   , (node) ->
-    equal node.css('display'), 'block'
+    equal node.css('display'), ''
+
+    render source,
+      foo: false
+    , (node) ->
+        equal node.css('display'), 'none'
+        QUnit.start()
+
+asyncTest 'it should allow visibility to be bound on inline elements', 2, ->
+  source = '<span data-showif="foo"></span>'
+  render source,
+    foo: true
+  , (node) ->
+    equal node.css('display'), ''
 
     render source,
       foo: false
