@@ -260,7 +260,7 @@ Batman.Observable =
     @property(key).setValue(val)
   unset: (key) ->
     @property(key).unsetValue()
-    
+
   getOrSet: (key, valueFunction) ->
     currentValue = @get(key)
     unless currentValue
@@ -729,7 +729,7 @@ class Batman.Set extends Batman.Object
 
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', -> @length
-  
+
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
     @_itemObservers = new Batman.Hash
@@ -738,13 +738,13 @@ class Batman.SetObserver extends Batman.Object
     @_setObservers.set("itemsWereRemoved", @itemsWereRemoved.bind(@))
     @observe 'itemsWereAdded', @startObservingItems.bind(@)
     @observe 'itemsWereRemoved', @stopObservingItems.bind(@)
-  
+
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
-  
+
   observedItemKeys: []
   observerForItemAndKey: (item, key) ->
-    
+
   _getOrSetObserverForItemAndKey: (item, key) ->
     @_itemObservers.getOrSet item, =>
       observersByKey = new Batman.Hash
@@ -770,7 +770,7 @@ class Batman.SetObserver extends Batman.Object
     return unless @base.isObservable
     @_setObservers.forEach (key, observer) =>
       @base[method](key, observer)
-        
+
 class Batman.SetSort extends Batman.SetObserver
   constructor: (@base, @sortKey) ->
     super(base)
@@ -808,7 +808,7 @@ class Batman.SetSort extends Batman.SetObserver
       @compare.call(@, valueA, valueB)
     @startObservingItems(newOrder...)
     @set('_storage', newOrder)
-    
+
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
     @_setObserver = new Batman.SetObserver(@base)
@@ -1426,7 +1426,6 @@ class Batman.Model extends Batman.Object
     Batman.initializeObject @prototype
     @::_batman.encoders ||= new Batman.SimpleHash
     @::_batman.decoders ||= new Batman.SimpleHash
-
     switch $typeOf(encoderOrLastKey)
       when 'String'
         keys.push encoderOrLastKey
@@ -1437,11 +1436,16 @@ class Batman.Model extends Batman.Object
         decoder = encoderOrLastKey.decode
 
     for key in keys
-      @::_batman.encoders.set key, (encoder || @defaultEncoder)
-      @::_batman.decoders.set key, (decoder || @defaultDecoder)
+      @::_batman.encoders.set key, (encoder || @defaultEncoder.encode)
+      @::_batman.decoders.set key, (decoder || @defaultEncoder.decode)
 
   # Set up the unit functions as the default for both
-  @defaultEncoder = @defaultDecoder = (x) -> (x)
+  @defaultEncoder:
+    encode: (x) -> x
+    decode: (x) -> x
+
+  # Attach encoders and decoders for the primary key, and update them if the primary key changes.
+  @observe 'primaryKey', yes, (newPrimaryKey) -> @encode newPrimaryKey, @defaultEncoder
 
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
@@ -1601,12 +1605,11 @@ class Batman.Model extends Batman.Object
   fromJSON: (data) ->
     obj = {}
     decoders = @_batman.get('decoders')
-
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
     # each key and just setting the values.
     if !decoders or decoders.isEmpty()
       for key, value of data
-        obj[helpers.camelize(key, yes)] = value
+        obj[key] = value
     else
       # If we do have decoders, use them to get the data.
       decoders.forEach (key, decoder) ->
@@ -1797,7 +1800,9 @@ class Batman.StorageAdapter
        @getRecordFromData(data)
   getRecordFromData: (data) ->
     data = @transformRecordData(data) if @transformRecordData?
-    record = new @model(data)
+    record = new @model()
+    record.fromJSON(data)
+    record
 
 class Batman.LocalStorage extends Batman.StorageAdapter
   constructor: ->

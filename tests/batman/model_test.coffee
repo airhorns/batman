@@ -67,7 +67,7 @@ QUnit.module "Batman.Model",
 
 test "constructors should always be called with new", ->
   raises (-> product = Product()),
-    (message) -> 
+    (message) ->
       message is "constructors must be called with new"
 
 test "primary key is undefined on new models", ->
@@ -359,7 +359,6 @@ asyncTest "new instances should be added to the identity map even if no callback
     throw err if err?
     equal @Product.get('all.length'), 1
 
-
 test "existing instances shouldn't be re added to the identity map", ->
   product = new @Product(10)
   product.load (err, product) =>
@@ -455,17 +454,20 @@ test "keys not marked for decoding shouldn't be decoded", ->
   equal p.get('cost'), 12.99
   equal p.get('wibble'), undefined
 
-test "models without any decoders should decode all keys with camelization", ->
+test "models without any decoders should decode all keys", ->
 
   class TestProduct extends Batman.Model
-    # No encoders.
 
+  # No encoders.
+  oldDecoders = Batman.Model::_batman.decoders
+  Batman.Model::_batman.decoders = new Batman.SimpleHash
   p = new TestProduct
   p.fromJSON {name: "Cool Snowboard", cost: 12.99, rails_is_silly: "yup"}
 
   equal p.get('name'), "Cool Snowboard"
   equal p.get('cost'), 12.99
-  equal p.get('railsIsSilly'), 'yup'
+  equal p.get('rails_is_silly'), 'yup'
+  Batman.Model::_batman.decoders = oldDecoders
 
 QUnit.module "Batman.Model: encoding: custom encoders/decoders"
   setup: ->
