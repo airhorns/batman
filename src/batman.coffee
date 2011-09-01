@@ -713,7 +713,8 @@ class Batman.SimpleSet
   itemsWereRemoved: ->
 
 class Batman.Set extends Batman.Object
-  constructor: Batman.SimpleSet
+  constructor: ->
+    Batman.SimpleSet.apply @, arguments
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
