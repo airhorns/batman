@@ -71,7 +71,6 @@ test "setting a new value of the indexed property on one of the items triggers a
   equal allByMary.has(@byFred), true
 
 test "setting a new value of the indexed property on an item which has been removed should not trigger an update", ->
-  allByFred = @authorNameIndex.get("Fred")
   allByMary = @authorNameIndex.get("Mary")
   
   @base.remove(@byFred)

@@ -823,18 +823,41 @@ class Batman.SetIndex extends Batman.Object
     @_storage = new Batman.Hash
     @base.forEach @_addItem.bind(@)
     @_setObserver.startObserving()
-  @accessor (key) -> @_storage.getOrSet(key, -> new Batman.Set)
-  startObserving: -> @_setObserver.startObserving()
+  @accessor (key) -> @_resultSetForKey(key)
+  startObserving: ->@_setObserver.startObserving()
   stopObserving: -> @_setObserver.stopObserving()
   observerForItemAndKey: (item, key) ->
     (newValue, oldValue) =>
-      @get(oldValue).remove item
-      @get(newValue).add item
-  _addItem: (item) -> @_resultSetForItem(item).add item
-  _removeItem: (item) -> @_resultSetForItem(item).remove item
-  _resultSetForItem: (item) ->
-    @get(Batman.Keypath.forBaseAndKey(item, @key).getValue())
-
+      @_removeItemFromKey(item, oldValue)
+      @_addItemToKey(item, newValue)
+  _addItem: (item) -> @_addItemToKey(item, @_keyForItem(item))
+  _addItemToKey: (item, key) ->
+    @_resultSetForKey(key).add item
+  _removeItem: (item) -> @_removeItemFromKey(item, @_keyForItem(item))
+  _removeItemFromKey: (item, key) ->
+    @_resultSetForKey(key).remove item
+  _resultSetForKey: (key) ->
+    @_storage.getOrSet(key, -> new Batman.Set)
+  _keyForItem: (item) ->
+    Batman.Keypath.forBaseAndKey(item, @key).getValue()
+    
+class Batman.UniqueSetIndex extends Batman.SetIndex
+  constructor: ->
+    @_uniqueIndex = new Batman.Hash
+    super
+  @accessor (key) -> @_uniqueIndex.get(key)
+  _addItemToKey: (item, key) ->
+    @_resultSetForKey(key).add item
+    unless @_uniqueIndex.hasKey(key)
+      @_uniqueIndex.set(key, item)
+  _removeItemFromKey: (item, key) ->
+    resultSet = @_resultSetForKey(key)
+    resultSet.remove item
+    if resultSet.length is 0
+      @_uniqueIndex.unset(key)
+    else
+      @_uniqueIndex.set(key, resultSet.toArray()[0])
+  
 class Batman.SortableSet extends Batman.Set
   constructor: ->
     super
