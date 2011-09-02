@@ -83,6 +83,9 @@ setTestSuite = ->
     equal index.key, 'length'
     strictEqual @set.indexedBy('length'), index
 
+  test "get('indexedBy.someKey') returns the same index as indexedBy(key)", ->
+    strictEqual @set.get('indexedBy.length'), @set.indexedBy('length')
+
 QUnit.module 'Batman.Set',
   setup: ->
     @set = new Batman.Set

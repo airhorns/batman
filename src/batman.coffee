@@ -732,6 +732,7 @@ class Batman.Set extends Batman.Object
         @property('length').fireDependents()
         results
 
+  @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', -> @length
 
