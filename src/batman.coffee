@@ -1304,6 +1304,7 @@ Batman.App.classMixin
 
   resources: (resource, options, callback) ->
     (callback = options; options = null) if typeof options is 'function'
+    resource = helpers.pluralize(resource)
     controller = options?.controller || resource
 
     @route(resource, "#{controller}#index", resource:controller, action:'index')
@@ -2451,6 +2452,8 @@ Batman.DOM = {
         [key, action] = key.split '/'
         [dispatcher, app] = context.findKey 'dispatcher'
         [model, container] = context.findKey key
+
+        dispatcher ||= Batman.currentApp.dispatcher
 
         if dispatcher and model instanceof Batman.Model
           action ||= 'show'
