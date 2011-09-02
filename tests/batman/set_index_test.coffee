@@ -21,6 +21,32 @@ test "new Batman.SetIndex(set, key) constructs an index on the set for that keyp
   equal @authorNameIndex.base, @base
   equal @authorNameIndex.key, 'author.name'
 
+test "new Batman.SetIndex(set, key) with unobservable items will observe the set but not the items", ->
+  set = new Batman.Set("foo", "bar", "ba")
+  setSpy = spyOn(set, 'observe')
+  fooSpy = spyOn(@zeke, 'observe')
+  barSpy = spyOn(@mary, 'observe')
+  baSpy = spyOn(@mary, 'observe')
+  simpleIndex = new Batman.SetIndex(set, 'length')
+  deepEqual simpleIndex.get(3).toArray(), ["foo", "bar"]
+  
+  ok setSpy.called, "the set should be observed"
+  ok !fooSpy.called, "the items should not be observed"
+  ok !barSpy.called, "the items should not be observed"
+  ok !baSpy.called, "the items should not be observed"
+
+test "new Batman.SetIndex(set, key) with a Batman.SimpleSet indexes the items but doesn't observe anything", ->
+  set = new Batman.SimpleSet(@zeke, @mary)
+  setSpy = spyOn(set, 'observe')
+  zekeSpy = spyOn(@zeke, 'observe')
+  marySpy = spyOn(@mary, 'observe')
+  simpleIndex = new Batman.SetIndex(set, 'name')
+  deepEqual simpleIndex.get('Zeke').toArray(), [@zeke]
+  
+  ok !setSpy.called, "the set should not be observed"
+  ok !zekeSpy.called, "the items should not be observed"
+  ok !marySpy.called, "the items should not be observed"
+
 test "get(value) returns a Batman.Set of items indexed on that value for the index's key", ->
   allByFred = @authorNameIndex.get("Fred")
   

@@ -75,6 +75,13 @@ setTestSuite = ->
 
     @set.merge(new Batman.Set('qux', 'baz'))
     equal spy.callCount, 4, 'merge() fires length observers'
+  
+  test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
+    index = @set.indexedBy('length')
+    ok index instanceof Batman.SetIndex
+    equal index.base, @set
+    equal index.key, 'length'
+    strictEqual @set.indexedBy('length'), index
 
 QUnit.module 'Batman.Set',
   setup: ->

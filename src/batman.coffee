@@ -667,6 +667,7 @@ class Batman.Hash extends Batman.Object
 class Batman.SimpleSet
   constructor: ->
     @_storage = new Batman.SimpleHash
+    @_indexes = new Batman.SimpleHash
     @length = 0
     @add.apply @, arguments if arguments.length > 0
   has: (item) ->
@@ -700,13 +701,14 @@ class Batman.SimpleSet
     items
   toArray: ->
     @_storage.keys()
-
   merge: (others...) ->
     merged = new @constructor
     others.unshift(@)
     for set in others
       set.forEach (v) -> merged.add v
     merged
+  indexedBy: (key) ->
+    @_indexes.get(key) or @_indexes.set(key, new Batman.SetIndex(@, key))
   itemsWereAdded: ->
   itemsWereRemoved: ->
 
@@ -716,7 +718,7 @@ class Batman.Set extends Batman.Object
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
-  for k in ['has', 'forEach', 'isEmpty', 'toArray']
+  for k in ['has', 'forEach', 'isEmpty', 'toArray', 'indexedBy']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['add', 'remove', 'clear', 'merge']
@@ -761,6 +763,7 @@ class Batman.SetObserver extends Batman.Object
   stopObservingItems: (items...) ->
     @_manageObserversForItem(item, "forget") for item in items
   _manageObserversForItem: (item, method) ->
+    return unless item.isObservable
     for key in @observedItemKeys
       item[method] key, @_getOrSetObserverForItemAndKey(item, key)
     @_itemObservers.unset(item) if method is "forget"
@@ -811,19 +814,20 @@ class Batman.SetSort extends Batman.SetObserver
 
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
-    @_setObserver = new Batman.SetObserver(@base)
-    @_setObserver.observedItemKeys = [@key]
-    @_setObserver.observerForItemAndKey = @observerForItemAndKey.bind(@)
-    @_setObserver.observe 'itemsWereAdded', (items...) =>
-      @_addItem(item) for item in items
-    @_setObserver.observe 'itemsWereRemoved', (items...) =>
-      @_removeItem(item) for item in items
     @_storage = new Batman.Hash
+    if @base.isObservable
+      @_setObserver = new Batman.SetObserver(@base)
+      @_setObserver.observedItemKeys = [@key]
+      @_setObserver.observerForItemAndKey = @observerForItemAndKey.bind(@)
+      @_setObserver.observe 'itemsWereAdded', (items...) =>
+        @_addItem(item) for item in items
+      @_setObserver.observe 'itemsWereRemoved', (items...) =>
+        @_removeItem(item) for item in items
     @base.forEach @_addItem.bind(@)
-    @_setObserver.startObserving()
+    @startObserving()
   @accessor (key) -> @_resultSetForKey(key)
-  startObserving: ->@_setObserver.startObserving()
-  stopObserving: -> @_setObserver.stopObserving()
+  startObserving: ->@_setObserver?.startObserving()
+  stopObserving: -> @_setObserver?.stopObserving()
   observerForItemAndKey: (item, key) ->
     (newValue, oldValue) =>
       @_removeItemFromKey(item, oldValue)
@@ -859,7 +863,7 @@ class Batman.UniqueSetIndex extends Batman.SetIndex
 class Batman.SortableSet extends Batman.Set
   constructor: ->
     super
-    @_indexes = {}
+    @_sortIndexes = {}
     @observe 'activeIndex', =>
       @setWasSorted(@)
   setWasSorted: @event ->
@@ -875,32 +879,32 @@ class Batman.SortableSet extends Batman.Set
   addIndex: (index) ->
     @_reIndex(index)
   removeIndex: (index) ->
-    @_indexes[index] = null
-    delete @_indexes[index]
+    @_sortIndexes[index] = null
+    delete @_sortIndexes[index]
     @unset('activeIndex') if @activeIndex is index
     index
   forEach: (iterator) ->
     iterator(el) for el in @toArray()
   sortBy: (index) ->
-    @addIndex(index) unless @_indexes[index]
+    @addIndex(index) unless @_sortIndexes[index]
     @set('activeIndex', index) unless @activeIndex is index
     @
   isSorted: ->
-    @_indexes[@get('activeIndex')]?
+    @_sortIndexes[@get('activeIndex')]?
   toArray: ->
-    @_indexes[@get('activeIndex')] || super
+    @_sortIndexes[@get('activeIndex')] || super
   _reIndex: (index) ->
     if index
       [keypath, ordering] = index.split ' '
       ary = Batman.Set.prototype.toArray.call @
-      @_indexes[index] = ary.sort (a,b) ->
+      @_sortIndexes[index] = ary.sort (a,b) ->
         valueA = (Batman.Observable.property.call(a, keypath)).getValue()?.valueOf()
         valueB = (Batman.Observable.property.call(b, keypath)).getValue()?.valueOf()
         [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
         if valueA < valueB then -1 else if valueA > valueB then 1 else 0
       @setWasSorted(@) if @activeIndex is index
     else
-      @_reIndex(index) for index of @_indexes
+      @_reIndex(index) for index of @_sortIndexes
       @setWasSorted(@)
     @
 
