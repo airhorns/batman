@@ -2152,6 +2152,7 @@ class Batman.Renderer extends Batman.Object
       return children[0] if children?.length
 
     node.onParseExit?()
+    return if @node.isSameNode node
 
     sibling = node.nextSibling
     return sibling if sibling
