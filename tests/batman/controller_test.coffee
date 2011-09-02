@@ -5,6 +5,9 @@ class TestController extends Batman.Controller
 class MockView extends MockClass
   @chainedCallback 'ready'
   get: createSpy().whichReturns("view contents")
+  constructor: ->
+    @contexts = []
+    super
 
 QUnit.module 'Batman.Controller render'
   setup: ->

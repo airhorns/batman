@@ -838,7 +838,7 @@ class Batman.SetIndex extends Batman.Object
     @_storage.getOrSet(key, -> new Batman.Set)
   _keyForItem: (item) ->
     Batman.Keypath.forBaseAndKey(item, @key).getValue()
-    
+
 class Batman.UniqueSetIndex extends Batman.SetIndex
   constructor: ->
     @_uniqueIndex = new Batman.Hash
@@ -855,7 +855,7 @@ class Batman.UniqueSetIndex extends Batman.SetIndex
       @_uniqueIndex.unset(key)
     else
       @_uniqueIndex.set(key, resultSet.toArray()[0])
-  
+
 class Batman.SortableSet extends Batman.Set
   constructor: ->
     super
@@ -1397,7 +1397,7 @@ class Batman.Controller extends Batman.Object
       options.view = new Batman.View(options)
 
     if view = options.view
-      view.context ||= @
+      view.contexts.push @
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
 
@@ -1991,11 +1991,13 @@ class Batman.RestStorage extends Batman.StorageAdapter
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   constructor: (options) ->
-    # ensure the app is at the bottom of the context stack
-    if Batman.currentApp
-      options.contexts ||= []
-      options.contexts.unshift Batman.currentApp
-    super
+    @contexts = []
+    super(options)
+
+    # Support both `options.context` and `options.contexts`
+    if context = @get('context')
+      @contexts.push context
+      @unset('context')
 
   viewSources = {}
 
@@ -2008,8 +2010,6 @@ class Batman.View extends Batman.Object
   # Set an existing DOM node to parse immediately.
   node: null
 
-  context: null
-  contexts: null
   contentFor: null
 
   # Fires once a node is parsed.
@@ -2067,9 +2067,6 @@ class Batman.View extends Batman.Object
       @_renderer.rendered =>
         @ready node
 
-      # Ensure any context object explicitly given for use in rendering the view (in `@context`) gets passed to the renderer
-      @_renderer.context.push(@context) if @context
-      @_renderer.context.set 'view', @
 
 # DOM Helpers
 # -----------
@@ -2325,21 +2322,23 @@ class RenderContext
   constructor: (contexts...) ->
     @contexts = contexts
     @storage = new Batman.Object
-    @contexts.push @storage
+    @defaultContexts = [@storage]
+    @defaultContexts.push Batman.currentApp if Batman.currentApp
 
   findKey: (key) ->
     base = key.split('.')[0].split('|')[0].trim()
-    i = @contexts.length
-    while i--
-      context = @contexts[i]
-      if context.get?
-        val = context.get(base)
-      else
-        val = context[base]
+    for contexts in [@contexts, @defaultContexts]
+      i = contexts.length
+      while i--
+        context = contexts[i]
+        if context.get?
+          val = context.get(base)
+        else
+          val = context[base]
 
-      if typeof val isnt 'undefined'
-        # we need to pass the check if the basekey exists, even if the intermediary keys do not.
-        return [$get(context, key), context]
+        if typeof val isnt 'undefined'
+          # we need to pass the check if the basekey exists, even if the intermediary keys do not.
+          return [$get(context, key), context]
 
     return [container.get(key), container]
 
@@ -2354,13 +2353,12 @@ class RenderContext
 
   clone: ->
     context = new @constructor(@contexts...)
-    context.setStorage(@storage)
+    newStorage = $mixin {}, @storage
+    context.setStorage(newStorage)
     context
 
   setStorage: (storage) ->
-    @contexts.splice(@contexts.indexOf(@storage), 1)
-    @push(storage)
-    storage
+    @defaultContexts[0] = storage
 
   # `BindingProxy` is a simple class which assists in allowing bound contexts to be popped to the top of
   # the stack. This happens when a `data-context` is descended into, for each iteration in a `data-foreach`,
@@ -2410,13 +2408,12 @@ Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    bind: (node, key, context) ->
+    bind: (node, key, context, renderer) ->
       if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
         Batman.DOM.attrReaders.bind(node, 'checked', key, context)
       else if node.nodeName.toLowerCase() == 'select'
         # wait for the select to render before binding to it
-        view = context.findKey('view')[0]
-        view._renderer.rendered ->
+        renderer.rendered ->
           Batman.DOM.attrReaders.bind(node, 'value', key, context)
       else
         context.bind(node, key)

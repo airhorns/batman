@@ -40,6 +40,7 @@ QUnit.module 'Batman.View'
       source: "test_path#{++count}.html"
 
     Batman.Request = MockRequest
+    debugger
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
 
   teardown: ->
