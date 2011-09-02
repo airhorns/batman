@@ -1009,10 +1009,10 @@ asyncTest 'should set href for URL fragment', 1, ->
     QUnit.start()
 
 unless IN_NODE
-  asyncTest 'should set model instance', 1, ->
+  asyncTest 'should set corresponding href for model and action', 1, ->
     class @App extends Batman.App
       @layout: null
-      @route 'tweet/:id', 'tweets#show', resource: 'tweet'
+      @resources 'tweets'
     class @App.Tweet extends Batman.Model
     class @App.TweetsController extends Batman.Controller
       show: (params) ->
@@ -1022,7 +1022,10 @@ unless IN_NODE
     tweet = new @App.Tweet(id: 1)
     @App.set 'tweet', tweet
 
-    source = '<a data-route="tweet">click</a>'
+    source = '<a data-route="Tweet">index</a>' +
+      '<a data-route="tweet">show</a>' +
+      '<a data-route="tweet/edit">edit</a>' +
+      '<a data-route="tweet/destroy">destroy</a>'
     node = document.createElement 'div'
     node.innerHTML = source
 
@@ -1030,7 +1033,7 @@ unless IN_NODE
       contexts: []
       node: node
     view.ready ->
-      node = $(view.get('node').children[0])
-      equal node.attr('href'), '#!/tweet/1'
+      urls = ($(a).attr('href') for a in view.get('node').children)
+      deepEqual urls, ['#!/tweets', '#!/tweets/1', '#!/tweets/1/edit', '#!/tweets/1/destroy']
       QUnit.start()
     view.get 'node'
