@@ -67,8 +67,14 @@ QUnit.module "Batman.Model",
 
 test "constructors should always be called with new", ->
   raises (-> product = Product()),
-    (message) ->
-      message is "constructors must be called with new"
+    (message) -> message is "constructors must be called with new"
+
+  Namespace = Product: Product
+  raises (-> product = Namespace.Product()),
+    (message) -> message is "constructors must be called with new"
+
+  product = new Namespace.Product()
+  ok product instanceof Product
 
 test "primary key is undefined on new models", ->
   product = new @Product

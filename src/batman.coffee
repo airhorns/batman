@@ -1555,7 +1555,7 @@ class Batman.Model extends Batman.Object
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
   constructor: (idOrAttributes = {}) ->
-    throw "constructors must be called with new" if _inGlobalScope @
+    throw "constructors must be called with new" unless @ instanceof Batman.Object
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
     @errors = new Batman.ErrorsHash
@@ -2848,6 +2848,4 @@ Batman.exportHelpers = (onto) ->
 
 Batman.exportGlobals = () ->
   Batman.exportHelpers(container)
-
-_inGlobalScope = (scope) -> container == scope
 
