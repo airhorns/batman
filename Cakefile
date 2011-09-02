@@ -85,22 +85,25 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
   runner  = require 'qunit'
   runner.options.coverage = false
   tmpdir = temp.mkdirSync()
-  first = false
-
+  first = true
   muffin.run
     files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
     options: options
     map:
-     'src/batman.coffee'               : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend {notify: first}, options)
-     'src/batman.solo.coffee'         : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend {notify: first}, options)
-     'tests/batman/(.+)_test.coffee'   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/#{matches[1]}_test.js", muffin.extend {notify: first}, options)
-     'tests/batman/test_helper.coffee' : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/test_helper.js", muffin.extend {notify: first}, options)
+      'src/batman.coffee'               : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
+      'src/batman.solo.coffee'          : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend({notify: !first}, options))
+      'tests/batman/(.+)_(test|helper).coffee'   : (matches) ->
+        destination = "#{tmpdir}/#{matches[1]}_#{matches[2]}.js"
+        destinationDir = path.dirname(destination)
+        fs.mkdirSync(destinationDir, 0755) unless path.existsSync(destinationDir)
+        return muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
+      'tests/batman/test_helper.coffee' : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/test_helper.js", muffin.extend({notify: !first}, options))
     after: ->
-      first = true
+      first = false
       runner.run
         code:  {namespace: "Batman", path: "#{tmpdir}/batman.js"}
         deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
-        tests: glob.globSync("#{tmpdir}/*_test.js")
+        tests: glob.globSync("#{tmpdir}/**/*_test.js")
         coverage: options.coverage || false
       , (report) ->
         unless options.watch

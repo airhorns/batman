@@ -142,21 +142,21 @@ test "keys() returns an array of the hash's keys", ->
 test "get/set/unset/hasKey with an undefined or null key works like any other, and they don't collide with each other", ->
   equal @hash.hasKey(undefined), false
   equal @hash.hasKey(null), false
-  
+
   equal @hash.set(undefined, 1), 1
   equal @hash.get(undefined), 1
   equal @hash.hasKey(undefined), true
   equal @hash.hasKey(null), false
   equal @hash.get(null), undefined
-  
+
   equal @hash.set(null, 1), 1
   equal @hash.get(null), 1
   equal @hash.hasKey(null), true
-  
+
   @hash.unset(null)
   equal @hash.hasKey(null), false
   equal @hash.hasKey(undefined), true
-  
+
   @hash.unset(undefined)
   equal @hash.hasKey(undefined), false
 
@@ -166,7 +166,7 @@ test "get/set/unset with an undefined or null value works like any other", ->
   equal @hash.hasKey(1), true
   @hash.unset(1)
   equal @hash.hasKey(1), false
-  
+
   equal @hash.set(1, null), null
   equal @hash.get(1), null
   equal @hash.hasKey(1), true

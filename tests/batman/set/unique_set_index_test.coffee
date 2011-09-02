@@ -4,15 +4,15 @@ QUnit.module 'Batman.UniqueSetIndex',
     @mary = Batman name: 'Mary'
     @fred = Batman name: 'Fred'
     @jill = Batman name: 'Jill'
-    
+
     @byZeke = Batman author: @zeke
     @byMary = Batman author: @mary
     @byFred = Batman author: @fred
     @anotherByFred = Batman author: @fred
-    
+
     @base = new Batman.Set(@byMary, @byFred, @byZeke, @anotherByFred)
     @authorNameIndex = new Batman.UniqueSetIndex(@base, 'author.name')
-    
+
     # not yet in the set:
     @byJill = Batman author: @jill
     @anotherByZeke = Batman author: @zeke
@@ -40,11 +40,11 @@ test "get(value) returns another matching item when the first is removed", ->
 test "get(value) returns another matching item when the first no longer matches", ->
   @byFred.set('author', @jill)
   equal @authorNameIndex.get("Fred"), @anotherByFred
-  
+
 test "get(value) returns a newly added matching item", ->
   @base.add(@byJill)
   equal @authorNameIndex.get("Jill"), @byJill
-  
+
 test "get(value) returns a newly matching item", ->
   @byFred.set('author', @jill)
   equal @authorNameIndex.get("Jill"), @byFred
@@ -60,19 +60,19 @@ test "get(value) returns undefined if a previously matching item no longer match
 test "setting a new value of the indexed property on an item which has been removed should not trigger an update", ->
   @base.remove(@byFred)
   @byFred.set('author', @jill)
-  
+
   equal @authorNameIndex.get("Jill"), undefined
 
 test "stopObserving() forgets all observers", ->
   @authorNameIndex.stopObserving()
-  
+
   @base.add @byJill
   equal @authorNameIndex.get("Jill"), undefined
-  
+
   @base.remove @byZeke
   equal @authorNameIndex.get("Zeke"), @byZeke
-  
+
   @byFred.set('author', @mary)
   equal @authorNameIndex.get("Fred"), @byFred
   equal @authorNameIndex.get("Mary"), @byMary
-  
+
