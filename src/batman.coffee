@@ -590,6 +590,9 @@ class BatmanObject
 
 Batman.Object = BatmanObject
 
+class Batman.Accessible extends Batman.Object
+  constructor: -> @accessor.apply(@, arguments)
+
 class Batman.SimpleHash
   constructor: ->
     @_storage = {}
