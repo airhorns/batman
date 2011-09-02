@@ -4,7 +4,32 @@
     <title>Batman Bench Suite</title>
 
     <link rel="stylesheet" href="../lib/qunit.css" type="text/css" media="screen" />
+    <style type="text/css">
+      /** Tests: Pass/Fail */
 
+      #qunit-tests {
+      }
+
+      #qunit-tests tr {
+          padding: 0.4em 0.5em 0.4em 2.5em;
+          border-bottom: 1px solid #fff;
+      }
+
+      #qunit-tests strong {
+          cursor: pointer;
+      }
+
+      #qunit-tests a {
+          padding: 0.5em;
+          color: #c2ccd1;
+          text-decoration: none;
+      }
+      #qunit-tests a:hover,
+      #qunit-tests a:focus {
+          color: #000;
+      }
+
+    </style>
     <script type="text/javascript" src="../lib/benchmark.js"></script>
     <script type="text/javascript" src="../../lib/coffee-script.js"></script>
 
@@ -16,9 +41,9 @@
         constructor: ->
           @_suites = []
 
-        suites: @property
-            set: (suite) -> @_suites.push suite
-            get: -> @_suites
+        @accessor 'suites'
+          set: (suite) -> @_suites.push suite
+          get: -> @_suites
 
       class Suite extends Batman.Object
         constructor: (suite) ->
@@ -28,7 +53,7 @@
         benches: @property
           set: (bench) -> @_benches.push bench
           get: -> @_benches
-      
+
       window.SuiteTracker = new Tracker
 
       for suite in BENCH_SUITES
@@ -41,16 +66,18 @@
 
         suite.on 'complete', () ->
           console.log  'Fastest is ' + this.filter('fastest').pluck('name')
-        
+
         suite.run()
 
     </script>
 </head>
 
 <body>
-  <h1>Batman Bench Suite</h1>
+  <h1 id="qunit-header">Batman Bench Suite</h1>
+  <h2 id="qunit-banner"></h2>
+  <h2 id="qunit-userAgent"></h2>
   <!--<applet code="nano" archive="nano.jar"></applet>-->
-  <table data-foreach-suite="SuiteTracker.suites">
+  <table id="qunit-tests" data-foreach-suite="SuiteTracker.suites">
     <tr>
       <th colspan="3" data-bind="suite.suite.name">
     </tr>
@@ -63,7 +90,7 @@
       <td data-bind="bench.name"></td>
       <td><span data-bind="bench.hz"></span> ops/sec +/-<span data-bind="bench.stats.RME"></span>%</td>
       <td data-bind="bench.stats.size"></td>
-    </tr>  
+    </tr>
   </table>
 </body>
 </html>
