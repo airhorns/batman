@@ -17,9 +17,9 @@ QUnit.module 'Batman.SetSort',
     @byJill = Batman author: @jill
     @anotherByZeke = Batman author: @zeke
 
-test "new Batman.SetSort(set, sortKey) constructs a sort on the set for that keypath", ->
+test "new Batman.SetSort(set, key) constructs a sort on the set for that keypath", ->
   equal @authorNameSort.base, @base
-  equal @authorNameSort.sortKey, 'author.name'
+  equal @authorNameSort.key, 'author.name'
 
 test "items with null or undefined values for the sorted key come last and in that order. values of different types are grouped. NaN comes immediately after other numbers.", ->
   noName = Batman()

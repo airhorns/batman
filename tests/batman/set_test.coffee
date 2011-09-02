@@ -86,6 +86,17 @@ setTestSuite = ->
   test "get('indexedBy.someKey') returns the same index as indexedBy(key)", ->
     strictEqual @set.get('indexedBy.length'), @set.indexedBy('length')
 
+  test "sortedBy(key) returns a memoized Batman.SetSort for that key", ->
+    sort = @set.sortedBy('length')
+    ok sort instanceof Batman.SetSort
+    equal sort.base, @set
+    equal sort.key, 'length'
+    strictEqual @set.sortedBy('length'), sort
+
+  test "get('sortedBy.someKey') returns the same index as sortedBy(key)", ->
+    strictEqual @set.get('sortedBy.length'), @set.sortedBy('length')
+
+
 QUnit.module 'Batman.Set',
   setup: ->
     @set = new Batman.Set

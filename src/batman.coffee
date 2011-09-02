@@ -671,6 +671,7 @@ class Batman.SimpleSet
   constructor: ->
     @_storage = new Batman.SimpleHash
     @_indexes = new Batman.SimpleHash
+    @_sorts = new Batman.SimpleHash
     @length = 0
     @add.apply @, arguments if arguments.length > 0
   has: (item) ->
@@ -712,6 +713,8 @@ class Batman.SimpleSet
     merged
   indexedBy: (key) ->
     @_indexes.get(key) or @_indexes.set(key, new Batman.SetIndex(@, key))
+  sortedBy: (key) ->
+    @_sorts.get(key) or @_sorts.set(key, new Batman.SetSort(@, key))
   itemsWereAdded: ->
   itemsWereRemoved: ->
 
@@ -721,7 +724,7 @@ class Batman.Set extends Batman.Object
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
-  for k in ['has', 'forEach', 'isEmpty', 'toArray', 'indexedBy']
+  for k in ['has', 'forEach', 'isEmpty', 'toArray', 'indexedBy', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['add', 'remove', 'clear', 'merge']
@@ -733,6 +736,7 @@ class Batman.Set extends Batman.Object
         results
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
+  @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', -> @length
 
@@ -778,20 +782,22 @@ class Batman.SetObserver extends Batman.Object
     @_setObservers.forEach (key, observer) =>
       @base[method](key, observer)
 
-class Batman.SetSort extends Batman.SetObserver
-  constructor: (@base, @sortKey) ->
-    super(base)
-    @observedItemKeys = [@sortKey]
-    @_boundReIndex = @_reIndex.bind(@)
-    @observe 'itemsWereAdded', @_boundReIndex
-    @observe 'itemsWereRemoved', @_boundReIndex
-    @startObserving()
+class Batman.SetSort extends Batman.Object
+  constructor: (@base, @key) ->
+    if @base.isObservable
+      @_setObserver = new Batman.SetObserver(@base)
+      @_setObserver.observedItemKeys = [@key]
+      boundReIndex = @_reIndex.bind(@)
+      @_setObserver.observerForItemAndKey = -> boundReIndex
+      @_setObserver.observe 'itemsWereAdded', boundReIndex
+      @_setObserver.observe 'itemsWereRemoved', boundReIndex
+      @startObserving()
     @_reIndex()
+  startObserving: -> @_setObserver?.startObserving()
+  stopObserving: -> @_setObserver?.stopObserving()
   toArray: -> @get('_storage')
   @accessor 'toArray', @::toArray
-  forEach: (iterator) ->
-    iterator(e,i) for e,i in @get('_storage')
-  observerForItemAndKey: -> @_boundReIndex
+  forEach: (iterator) -> iterator(e,i) for e,i in @get('_storage')
   compare: (a,b) ->
     return 0 if a is b
     return 1 if a is undefined
@@ -808,12 +814,12 @@ class Batman.SetSort extends Batman.SetObserver
     return 0
   _reIndex: ->
     newOrder = @base.toArray().sort (a,b) =>
-      valueA = Batman.Observable.property.call(a, @sortKey).getValue()
+      valueA = Batman.Observable.property.call(a, @key).getValue()
       valueA = valueA.valueOf() if valueA?
-      valueB = Batman.Observable.property.call(b, @sortKey).getValue()
+      valueB = Batman.Observable.property.call(b, @key).getValue()
       valueB = valueB.valueOf() if valueB?
       @compare.call(@, valueA, valueB)
-    @startObservingItems(newOrder...)
+    @_setObserver?.startObservingItems(newOrder...)
     @set('_storage', newOrder)
 
 class Batman.SetIndex extends Batman.Object
