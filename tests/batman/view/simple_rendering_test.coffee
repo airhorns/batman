@@ -203,29 +203,26 @@ asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
     delay =>
       ok context.doSomething.called
 
-if typeof IN_NODE == 'undefined' || IN_NODE == false
-  # Can't figure out how to trigger key events in jsdom.
-  asyncTest 'it should allow submit events on inputs to be bound', 2, ->
-    context =
-      doSomething: spy = createSpy()
+asyncTest 'it should allow submit events on inputs to be bound', 2, ->
+  context =
+    doSomething: spy = createSpy()
 
-    source = '<form><input data-event-submit="doSomething" /></form>'
-    helpers.render source, context, (node) ->
-      helpers.triggerKey(node[0].childNodes[0], 13)
-      delay ->
-        ok spy.called
-        equal spy.lastCallArguments[0], node[0].childNodes[0]
+  source = '<form><input data-event-submit="doSomething" /></form>'
+  helpers.render source, context, (node) ->
+    helpers.triggerKey(node[0].childNodes[0], 13)
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0].childNodes[0]
 
-  # Can't figure out a way to get JSDOM to fire the form submit event.
-  asyncTest 'it should allow form submit events to be bound', 1, ->
-    context =
-      doSomething: spy = createSpy()
+asyncTest 'it should allow form submit events to be bound', 1, ->
+  context =
+    doSomething: spy = createSpy()
 
-    source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
-    helpers.render source, context, (node) ->
-      helpers.triggerClick($("#submit", node)[0])
-      delay =>
-        ok spy.called
+  source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
+  helpers.render source, context, (node) ->
+    helpers.triggerSubmit(node[0])
+    delay =>
+      ok spy.called
 
 asyncTest 'it should allow mixins to be applied', 1, ->
   Batman.mixins.set 'test',

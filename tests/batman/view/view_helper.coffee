@@ -22,8 +22,18 @@ window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
   evt = document.createEvent("KeyboardEvent")
   if evt.initKeyEvent
     evt.initKeyEvent(eventName, true, true, window, 0, 0, 0, 0, keyCode, keyCode)
-  else
+  else if evt.initKeyboardEvent
     evt.initKeyboardEvent(eventName, true, true, window, keyIdentifers[keyCode], keyIdentifers[keyCode])
+  else
+    # JSDOM doesn't yet implement KeyboardEvents...  We'll simulate them instead.
+    evt._type = eventName
+    evt._bubbles = true
+    evt._cancelable = true
+    evt._target = window
+    evt._currentTarget = null
+    evt._keyIdentifier = keyIdentifers[keyCode]
+    evt._keyLocation = keyIdentifers[keyCode]
+
   evt.which = evt.keyCode = keyCode
   evt
 
@@ -31,6 +41,12 @@ exports.triggerKey = (domNode, keyCode) ->
   domNode.dispatchEvent(_getKeyEvent("keydown", keyCode))
   domNode.dispatchEvent(_getKeyEvent("keypress", keyCode))
   domNode.dispatchEvent(_getKeyEvent("keyup", keyCode))
+
+exports.triggerSubmit = (domNode) ->
+  # TODO: Verify portability.
+  evt = document.createEvent('HTMLEvents')
+  evt.initEvent('submit', true, true)
+  domNode.dispatchEvent(evt)
 
 # Helper function for rendering a view given a context. Optionally returns a jQuery of the nodes,
 # and calls a callback with the same. Beware of the 50ms timeout when rendering views, tests should
