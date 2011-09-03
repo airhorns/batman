@@ -10,11 +10,36 @@ asyncTest 'get', 1, ->
     equals node.html(), "qux"
     QUnit.start()
 
+asyncTest 'get dotted syntax', 1, ->
+  context = Batman
+    foo: new Batman.Hash({bar: "qux"})
+
+  helpers.render '<div data-bind="foo.bar"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
 asyncTest 'get short syntax', 1, ->
   context = Batman
     foo: new Batman.Hash({bar: "qux"})
 
   helpers.render '<div data-bind="foo[\'bar\']"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
+asyncTest 'get short syntax with looked-up key', 1, ->
+  context = Batman
+    key: 'bar'
+    foo: new Batman.Hash({bar: "qux"})
+
+  helpers.render '<div data-bind="foo[key]"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
+asyncTest 'get chained short syntax', 1, ->
+  context = Batman
+    foo: new Batman.Hash({bar: {baz: "qux"}})
+
+  helpers.render '<div data-bind="foo[\'bar\'][\'baz\']"></div>', context, (node) ->
     equals node.html(), "qux"
     QUnit.start()
 

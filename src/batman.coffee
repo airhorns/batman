@@ -2207,7 +2207,7 @@ class Binding extends Batman.Object
     ///
 
   # A less beastly regular expression for pulling out the [] syntax `get`s in a binding string.
-  get_rx = /(\w)\[(.+?)\]/
+  get_rx = /(?!^\s*)\[(.*?)\]/g
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
@@ -2275,7 +2275,7 @@ class Binding extends Batman.Object
     @filterArguments = []
 
     # Rewrite [] style gets, replace quotes to be JSON friendly, and split the string by pipes to see if there are any filters.
-    filters = @keyPath.replace(get_rx, "$1 | get $2 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
+    filters = @keyPath.replace(get_rx, " | get $1 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
 
     # The key will is always the first token before the pipe.
     try
