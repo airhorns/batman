@@ -18,6 +18,15 @@ unless exports.window.location.hash?
       evt.initEvent "hashchange", true, false
       exports.window.dispatchEvent evt
 
+unless exports.localStorage?
+  do ->
+    storage = {}
+    exports.localStorage =
+      key: (index) -> (key for key, value of storage when !index--)[0]
+      getItem: (key) -> storage["#{key}"]
+      setItem: (key, value) -> storage["#{key}"] = value
+      removeItem: (key) -> delete storage["#{key}"]
+      clear: -> storage = {}
 
 exports.ASYNC_TEST_DELAY = 20
 
