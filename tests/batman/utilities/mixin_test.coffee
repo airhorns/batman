@@ -45,3 +45,21 @@ QUnit.module "$unmixin",
 
 test "should remove properties on the from that exist on the sources", ->
   deepEqual {z: 'z'}, $unmixin(@base, {x: 'x'}, {y: 'y'})
+
+test "uninitializers get run and not mixed in", ->
+  @base.initialize = -> 'initializer'
+  @base.uninitialize = -> 'uninitializer'
+
+  obj =
+    initialize: createSpy()
+    uninitialize: createSpy()
+
+  $unmixin @base, obj
+
+  # Ensure that uninitialzers get called
+  ok !obj.initialize.called
+  ok obj.uninitialize.called
+
+  # Original properties still present
+  equal 'initializer', @base.initialize()
+  equal 'uninitializer', @base.uninitialize()
