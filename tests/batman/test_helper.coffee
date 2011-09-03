@@ -8,6 +8,17 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
+unless exports.window.location.hash?
+  do ->
+    hash = ''
+    exports.window.location.__defineGetter__ 'hash', -> hash
+    exports.window.location.__defineSetter__ 'hash', (value) ->
+      hash = value
+      evt = exports.window.document.createEvent "HTMLEvents"
+      evt.initEvent "hashchange", true, false
+      exports.window.dispatchEvent evt
+
+
 exports.ASYNC_TEST_DELAY = 20
 
 class Spy
