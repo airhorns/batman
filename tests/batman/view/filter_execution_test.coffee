@@ -35,12 +35,46 @@ asyncTest 'get short syntax with looked-up key', 1, ->
     equals node.html(), "qux"
     QUnit.start()
 
+asyncTest 'get short syntax with complex key', 1, ->
+  context = Batman
+    complex: { key: 'bar'}
+    foo: new Batman.Hash({bar: "qux"})
+
+  helpers.render '<div data-bind="foo[complex.key]"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
+asyncTest 'get short syntax with chained dot lookup', 1, ->
+  context = Batman
+    key: 'bar'
+    foo: new Batman.Hash({bar: { baz: "qux" }})
+
+  helpers.render '<div data-bind="foo[key].baz"></div>', context, (node) ->
+    equals node.html(), "qux"
+    QUnit.start()
+
 asyncTest 'get chained short syntax', 1, ->
   context = Batman
     foo: new Batman.Hash({bar: {baz: "qux"}})
 
   helpers.render '<div data-bind="foo[\'bar\'][\'baz\']"></div>', context, (node) ->
     equals node.html(), "qux"
+    QUnit.start()
+
+asyncTest 'hideously complex chain of property lookups', 1, ->
+  context = Batman
+    ss: { ee: 'c' }
+    a: new Batman.Hash
+      b:
+        c:
+          d:
+            e:
+              f:
+                g:
+                  h: 'value'
+
+  helpers.render '<div data-bind="a.b[ss.ee].d[\'e\'][\'f\'].g.h"></div>', context, (node) ->
+    equals node.html(), "value"
     QUnit.start()
 
 asyncTest 'truncate', 2, ->

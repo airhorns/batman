@@ -2206,7 +2206,9 @@ class Binding extends Batman.Object
     (?:$|,)           # Match either the next comma or the end of the filter arguments list.
     ///
 
-  # A less beastly regular expression for pulling out the [] syntax `get`s in a binding string.
+  # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
+  # dotted names that follow them.
+  get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|$)/
   get_rx = /(?!^\s*)\[(.*?)\]/g
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
@@ -2275,7 +2277,9 @@ class Binding extends Batman.Object
     @filterArguments = []
 
     # Rewrite [] style gets, replace quotes to be JSON friendly, and split the string by pipes to see if there are any filters.
-    filters = @keyPath.replace(get_rx, " | get $1 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
+    keyPath = @keyPath
+    keyPath = keyPath.replace(get_dot_rx, "]['$1']") while get_dot_rx.test(keyPath)  # Stupid lack of lookbehind assertions...
+    filters = keyPath.replace(get_rx, " | get $1 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
 
     # The key will is always the first token before the pipe.
     try
