@@ -299,7 +299,7 @@ param = (a, traditional) ->
     value = (if Batman.typeOf(value) is 'function' then value() else value)
     s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value)
 
-  traditional = jQuery.ajaxSettings.traditional  if traditional == undefined
+  traditional = true if traditional == undefined
   if Batman.typeOf(a) is 'Array'
     for value, name of a
       add name, value
