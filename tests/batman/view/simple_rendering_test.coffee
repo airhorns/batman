@@ -50,29 +50,43 @@ asyncTest 'it should allow a class to be bound', 6, ->
       QUnit.start()
 
 asyncTest 'it should allow visibility to be bound on block elements', 2, ->
+  testDiv = $('<div/>')
+  testDiv.appendTo($('body'))
+  blockDefaultDisplay = testDiv.css('display')
+  testDiv.remove()
   source = '<div data-showif="foo"></div>'
   helpers.render source,
     foo: true
   , (node) ->
-    equal node.css('display'), ''
+    # Must put the node in the DOM for the style to be calculated properly.
+    helpers.withNodeInDom node, ->
+      equal node.css('display'), blockDefaultDisplay
 
     helpers.render source,
       foo: false
     , (node) ->
-        equal node.css('display'), 'none'
+        helpers.withNodeInDom node, ->
+          equal node.css('display'), 'none'
         QUnit.start()
 
 asyncTest 'it should allow visibility to be bound on inline elements', 2, ->
+  testSpan = $('<span/>')
+  testSpan.appendTo($('body'))
+  inlineDefaultDisplay = testSpan.css('display')
+  testSpan.remove()
   source = '<span data-showif="foo"></span>'
   helpers.render source,
     foo: true
   , (node) ->
-    equal node.css('display'), ''
+    # Must put the node in the DOM for the style to be calculated properly.
+    helpers.withNodeInDom node, ->
+      equal node.css('display'), inlineDefaultDisplay
 
     helpers.render source,
       foo: false
     , (node) ->
-        equal node.css('display'), 'none'
+        helpers.withNodeInDom node, ->
+          equal node.css('display'), 'none'
         QUnit.start()
 
 asyncTest 'it should allow arbitrary (?!")\s+\|\s+(?!")attributes to be bound', 2, ->
