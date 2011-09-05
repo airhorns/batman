@@ -1810,11 +1810,11 @@ class Batman.StorageAdapter
     @modelKey = helpers.pluralize(helpers.underscore(@model.name))
   isStorageAdapter: true
   getRecordsFromData: (datas) ->
-    datas = @transformCollectionData(datas) if @transformCollectionData?
+    datas = @transformOutgoingCollectionData(datas) if @transformOutgoingCollectionData?
     for data in datas
        @getRecordFromData(data)
   getRecordFromData: (data) ->
-    data = @transformRecordData(data) if @transformRecordData?
+    data = @transformIncomingRecordData(data) if @transformIncomingRecordData?
     record = new @model()
     record.fromJSON(data)
     record
@@ -1911,10 +1911,17 @@ class Batman.RestStorage extends Batman.StorageAdapter
     @recordJsonNamespace = helpers.singularize(@modelKey)
     @collectionJsonNamespace = helpers.pluralize(@modelKey)
     @model.encode('id')
-  transformRecordData: (data) ->
+  transformIncomingRecordData: (data) ->
     return data[@recordJsonNamespace] if data[@recordJsonNamespace]
     data
-  transformCollectionData: (data) ->
+  transformOutgoingRecordData: (record) ->
+    if @recordJsonNamespace
+      x = {}
+      x[@recordJsonNamespace] = record.toJSON()
+      return x
+    else
+      record.toJSON()
+  transformOutgoingCollectionData: (data) ->
     return data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
     data
   optionsForRecord: (record, idRequired, callback) ->
@@ -1931,7 +1938,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
     unless url
       callback.call @, new Error("Couldn't get model url!")
     else
-      callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: record}
+      callback.call @, undefined, $mixin({}, @defaultOptions, {url})
   optionsForCollection: (recordsOptions, callback) ->
     url = @model.url?() || @model.url || "/#{@modelKey}"
     unless url
@@ -1944,11 +1951,11 @@ class Batman.RestStorage extends Batman.StorageAdapter
       if err
         callback(err)
         return
-
       new Batman.Request $mixin options,
+        data: @transformOutgoingRecordData(record)
         method: 'POST'
         success: (data) =>
-          record.fromJSON(@transformRecordData(data))
+          record.fromJSON(@transformIncomingRecordData(data))
           callback(undefined, record)
         error: (err) -> callback(err)
 
@@ -1959,9 +1966,10 @@ class Batman.RestStorage extends Batman.StorageAdapter
         return
 
       new Batman.Request $mixin options,
+        data: @transformOutgoingRecordData(record)
         method: 'PUT'
         success: (data) =>
-          record.fromJSON(@transformRecordData(data))
+          record.fromJSON(@transformIncomingRecordData(data))
           callback(undefined, record)
         error: (err) -> callback(err)
 
@@ -1974,7 +1982,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         method: 'GET'
         success: (data) =>
-          record.fromJSON(@transformRecordData(data))
+          record.fromJSON(@transformIncomingRecordData(data))
           callback(undefined, record)
         error: (err) -> callback(err)
 
@@ -1988,7 +1996,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         success: (data) => callback(undefined, @getRecordsFromData(data))
         error: (err) -> callback(err)
 
-  destroy: (record, options, callback) ->
+  destroy: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
       if err
         callback(err)

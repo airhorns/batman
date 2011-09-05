@@ -349,7 +349,6 @@ Batman.Request::send = (data) ->
       options.url += param(data)
     else
       options.data = param(data)
-  console.log options
   reqwest options
 
 prefixes = ['Webkit', 'Moz', 'O', 'ms', '']
