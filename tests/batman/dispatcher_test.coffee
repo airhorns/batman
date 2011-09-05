@@ -1,5 +1,3 @@
-return if IN_NODE
-
 QUnit.module 'Batman.Dispatcher defining routes',
   setup: ->
     window.location.hash = ''

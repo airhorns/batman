@@ -8,6 +8,26 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
+unless exports.window.location.hash?
+  do ->
+    hash = ''
+    exports.window.location.__defineGetter__ 'hash', -> hash
+    exports.window.location.__defineSetter__ 'hash', (value) ->
+      hash = value
+      evt = exports.window.document.createEvent "HTMLEvents"
+      evt.initEvent "hashchange", true, false
+      exports.window.dispatchEvent evt
+
+unless exports.localStorage?
+  do ->
+    storage = {}
+    exports.localStorage =
+      key: (index) -> (key for key, value of storage when !index--)[0]
+      getItem: (key) -> storage["#{key}"]
+      setItem: (key, value) -> storage["#{key}"] = value
+      removeItem: (key) -> delete storage["#{key}"]
+      clear: -> storage = {}
+
 exports.ASYNC_TEST_DELAY = 20
 
 class Spy
