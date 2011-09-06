@@ -1421,6 +1421,7 @@ class Batman.Controller extends Batman.Object
 # ------
 
 class Batman.Model extends Batman.Object
+  @create: -> new @ arguments...
 
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
