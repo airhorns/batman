@@ -33,6 +33,7 @@ a:visited { color: #47497c; text-decoration: none; }
 #intro-statement a:focus { color: #fffdec; }
 #intro-statement a:visited { color: #fffdec; }
 
+#download-box a.release-links { text-decoration: underline; }
 #download-box a.release-links:link { color: #fdf9cc; }
 #download-box a.release-links:hover { color: #fffdec; }
 #download-box a.release-links:focus { color: #fffdec; }
