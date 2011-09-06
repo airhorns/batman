@@ -1387,8 +1387,10 @@ class Batman.Controller extends Batman.Object
 
     Batman.historyManager?.redirect = oldRedirect
 
-    $redirect(@_afterFilterRedirect) if @_afterFilterRedirect
+    redirectTo = @_afterFilterRedirect
     delete @_afterFilterRedirect
+
+    $redirect(redirectTo) if redirectTo
 
   redirect: (url) =>
     throw 'DoubleRedirectError' if @_actedDuringAction
