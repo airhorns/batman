@@ -33,10 +33,10 @@ a:visited { color: #47497c; text-decoration: none; }
 #intro-statement a:focus { color: #fffdec; }
 #intro-statement a:visited { color: #fffdec; }
 
-#download-box a.release-notes:link { color: #fdf9cc; }
-#download-box a.release-notes:hover { color: #fffdec; }
-#download-box a.release-notes:focus { color: #fffdec; }
-#download-box a.release-notes:visited { color: #fffdec; }
+#download-box a.release-links:link { color: #fdf9cc; }
+#download-box a.release-links:hover { color: #fffdec; }
+#download-box a.release-links:focus { color: #fffdec; }
+#download-box a.release-links:visited { color: #fffdec; }
 
 #footer-content a:link { color: #8688a0; }
 #footer-content a:hover { color: #9c9ebb; }
