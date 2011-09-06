@@ -2440,6 +2440,22 @@ Batman.DOM = {
     bind: (node, key, context, renderer) ->
       if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
         Batman.DOM.attrReaders.bind(node, 'checked', key, context)
+      else if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'radio'
+        contextChange = (value) ->
+          # don't overwrite `checked` attributes in the HTML unless a bound
+          # value is defined in the context. if no bound value is found, bind
+          # to the key if the node is checked.
+          [boundValue, container] = context.findKey key
+          if boundValue
+            node.checked = boundValue == node.value
+          else if node.checked
+            # FIXME this context seems to disappear and the binding isn't immediately available to the app
+            # This matters when a radio is selected in the html before a user has made a selection
+            # because the app (or some other context) will not have this key/value set
+            context.set key, node.value
+        nodeChange = (newNode, subContext) ->
+          subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
+        context.bind node, key, contextChange, nodeChange
       else if node.nodeName.toLowerCase() == 'select'
         # wait for the select to render before binding to it
         renderer.rendered ->

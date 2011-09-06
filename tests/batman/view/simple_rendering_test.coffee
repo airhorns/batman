@@ -273,5 +273,40 @@ asyncTest 'it should allow contexts to be specified using filters', 2, ->
     delay ->
       equal $("#test", node).html(), 'qux', 'if the context changes the bindings should update'
 
+asyncTest 'should bind radio buttons to a value', ->
+  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
+    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
+    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade"/>'
+  context = Batman 
+    ad: Batman
+      sale_type: 'free'
 
+  helpers.render source, context, (node) ->
+    fixed = node[0]
+    free = node[1]
+    trade = node[2]
 
+    ok (!fixed.checked and free.checked and !trade.checked)
+
+    context.set 'ad.sale_type', 'trade'
+    delay =>
+      ok (!fixed.checked and !free.checked and trade.checked)
+      QUnit.start()
+
+asyncTest 'should bind to the value of radio buttons', ->
+  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
+    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
+    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade" checked/>'
+  context = Batman
+    ad: Batman
+
+  helpers.render source, context, (node) ->
+    fixed = node[0]
+    free = node[1]
+    trade = node[2]
+
+    ok (!fixed.checked and !free.checked and trade.checked)
+    helpers.triggerChange(fixed)
+    delay =>
+      equal context.get('ad.sale_type'), 'fixed'
+      QUnit.start()
