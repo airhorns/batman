@@ -2450,10 +2450,7 @@ Batman.DOM = {
           if boundValue
             node.checked = boundValue == node.value
           else if node.checked
-            # FIXME this context seems to disappear and the binding isn't immediately available to the app
-            # This matters when a radio is selected in the html before a user has made a selection
-            # because the app (or some other context) will not have this key/value set
-            context.set key, node.value
+            container.set key, node.value
         nodeChange = (newNode, subContext) ->
           subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
         context.bind node, key, contextChange, nodeChange

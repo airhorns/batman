@@ -305,6 +305,8 @@ asyncTest 'should bind to the value of radio buttons', ->
     trade = node[2]
 
     ok (!fixed.checked and !free.checked and trade.checked)
+    equal context.get('ad.sale_type'), 'trade', 'checked attribute binds'
+
     helpers.triggerChange(fixed)
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
