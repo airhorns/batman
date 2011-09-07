@@ -291,7 +291,6 @@ asyncTest 'should bind radio buttons to a value', ->
     context.set 'ad.sale_type', 'trade'
     delay =>
       ok (!fixed.checked and !free.checked and trade.checked)
-      QUnit.start()
 
 asyncTest 'should bind to the value of radio buttons', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
@@ -309,4 +308,3 @@ asyncTest 'should bind to the value of radio buttons', ->
     helpers.triggerChange(fixed)
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
-      QUnit.start()
