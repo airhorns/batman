@@ -14,23 +14,19 @@ asyncTest 'should request a url with default get', 2, ->
   new Batman.Request
     url: 'some/test/url.html'
 
-  setTimeout(=>
+  delay =>
     req = @send.lastCallContext
     equal req.url, 'some/test/url.html'
     equal req.method, 'get'
-    QUnit.start()
-  , ASYNC_TEST_DELAY)
 
 asyncTest 'should request a url with a different method', 1, ->
   new Batman.Request
     url: 'some/test/url.html'
     method: 'post'
 
-  setTimeout(=>
+  delay =>
     req = @send.lastCallContext
     equal req.method, 'post'
-    QUnit.start()
-  , ASYNC_TEST_DELAY)
 
 asyncTest 'should request a url with data', 1, ->
   new Batman.Request
@@ -39,11 +35,9 @@ asyncTest 'should request a url with data', 1, ->
       a: "b"
       c: 1
 
-  setTimeout(=>
+  delay =>
     req = @send.lastCallContext
     deepEqual req.data, {a: "b", c: 1}
-    QUnit.start()
-  , ASYNC_TEST_DELAY)
 
 asyncTest 'should call the success callback if the request was successful', 1, ->
   observer = createSpy()
@@ -51,12 +45,9 @@ asyncTest 'should call the success callback if the request was successful', 1, -
     url: 'some/test/url.html'
   req.success(observer)
 
-  setTimeout(=>
+  delay =>
     req = @send.lastCallContext
     req.success('some test data')
-  , ASYNC_TEST_DELAY)
 
-  setTimeout(=>
-    deepEqual observer.lastCallArguments, ['some test data']
-    QUnit.start()
-  , ASYNC_TEST_DELAY*2)
+    delay =>
+      deepEqual observer.lastCallArguments, ['some test data']

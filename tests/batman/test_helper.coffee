@@ -204,15 +204,44 @@ mockClassDuring = (namespace, name, mock = MockClass, fn) ->
   namespace[name] = original
   [mock, result]
 
+# The node-qunit module is a bit busted for the moment; for now,
+# we'll just try to make sure that we have some API compatibility
+# so that our async tests don't die horribly.
+if QUnit.api? and not QUnit.config?
+  oldTest = QUnit.api.test
+  oldModule = QUnit.api.module
+
+  QUnit.config = { current: {} }
+
+  QUnit.api.module = (module, env) ->
+    oldModule(arguments...)
+
+    QUnit.api.test = (testName, expect, fn, async) ->
+      testFn = ->
+        QUnit.config.current = { module, testName }
+        fn(arguments...)
+      oldTest(testName, expect, testFn, async)
+
 # Handy for async tests which usually follow this pattern
-inDelay = 0
-delay = (fn) ->
-  inDelay++
-  setTimeout(->
-    fn()
-    if --inDelay == 0
-      QUnit.start()
-  , ASYNC_TEST_DELAY)
+delay = (time, fn) ->
+  [time, fn] = [ASYNC_TEST_DELAY, time] unless fn?
+
+  test = QUnit.config.current
+  test.delay ||= 0
+
+  start = QUnit.start
+
+  spyOnDuring QUnit, 'start', ->
+    do (test) ->
+      test.delay++
+      defer = ->
+        fn()
+        if QUnit.start.called
+          console.error "#{test.module}: #{testName} called QUnit.start(); don't do that."
+        if --test.delay == 0
+          start()
+
+      setTimeout(defer, time)
 
 for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay}
   exports[k] = v
