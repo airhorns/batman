@@ -1409,7 +1409,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
-      options.source = helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
+      options.source ||= helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
 
     if view = options.view
