@@ -1503,6 +1503,10 @@ class Batman.Model extends Batman.Object
       unless @all
         @all = new Batman.SortableSet
         @all.sortBy "id asc"
+
+      if @all.isEmpty()
+        @load() unless @::_batman.getAll('storage').length
+
       @all
 
     set: (k,v)-> @all = v
@@ -1523,7 +1527,7 @@ class Batman.Model extends Batman.Object
       callback = options
       options = {}
 
-    throw new Error("Can't load model #{@name} without any storage adapters!") unless @::_batman.getAll('storage').length > 0
+    throw new Error("Can't load model #{@name} without any storage adapters!") unless @::_batman.getAll('storage').length
 
     do @loading
     @::_doStorageOperation 'readAll', options, (err, records) =>
