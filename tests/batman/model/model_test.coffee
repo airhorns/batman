@@ -14,9 +14,6 @@ test "constructors should always be called with new", ->
   product = new Namespace.Product()
   ok product instanceof Product
 
-test "create method is the same as model constructor", ->
-  ok @Product.create() instanceof @Product
-
 test "primary key is undefined on new models", ->
   product = new @Product
   ok product.isNew()

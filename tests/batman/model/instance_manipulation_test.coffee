@@ -95,6 +95,12 @@ test "model instances shouldn't save if they have been destroyed", ->
     p.save (err) ->
       ok err
 
+asyncTest "create method returns an instance of a model while saving it", ->
+  result = @Product.create (err, product) =>
+    ok product instanceof @Product
+    QUnit.start()
+  ok result instanceof @Product
+
 QUnit.module "Batman.Model instance destruction"
   setup: ->
     class @Product extends Batman.Model
