@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batman Test Suite</title>
+
+    <link rel="stylesheet" href="../lib/qunit.css" type="text/css" media="screen" />
+
+    <script type="text/javascript" src="../lib/jquery.js"></script>
+    <script type="text/javascript" src="../lib/qunit.js"></script>
+    <script type="text/javascript">QUnit.config.autostart = false</script>
+    <script type="text/javascript" src="../../lib/es5-shim.js"></script>
+
+    <script type="text/javascript" src="test_helper.js"></script>
+    <script type="text/javascript" src="../../lib/batman.js"></script>
+    <script type="text/javascript">Batman.exportGlobals();</script>
+
+    <script type="text/javascript" src="utilities/mixin_test.js"></script>
+    <script type="text/javascript" src="utilities/event_test.js"></script>
+    <script type="text/javascript" src="utilities/block_test.js"></script>
+    <script type="text/javascript" src="utilities/_batman_test.js"></script>
+    <script type="text/javascript" src="object/class_dsl_test.js"></script>
+    <script type="text/javascript" src="object/integration_test.js"></script>
+    <script type="text/javascript" src="object/subclass_test.js"></script>
+    <script type="text/javascript" src="app_test.js"></script>
+    <script type="text/javascript" src="controller_test.js"></script>
+    <script type="text/javascript" src="dispatcher_test.js"></script>
+    <script type="text/javascript" src="model/model_helper.js"></script>
+    <script type="text/javascript" src="model/model_test.js"></script>
+    <script type="text/javascript" src="model/class_querying_test.js"></script>
+    <script type="text/javascript" src="model/instance_manipulation_test.js"></script>
+    <script type="text/javascript" src="model/record_lifecycle_test.js"></script>
+    <script type="text/javascript" src="model/state_transitions_test.js"></script>
+    <script type="text/javascript" src="model/validations_test.js"></script>
+    <script type="text/javascript" src="storage_adapter/storage_adapter_helper.js"></script>
+    <script type="text/javascript" src="storage_adapter/local_storage_test.js"></script>
+    <script type="text/javascript" src="storage_adapter/rest_storage_test.js"></script>
+    <script type="text/javascript" src="view/view_helper.js"></script>
+    <script type="text/javascript" src="view/view_test.js"></script>
+    <script type="text/javascript" src="view/simple_rendering_test.js"></script>
+    <script type="text/javascript" src="view/loop_rendering_test.js"></script>
+    <script type="text/javascript" src="view/nested_loop_rendering_test.js"></script>
+    <script type="text/javascript" src="view/yield_and_contentfor_test.js"></script>
+    <script type="text/javascript" src="view/formfor_rendering_test.js"></script>
+    <script type="text/javascript" src="view/filter_rendering_test.js"></script>
+    <script type="text/javascript" src="view/filter_execution_test.js"></script>
+    <script type="text/javascript" src="view/route_rendering_test.js"></script>
+    <script type="text/javascript" src="request_test.js"></script>
+    <script type="text/javascript" src="property/keypath_test.js"></script>
+    <script type="text/javascript" src="property/property_test.js"></script>
+    <script type="text/javascript" src="property/observable_property_test.js"></script>
+    <script type="text/javascript" src="observable/class_and_instance_observable_test.js"></script>
+    <script type="text/javascript" src="observable/observable_test.js"></script>
+    <script type="text/javascript" src="hash_test.js"></script>
+    <script type="text/javascript" src="accessible_test.js"></script>
+    <script type="text/javascript" src="set/set_test.js"></script>
+    <script type="text/javascript" src="set/sortable_set_test.js"></script>
+    <script type="text/javascript" src="set/set_index_test.js"></script>
+    <script type="text/javascript" src="set/set_sort_test.js"></script>
+    <script type="text/javascript" src="set/unique_set_index_test.js"></script>
+    <script type="text/javascript">$(document).ready(function(){QUnit.start()});</script>
+</head>
+
+<body>
+    <h1 id="qunit-header">Batman Test Suite <span style="font-size:11px; float: right; margin-right: 1em;">This file can only be used through <tt>batman s --build</tt>.</span></h1>
+    <h2 id="qunit-banner"></h2>
+    <h2 id="qunit-userAgent"></h2>
+    <ol id="qunit-tests"></ol>
+</body>
+</html>

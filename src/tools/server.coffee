@@ -47,13 +47,24 @@ if typeof RUNNING_IN_BATMAN isnt 'undefined'
      .parse
         host: ['h', "Host to run HTTP server on", "string", "127.0.0.1"]
         port: ['p', "Port to run HTTP server on", "number", 1047]
-        build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean", true]
+        build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean"]
         'build-dir': [false, "Where to store built coffeescript files (default is ./build)", "path"]
 
   cli.main (args, options) ->
-    Batman.mixin options, utils.getConfig()
-    options.buildDir = options['build-dir'] if options['build-dir']?
+    # Switch to JS style
+    if options['build-dir']
+      options.buildDir = options['build-dir']
+    # Explicitly let users override the package.json config with command line options by mixing in the command line
+    # options after the package.json options.
+    Batman.mixin utils.getConfig(), options
+    # Also, only apply the default for the buildDir option after the two sets of options are mixed. This way, the default from the command line
+    # options doesn't clobber any package.json options.
+    options.buildDir ||= './build'
+
     server = getServer(options)
-    @ok "Batman is waiting at http://#{options.host}:#{options.port}"
+    info = "Batman is waiting at http://#{options.host}:#{options.port}"
+    if options.build
+      info += ", and building to #{options.buildDir}."
+    @ok info
 else
   module.exports = getServer

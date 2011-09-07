@@ -23,17 +23,22 @@
     cli.enable('daemon').setUsage('batman server [OPTIONS]').parse({
       host: ['h', "Host to run HTTP server on", "string", "127.0.0.1"],
       port: ['p', "Port to run HTTP server on", "number", 1047],
-      build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean", true],
+      build: ['b', "Build coffeescripts on the fly into the build dir (default is ./build) and serve them as js", "boolean"],
       'build-dir': [false, "Where to store built coffeescript files (default is ./build)", "path"]
     });
     cli.main(function(args, options) {
-      var server;
-      Batman.mixin(options, utils.getConfig());
-      if (options['build-dir'] != null) {
+      var info, server;
+      if (options['build-dir']) {
         options.buildDir = options['build-dir'];
       }
+      Batman.mixin(utils.getConfig(), options);
+      options.buildDir || (options.buildDir = './build');
       server = getServer(options);
-      return this.ok("Batman is waiting at http://" + options.host + ":" + options.port);
+      info = "Batman is waiting at http://" + options.host + ":" + options.port;
+      if (options.build) {
+        info += ", and building to " + options.buildDir + ".";
+      }
+      return this.ok(info);
     });
   } else {
     module.exports = getServer;
