@@ -357,3 +357,16 @@ asyncTest 'attribute write should update only the bound attribute', 3, ->
       delay =>
         equal node.getAttribute('width'), '40'
 
+asyncTest 'data-write and data-read work correctly on the same node', ->
+  source = '<input type="text" data-read="there" data-write="here" value="start"/>'
+  context = Batman here: 'here', there: ''
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.value, 'here'
+    equal context.get('there'), ''
+    node.value = 'there'
+    helpers.triggerChange node
+    delay =>
+      equal context.get('there'), 'there'
+      equal context.get('here'), 'here'
+
