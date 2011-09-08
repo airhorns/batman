@@ -310,3 +310,50 @@ asyncTest 'should bind to the value of radio buttons', ->
     helpers.triggerChange(fixed)
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
+
+QUnit.module 'one-way bindings'
+
+asyncTest 'read should update only the binding value', 3, ->
+  source = '<input type="text" data-read="foo" value="start"/>'
+  context = Batman foo: null
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.value, 'start'
+    node.value = 'bar'
+    helpers.triggerChange node
+    delay =>
+      equal context.get('foo'), 'bar'
+      context.set 'foo', 'baz'
+      delay =>
+        equal node.value, 'bar'
+
+asyncTest 'write should update only the bound node', 3, ->
+  source = '<input type="text" data-write="foo" value="start"/>'
+  context = Batman foo: 'bar'
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.value, 'bar'
+    node.value = 'baz'
+    helpers.triggerChange node
+    delay =>
+      equal context.get('foo'), 'bar'
+      context.set 'foo', 'end'
+      delay =>
+        equal node.value, 'end'
+
+asyncTest 'attribute write should update only the bound attribute', 3, ->
+  source = '<input type="text" data-write-width="foo.width" value="start" width="10"/>'
+  context = Batman
+    foo: Batman
+      width: 20
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.getAttribute('width'), '20'
+    node.setAttribute 'width', 30
+    helpers.triggerChange node
+    delay =>
+      equal context.get('foo.width'), 20
+      context.set 'foo.width', 40
+      delay =>
+        equal node.getAttribute('width'), '40'
+

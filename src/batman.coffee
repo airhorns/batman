@@ -2277,14 +2277,14 @@ class Binding extends Batman.Object
     shouldSet = yes
 
     # And attach them.
-    if Batman.DOM.nodeIsEditable(@node)
+    if @only != 'write' and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
         @nodeChange(@node, @_keyContext || @value, @)
         shouldSet = yes
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     @observe 'filteredValue', yes, (value) =>
-      if shouldSet
+      if shouldSet and @only != 'read'
         @dataChange(value, @node, @)
     @
 
@@ -2349,7 +2349,6 @@ class Binding extends Batman.Object
   #  + and `JSON.parse`ing them as an array.
   parseSegment: (segment) ->
     JSON.parse( "[" + segment.replace(keypath_rx, "{\"_keypath\": \"$1\"}") + "]" )
-
 
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 # Every, and I really mean every method which uses filters has to be defined in terms of a new
@@ -2433,21 +2432,33 @@ class RenderContext
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
   # when appropriate. Note that `Binding` has default observers for `dataChange` and `nodeChange` that
   # will set node/object values if these observers aren't passed in here.
-  bind: (node, key, dataChange, nodeChange) ->
+  # The optional `only` parameter can be used to create read-only or write-only bindings. If left unset,
+  # both read and write events are observed.
+  bind: (only, node, key, dataChange, nodeChange) ->
+    if !nodeChange and only and typeof only != 'string'
+      [node, key, dataChange, nodeChange] = [only, node, key, dataChange]
+
     return new Binding
       renderContext: @
       keyPath: key
       node: node
       dataChange: dataChange
       nodeChange: nodeChange
+      only: only
 
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    bind: (node, key, context, renderer) ->
+    read: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'read')
+
+    write: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'write')
+
+    bind: (node, key, context, renderer, only) ->
       if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
-        Batman.DOM.attrReaders.bind(node, 'checked', key, context)
+        Batman.DOM.attrReaders.bind(node, 'checked', key, context, only)
       else if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'radio'
         contextChange = (value) ->
           # don't overwrite `checked` attributes in the HTML unless a bound
@@ -2460,13 +2471,13 @@ Batman.DOM = {
             container.set key, node.value
         nodeChange = (newNode, subContext) ->
           subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
-        context.bind node, key, contextChange, nodeChange
+        context.bind only, node, key, contextChange, nodeChange
       else if node.nodeName.toLowerCase() == 'select'
         # wait for the select to render before binding to it
         renderer.rendered ->
-          Batman.DOM.attrReaders.bind(node, 'value', key, context)
+          Batman.DOM.attrReaders.bind(node, 'value', key, context, only)
       else
-        context.bind(node, key)
+        context.bind(only, node, key)
 
     context: (node, key, context) -> context.addKeyToScopeForNode(node, key)
 
@@ -2539,7 +2550,10 @@ Batman.DOM = {
       if value is 'true' then value = true
       value
 
-    bind: (node, attr, key, context) ->
+    write: (node, attr, key, context) ->
+      Batman.DOM.attrReaders.bind node, attr, key, context, 'write'
+
+    bind: (node, attr, key, context, only) ->
       switch attr
         when 'checked', 'disabled'
           contextChange = (value) -> node[attr] = !!value
@@ -2551,7 +2565,7 @@ Batman.DOM = {
           contextChange = (value) -> node.setAttribute(attr, value)
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
 
-      context.bind(node, key, contextChange, nodeChange)
+      context.bind(only, node, key, contextChange, nodeChange)
 
     context: (node, contextName, key, context) -> context.addKeyToScopeForNode(node, key, contextName)
 
