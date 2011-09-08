@@ -2226,7 +2226,7 @@ class Binding extends Batman.Object
 
   # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
   # dotted names that follow them.
-  get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|$)/
+  get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
   get_rx = /(?!^\s*)\[(.*?)\]/g
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.

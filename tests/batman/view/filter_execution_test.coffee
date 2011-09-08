@@ -77,6 +77,23 @@ asyncTest 'hideously complex chain of property lookups', 1, ->
     equals node.html(), "value"
     QUnit.start()
 
+asyncTest 'hideously complex chain of property lookups with filters', 1, ->
+  context = Batman
+    ss: { ee: 'c' }
+    a: new Batman.Hash
+      b:
+        c:
+          d:
+            e:
+              f:
+                g:
+                  h: 'value'
+  spyOn Batman.Filters, 'spy'
+  helpers.render '<div data-bind="a.b[ss.ee].d[\'e\'][\'f\'].g.h | spy"></div>', context, (node) ->
+    equal Batman.Filters.spy.lastCallArguments[0], 'value'
+    delete Batman.Filters.spy
+    QUnit.start()
+
 asyncTest 'truncate', 2, ->
   helpers.render '<div data-bind="foo | truncate 5"></div>',
     foo: 'your mother was a hampster'
