@@ -102,7 +102,12 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
     context.set('objects', new Batman.Set('qux', 'corge'))
     delay =>
       equal $('.present', node).length, 2
-
+      context.set('objects', null)
+      delay =>
+        equal $('.present', node).length, 0
+        context.set('objects', new Batman.Set('mario'))
+        delay =>
+          equal $('.present', node).length, 1
 
 asyncTest 'it should not fail if the collection is cleared', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
@@ -207,117 +212,3 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
         delay ->
           names = $('p', view.get('node')).map(-> @innerHTML).toArray()
           deepEqual names, ['a', 'b', 'c', 'd', 'e']
-
-QUnit.module "Batman.View rendering nested loops"
-  setup: ->
-    @context = Batman
-      posts: new Batman.Set()
-      tagColor: "green"
-
-    @context.posts.add Batman(tags:new Batman.Set("funny", "satire", "nsfw"), name: "post-#{i}") for i in [0..2]
-
-    @source = '''
-      <div>
-        <div data-foreach-post="posts" class="post">
-          <span data-foreach-tag="post.tags" data-bind="tag" class="tag" data-bind-post="post.name" data-bind-color="tagColor"></span>
-        </div>
-      </div>
-    '''
-
-asyncTest 'it should allow nested loops', 2, ->
-  helpers.render @source, @context, (node, view) ->
-    delay => # extra delay because foreach parsing ignores children
-      equal $('.post', node).length, 3
-      equal $('.tag', node).length, 9
-
-asyncTest 'it should allow access to variables in higher scopes during loops', 3*3, ->
-  helpers.render @source, @context, (node, view) ->
-    delay => # extra delay because foreach parsing ignores children
-      node = view.get('node')
-      for postNode, i in $('.post', node)
-        for tagNode, j in $('.tag', postNode)
-          equal $(tagNode).attr('color'), "green"
-
-asyncTest 'it should not render past its original node', ->
-  @context.class1 = 'foo'
-  @context.class2 = 'bar'
-  @context.class3 = 'baz'
-  source = '''
-    <div id='node1' data-bind-class='class1'>
-      <div id='node2' data-bind-class='class2'>
-        <div>node1 class should not be set</div>
-        <div>node2 class should be set</div>
-        <div>node3 class should not be set</div>
-      </div>
-      <div id='node3' data-bind-class='class3'></div>
-    </div>
-  '''
-
-  node = document.createElement 'div'
-  node.innerHTML = source
-
-  node1 = $(node).find('#node1')[0]
-  node2 = $(node).find('#node2')[0]
-  node3 = $(node).find('#node3')[0]
-
-  view = new Batman.View
-    contexts: [@context]
-    node: node2
-  view.ready ->
-    equal node1.className, ''
-    equal node2.className, 'bar'
-    equal node3.className, ''
-    QUnit.start()
-
-  true
-
-QUnit.module 'Batman.View rendering formfor'
-  setup: ->
-    @User = class User extends MockClass
-      name: 'default name'
-
-asyncTest 'it should pull in objects for form rendering', 1, ->
-  source = '''
-  <form data-formfor-user="instanceOfUser">
-    <input type="text" data-bind="user.name">
-  </form>
-  '''
-  context =
-    instanceOfUser: new @User
-
-  node = helpers.render source, context, (node) ->
-    equals $('input', node).val(), "default name"
-    QUnit.start()
-
-asyncTest 'it should update objects when form rendering', 1, ->
-  source = '''
-  <form data-formfor-user="instanceOfUser">
-    <input type="text" data-bind="user.name">
-  </form>
-  '''
-  context =
-    instanceOfUser: new @User
-
-  node = helpers.render source, context, (node) =>
-    $('input', node).val('new name')
-    helpers.triggerChange(node[0].childNodes[1])
-    delay =>
-      equals @User.lastInstance.name, "new name"
-
-
-asyncTest 'it should update the context for the form if the context changes', 2, ->
-  source = '''
-  <form data-formfor-user="instanceOfUser">
-    <input type="text" data-bind="user.name">
-  </form>
-  '''
-  context = new Batman.Object
-    instanceOfUser: null
-
-  node = helpers.render source, context, (node) =>
-    equals $('input', node).val(), ""
-    context.set 'instanceOfUser', new @User
-    delay =>
-      equals $('input', node).val(), "default name"
-
-

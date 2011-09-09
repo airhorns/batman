@@ -120,12 +120,12 @@ asyncTest 'hash manager', ->
   setTimeout(->
     equal spy.callCount, 1
     window.location.hash = "#!/test2"
-  , 110)
+  , 210)
 
   setTimeout(->
     equal spy2.callCount, 1
     QUnit.start()
-  , 220)
+  , 420)
 
 asyncTest '404', 1, ->
   @App.route '404', ->
