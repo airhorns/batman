@@ -2620,9 +2620,11 @@ Batman.DOM = {
         if oldCollection
           return if collection == oldCollection
           nodeMap.forEach (item, node) -> parent.removeChild node
-          oldCollection.forget 'itemsWereAdded', observers.add
-          oldCollection.forget 'itemsWereRemoved', observers.remove
-          oldCollection.forget 'setWasSorted', observers.reorder
+          nodeMap.clear()
+          if oldCollection.forget
+            oldCollection.forget 'itemsWereAdded', observers.add
+            oldCollection.forget 'itemsWereRemoved', observers.remove
+            oldCollection.forget 'setWasSorted', observers.reorder
         oldCollection = collection
 
         observers.add = (items...) ->
@@ -2677,16 +2679,18 @@ Batman.DOM = {
               parent.insertBefore(thisNode, sibling)
 
         # Observe the collection for events in the future
-        if collection?.observe
-          collection.observe 'itemsWereAdded', observers.add
-          collection.observe 'itemsWereRemoved', observers.remove
-          collection.observe 'setWasSorted', observers.reorder
+        if collection
+          if collection.observe
+            collection.observe 'itemsWereAdded', observers.add
+            collection.observe 'itemsWereRemoved', observers.remove
+            collection.observe 'setWasSorted', observers.reorder
 
-        # Add all the already existing items. For hash-likes, add the key.
-        if collection.forEach
-          collection.forEach (item) -> observers.add(item)
-        else for k, v of collection
-          observers.add(k)
+          # Add all the already existing items. For hash-likes, add the key.
+          if collection.forEach
+            collection.forEach (item) -> observers.add(item)
+          else
+            for k, v of collection
+              observers.add(k)
       , -> )
 
       false # Return false so the Renderer doesn't descend into this node's children.
