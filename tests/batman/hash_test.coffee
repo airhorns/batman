@@ -172,6 +172,19 @@ test "get/set/unset with an undefined or null value works like any other", ->
   equal @hash.hasKey(1), true
   @hash.unset(1)
   equal @hash.hasKey(1), false
+  
+test "keys containing dots (.) are treated as simple keys, not keypaths", ->
+  key = "foo.bar.baz"
+  equal @hash.hasKey(key), false
+
+  equal @hash.set(key, 1), 1
+  equal @hash.get(key), 1
+  equal @hash.hasKey(key), true
+
+  equal @hash.hasKey(key), true
+
+  @hash.unset(key)
+  equal @hash.hasKey(key), false
 
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}

@@ -120,12 +120,13 @@ class Batman.Property
     unset: (key) -> x = @[key]; delete @[key]; x
   @triggerTracker: null
   @forBaseAndKey: (base, key) ->
+    propertyClass = base.propertyClass or Batman.Keypath
     if base._batman
       Batman.initializeObject base
       properties = base._batman.properties ||= new Batman.SimpleHash
-      properties.get(key) or properties.set(key, new @(base, key))
+      properties.get(key) or properties.set(key, new propertyClass(base, key))
     else
-      new @(base, key)
+      new propertyClass(base, key)
   constructor: (@base, @key) ->
   isProperty: true
   accessor: ->
@@ -235,8 +236,8 @@ class Batman.Keypath extends Batman.ObservableProperty
   slice: (begin, end = @depth) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Keypath.forBaseAndKey(base, segment).getValue()
-    Batman.Keypath.forBaseAndKey base, @segments.slice(begin, end).join('.')
+      return unless base? and base = Batman.Property.forBaseAndKey(base, segment).getValue()
+    Batman.Property.forBaseAndKey base, @segments.slice(begin, end).join('.')
   terminalProperty: -> @slice -1
   getValue: ->
     @registerAsTrigger()
@@ -253,7 +254,7 @@ Batman.Observable =
   isObservable: true
   property: (key) ->
     Batman.initializeObject @
-    Batman.Keypath.forBaseAndKey(@, key)
+    Batman.Property.forBaseAndKey(@, key)
   get: (key) ->
     @property(key).getValue()
   set: (key, val) ->
@@ -597,6 +598,7 @@ class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
+  propertyClass: Batman.ObservableProperty
   hasKey: (key) ->
     matches = @_storage[key] ||= []
     for match in matches
@@ -656,6 +658,7 @@ class Batman.Hash extends Batman.Object
   constructor: ->
     Batman.SimpleHash.apply(@, arguments)
     super
+  propertyClass: Batman.ObservableProperty
 
   @accessor
     get: Batman.SimpleHash::get
