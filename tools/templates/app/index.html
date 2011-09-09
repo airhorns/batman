@@ -46,7 +46,11 @@
     <input type="text" data-bind="$App$.mission"/>
   </div>
   <script type="text/javascript">
-    $App$.run();
+    if(window.location.protocol === 'file:') {
+      alert("The default batman template doesn't work with file:// urls, sorry! You should run this app using batman server, or you should bundle batman with your backend server and use an asset packager. See https://github.com/Shopify/batman/wiki/Chrome for more information. Thanks for using Batman!");
+    } else {
+      $App$.run();
+    }
   </script>
 </body>
 </html>
