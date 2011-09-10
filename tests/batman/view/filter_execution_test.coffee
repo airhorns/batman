@@ -202,12 +202,14 @@ asyncTest 'map', 1, ->
 
 QUnit.module "Batman.View user defined filter execution"
 
-asyncTest 'should render a user defined filter', 2, ->
+asyncTest 'should render a user defined filter', 3, ->
   Batman.Filters['test'] = spy = createSpy().whichReturns("testValue")
-  helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>',
+  ctx = Batman
     foo: 'bar'
-  , (node) ->
+    bar: 'baz'
+  helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>', ctx, (node) ->
     equals node.html(), "testValue"
+    equals spy.lastCallContext, ctx
     deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
     QUnit.start()
 

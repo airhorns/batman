@@ -2235,6 +2235,7 @@ class Binding extends Batman.Object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
     value = @get('unfilteredValue')
+    ctx = @_keyContext
     if @filterFunctions.length > 0
       @filterFunctions.reduce((value, fn, i) =>
         # Get any argument keypaths from the context stored at parse time.
@@ -2244,7 +2245,7 @@ class Binding extends Batman.Object
           else
             argument
         # Apply the filter.
-        fn(value, args...)
+        fn.call(ctx, value, args...)
       , value)
     else
       value
