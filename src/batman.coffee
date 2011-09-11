@@ -2065,7 +2065,7 @@ class Batman.View extends Batman.Object
       @set('html', viewSources[source])
     else
       new Batman.Request
-        url: "views/#{@source}"
+        url: "#{@prefix}/#{@source}"
         type: 'html'
         success: (response) =>
           viewSources[source] = response
