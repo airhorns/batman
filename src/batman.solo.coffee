@@ -293,31 +293,30 @@ function(context, win) {
 # http://jquery.org/license
 rbracket = /\[\]$/
 r20 = /%20/g
-param = (a, traditional) ->
+param = (a) ->
   s = []
   add = (key, value) ->
     value = (if Batman.typeOf(value) is 'function' then value() else value)
     s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value)
 
-  traditional = true if traditional == undefined
   if Batman.typeOf(a) is 'Array'
     for value, name of a
       add name, value
   else
     for k, v of a
-      buildParams k, v, traditional, add
+      buildParams k, v, add
   s.join("&").replace r20, "+"
 
-buildParams = (prefix, obj, traditional, add) ->
+buildParams = (prefix, obj, add) ->
   if Batman.typeOf(obj) is 'Array'
     for v, i in obj
-      if traditional or rbracket.test(prefix)
+      if rbracket.test(prefix)
         add prefix, v
       else
-        buildParams prefix + "[" + (if typeof v == "object" or Batman.typeOf(v) is 'Array' then i else "") + "]", v, traditional, add
-  else if not traditional and obj? and typeof obj == "object"
+        buildParams prefix + "[" + (if typeof v == "object" or Batman.typeOf(v) is 'Array' then i else "") + "]", v, add
+  else if obj? and typeof obj == "object"
     for name of obj
-      buildParams prefix + "[" + name + "]", obj[name], traditional, add
+      buildParams prefix + "[" + name + "]", obj[name], add
   else
     add prefix, obj
 

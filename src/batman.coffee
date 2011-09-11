@@ -2896,8 +2896,19 @@ for k in ['capitalize', 'singularize', 'underscore', 'camelize']
 
 # Mixins
 # ------
-mixins = Batman.mixins = new Batman.Object
+mixins = Batman.mixins = new Batman.Object()
 
+# Encoders
+# ------
+Batman.Encoders =
+  railsDate:
+    encode: (value) -> value
+    decode: (value) ->
+      a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(value)
+      if a
+        return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
+      else
+        throw "Unrecognized rails date #{value}!"
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
