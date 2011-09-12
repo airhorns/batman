@@ -1009,7 +1009,9 @@ class Batman.Request extends Batman.Object
   data: ''
   method: 'get'
   response: null
-  contentType: 'application/json'
+
+  # Set the content type explicitly for PUT and POST requests.
+  contentType: 'application/x-www-form-urlencoded'
 
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is
