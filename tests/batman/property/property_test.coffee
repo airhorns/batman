@@ -86,3 +86,60 @@ test "unsetValue() calls the accessor's unset(key) method in the context of the 
   equal typeof @property.unsetValue(), 'undefined'
   deepEqual @customKeyAccessor.unset.lastCallArguments, ['foo']
   equal @customKeyAccessor.unset.lastCallContext, @base
+  
+test "refreshTriggers() sets this.triggers to all properties that this one is dependent on, and maintains the inverse 'dependents' on other Properties", ->
+  fullNameAccessor = get: (key) -> firstNameProp.getValue()+' '+lastNameProp.getValue()
+  keyAccessors = new Batman.SimpleHash
+  keyAccessors.set('fullName', fullNameAccessor)
+  person = Batman
+    firstName: 'James'
+    lastName: 'MacAulay'
+  person._batman.keyAccessors = keyAccessors
+
+  firstNameProp = new Batman.Property(person, 'firstName')
+  lastNameProp = new Batman.Property(person, 'lastName')
+  fullNameProp = new Batman.Property(person, 'fullName')
+
+  equal fullNameProp.getValue(), 'James MacAulay'
+
+  fullNameProp.refreshTriggers()
+
+  equal fullNameProp.triggers.length, 3
+  ok fullNameProp.triggers.has(firstNameProp)
+  ok fullNameProp.triggers.has(lastNameProp)
+  ok fullNameProp.triggers.has(fullNameProp)
+
+  equal firstNameProp.dependents.length, 1
+  ok firstNameProp.dependents.has(fullNameProp)
+
+  equal firstNameProp.dependents.length, 1
+  ok firstNameProp.dependents.has(fullNameProp)
+  equal lastNameProp.dependents.length, 1
+  ok lastNameProp.dependents.has(fullNameProp)
+  equal fullNameProp.dependents.length, 1
+  ok fullNameProp.dependents.has(fullNameProp)
+
+test "property() works on non Batman objects", ->
+  property = new Batman.Property(window, 'Array')
+  ok ! property.hasObserversToFire()
+  property.observe spy = createSpy()
+  property.fire()
+  ok spy.called
+
+  property = new Batman.Property({}, 'foo')
+  ok ! property.hasObserversToFire()
+  property.observe spy = createSpy()
+  property.fire()
+  ok spy.called
+
+test "only fires when its prevents and allows are balanced", ->
+  property = new Batman.Property(window, 'Array')
+  property.observe spy = createSpy()
+
+  property.prevent()
+  property.fire()
+  ok !spy.called
+
+  property.allow()
+  property.fire()
+  ok spy.called

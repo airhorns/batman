@@ -128,41 +128,33 @@ class Batman.Property
     else
       new propertyClass(base, key)
   constructor: (@base, @key) ->
+    @observers = new Batman.SimpleSet
+    @refreshTriggers() if @hasObserversToFire()
+    @_preventCount = 0
   isProperty: true
+  isEqual: (other) ->
+    @constructor is other.constructor and @base is other.base and @key is other.key
   accessor: ->
     accessors = @base._batman?.get('keyAccessors')
     if accessors && (val = accessors.get(@key))
       return val
     else
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
-
   registerAsTrigger: ->
     tracker.add @ if tracker = Batman.Property.triggerTracker
   getValue: ->
     @registerAsTrigger()
     @accessor()?.get.call @base, @key
   setValue: (val) ->
-    @accessor()?.set.call @base, @key, val
-  unsetValue: -> @accessor()?.unset.call @base, @key
-  isEqual: (other) ->
-    @constructor is other.constructor and @base is other.base and @key is other.key
-
-class Batman.ObservableProperty extends Batman.Property
-  constructor: (base, key) ->
-    super
-    @observers = new Batman.SimpleSet
-    @refreshTriggers() if @hasObserversToFire()
-    @_preventCount = 0
-  setValue: (val) ->
     @cacheDependentValues()
-    super
+    result = @accessor()?.set.call @base, @key, val
     @fireDependents()
-    val
+    result
   unsetValue: ->
     @cacheDependentValues()
-    super
+    result = @accessor()?.unset.call @base, @key
     @fireDependents()
-    return
+    result
   cacheDependentValues: ->
     if @dependents
       @dependents.forEach (prop) -> prop.cachedValue = prop.getValue()
@@ -224,7 +216,7 @@ class Batman.ObservableProperty extends Batman.Property
 # Keypaths
 # --------
 
-class Batman.Keypath extends Batman.ObservableProperty
+class Batman.Keypath extends Batman.Property
   constructor: (base, key) ->
     if $typeOf(key) is 'String'
       @segments = key.split('.')
@@ -598,7 +590,7 @@ class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
-  propertyClass: Batman.ObservableProperty
+  propertyClass: Batman.Property
   hasKey: (key) ->
     matches = @_storage[key] ||= []
     for match in matches
@@ -658,7 +650,7 @@ class Batman.Hash extends Batman.Object
   constructor: ->
     Batman.SimpleHash.apply(@, arguments)
     super
-  propertyClass: Batman.ObservableProperty
+  propertyClass: Batman.Property
 
   @accessor
     get: Batman.SimpleHash::get

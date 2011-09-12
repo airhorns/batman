@@ -90,9 +90,9 @@ test "set(key, val) with a deep keypath should use the existing value's assign()
 ###
 # unset(key)
 ###
-test "unset(key) removes the referenced property", ->
-  equal typeof(@obj.unset('foo.bar.baz.qux')), 'undefined'
-  equal typeof(@obj.foo.bar.baz.qux), 'undefined'
+test "unset(key) deletes the referenced property and returns the removed value", ->
+  equal @obj.unset('foo.bar.baz.qux'), 'quxVal'
+  strictEqual @obj.foo.bar.baz.qux, undefined
 
 test "unset(key) with a simple key calls fire(key, undefined, oldValue)", ->
   fooProperty = @obj.property('foo')
