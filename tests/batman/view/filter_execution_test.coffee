@@ -200,14 +200,54 @@ asyncTest 'map', 1, ->
     equals node.html(), "one, two"
     QUnit.start()
 
+QUnit.module "Batman.View filter parameter parsing"
+
+examples = [
+  {
+    filter: "Foo, 'bar', baz.qux"
+    results: [ 'FOO', 'bar', 'QUX' ]
+  }
+  {
+    filter: "true, false, 'true', 'false', foo.bar.baz"
+    results: [ true, false, 'true', 'false', 'BAZ' ]
+  }
+  { filter: "2, true.bar", results: [ 2, 'TRUE' ] }
+  { filter: "truesay", results: [ 'TRUTH' ] }
+
+  # {
+  #   filter: "'bar', 2, {'x':'y', 'Z': foo.bar.baz}, 'baz'"
+  #   results: [ 'bar', 2, { 'x': 'y', 'Z': 'BAZ' }, 'baz' ]
+  # }
+]
+for {filter,results} in examples
+  do (filter, results) ->
+    asyncTest "should correctly parse \"#{filter}\"", 2, ->
+      Batman.Filters['test'] = spy = createSpy().whichReturns("testValue")
+      ctx = Batman
+        Foo: 'FOO'
+        foo:
+          bar:
+            baz: 'BAZ'
+        baz:
+          qux: 'QUX'
+        true:
+          bar: 'TRUE'
+        truesay: 'TRUTH'
+      helpers.render """<div data-bind="1 | test #{filter}"></div>""", ctx, (node) ->
+        equals node.html(), "testValue"
+        deepEqual spy.lastCallArguments, [1, results...]
+        QUnit.start()
+
 QUnit.module "Batman.View user defined filter execution"
 
-asyncTest 'should render a user defined filter', 2, ->
+asyncTest 'should render a user defined filter', 3, ->
   Batman.Filters['test'] = spy = createSpy().whichReturns("testValue")
-  helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>',
+  ctx = Batman
     foo: 'bar'
-  , (node) ->
+    bar: 'baz'
+  helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>', ctx, (node) ->
     equals node.html(), "testValue"
+    equals spy.lastCallContext, ctx
     deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
     QUnit.start()
 

@@ -2215,7 +2215,7 @@ class Binding extends Batman.Object
   # + `truesay` in truesay
   # + no matches in `"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"`
   keypath_rx = ///
-    (?:^|,)           # Match either the start of an arguments list or the start of a space inbetween commas.
+    (^|,)             # Match either the start of an arguments list or the start of a space inbetween commas.
     \s*               # Be insensitive to whitespace between the comma and the actual arguments.
     (?!               # Use a lookahead to ensure we aren't matching true or false:
       (?:true|false)  # Match either true or false ...
@@ -2224,8 +2224,8 @@ class Binding extends Batman.Object
     )
     ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
     \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
-    (?:$|,)           # Match either the next comma or the end of the filter arguments list.
-    ///
+    ($|,)             # Match either the next comma or the end of the filter arguments list.
+    ///g
 
   # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
   # dotted names that follow them.
@@ -2235,6 +2235,7 @@ class Binding extends Batman.Object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
     value = @get('unfilteredValue')
+    ctx = @get('keyContext') if @get('key')
     if @filterFunctions.length > 0
       @filterFunctions.reduce((value, fn, i) =>
         # Get any argument keypaths from the context stored at parse time.
@@ -2244,7 +2245,7 @@ class Binding extends Batman.Object
           else
             argument
         # Apply the filter.
-        fn(value, args...)
+        fn.call(ctx, value, args...)
       , value)
     else
       value
@@ -2351,7 +2352,7 @@ class Binding extends Batman.Object
   #  + wrapping the `,` delimited list in square brackets
   #  + and `JSON.parse`ing them as an array.
   parseSegment: (segment) ->
-    JSON.parse( "[" + segment.replace(keypath_rx, "{\"_keypath\": \"$1\"}") + "]" )
+    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}$3") + "]" )
 
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 # Every, and I really mean every method which uses filters has to be defined in terms of a new
