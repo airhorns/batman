@@ -22,10 +22,10 @@ asyncTest "models will find an instance in the store", ->
     equal product.get('name'), 'One'
     QUnit.start()
 
-asyncTest "found models should end up in the all set", ->
+asyncTest "found models should end up in the loaded set", ->
   @Product.find 1, (err, firstProduct) =>
     throw err if err
-    equal @Product.get('all').length, 1
+    equal @Product.get('loaded').length, 1
     QUnit.start()
 
 asyncTest "models will find the same instance if called twice", ->
@@ -34,7 +34,7 @@ asyncTest "models will find the same instance if called twice", ->
     @Product.find 1, (err, secondProduct) =>
       throw err if err
       equal firstProduct, secondProduct
-      equal @Product.get('all').length, 1
+      equal @Product.get('loaded').length, 1
       QUnit.start()
 
 QUnit.module "Batman.Model class loading"
@@ -55,6 +55,10 @@ asyncTest "models will load all their records", ->
     equal products.length, 2
     equal @Product.get('all.length'), 2
     QUnit.start()
+
+asyncTest "Model.all will load all records", ->
+  equal @Product.get('all').length, 2
+  QUnit.start()
 
 asyncTest "classes fire their loading/loaded callbacks", ->
   callOrder = []

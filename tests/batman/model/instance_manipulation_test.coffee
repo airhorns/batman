@@ -53,18 +53,18 @@ test "model instances should save", ->
 
 test "new instances should be added to the identity map", ->
   product = new @Product()
-  equal @Product.get('all.length'), 0
+  equal @Product.get('loaded.length'), 0
   product.save (err, product) =>
     throw err if err?
-    equal @Product.get('all.length'), 1
+    equal @Product.get('loaded.length'), 1
 
 asyncTest "new instances should be added to the identity map even if no callback is given", ->
   product = new @Product()
-  equal @Product.get('all.length'), 0
+  equal @Product.get('loaded.length'), 0
   product.save()
   delay =>
     throw err if err?
-    equal @Product.get('all.length'), 1
+    equal @Product.get('loaded.length'), 1
 
 
 test "existing instances shouldn't be re added to the identity map", ->
