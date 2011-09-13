@@ -1504,10 +1504,10 @@ class Batman.Model extends Batman.Object
   # ### Query methods
   @classAccessor 'all',
     get: ->
-      @load() unless @classState() in ['loaded', 'loading']
+      @load() if @::hasStorage() and @classState() not in ['loaded', 'loading']
       @get('loaded')
-      
-    set: (k,v)-> @set('loaded', v)
+
+    set: (k, v) -> @set('loaded', v)
 
   @classAccessor 'loaded',
     get: ->
@@ -1517,7 +1517,7 @@ class Batman.Model extends Batman.Object
 
       @all
 
-    set: (k,v)-> @all = v
+    set: (k, v) -> @all = v
 
   @classAccessor 'first', -> @get('all').toArray()[0]
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
@@ -1664,13 +1664,13 @@ class Batman.Model extends Batman.Object
     @classState k
 
   _doStorageOperation: (operation, options, callback) ->
-    mechanisms = @_batman.get('storage') || []
-    throw new Error("Can't #{operation} model #{@constructor.name} without any storage adapters!") unless mechanisms.length > 0
+    throw new Error("Can't #{operation} model #{@constructor.name} without any storage adapters!") unless @hasStorage()
+    mechanisms = @_batman.get('storage')
     for mechanism in mechanisms
       mechanism[operation] @, options, callback
     true
 
-  _hasStorage: -> @_batman.getAll('storage').length > 0
+  hasStorage: -> (@_batman.get('storage') || []).length > 0
 
   # `load` fetches the record from all sources possible
   load: (callback) =>
@@ -3056,7 +3056,7 @@ $mixin Batman,
   acceptData: (elem) ->
     if elem.nodeName
       match = Batman.noData[elem.nodeName.toLowerCase()]
-      if match 
+      if match
         return !(match == true or elem.getAttribute("classid") != match)
     return true
 

@@ -57,8 +57,17 @@ asyncTest "models will load all their records", ->
     QUnit.start()
 
 asyncTest "Model.all will load all records", ->
-  equal @Product.get('all').length, 2
-  QUnit.start()
+  set =  @Product.get('all')
+  delay ->
+    equal set.length, 2
+
+asyncTest "Model.all will get all without storage adapters", ->
+  class Order extends Batman.Model
+
+  set = Order.get('all')
+  equal set.length, 0
+  delay ->
+    equal set.length, 0
 
 asyncTest "classes fire their loading/loaded callbacks", ->
   callOrder = []
