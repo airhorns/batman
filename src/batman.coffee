@@ -928,9 +928,6 @@ Batman.StateMachine = {
     Batman.initializeObject @
     if not @_batman.states
       @_batman.states = new Batman.SimpleHash
-      @accessor 'state',
-        get: -> @state()
-        set: (key, value) -> _stateMachine_setState.call(@, value)
 
   state: (name, callback) ->
     Batman.StateMachine.initialize.call @
@@ -1425,11 +1422,6 @@ class Batman.Controller extends Batman.Object
 # ------
 
 class Batman.Model extends Batman.Object
-  @create: (callback) ->
-    obj = new @ arguments...
-    obj.save(callback)
-    obj
-
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
   @primaryKey: 'id'
@@ -1546,6 +1538,14 @@ class Batman.Model extends Batman.Object
         do @loaded
         callback?(err, records)
 
+  # `create` takes an attributes hash, creates a record from it, and saves it given the callback.
+  @create: (attrs, callback) ->
+    if !callback
+      [attrs, callback] = [{}, attrs]
+    obj = new this(attrs)
+    obj.save(callback)
+    obj
+
   @_mapIdentities: (records) ->
     all = @get('loaded').toArray()
     newRecords = []
@@ -1570,6 +1570,7 @@ class Batman.Model extends Batman.Object
 
   # ### Record API
 
+  # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
   @accessor 'id',
     get: ->
       pk = @constructor.get('primaryKey')
@@ -1583,6 +1584,25 @@ class Batman.Model extends Batman.Object
         @id = v
       else
         @set(pk, v)
+
+  # Add normal accessors for the dirty keys and errors attributes of a record, so these accesses don't fall to the
+  # default accessor.
+  @accessor 'dirtyKeys', 'errors', Batman.Property.defaultAccessor
+
+  # Add an accessor for the internal batman state under `batmanState`, so that the `state` key can be a valid
+  # attribute.
+  @accessor 'batmanState'
+    get: -> @state()
+    set: (k, v) -> @state(v)
+
+  # Add a default accessor to make models store their attributes under a namespace by default.
+  @accessor
+    get: (k) -> (@_batman.attributes ||= {})[k]
+    set: (k, v) -> (@_batman.attributes ||= {})[k] = v
+    unset: (k) ->
+      x = (@_batman.attributes ||={})[k]
+      delete @_batman.attributes[k]
+      x
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
@@ -1674,7 +1694,7 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches the record from all sources possible
   load: (callback) =>
-    if @get('state') in ['destroying', 'destroyed']
+    if @state() in ['destroying', 'destroyed']
       callback?(new Error("Can't load a destroyed record!"))
       return
 
@@ -1687,7 +1707,7 @@ class Batman.Model extends Batman.Object
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
   save: (callback) =>
-    if @get('state') in ['destroying', 'destroyed']
+    if @state() in ['destroying', 'destroyed']
       callback?(new Error("Can't save a destroyed record!"))
       return
     @validate (isValid, errors) =>

@@ -27,3 +27,13 @@ test "primary key can be changed by setting primary key on the model class", ->
   @Product.primaryKey = 'uuid'
   product = new @Product(uuid: "abc123")
   equal product.get('id'), 'abc123'
+
+test 'the \'state\' key should be a valid attribute name', ->
+  p = new @Product(state: "silly")
+  equal p.get('state'), "silly"
+  equal p.state(), "dirty"
+
+test 'the \'batmanState\' key should be gettable and report the internal state', ->
+  p = new @Product(state: "silly")
+  equal p.state(), "dirty"
+  equal p.get('batmanState'), "dirty"

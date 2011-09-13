@@ -94,9 +94,12 @@ test "model instances shouldn't save if they have been destroyed", ->
     throw err if err
     p.save (err) ->
       ok err
+    p.load (err) ->
+      ok err
 
 asyncTest "create method returns an instance of a model while saving it", ->
   result = @Product.create (err, product) =>
+    ok !err
     ok product instanceof @Product
     QUnit.start()
   ok result instanceof @Product
