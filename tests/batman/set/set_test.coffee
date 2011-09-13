@@ -60,21 +60,35 @@ setTestSuite = ->
     ok !@set.has('qux')
     ok !@set.has('buzz')
 
-  test "merge, add, remove, and clear fire length observers", ->
+  test "add(items...) fires length observers", ->
+    @set.observe 'length', spy = createSpy()
+    @set.add('foo')
+    deepEqual spy.lastCallArguments, [1, 0]
+
+    @set.add('baz', 'bar')
+    deepEqual spy.lastCallArguments, [3, 1]
+
+    equal spy.callCount, 2
+    @set.add('bar')
+    equal spy.callCount, 2
+
+  test "remove(items...) fires length observers", ->
+    @set.observe 'length', spy = createSpy()
+    @set.add('foo')
+    @set.remove('foo')
+    deepEqual spy.lastCallArguments, [0, 1]
+
+    equal spy.callCount, 2
+    @set.remove('foo')
+    equal spy.callCount, 2
+
+  test "clear fires length observers", ->
     spy = createSpy()
     @set.observe('length', spy)
 
     @set.add('foo', 'bar')
-    equal spy.callCount, 1, 'add(items...) fires length observers'
-
-    @set.remove('foo')
-    equal spy.callCount, 2, 'remove(items...) fires length observers'
-
     @set.clear()
-    equal spy.callCount, 3, 'clear() fires length observers'
-
-    @set.merge(new Batman.Set('qux', 'baz'))
-    equal spy.callCount, 4, 'merge() fires length observers'
+    equal spy.callCount, 2, 'clear() fires length observers'
 
   test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
     index = @set.indexedBy('length')

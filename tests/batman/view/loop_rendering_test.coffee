@@ -35,27 +35,26 @@ asyncTest 'it should remove items from the DOM as they are removed from the set'
       deepEqual names, ['bar']
 
 asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
-  source = '<div><p data-foreach-object="objects" class="present" data-bind="object.name"></p></div>'
-  objects = new Batman.SortableSet({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
-  objects.sortBy 'id'
+  source = '<div><p data-foreach-object="objects.sortedBy[currentSort]" class="present" data-bind="object.name"></p></div>'
+  objects = new Batman.Set({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
+  context = Batman({objects, currentSort: 'id'})
 
-  helpers.render source, {objects}, (node, view) ->
+  helpers.render source, context, (node, view) ->
     names = ($('p', view.get('node')).map -> @innerHTML).toArray()
     deepEqual names, ['foo', 'bar']
-    objects.addIndex('name')
     # multiple reordering all at once should not end up with duplicate DOM nodes
-    objects.set 'activeIndex', 'name'
-    objects.set 'activeIndex', 'id'
-    objects.set 'activeIndex', 'name'
+    context.set 'currentSort', 'name'
     delay =>
-      names = ($('p', view.get('node')).map -> @innerHTML).toArray()
-      deepEqual names, ['bar', 'foo']
+      context.set 'currentSort', 'id'
+      delay =>
+        context.set 'currentSort', 'name'
+        delay =>
+          names = ($('p', view.get('node')).map -> @innerHTML).toArray()
+          deepEqual names, ['bar', 'foo']
 
 asyncTest 'it should add items in order', ->
-  source = '<p data-foreach-object="objects" class="present" data-bind="object.name"></p>'
-  objects = new Batman.SortableSet({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
-  objects.sortBy 'id'
-
+  source = '<p data-foreach-object="objects.sortedBy.id" class="present" data-bind="object.name"></p>'
+  objects = new Batman.Set({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
   helpers.render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
     delay =>

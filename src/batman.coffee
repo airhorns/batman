@@ -211,9 +211,10 @@ class Batman.Property
       property.dependents.add @
     delete Batman.Property.triggerTracker
   clearTriggers: ->
-    @triggers.forEach (property) =>
-      property.dependents.remove @
-    @triggers = new Batman.SimpleSet
+    if @triggers
+      @triggers.forEach (property) =>
+        property.dependents.remove @
+      @triggers = new Batman.SimpleSet
 
 # Keypaths
 # --------
@@ -718,6 +719,8 @@ class Batman.SimpleSet
 class Batman.Set extends Batman.Object
   constructor: ->
     Batman.SimpleSet.apply @, arguments
+    @set 'length', 0
+
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
 
@@ -728,14 +731,16 @@ class Batman.Set extends Batman.Object
     do (k) =>
       @::[k] = ->
         oldLength = @length
+        @prevent 'length'
         results = Batman.SimpleSet::[k].apply(@, arguments)
-        @property('length').fireDependents()
+        [newLength, @length] = [@length, oldLength]
+        @allow 'length'
+        @set 'length', newLength if newLength != oldLength
         results
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
   @accessor 'isEmpty', -> @isEmpty()
-  @accessor 'length', -> @length
 
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
@@ -2607,15 +2612,22 @@ Batman.DOM = {
 
       parent = node.parentNode
       sibling = node.nextSibling
-      fragment = document.createDocumentFragment()
-      numPendingChildren = 0
+
+      # Remove the original node which was encountered once the parent has moved past it.
       parentRenderer.parsed ->
         parent.removeChild node
 
-      nodeMap = new Batman.Hash
+      # Get a hash keyed by collection item with the nodes representing that item as values
+      nodeMap = new Batman.SimpleHash
+
+      fragment = document.createDocumentFragment()
+      numPendingChildren = 0
+
       observers = {}
       oldCollection = false
+
       context.bind(node, key, (collection) ->
+
         # Track the old collection so that if it changes, we can remove the observers we attached,
         # and only observe the new collection.
         if oldCollection
@@ -2626,6 +2638,7 @@ Batman.DOM = {
             oldCollection.forget 'itemsWereAdded', observers.add
             oldCollection.forget 'itemsWereRemoved', observers.remove
             oldCollection.forget 'setWasSorted', observers.reorder
+
         oldCollection = collection
 
         observers.add = (items...) ->
@@ -2640,21 +2653,18 @@ Batman.DOM = {
             iteratorContext = new Batman.Object
             iteratorContext[iteratorName] = item
             localClone.push iteratorContext
-            localClone.push item
 
             new Batman.Renderer newNode, do (newNode) ->
               ->
-                if collection.isSorted?()
-                  observers.reorder()
+                show = Batman.data newNode, 'show'
+                if typeof show is 'function'
+                  show.call newNode, before: sibling
                 else
-                  show = Batman.data newNode, 'show'
-                  if typeof show is 'function'
-                    show.call newNode, before: sibling
-                  else
-                    fragment.appendChild newNode
-
+                  fragment.appendChild newNode
                 if --numPendingChildren == 0
                   parent.insertBefore fragment, sibling
+                  if collection.isSorted?()
+                    observers.reorder()
                   fragment = document.createDocumentFragment()
 
                 parentRenderer.allow 'rendered'
@@ -2665,7 +2675,7 @@ Batman.DOM = {
           for item in items
             oldNode = nodeMap.get item
             nodeMap.unset item
-            if typeof oldNode.hide is 'function'
+            if oldNode? && typeof oldNode.hide is 'function'
               oldNode.hide yes
             else
               oldNode?.parentNode?.removeChild oldNode
@@ -2681,18 +2691,26 @@ Batman.DOM = {
             else
               parent.insertBefore(thisNode, sibling)
 
+        observers.arrayChange = (array) ->
+          observers.remove(array...)
+          observers.add(array...)
+
         # Observe the collection for events in the future
         if collection
           if collection.observe
             collection.observe 'itemsWereAdded', observers.add
             collection.observe 'itemsWereRemoved', observers.remove
-            collection.observe 'setWasSorted', observers.reorder
+            if collection.setWasSorted
+              collection.observe 'setWasSorted', observers.reorder
+            else
+              collection.observe 'toArray', observers.arrayChange
 
           # Add all the already existing items. For hash-likes, add the key.
           if collection.forEach
             collection.forEach (item) -> observers.add(item)
-          else
-            for k, v of collection
+          else if collection.get && array = collection.get('toArray')
+            observers.add(array...)
+          else for k, v of collection
               observers.add(k)
       , -> )
 
