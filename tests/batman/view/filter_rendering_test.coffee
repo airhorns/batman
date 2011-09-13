@@ -117,7 +117,7 @@ asyncTest 'should allow filtered keypaths as arguments to mixin', 1, ->
 
   helpers.render '<div id="test" data-mixin="foo | get bar"></div>', context, (node) ->
     delay ->
-      equals node[0].someKey, 'foobar'
+      equals Batman.data(node[0], 'someKey'), 'foobar'
 
 asyncTest 'should allow filtered keypaths as arguments to foreach', 3, ->
   context = Batman

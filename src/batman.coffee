@@ -35,6 +35,8 @@ Batman.mixin = $mixin = (to, mixins...) ->
       continue if key in  ['initialize', 'uninitialize', 'prototype']
       if hasSet
         to.set(key, value)
+      else if to.nodeName?
+        Batman.data to, key, value
       else
         to[key] = value
 
@@ -2184,7 +2186,7 @@ class Batman.Renderer extends Batman.Object
       children = node.childNodes
       return children[0] if children?.length
 
-    node.onParseExit?()
+    Batman.data(node, 'onParseExit')?()
     return if @node.isSameNode node
 
     sibling = node.nextSibling
@@ -2427,8 +2429,7 @@ class RenderContext
       true
     )
     # Pop the `BindingProxy` off the stack once this node has been parsed.
-    node.onParseExit = =>
-      @pop()
+    Batman.data node, 'onParseExit', => @pop()
 
   # `bind` takes a `node`, a `key`, and observers for when the `dataChange`s and the `nodeChange`s. It
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
@@ -2495,10 +2496,11 @@ Batman.DOM = {
 
       context.bind(node, key, (value) ->
         if !!value is !invert
-          node.show?()
+          Batman.data(node, 'show')?()
           node.style.display = originalDisplay
         else
-          if typeof node.hide is 'function' then node.hide() else node.style.display = 'none'
+          hide = Batman.data node, 'hide'
+          if typeof hide is 'function' then hide.call node else node.style.display = 'none'
       , -> )
 
     hideif: (args...) ->
@@ -2645,8 +2647,9 @@ Batman.DOM = {
                 if collection.isSorted?()
                   observers.reorder()
                 else
-                  if typeof newNode.show is 'function'
-                    newNode.show before: sibling
+                  show = Batman.data newNode, 'show'
+                  if typeof show is 'function'
+                    show.call newNode, before: sibling
                   else
                     fragment.appendChild newNode
 
@@ -2672,8 +2675,9 @@ Batman.DOM = {
           items = collection.toArray()
           for item in items
             thisNode = nodeMap.get(item)
-            if typeof thisNode.show is 'function'
-              thisNode.show before: sibling
+            show = Batman.data thisNode, 'show'
+            if typeof show is 'function'
+              show.call thisNode, before: sibling
             else
               parent.insertBefore(thisNode, sibling)
 

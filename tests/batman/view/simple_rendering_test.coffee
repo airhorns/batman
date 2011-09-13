@@ -245,7 +245,7 @@ asyncTest 'it should allow mixins to be applied', 1, ->
   source = '<div data-mixin="test"></div>'
   helpers.render source, false, (node) ->
     delay ->
-      equals node.firstChild.foo, 'bar'
+      equals Batman.data(node.firstChild, 'foo'), 'bar'
       delete Batman.mixins.test
 
 asyncTest 'it should allow contexts to be entered', 2, ->
