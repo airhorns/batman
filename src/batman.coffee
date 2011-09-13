@@ -1497,12 +1497,16 @@ class Batman.Model extends Batman.Object
   # ### Query methods
   @classAccessor 'all',
     get: ->
+      @load() unless @classState() in ['loaded', 'loading']
+      @get('loaded')
+      
+    set: (k,v)-> @set('loaded', v)
+
+  @classAccessor 'loaded',
+    get: ->
       unless @all
         @all = new Batman.SortableSet
         @all.sortBy "id asc"
-
-      if @all.isEmpty()
-        @load() unless @::_batman.getAll('storage').length
 
       @all
 
@@ -1536,7 +1540,7 @@ class Batman.Model extends Batman.Object
         callback?(err, records)
 
   @_mapIdentities: (records) ->
-    all = @get('all').toArray()
+    all = @get('loaded').toArray()
     newRecords = []
     returnRecords = []
     for record in records
@@ -1554,7 +1558,7 @@ class Batman.Model extends Batman.Object
         else
           newRecords.push record
           returnRecords.push record
-    @get('all').add(newRecords...) if newRecords.length > 0
+    @get('loaded').add(newRecords...) if newRecords.length > 0
     returnRecords
 
   # ### Record API
