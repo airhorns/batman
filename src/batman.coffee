@@ -2503,7 +2503,49 @@ Batman.DOM = {
       else if node.nodeName.toLowerCase() == 'select'
         # wait for the select to render before binding to it
         renderer.rendered ->
-          Batman.DOM.attrReaders.bind(node, 'value', key, context, only)
+          # Update the select box with the binding's new value.
+          contextChange = (newValue) ->
+            # For multi-select boxes, the `value` property only holds the first
+            # selection, so we need to go through the child options and update
+            # as necessary.
+            if newValue instanceof Array
+              # Use a hash to map values to their nodes to avoid O(n^2).
+              valueToChild = {}
+              for child in node.children
+                # Clear all options.
+                child.selected = false
+                # Avoid collisions among options with same values.
+                matches = valueToChild[child.value]
+                if matches then matches.push child else matches = [child]
+                valueToChild[child.value] = matches
+              # Select options corresponding to the new values
+              for value in newValue
+                for match in valueToChild[value]
+                  match.selected = yes
+            # For a regular select box, we just update the value.
+            else
+              node.value = newValue
+
+            # Fire off the `selected` attribute hook for options that have it
+            for child in node.children
+              Batman.data(child, 'selected')?()
+
+          nodeChange = (node) ->
+            [boundValue, container] = context.findKey key
+            # Select options with matching values, gather the selected
+            # options, and update the bound value
+            selections = []
+            for child in node.children
+              if child.selected = child.value == node.value
+                selections.push child.value
+            selections = selections[0] if selections.length == 1
+            container.set key, selections
+
+            # Fire off the `selected` attribute hook for options that have it
+            for child in node.children
+              Batman.data(child, 'selected')?()
+
+          context.bind only, node, key, contextChange, nodeChange
       else
         context.bind(only, node, key)
 
@@ -2584,9 +2626,13 @@ Batman.DOM = {
 
     bind: (node, attr, key, context, only) ->
       switch attr
-        when 'checked', 'disabled'
+        when 'checked', 'disabled', 'selected'
           contextChange = (value) -> node[attr] = !!value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
+
+          # Use Batman.data to create a hook for updating attribute bindings
+          [boundValue, container] = context.findKey key
+          Batman.data node, attr, () => container.set(key, node.selected)
         when 'value'
           contextChange = (value) -> node.value = value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))

@@ -137,18 +137,66 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
       equal context.get('one'), false
 
 asyncTest 'it should bind the value of a select box and update when the value changes', 2, ->
-  heros = new Batman.Set('mario', 'crono', 'link')
-  selected = new Batman.Object(name: 'crono')
-
-  helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', {
-    heros: heros
-    selected: selected
-  }, (node) ->
+  context = new Batman.Object
+    heros: new Batman.Set('mario', 'crono', 'link')
+    selected: new Batman.Object(name: 'crono')
+  helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
       equals node[0].value, 'crono'
-      selected.set 'name', 'link'
+      context.set 'selected.name', 'link'
       delay =>
         equal node[0].value, 'link'
+
+asyncTest 'it should bind the options of a select box and update when the select\'s value changes', ->
+  context = new Batman.Object
+    something: 'crono'
+    mario: new Batman.Object(selected: null)
+    crono: new Batman.Object(selected: null)
+  helpers.render '<select data-bind="something"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option></select>', context, (node) ->
+    delay => # wait for select's data-bind listener to receive the rendered event
+      equal node[0].value, 'crono'
+      equal context.get('crono.selected'), true
+      equal context.get('mario.selected'), false
+
+      node[0].value = 'mario'
+      helpers.triggerChange node[0]
+      delay =>
+        equal context.get('mario.selected'), true
+        equal context.get('crono.selected'), false
+
+asyncTest 'it should bind the value of a multi-select box and update when the selections change', ->
+  context = new Batman.Object
+    heros: new Batman.Set('mario', 'crono', 'link', 'kirby')
+    selected: new Batman.Object(name: ['crono', 'link'])
+  helpers.render '<select multiple="multiple" size="2" data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
+    delay => # wait for select's data-bind listener to receive the rendered event
+      selections = (c.selected for c in node[0].children)
+      deepEqual selections, [no, yes, yes, no]
+      context.set 'selected.name', ['mario', 'kirby']
+      delay =>
+        selections = (c.selected for c in node[0].children)
+        deepEqual selections, [yes, no, no, yes]
+
+asyncTest 'it should bind the options of a multi-select box and update when the select\'s value changes', ->
+  context = new Batman.Object
+    something: 'crono'
+    mario: new Batman.Object(selected: null)
+    crono: new Batman.Object(selected: null)
+    luigi: new Batman.Object(selected: null)
+  helpers.render '<select multiple="multiple" data-bind="something"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option><option value="mario" data-bind-selected="luigi.selected"></option></select>', context, (node) ->
+    delay => # wait for select's data-bind listener to receive the rendered event
+      equal node[0].value, 'crono'
+      equal context.get('crono.selected'), true
+      equal context.get('mario.selected'), false
+      equal context.get('luigi.selected'), false
+
+      node[0].value = 'mario'
+      helpers.triggerChange node[0]
+      delay =>
+        equal context.get('mario.selected'), true
+        # Luigi's value is 'mario'
+        equal context.get('luigi.selected'), true
+        equal context.get('crono.selected'), false
 
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object
