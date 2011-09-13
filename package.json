@@ -5,10 +5,10 @@
   "contributors": [
     "Harry Brundage <harry.brundage@shopify.com> (http://github.com/hornairs)",
     "James MacAulay <james@shopify.com> (http://github.com/jamesmacaulay)",
-    "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/Kktusznio)"
+    "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/ktusznio)"
   ],
 
-  "version": "0.5.1",
+  "version": "0.6.0",
   "homepage": "http://batmanjs.org",
   "repository": {
     "type": "git",
