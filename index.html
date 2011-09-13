@@ -30,15 +30,15 @@ class Shopify.ProductsController extends Batman.Controller
   <li data-foreach-product="Product.all" data-mixin="animation">
     <a data-route="product" data-bind="product.name">name will go here</a>
   </li>
-  
+
   <li>
-    <span data-bind="products.length"></span> 
+    <span data-bind="products.length"></span>
     <span data-bind="'products' | pluralize products.length"></span>
   </li>
 </ul>
 {% endhighlight %}
   </div>
-  
+
   <h3>Ready for more?</h3>
   <h2><a href="/download.html">Get started</a> now or read<br />
   through some <a href="/examples.html">examples</a>.</h2>
@@ -72,7 +72,7 @@ $(document).ready(function(){
         join_text: "auto",
         count: 3,
         query: "batmanjs",
-        auto_join_text_default: "", 
+        auto_join_text_default: "",
         auto_join_text_ed: "",
         auto_join_text_ing: "",
         auto_join_text_reply: "",
