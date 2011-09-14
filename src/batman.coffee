@@ -113,6 +113,51 @@ Batman._findName = $findName = (f, context) ->
 
   f.displayName
 
+# Helpers
+# -------
+
+camelize_rx = /(?:^|_|\-)(.)/g
+capitalize_rx = /(^|\s)([a-z])/g
+underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
+underscore_rx2 = /([a-z\d])([A-Z])/g
+
+# Just a few random Rails-style string helpers. You can add more
+# to the Batman.helpers object.
+helpers = Batman.helpers = {
+  camelize: (string, firstLetterLower) ->
+    string = string.replace camelize_rx, (str, p1) -> p1.toUpperCase()
+    if firstLetterLower then string.substr(0,1).toLowerCase() + string.substr(1) else string
+
+  underscore: (string) ->
+    string.replace(underscore_rx1, '$1_$2')
+          .replace(underscore_rx2, '$1_$2')
+          .replace('-', '_').toLowerCase()
+
+  singularize: (string) ->
+    if string.substr(-3) is 'ies'
+      string.substr(0, string.length - 3) + 'y'
+    else if string.substr(-1) is 's'
+      string.substr(0, string.length - 1)
+    else
+      string
+
+  pluralize: (count, string) ->
+    if string
+      return string if count is 1
+    else
+      string = count
+
+    lastLetter = string.substr(-1)
+    if lastLetter is 'y'
+      "#{string.substr(0,string.length-1)}ies"
+    else if lastLetter is 's'
+      string
+    else
+      "#{string}s"
+
+  capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
+}
+
 # Properties
 # ----------
 class Batman.Property
@@ -1608,6 +1653,7 @@ class Batman.Model extends Batman.Object
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
   constructor: (idOrAttributes = {}) ->
     throw "constructors must be called with new" unless @ instanceof Batman.Object
+
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
     @errors = new Batman.ErrorsHash
@@ -1843,16 +1889,36 @@ Validators = Batman.Validators = [
       callback()
 ]
 
-class Batman.StorageAdapter
-  constructor: (@model) ->
-    @modelKey = helpers.pluralize(helpers.underscore(@model.name))
+class Batman.StorageAdapter extends Batman.Object
+  constructor: (model) ->
+    super(model: model, modelKey: helpers.pluralize(helpers.underscore(model.name)))
   isStorageAdapter: true
-  getRecordsFromData: (datas) ->
-    datas = @transformOutgoingCollectionData(datas) if @transformOutgoingCollectionData?
-    for data in datas
-       @getRecordFromData(data)
+
+  @::_batman.check(@::)
+
+  for k in ['all', 'create', 'read', 'readAll', 'update', 'destroy']
+    for time in ['before', 'after']
+      do (k, time) =>
+        key = "#{time}#{helpers.capitalize(k)}"
+        @::[key] = (filter) ->
+          @_batman.check(@)
+          (@_batman["#{key}Filters"] ||= []).push filter
+
+  before: (keys..., callback) ->
+    @["before#{helpers.capitalize(k)}"](callback) for k in keys
+
+  after: (keys..., callback) ->
+    @["after#{helpers.capitalize(k)}"](callback) for k in keys
+
+  _filterData: (prefix, action, data) ->
+    # Filter the data first with the beforeRead and then the beforeAll filters
+    (@_batman.get("#{prefix}#{helpers.capitalize(action)}Filters") || [])
+      .concat(@_batman.get("#{prefix}AllFilters") || [])
+      .reduce( (filteredData, filter) =>
+        filter.call(@, filteredData)
+      , data)
+
   getRecordFromData: (data) ->
-    data = @transformIncomingRecordData(data) if @transformIncomingRecordData?
     record = new @model()
     record.fromJSON(data)
     record
@@ -1870,6 +1936,9 @@ class Batman.LocalStorage extends Batman.StorageAdapter
         @nextId = Math.max(@nextId, parseInt(matches[1], 10) + 1)
     return
 
+  @::before 'create', 'update', ([record, options]) -> [JSON.stringify(record), options]
+  @::after 'read', ([record, attributes, options]) -> [record.fromJSON(JSON.parse(attributes)), attributes, options]
+
   _forAllRecords: (f) ->
     for i in [0...@storage.length]
       k = @storage.key(i)
@@ -1883,8 +1952,8 @@ class Batman.LocalStorage extends Batman.StorageAdapter
   update: (record, options, callback) ->
     id = record.get('id')
     if id?
-      @storage.setItem(@modelKey + id, JSON.stringify(record))
-      callback(undefined, record)
+      @storage.setItem(@modelKey + id, @_filterData('before', 'update', [record, options])[0])
+      callback(undefined, @_filterData('after', 'update', [record, options])[0])
     else
       callback(new Error("Couldn't get record primary key."))
 
@@ -1895,18 +1964,18 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       if @storage.getItem(key)
         callback(new Error("Can't create because the record already exists!"))
       else
-        @storage.setItem(key, JSON.stringify(record))
-        callback(undefined, record)
+        @storage.setItem(key, @_filterData('before', 'create', [record, options])[0])
+        callback(undefined, @_filterData('after', 'create', [record, options])[0])
     else
       callback(new Error("Couldn't set record primary key on create!"))
 
   read: (record, options, callback) ->
+    record = @_filterData 'before', 'read', record, options
     id = record.get('id')
     if id?
-      attrs = JSON.parse(@storage.getItem(@modelKey + id))
+      attrs = @storage.getItem(@modelKey + id)
       if attrs
-        record.fromJSON(attrs)
-        callback(undefined, record)
+        callback(undefined, @_filterData('after', 'read', [record, attrs, options])[0])
       else
         callback(new Error("Couldn't find record!"))
     else
@@ -1914,26 +1983,44 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
   readAll: (_, options, callback) ->
     records = []
+    [options] = @_filterData('before', 'readAll', [options])
     @_forAllRecords (storageKey, data) ->
       if keyMatches = @key_re.exec(storageKey)
-        match = true
-        data = JSON.parse(data)
-        data[@model.primaryKey] ||= parseInt(keyMatches[1], 10)
-        for k, v of options
-          if data[k] != v
-            match = false
-            break
-        records.push data if match
+        records.push {data, id: keyMatches[1]}
 
-    callback(undefined, @getRecordsFromData(records))
+    callback(undefined, @_filterData('after', 'readAll', [records, options])[0])
+
+  @::after 'readAll', ([allAttributes, options]) ->
+    allAttributes = for attributes in allAttributes
+      data = JSON.parse(attributes.data)
+      data[@model.primaryKey] ||= parseInt(attributes.id, 10)
+      data
+
+    [allAttributes, options]
+
+  @::after 'readAll', ([allAttributes, options]) ->
+    matches = []
+    for data in allAttributes
+      match = true
+      for k, v of options
+        if data[k] != v
+          match = false
+          break
+      if match
+        matches.push data
+    [matches, options]
+
+  @::after 'readAll', ([filteredAttributes, options]) ->
+    [@getRecordFromData(data) for data in filteredAttributes, options]
 
   destroy: (record, options, callback) ->
+    record = @_filterData 'before', 'destroy', record, options
     id = record.get('id')
     if id?
       key = @modelKey + id
       if @storage.getItem key
         @storage.removeItem key
-        callback(undefined, record)
+        callback(undefined, @_filterData('after', 'destroy', [record, options])[0])
       else
         callback(new Error("Can't delete nonexistant record!"), record)
     else
@@ -1949,19 +2036,26 @@ class Batman.RestStorage extends Batman.StorageAdapter
     @recordJsonNamespace = helpers.singularize(@modelKey)
     @collectionJsonNamespace = helpers.pluralize(@modelKey)
     @model.encode('id')
-  transformIncomingRecordData: (data) ->
-    return data[@recordJsonNamespace] if data[@recordJsonNamespace]
-    data
-  transformOutgoingRecordData: (record) ->
-    if @recordJsonNamespace
+
+  @::before 'create', 'update', ([record, options]) ->
+    json = record.toJSON()
+    record = if @recordJsonNamespace
       x = {}
-      x[@recordJsonNamespace] = record.toJSON()
-      return x
+      x[@recordJsonNamespace] = json
+      x
     else
-      record.toJSON()
-  transformOutgoingCollectionData: (data) ->
-    return data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
-    data
+      json
+    [record, options]
+
+  @::after 'create', 'read', 'update', ([record, data, options]) ->
+    data = data[@recordJsonNamespace] if data[@recordJsonNamespace]
+    [record, data]
+
+  @::after 'create', 'read', 'update', ([record, data, options]) ->
+    record.fromJSON(data)
+    [record, data]
+
+
   optionsForRecord: (record, idRequired, callback) ->
     if record.url
       url = if typeof record.url is 'function' then record.url() else record.url
@@ -1977,6 +2071,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       callback.call @, new Error("Couldn't get model url!")
     else
       callback.call @, undefined, $mixin({}, @defaultOptions, {url})
+
   optionsForCollection: (recordsOptions, callback) ->
     url = @model.url?() || @model.url || "/#{@modelKey}"
     unless url
@@ -1990,11 +2085,9 @@ class Batman.RestStorage extends Batman.StorageAdapter
         callback(err)
         return
       new Batman.Request $mixin options,
-        data: @transformOutgoingRecordData(record)
+        data: @_filterData('before', 'create', [record, recordOptions])[0]
         method: 'POST'
-        success: (data) =>
-          record.fromJSON(@transformIncomingRecordData(data))
-          callback(undefined, record)
+        success: (data) => callback(undefined, @_filterData('after', 'create', [record, data, recordOptions])[0])
         error: (err) -> callback(err)
 
   update: (record, recordOptions, callback) ->
@@ -2004,11 +2097,9 @@ class Batman.RestStorage extends Batman.StorageAdapter
         return
 
       new Batman.Request $mixin options,
-        data: @transformOutgoingRecordData(record)
+        data: @_filterData('before', 'update', [record, recordOptions])[0]
         method: 'PUT'
-        success: (data) =>
-          record.fromJSON(@transformIncomingRecordData(data))
-          callback(undefined, record)
+        success: (data) => callback(undefined, @_filterData('after', 'update', [record, data, recordOptions])[0])
         error: (err) -> callback(err)
 
   read: (record, recordOptions, callback) ->
@@ -2017,11 +2108,11 @@ class Batman.RestStorage extends Batman.StorageAdapter
         callback(err)
         return
 
+      [record, recordOptions] = @_filterData('before', 'read', [record, recordOptions])
       new Batman.Request $mixin options,
+        data: recordOptions
         method: 'GET'
-        success: (data) =>
-          record.fromJSON(@transformIncomingRecordData(data))
-          callback(undefined, record)
+        success: (data) => callback(undefined, @_filterData('after', 'read', [record, data, recordOptions])[0])
         error: (err) -> callback(err)
 
   readAll: (_, recordsOptions, callback) ->
@@ -2029,19 +2120,30 @@ class Batman.RestStorage extends Batman.StorageAdapter
       if err
         callback(err)
         return
+      [recordsOptions] = @_filterData 'before', 'readAll', [recordsOptions]
       new Batman.Request $mixin options,
+        data: recordsOptions
         method: 'GET'
-        success: (data) => callback(undefined, @getRecordsFromData(data))
+        success: (data) => callback(undefined, @_filterData('after', 'readAll', [data, recordsOptions])[0])
         error: (err) -> callback(err)
+
+  @::after 'readAll', ([data, options]) ->
+    data = data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
+    [data, options]
+
+  @::after 'readAll', ([data, options]) ->
+    [@getRecordFromData(attributes) for attributes in data, options]
 
   destroy: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
       if err
         callback(err)
         return
+
+      [record, recordOptions] = @_filterData('before', 'destroy', [record, recordOptions])
       new Batman.Request $mixin options,
         method: 'DELETE'
-        success: -> callback(undefined, record)
+        success: (data) => callback(undefined, @_filterData('after', 'destroy', [record, data, recordOptions])[0])
         error: (err) -> callback(err)
 
 # Views
@@ -2902,50 +3004,6 @@ Batman.DOM = {
       node.attachEvent "on#{eventName}", callback
 }
 
-# Helpers
-# -------
-
-camelize_rx = /(?:^|_|\-)(.)/g
-capitalize_rx = /(^|\s)([a-z])/g
-underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
-underscore_rx2 = /([a-z\d])([A-Z])/g
-
-# Just a few random Rails-style string helpers. You can add more
-# to the Batman.helpers object.
-helpers = Batman.helpers = {
-  camelize: (string, firstLetterLower) ->
-    string = string.replace camelize_rx, (str, p1) -> p1.toUpperCase()
-    if firstLetterLower then string.substr(0,1).toLowerCase() + string.substr(1) else string
-
-  underscore: (string) ->
-    string.replace(underscore_rx1, '$1_$2')
-          .replace(underscore_rx2, '$1_$2')
-          .replace('-', '_').toLowerCase()
-
-  singularize: (string) ->
-    if string.substr(-3) is 'ies'
-      string.substr(0, string.length - 3) + 'y'
-    else if string.substr(-1) is 's'
-      string.substr(0, string.length - 1)
-    else
-      string
-
-  pluralize: (count, string) ->
-    if string
-      return string if count is 1
-    else
-      string = count
-
-    lastLetter = string.substr(-1)
-    if lastLetter is 'y'
-      "#{string.substr(0,string.length-1)}ies"
-    else if lastLetter is 's'
-      string
-    else
-      "#{string}s"
-
-  capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
-}
 
 # Filters
 # -------

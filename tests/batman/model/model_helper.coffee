@@ -44,7 +44,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
           break
       records.push data if match
 
-    callback(undefined, @getRecordsFromData(records))
+    callback(undefined, @getRecordFromData(record) for record in records)
 
   destroy: (record, options, callback) ->
     id = record.get('id')
