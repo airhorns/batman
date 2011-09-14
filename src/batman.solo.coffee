@@ -331,11 +331,13 @@ Batman.Request::send = (data) ->
 
     success: (response) =>
       @set 'response', response
+      @set 'status', xhr.status
       @success response
 
-    failure: (error) =>
-      @set 'response', error
-      @error error
+    error: (xhr) =>
+      @set 'response', xhr.responseText || xhr.content
+      @set 'status', xhr.status
+      @error xhr
 
     complete: =>
       @loading no
@@ -348,7 +350,9 @@ Batman.Request::send = (data) ->
       options.url += param(data)
     else
       options.data = param(data)
-  reqwest options
+
+  # Fires the request. Grab a reference to the xhr object so we can get the status code elsewhere.
+  xhr = (reqwest options).request
 
 prefixes = ['Webkit', 'Moz', 'O', 'ms', '']
 Batman.mixins.animation =

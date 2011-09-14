@@ -21,12 +21,14 @@ Batman.Request::send = (data) ->
     beforeSend: =>
       @loading yes
 
-    success: (response) =>
+    success: (response, textStatus, xhr) =>
+      @set 'status', xhr.status
       @set 'response', response
       @success response
 
     error: (xhr, status, error) =>
-      @set 'response', error
+      @set 'status', xhr.status
+      @set 'response', xhr.responseText
       @error error
 
     complete: =>

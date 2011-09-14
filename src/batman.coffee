@@ -1050,6 +1050,7 @@ class Batman.Request extends Batman.Object
   data: ''
   method: 'get'
   response: null
+  status: null
 
   # Set the content type explicitly for PUT and POST requests.
   contentType: 'application/x-www-form-urlencoded'
@@ -1820,22 +1821,18 @@ class Batman.Model extends Batman.Object
 # `ErrorHash` is a simple subclass of `Hash` which makes it a bit easier to
 # manage the errors on a model.
 class Batman.ErrorsHash extends Batman.Hash
-  constructor: -> super(_sets: {})
-
   # Define a default accessor to instantiate a set for any requested key.
   @accessor
     get: (key) ->
-      unless @_sets[key]
-        @_sets[key] = new Batman.Set
+      unless @_storage[key]
+        @_storage[key] = new Batman.Set
         @length++
-      @_sets[key]
-    set: Batman.Property.defaultAccessor.set
+      @_storage[key]
+    set: -> throw new Error("Can't set on an errors hash, use add instead!")
+    set: -> throw new Error("Can't unset on an errors hash, use clear instead!")
 
   # Define a shorthand method for adding errors to a key.
   add: (key, error) -> @get(key).add(error)
-  clear: ->
-    @_sets = {}
-    super
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
@@ -2079,6 +2076,11 @@ class Batman.RestStorage extends Batman.StorageAdapter
     else
       callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: $mixin({}, @defaultOptions.data, recordsOptions)}
 
+  getErrorCallback = (callback) ->
+    return (error) ->
+      error.request = @
+      callback(error)
+
   create: (record, recordOptions, callback) ->
     @optionsForRecord record, false, (err, options) ->
       if err
@@ -2087,8 +2089,8 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         data: @_filterData('before', 'create', [record, recordOptions])[0]
         method: 'POST'
-        success: (data) => callback(undefined, @_filterData('after', 'create', [record, data, recordOptions])[0])
-        error: (err) -> callback(err)
+        success: (data) => callback(undefined, @_filterData('after', 'update', [record, data, recordOptions])[0])
+        error: getErrorCallback(callback)
 
   update: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
@@ -2100,7 +2102,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: @_filterData('before', 'update', [record, recordOptions])[0]
         method: 'PUT'
         success: (data) => callback(undefined, @_filterData('after', 'update', [record, data, recordOptions])[0])
-        error: (err) -> callback(err)
+        error: getErrorCallback(callback)
 
   read: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
@@ -2113,7 +2115,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: recordOptions
         method: 'GET'
         success: (data) => callback(undefined, @_filterData('after', 'read', [record, data, recordOptions])[0])
-        error: (err) -> callback(err)
+        error: getErrorCallback(callback)
 
   readAll: (_, recordsOptions, callback) ->
     @optionsForCollection recordsOptions, (err, options) ->
@@ -2125,7 +2127,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: recordsOptions
         method: 'GET'
         success: (data) => callback(undefined, @_filterData('after', 'readAll', [data, recordsOptions])[0])
-        error: (err) -> callback(err)
+        error: getErrorCallback(callback)
 
   @::after 'readAll', ([data, options]) ->
     data = data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
@@ -2144,7 +2146,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         method: 'DELETE'
         success: (data) => callback(undefined, @_filterData('after', 'destroy', [record, data, recordOptions])[0])
-        error: (err) -> callback(err)
+        error: getErrorCallback(callback)
 
 # Views
 # -----------

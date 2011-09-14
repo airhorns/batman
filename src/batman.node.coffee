@@ -64,8 +64,7 @@ Batman.Request::send = (data) ->
         @set 'response', data
 
         # Dispatch the appropriate event based on the status code
-        status = response.statusCode
-        console.log status, data
+        status = @set 'status', response.statusCode
         if (status >= 200 and status < 300) or status is 304
           @success data
         else
