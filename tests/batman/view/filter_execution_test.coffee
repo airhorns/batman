@@ -200,6 +200,28 @@ asyncTest 'map', 1, ->
     equals node.html(), "one, two"
     QUnit.start()
 
+asyncTest 'meta', 2, ->
+  context = Batman
+    foo: Batman
+      meta:
+        get: spy = createSpy().whichReturns("something")
+
+  helpers.render '<div data-bind="foo | meta \'bar\'"></div>', context, (node) ->
+    equals node.html(), "something"
+    deepEqual spy.lastCallArguments, ['bar']
+    QUnit.start()
+
+asyncTest 'meta binding to a hash', 2, ->
+  context = Batman
+    foo: new Batman.Hash(bar: "qux")
+
+  helpers.render '<div data-bind="foo | meta \'length\'"></div>', context, (node) ->
+    equals node.html(), "1"
+    context.get('foo').set('corge', 'test')
+    delay =>
+      equals node.html(), "2"
+
+
 QUnit.module "Batman.View filter value and parameter parsing"
   setup: ->
     Batman.Filters['test'] = @spy = createSpy().whichReturns("testValue")

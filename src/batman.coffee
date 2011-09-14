@@ -3088,6 +3088,9 @@ filters = Batman.Filters =
   first: buntUndefined (value) ->
     value[0]
 
+  meta: buntUndefined (value, keypath) ->
+    value.meta.get(keypath)
+
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
 
