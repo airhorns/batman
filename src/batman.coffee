@@ -2501,6 +2501,24 @@ Batman.DOM = {
           subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
         context.bind only, node, key, contextChange, nodeChange
       else if node.nodeName.toLowerCase() == 'select'
+        [boundValue, container] = context.findKey key
+
+        updateSelectBinding = =>
+          # Gather the selected options and update the binding
+          selections = if node.multiple then (c.value for c in node.children when c.selected) else node.value
+          selections = selections[0] if selections.length == 1
+          container.set key, selections
+
+        updateOptionBindings = =>
+          # Go through the option nodes and update their bindings using the
+          # context and key attached to the node via Batman.data
+          for child in node.children
+            if data = Batman.data(child, 'selected')
+              if (subContext = data.context) and (subKey = data.key)
+                [subBoundValue, subContainer] = subContext.findKey subKey
+                unless child.selected == subBoundValue
+                  subContainer.set subKey, child.selected
+
         # wait for the select to render before binding to it
         renderer.rendered ->
           # Update the select box with the binding's new value.
@@ -2526,24 +2544,16 @@ Batman.DOM = {
             else
               node.value = newValue
 
-            # Fire off the `selected` attribute hook for options that have it
-            for child in node.children
-              Batman.data(child, 'selected')?()
+            # Finally, we need to update the options' `selected` bindings
+            updateOptionBindings()
 
-          nodeChange = (node) ->
-            [boundValue, container] = context.findKey key
-            # Select options with matching values, gather the selected
-            # options, and update the bound value
-            selections = []
-            for child in node.children
-              if child.selected = child.value == node.value
-                selections.push child.value
-            selections = selections[0] if selections.length == 1
-            container.set key, selections
+          # Update the bindings with the node's new value
+          nodeChange = ->
+            updateSelectBinding()
+            updateOptionBindings()
 
-            # Fire off the `selected` attribute hook for options that have it
-            for child in node.children
-              Batman.data(child, 'selected')?()
+          # Expose the updateSelectBinding helper for the child options
+          Batman.data node, 'updateBinding', updateSelectBinding
 
           context.bind only, node, key, contextChange, nodeChange
       else
@@ -2627,12 +2637,19 @@ Batman.DOM = {
     bind: (node, attr, key, context, only) ->
       switch attr
         when 'checked', 'disabled', 'selected'
-          contextChange = (value) -> node[attr] = !!value
-          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
+          contextChange = (value) -> 
+            node[attr] = !!value
+            # Update the parent select's binding value
+            Batman.data(node.parentNode, 'updateBinding')?()
 
-          # Use Batman.data to create a hook for updating attribute bindings
-          [boundValue, container] = context.findKey key
-          Batman.data node, attr, () => container.set(key, node.selected)
+          nodeChange = (node, subContext) ->
+            subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
+
+          # Make the context and key available to the parent select
+          Batman.data node, attr,
+            context: context
+            key: key
+
         when 'value'
           contextChange = (value) -> node.value = value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))

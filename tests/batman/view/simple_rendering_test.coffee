@@ -147,7 +147,7 @@ asyncTest 'it should bind the value of a select box and update when the value ch
       delay =>
         equal node[0].value, 'link'
 
-asyncTest 'it should bind the options of a select box and update when the select\'s value changes', ->
+asyncTest 'it binds the options of a select box and updates when the select\'s value changes', ->
   context = new Batman.Object
     something: 'crono'
     mario: new Batman.Object(selected: null)
@@ -164,7 +164,7 @@ asyncTest 'it should bind the options of a select box and update when the select
         equal context.get('mario.selected'), true
         equal context.get('crono.selected'), false
 
-asyncTest 'it should bind the value of a multi-select box and update when the selections change', ->
+asyncTest 'it binds the value of a multi-select box and updates the options when the bound value changes', ->
   context = new Batman.Object
     heros: new Batman.Set('mario', 'crono', 'link', 'kirby')
     selected: new Batman.Object(name: ['crono', 'link'])
@@ -177,26 +177,25 @@ asyncTest 'it should bind the value of a multi-select box and update when the se
         selections = (c.selected for c in node[0].children)
         deepEqual selections, [yes, no, no, yes]
 
-asyncTest 'it should bind the options of a multi-select box and update when the select\'s value changes', ->
+asyncTest 'it binds the value of a multi-select box and updates the value when the selected options change', ->
   context = new Batman.Object
-    something: 'crono'
+    selected: 'crono'
     mario: new Batman.Object(selected: null)
     crono: new Batman.Object(selected: null)
-    luigi: new Batman.Object(selected: null)
-  helpers.render '<select multiple="multiple" data-bind="something"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option><option value="mario" data-bind-selected="luigi.selected"></option></select>', context, (node) ->
+  helpers.render '<select multiple="multiple" data-bind="selected"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
-      equal node[0].value, 'crono'
-      equal context.get('crono.selected'), true
-      equal context.get('mario.selected'), false
-      equal context.get('luigi.selected'), false
+      equal node[0].value, 'crono', 'node value is crono'
+      equal context.get('selected'), 'crono', 'selected is crono'
+      equal context.get('crono.selected'), true, 'crono is selected'
+      equal context.get('mario.selected'), false, 'mario is not selected'
 
-      node[0].value = 'mario'
-      helpers.triggerChange node[0]
+      context.set 'mario.selected', true
       delay =>
-        equal context.get('mario.selected'), true
-        # Luigi's value is 'mario'
-        equal context.get('luigi.selected'), true
-        equal context.get('crono.selected'), false
+        equal context.get('mario.selected'), true, 'mario is selected'
+        equal context.get('crono.selected'), true, 'crono is still selected'
+        deepEqual context.get('selected'), ['mario', 'crono'], 'mario and crono are selected in binding'
+        for opt in node[0].children
+          ok opt.selected, "#{opt.value} option is selected"
 
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object
