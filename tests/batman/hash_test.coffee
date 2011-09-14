@@ -2,6 +2,10 @@ QUnit.module 'Batman.Hash',
   setup: ->
     @hash = new Batman.Hash
 
+equalHashLength = (hash, length) ->
+  equal hash.length, length
+  equal hash.meta.get('length'), length
+
 test "constructor takes arguments", ->
   @hash = new Batman.Hash(foo: 'bar', baz: true)
   ok @hash.hasKey('foo')
@@ -9,7 +13,7 @@ test "constructor takes arguments", ->
 
 test "isEmpty() on an empty hash returns true", ->
   ok @hash.isEmpty()
-  ok @hash.get('isEmpty')
+  ok @hash.meta.get('isEmpty')
 
 test "has(key) on an empty hash returns false", ->
   equal @hash.hasKey('foo'), false
@@ -29,7 +33,7 @@ test "get(key) on an empty hash returns undefined", ->
 
 test "get(key) where the key's value is undefined returns undefined", ->
   @hash.set('foo', undefined)
-  equal @hash.length, 1
+  equalHashLength @hash, 1
   equal @hash.get('foo'), undefined
 
 test "set(key, val) stores the value for that key, such that hasKey(key) returns true and get(key) returns the stored value", ->
@@ -53,7 +57,7 @@ test "set(key, val) keeps unequal keys distinct", ->
 
 test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
-  equal @hash.length, 1
+  equalHashLength @hash, 1
 
 test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
   @hash.set 'foo', 'bar'
@@ -75,40 +79,40 @@ test "unset(undefined) doesn't touch any other keys", ->
   @hash.set 'foo', 'bar'
   @hash.set {}, 'bar'
   @hash.unset undefined
-  equal @hash.length, 2
+  equalHashLength @hash, 2
 
 test "length is maintained over get, set, and unset", ->
-  equal @hash.length, 0
+  equalHashLength @hash, 0
 
   @hash.set 'foo', 'bar'
-  equal @hash.length, 1
+  equalHashLength @hash, 1
 
   @hash.set 'foo', 'baz'
-  equal @hash.length, 1, "Length doesn't increase after setting an already existing key"
+  equalHashLength @hash, 1, "Length doesn't increase after setting an already existing key"
 
   @hash.set 'corge', 'qux'
-  equal @hash.length, 2
+  equalHashLength @hash, 2
 
   @hash.unset 'foo'
-  equal @hash.length, 1, "Unsetting an existant key decreases the length"
+  equalHashLength @hash, 1, "Unsetting an existant key decreases the length"
 
   @hash.unset 'nonexistant'
-  equal @hash.length, 1, "Unsetting an nonexistant key doesn't decrease the length"
+  equalHashLength @hash, 1, "Unsetting an nonexistant key doesn't decrease the length"
 
   @hash.set 'bar', 'baz'
   @hash.clear()
-  equal @hash.length, 0
+  equalHashLength @hash, 0
 
   @hash.set o1 = {}, true
-  equal @hash.length, 1
+  equalHashLength @hash, 1
   @hash.set o2 = {}, true
-  equal @hash.length, 2
+  equalHashLength @hash, 2
 
   @hash.set o1, false, "Resetting object keys doesn't change length"
-  equal @hash.length, 2
+  equalHashLength @hash, 2
 
   @hash.clear()
-  equal @hash.length, 0
+  equalHashLength @hash, 0
 
 test "equality(lhs, rhs) uses === by default", ->
   equal @hash.equality({}, {}), false
@@ -132,12 +136,14 @@ test "keys() returns an array of the hash's keys", ->
   @hash.set 'bar', 'buzz'
   @hash.set 'baz', 'blue'
   @hash.unset 'baz'
-  keys = @hash.keys()
-  equal keys.indexOf('baz'), -1
-  notEqual keys.indexOf('foo'), -1
-  notEqual keys.indexOf(o1), -1
-  notEqual keys.indexOf(o2), -1
-  notEqual keys.indexOf('bar'), -1
+  test = (keys) ->
+    equal keys.indexOf('baz'), -1
+    notEqual keys.indexOf('foo'), -1
+    notEqual keys.indexOf(o1), -1
+    notEqual keys.indexOf(o2), -1
+    notEqual keys.indexOf('bar'), -1
+  test(@hash.keys())
+  test(@hash.meta.get('keys'))
 
 test "get/set/unset/hasKey with an undefined or null key works like any other, and they don't collide with each other", ->
   equal @hash.hasKey(undefined), false
@@ -172,7 +178,7 @@ test "get/set/unset with an undefined or null value works like any other", ->
   equal @hash.hasKey(1), true
   @hash.unset(1)
   equal @hash.hasKey(1), false
-  
+
 test "keys containing dots (.) are treated as simple keys, not keypaths", ->
   key = "foo.bar.baz"
   equal @hash.hasKey(key), false

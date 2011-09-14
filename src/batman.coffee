@@ -697,18 +697,34 @@ class Batman.SimpleHash
 class Batman.Hash extends Batman.Object
   constructor: ->
     Batman.SimpleHash.apply(@, arguments)
+    # Add a meta object to all hashes which we can then use in the `meta` filter to allow binding
+    # to hash meta-properties without reserving keys.
+    @meta = new Batman.Object(length: 0)
+    self = this
+    @meta.accessor 'isEmpty', -> self.isEmpty()
+    @meta.accessor 'keys', -> self.keys()
     super
+
   propertyClass: Batman.Property
 
   @accessor
     get: Batman.SimpleHash::get
-    set: Batman.SimpleHash::set
-    unset: Batman.SimpleHash::unset
+    set: ->
+      results = Batman.SimpleHash::set.apply(@, arguments)
+      @meta.set('length', @length)
+      results
+    unset: ->
+      results = Batman.SimpleHash::unset.apply(@, arguments)
+      @meta.set('length', @length)
+      results
 
-  @accessor 'isEmpty', -> @isEmpty()
-
-  for k in ['hasKey', 'equality', 'forEach', 'keys', 'isEmpty', 'merge', 'clear']
+  for k in ['hasKey', 'equality', 'forEach', 'keys', 'isEmpty', 'merge']
     @::[k] = Batman.SimpleHash::[k]
+
+  clear: ->
+    results = Batman.SimpleHash::clear.apply(@, arguments)
+    @meta.set('length', @length)
+    results
 
 class Batman.SimpleSet
   constructor: ->
@@ -2682,7 +2698,7 @@ Batman.DOM = {
     bind: (node, attr, key, context, only) ->
       switch attr
         when 'checked', 'disabled', 'selected'
-          contextChange = (value) -> 
+          contextChange = (value) ->
             node[attr] = !!value
             # Update the parent's binding if necessary
             Batman.data(node.parentNode, 'updateBinding')?()
@@ -3071,9 +3087,6 @@ filters = Batman.Filters =
 
   first: buntUndefined (value) ->
     value[0]
-
-  length: buntUndefined (value) ->
-    value.length
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
