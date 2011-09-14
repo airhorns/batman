@@ -5,6 +5,21 @@ sharedStorageTestSuite = (hooks = {}) ->
       hooks[name].call(@) if hooks[name]?
       f.call(@)
 
+  test 'instantiating: should use the `storageKey` on the model as a namespace if it exists', ->
+    klass = @adapter.constructor
+    class Overridden extends Batman.Model
+      @storageKey: "custom_key"
+
+    adapter = new klass(Overridden)
+    equal adapter.modelKey, "custom_key"
+
+  test 'instantiating: should use pluralized underscored model name as a namespace if storageKey doesn\'t exist', ->
+    klass = @adapter.constructor
+    class NotOverridden extends Batman.Model
+
+    adapter = new klass(NotOverridden)
+    equal adapter.modelKey, "not_overriddens"
+    
   asyncTestWithHooks 'creating in storage: should succeed if the record doesn\'t already exist', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, record) =>

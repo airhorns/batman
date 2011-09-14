@@ -1463,6 +1463,7 @@ class Batman.Controller extends Batman.Object
       view.contexts.push @
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
+    view
 
 # Models
 # ------
@@ -1471,6 +1472,11 @@ class Batman.Model extends Batman.Object
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
   @primaryKey: 'id'
+
+  # Override this property to define the key which storage adapters will use to store instances of this model under.
+  #  - For RestStorage, this ends up being part of the url built to store this model
+  #  - For LocalStorage, this ends up being the namespace in localStorage in which JSON is stored
+  @storageKey: null
 
   # Pick one or many mechanisms with which this model should be persisted. The mechanisms
   # can be already instantiated or just the class defining them.
@@ -1888,7 +1894,7 @@ Validators = Batman.Validators = [
 
 class Batman.StorageAdapter extends Batman.Object
   constructor: (model) ->
-    super(model: model, modelKey: helpers.pluralize(helpers.underscore(model.name)))
+    super(model: model, modelKey: model.get('storageKey') || helpers.pluralize(helpers.underscore(model.name)))
   isStorageAdapter: true
 
   @::_batman.check(@::)
@@ -3065,6 +3071,9 @@ filters = Batman.Filters =
 
   first: buntUndefined (value) ->
     value[0]
+
+  length: buntUndefined (value) ->
+    value.length
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
