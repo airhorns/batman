@@ -54,6 +54,29 @@ productJSON =
     name: 'test'
     id: 10
 
+asyncTest 'response metadata should be available in the after read callbacks', 3, ->
+  MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    ,
+      someMetaData: "foo"
+      products: [
+        name: "testA"
+        cost: 20
+      ,
+        name: "testB"
+        cost: 10
+      ]
+
+  @adapter.after 'readAll', ([records, data, options]) ->
+    equal data.someMetaData, "foo"
+    [records, data, options]
+
+  @adapter.readAll undefined, {}, (err, readProducts) ->
+    ok !err
+    ok readProducts
+    QUnit.start()
+
 sharedStorageTestSuite
   'creating in storage: should succeed if the record doesn\'t already exist': ->
     MockRequest.expect

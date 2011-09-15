@@ -2035,7 +2035,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     [matches, options]
 
   @::after 'readAll', ([filteredAttributes, options]) ->
-    [@getRecordFromData(data) for data in filteredAttributes, options]
+    [@getRecordFromData(data) for data in filteredAttributes, filteredAttributes, options]
 
   destroy: (record, options, callback) ->
     record = @_filterData 'before', 'destroy', record, options
@@ -2159,11 +2159,8 @@ class Batman.RestStorage extends Batman.StorageAdapter
         error: getErrorCallback(callback)
 
   @::after 'readAll', ([data, options]) ->
-    data = data[@collectionJsonNamespace] if data[@collectionJsonNamespace]
-    [data, options]
-
-  @::after 'readAll', ([data, options]) ->
-    [@getRecordFromData(attributes) for attributes in data, options]
+    recordData = if data[@collectionJsonNamespace] then data[@collectionJsonNamespace] else data
+    [@getRecordFromData(attributes) for attributes in recordData, data, options]
 
   destroy: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->

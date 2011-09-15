@@ -19,7 +19,7 @@ sharedStorageTestSuite = (hooks = {}) ->
 
     adapter = new klass(NotOverridden)
     equal adapter.modelKey, "not_overriddens"
-    
+
   asyncTestWithHooks 'creating in storage: should succeed if the record doesn\'t already exist', 1, ->
     product = new @Product(name: "test")
     @adapter.create product, {}, (err, record) =>
