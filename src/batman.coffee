@@ -116,6 +116,7 @@ Batman._findName = $findName = (f, context) ->
 # `functionName` returns the name of a given function, if any
 # Used to deal with functions not having the `name` property in IE
 Batman._functionName = $functionName = (f) ->
+  return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
 # Helpers
@@ -1418,7 +1419,7 @@ class Batman.Controller extends Batman.Object
     filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
 
   @accessor 'controllerName',
-    get: -> @_controllerName ||= helpers.underscore(@constructor.name.replace('Controller', ''))
+    get: -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
 
   @accessor 'action',
     get: -> @_currentAction
@@ -1477,7 +1478,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
-      options.source ||= helpers.underscore(@constructor.name.replace('Controller', '')) + '/' + @_currentAction + '.html'
+      options.source ||= helpers.underscore($functionName(@constructor).replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
 
     if view = options.view
@@ -1715,7 +1716,7 @@ class Batman.Model extends Batman.Object
     result
 
   toString: ->
-    "#{@constructor.name}: #{@get('id')}"
+    "#{$functionName(@constructor)}: #{@get('id')}"
 
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
@@ -1763,7 +1764,7 @@ class Batman.Model extends Batman.Object
     @classState k
 
   _doStorageOperation: (operation, options, callback) ->
-    throw new Error("Can't #{operation} model #{@constructor.name} without any storage adapters!") unless @hasStorage()
+    throw new Error("Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!") unless @hasStorage()
     mechanisms = @_batman.get('storage')
     for mechanism in mechanisms
       mechanism[operation] @, options, callback
@@ -1920,7 +1921,7 @@ Validators = Batman.Validators = [
 
 class Batman.StorageAdapter extends Batman.Object
   constructor: (model) ->
-    super(model: model, modelKey: model.get('storageKey') || helpers.pluralize(helpers.underscore(model.name)))
+    super(model: model, modelKey: model.get('storageKey') || helpers.pluralize(helpers.underscore($functionName(model))))
   isStorageAdapter: true
 
   @::_batman.check(@::)
@@ -2666,10 +2667,10 @@ Batman.DOM = {
 
         if dispatcher and model instanceof Batman.Model
           action ||= 'show'
-          name = helpers.underscore(helpers.pluralize(model.constructor.name))
+          name = helpers.underscore(helpers.pluralize($functionName(model.constructor)))
           url = dispatcher.findUrl({resource: name, id: model.get('id'), action: action})
         else if model?.prototype # TODO write test for else case
-          name = helpers.underscore(helpers.pluralize(model.name))
+          name = helpers.underscore(helpers.pluralize($functionName(model)))
           url = dispatcher.findUrl({resource: name, action: 'index'})
 
       return unless url
