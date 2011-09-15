@@ -46,9 +46,10 @@ asyncTest "custom async validations", ->
   class Product extends Batman.Model
     @validate 'name', (errors, record, key, callback) ->
       setTimeout ->
-        errors.get('name').add "didn't validate" unless letItPass
+        errors.add 'name', "didn't validate" unless letItPass
         callback()
       , 0
+
   p = new Product
   p.validate (result, errors) ->
     ok result
@@ -56,3 +57,64 @@ asyncTest "custom async validations", ->
     p.validate (result, errors) ->
       ok !result
       QUnit.start()
+
+QUnit.module "Batman.Model: binding to errors"
+  setup: ->
+    class @Product extends Batman.Model
+      @validate 'name', presence: yes
+
+    @product = new @Product
+    @someObject = Batman product: @product
+
+asyncTest "errors hash length should be observable", 3, ->
+  @product.get('errors').meta.observe 'length', (newLength, oldLength) ->
+    return if newLength == oldLength # Prevents the assertion below when the errors hash is cleared and its length goes from 0 to 0
+    equal newLength, 1
+
+  @product.validate (result, errors) ->
+    equal errors.meta.get('length'), 1
+    equal errors.length, 1
+    QUnit.start()
+
+asyncTest "errors hash contents should be observable", 3, ->
+  x = @product.get('errors.name')
+  x.observe 'length', (newLength, oldLength) ->
+    equal newLength, 1
+
+  @product.validate (result, errors) =>
+    equal errors.meta.get('length'), 1
+    equal errors.length, 1
+    x
+    QUnit.start()
+
+asyncTest "errors hash length should be bindable", 4, ->
+  @someObject.accessor 'productErrorsLength', ->
+    errors = @get('product.errors')
+    errors.meta.get('length')
+
+  equal @someObject.get('productErrorsLength'), 0, 'the errors should start empty'
+
+  @someObject.observe 'productErrorsLength', (newVal, oldVal) ->
+    return if newVal == oldVal # Prevents the assertion below when the errors hash is cleared and its length goes from 0 to 0
+    equal newVal, 1, 'the foreign observer should fire when errors are added'
+
+  @product.validate (result, errors) =>
+    equal errors.length, 1, 'the validation shouldn\'t succeed'
+    equal @someObject.get('productErrorsLength'), 1, 'the foreign key should have updated'
+    QUnit.start()
+
+asyncTest "errors hash contents should be bindable", 4, ->
+  @someObject.accessor 'productNameErrorsLength', ->
+    errors = @get('product.errors.name.length')
+
+  equal @someObject.get('productNameErrorsLength'), 0, 'the errors should start empty'
+
+  @someObject.observe 'productNameErrorsLength', (newVal, oldVal) ->
+    return if newVal == oldVal # Prevents the assertion below when the errors hash is cleared and its length goes from 0 to 0
+    equal newVal, 1, 'the foreign observer should fire when errors are added'
+
+  @product.validate (result, errors) =>
+    equal errors.length, 1, 'the validation shouldn\'t succeed'
+    equal @someObject.get('productNameErrorsLength'), 1, 'the foreign key should have updated'
+    QUnit.start()
+

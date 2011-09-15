@@ -1854,18 +1854,30 @@ class Batman.Model extends Batman.Object
 # `ErrorHash` is a simple subclass of `Hash` which makes it a bit easier to
 # manage the errors on a model.
 class Batman.ErrorsHash extends Batman.Hash
+  constructor: ->
+    super
+    @meta.observe 'length', (newLength) =>
+      @length = newLength
+
   # Define a default accessor to instantiate a set for any requested key.
   @accessor
     get: (key) ->
-      unless @_storage[key]
-        @_storage[key] = new Batman.Set
-        @length++
-      @_storage[key]
+      unless set = Batman.SimpleHash::get.call(@, key)
+        set = new Batman.Set
+        set.observe 'itemsWereAdded'  ,  => @meta.set('length', @meta.get('length') + arguments.length)
+        set.observe 'itemsWereRemoved',  => @meta.set('length', @meta.get('length') - arguments.length)
+        Batman.SimpleHash::set.call(@, key, set)
+      set
     set: -> throw new Error("Can't set on an errors hash, use add instead!")
-    set: -> throw new Error("Can't unset on an errors hash, use clear instead!")
+    unset: -> throw new Error("Can't unset on an errors hash, use clear instead!")
 
   # Define a shorthand method for adding errors to a key.
   add: (key, error) -> @get(key).add(error)
+
+  # Ensure any observers placed on the sets stay around by clearing the sets instead of the whole hash
+  clear: ->
+    @forEach (k, v) -> v.clear()
+    @
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
