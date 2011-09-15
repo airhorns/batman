@@ -37,3 +37,24 @@ test 'the \'batmanState\' key should be gettable and report the internal state',
   p = new @Product(state: "silly")
   equal p.state(), "dirty"
   equal p.get('batmanState'), "dirty"
+
+test 'the instantiated storage adapter should be returned when persisting', ->
+  returned = false
+  class TestStorageAdapter extends Batman.StorageAdapter
+    isTestStorageAdapter: true
+
+  class Product extends Batman.Model
+    returned = @persist TestStorageAdapter
+
+  ok returned.isTestStorageAdapter
+
+test 'the array of instantiated storage adapters should be returned when persisting', ->
+  [a, b, c] = [false, false, false]
+  class TestStorageAdapter extends Batman.StorageAdapter
+    isTestStorageAdapter: true
+
+  class Product extends Batman.Model
+    [a,b,c] = @persist TestStorageAdapter, TestStorageAdapter, TestStorageAdapter
+
+  for instance in [a,b,c]
+    ok instance.isTestStorageAdapter

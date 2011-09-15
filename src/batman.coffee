@@ -1499,9 +1499,14 @@ class Batman.Model extends Batman.Object
   @persist: (mechanisms...) ->
     Batman.initializeObject @prototype
     storage = @::_batman.storage ||= []
-    for mechanism in mechanisms
-      storage.push if mechanism.isStorageAdapter then mechanism else new mechanism(@)
-    @
+    results = for mechanism in mechanisms
+      mechanism = if mechanism.isStorageAdapter then mechanism else new mechanism(@)
+      storage.push mechanism
+      mechanism
+    if results.length > 1
+      results
+    else
+      results[0]
 
   # Encoders are the tiny bits of logic which manage marshalling Batman models to and from their
   # storage representations. Encoders do things like stringifying dates and parsing them back out again,
@@ -2048,8 +2053,10 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 class Batman.RestStorage extends Batman.StorageAdapter
   defaultOptions:
     type: 'json'
+
   recordJsonNamespace: false
   collectionJsonNamespace: false
+
   constructor: ->
     super
     @recordJsonNamespace = helpers.singularize(@modelKey)

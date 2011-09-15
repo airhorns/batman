@@ -70,7 +70,9 @@ exports.render = (source, jqueryize = true, context = {}, callback = ->) ->
   view = new Batman.View
     contexts: [Batman({}), context]
     node: node
+
   view.ready ->
     node = if jqueryize then $(view.get('node')).children() else view.get('node')
     callback(node, view)
+
   view.get('node')
