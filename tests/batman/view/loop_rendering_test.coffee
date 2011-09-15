@@ -7,10 +7,10 @@ asyncTest 'it should allow simple loops', 1, ->
   objects = new Batman.Set('foo', 'bar', 'baz')
 
   helpers.render source, {objects}, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      names = $('p', view.get('node')).map -> @innerHTML
-      names = names.toArray()
-      deepEqual names, ['foo', 'bar', 'baz']
+    names = $('p', view.get('node')).map -> @innerHTML
+    names = names.toArray()
+    deepEqual names, ['foo', 'bar', 'baz']
+    QUnit.start()
 
 asyncTest 'it should render new items as they are added', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
@@ -114,11 +114,10 @@ asyncTest 'it should not fail if the collection is cleared', ->
     objects: new Batman.Set('foo', 'bar', 'baz')
 
   helpers.render source, false, context, (node, view) ->
-    delay => # new renderer's are used for each loop node, must wait longer
-      equal $('.present', node).length, 3
-      context.get('objects').clear()
-      delay =>
-        equal $('.present', node).length, 0
+    equal $('.present', node).length, 3
+    context.get('objects').clear()
+    delay =>
+      equal $('.present', node).length, 0
 
 
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
@@ -200,14 +199,13 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
 
   source = '<p data-foreach-obj="x.filtered" data-bind="obj"></p>'
   helpers.render source, {x}, (node, view) ->
+    names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+    deepEqual names, ['a', 'b', 'c', 'd', 'e']
+    x.set 'filtered', 'a'
     delay ->
       names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-      deepEqual names, ['a', 'b', 'c', 'd', 'e']
-      x.set 'filtered', 'a'
+      deepEqual names, ['a']
+      x.set 'filtered', ''
       delay ->
         names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-        deepEqual names, ['a']
-        x.set 'filtered', ''
-        delay ->
-          names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-          deepEqual names, ['a', 'b', 'c', 'd', 'e']
+        deepEqual names, ['a', 'b', 'c', 'd', 'e']

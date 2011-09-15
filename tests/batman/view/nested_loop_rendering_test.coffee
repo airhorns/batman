@@ -18,17 +18,17 @@ QUnit.module "Batman.View rendering nested loops"
 
 asyncTest 'it should allow nested loops', 2, ->
   helpers.render @source, @context, (node, view) ->
-    delay => # extra delay because foreach parsing ignores children
-      equal $('.post', node).length, 3
-      equal $('.tag', node).length, 9
+    equal $('.post', node).length, 3
+    equal $('.tag', node).length, 9
+    QUnit.start()
 
 asyncTest 'it should allow access to variables in higher scopes during loops', 3*3, ->
   helpers.render @source, @context, (node, view) ->
-    delay => # extra delay because foreach parsing ignores children
-      node = view.get('node')
-      for postNode, i in $('.post', node)
-        for tagNode, j in $('.tag', postNode)
-          equal $(tagNode).attr('color'), "green"
+    node = view.get('node')
+    for postNode, i in $('.post', node)
+      for tagNode, j in $('.tag', postNode)
+        equal $(tagNode).attr('color'), "green"
+    QUnit.start()
 
 asyncTest 'it should not render past its original node', ->
   @context.class1 = 'foo'

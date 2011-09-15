@@ -2761,7 +2761,7 @@ Batman.DOM = {
       parent = node.parentNode
       sibling = node.nextSibling
 
-      # Remove the original node which was encountered once the parent has moved past it.
+      # Remove the original node once the parent has moved past it.
       parentRenderer.parsed ->
         parent.removeChild node
 
@@ -2775,7 +2775,6 @@ Batman.DOM = {
       oldCollection = false
 
       context.bind(node, key, (collection) ->
-
         # Track the old collection so that if it changes, we can remove the observers we attached,
         # and only observe the new collection.
         if oldCollection
@@ -2802,7 +2801,7 @@ Batman.DOM = {
             iteratorContext[iteratorName] = item
             localClone.push iteratorContext
 
-            new Batman.Renderer newNode, do (newNode) ->
+            childRenderer = new Batman.Renderer newNode, do (newNode) ->
               ->
                 show = Batman.data newNode, 'show'
                 if typeof show is 'function'
@@ -2814,10 +2813,11 @@ Batman.DOM = {
                   if collection.isSorted?()
                     observers.reorder()
                   fragment = document.createDocumentFragment()
-
-                parentRenderer.allow 'rendered'
-                parentRenderer.fire 'rendered'
             , localClone
+
+            childRenderer.rendered =>
+              parentRenderer.allow 'rendered'
+              parentRenderer.fire 'rendered'
 
         observers.remove = (items...) ->
           for item in items
