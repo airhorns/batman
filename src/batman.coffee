@@ -1320,7 +1320,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     @started = yes
 
     if 'onhashchange' of window
-      window.addEventListener 'hashchange', @parseHash, false
+      Batman.DOM.addEventListener window, 'hashchange', @parseHash
     else
       @interval = setInterval @parseHash, 100
 
