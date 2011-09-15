@@ -113,6 +113,11 @@ Batman._findName = $findName = (f, context) ->
 
   f.displayName
 
+# `functionName` returns the name of a given function, if any
+# Used to deal with functions not having the `name` property in IE
+Batman._functionName = $functionName = (f) ->
+  f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
+
 # Helpers
 # -------
 
@@ -1244,7 +1249,7 @@ class Batman.Dispatcher extends Batman.Object
       @prepareController controller
 
   prepareController: (controller) ->
-    name = helpers.underscore(controller.name.replace('Controller', ''))
+    name = helpers.underscore($functionName(controller).replace('Controller', ''))
     return unless name
 
     getter = -> @[name] = controller.get 'sharedController'
