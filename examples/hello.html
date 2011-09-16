@@ -39,8 +39,8 @@
       class Hello extends Batman.App
 
       class Person extends Batman.Model
-        @accessor 'fullName', -> "#{@get 'firstName'} #{@get 'lastName'}"
-        @accessor 'hasName', -> @get('fullName').length > 1
+        @accessor 'fullName', -> "#{@get('firstName') or ''} #{@get('lastName') or ''}"
+        @accessor 'hasName', -> @get('firstName') or @get('lastName')
 
         reset: =>
           @set 'firstName', ''
