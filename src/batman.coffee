@@ -2348,7 +2348,7 @@ class Batman.Renderer extends Batman.Object
       return children[0] if children?.length
 
     Batman.data(node, 'onParseExit')?()
-    return if @node.isSameNode node
+    return if @node == node
 
     sibling = node.nextSibling
     return sibling if sibling
@@ -2356,7 +2356,7 @@ class Batman.Renderer extends Batman.Object
     nextParent = node
     while nextParent = nextParent.parentNode
       nextParent.onParseExit?()
-      return if @node.isSameNode(nextParent)
+      return if @node == nextParent
 
       parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
