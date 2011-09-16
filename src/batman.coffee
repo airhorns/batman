@@ -2138,6 +2138,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
           callback.call(@, new Error("Couldn't get record primary key!"))
           return
         url = url + "/" + id
+
     unless url
       callback.call @, new Error("Couldn't get model url!")
     else
@@ -2161,7 +2162,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: data
         method: 'POST'
         success: (data) => callback(@_filterData('after', 'create', undefined, record, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'create', error, record, "", recordOptions)...)
+        error:  (error) => callback(@_filterData('after', 'create', error, record, error.request.get('response'), recordOptions)...)
 
   update: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
@@ -2174,7 +2175,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: data
         method: 'PUT'
         success: (data) => callback(@_filterData('after', 'update', undefined, record, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'update', error, record, "", recordOptions)...)
+        error:  (error) => callback(@_filterData('after', 'update', error, record, error.request.get('response'), recordOptions)...)
 
   read: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
@@ -2187,7 +2188,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: recordOptions
         method: 'GET'
         success: (data) => callback(@_filterData('after', 'read', undefined, record, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'read', error, record, "", recordOptions)...)
+        error:  (error) => callback(@_filterData('after', 'read', error, record, error.request.get('response'), recordOptions)...)
 
   readAll: (_, recordsOptions, callback) ->
     @optionsForCollection recordsOptions, (err, options) ->
@@ -2200,7 +2201,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         data: recordsOptions
         method: 'GET'
         success: (data) => callback(@_filterData('after', 'readAll', undefined, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'readAll', error, "", recordOptions)...)
+        error:  (error) => callback(@_filterData('after', 'readAll', error, error.request.get('response'), recordOptions)...)
 
   @::after 'readAll', $passError ([data, options]) ->
     recordData = if data[@collectionJsonNamespace] then data[@collectionJsonNamespace] else data
@@ -2219,7 +2220,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         method: 'DELETE'
         success: (data) => callback(@_filterData('after', 'destroy', undefined, record, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'destroy', error, record, "", recordOptions)...)
+        error:  (error) => callback(@_filterData('after', 'destroy', error, record, error.request.get('response'), recordOptions)...)
 
 # Views
 # -----------

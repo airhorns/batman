@@ -337,6 +337,7 @@ Batman.Request::send = (data) ->
     error: (xhr) =>
       @set 'response', xhr.responseText || xhr.content
       @set 'status', xhr.status
+      xhr.request = @
       @error xhr
 
     complete: =>

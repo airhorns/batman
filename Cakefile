@@ -53,7 +53,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           compile.then( ->
             muffin.minifyScript destination, options
           ).then( ->
-            muffin.notify(destination, "File #{destination} minified and gzipped.")
+            muffin.notify(destination, "File #{destination} minified.")
           )
 
     # Run a task which concats the coffeescript, compiles it, and then minifies it
@@ -90,14 +90,14 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
     options: options
     map:
-      'src/batman.coffee'               : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
-      'src/batman.solo.coffee'          : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend({notify: !first}, options))
+      'src/batman.coffee'                        : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
+      'src/batman.solo.coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend({notify: !first}, options))
+      'src/batman.rails.coffee'                  : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.rails.js", muffin.extend({notify: !first}, options))
       'tests/batman/(.+)_(test|helper).coffee'   : (matches) ->
         destination = "#{tmpdir}/#{matches[1]}_#{matches[2]}.js"
         destinationDir = path.dirname(destination)
         fs.mkdirSync(destinationDir, 0755) unless path.existsSync(destinationDir)
         return muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
-      'tests/batman/test_helper.coffee' : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/test_helper.js", muffin.extend({notify: !first}, options))
     after: ->
       first = false
       runner.run

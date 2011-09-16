@@ -1,0 +1,249 @@
+if typeof require isnt 'undefined'
+  {sharedStorageTestSuite} = require('./storage_adapter_helper')
+else
+  {sharedStorageTestSuite} = window
+
+productJSON =
+  product:
+    name: 'test'
+    id: 10
+
+restStorageTestSuite = ->
+  asyncTest 'response metadata should be available in the after read callbacks', 3, ->
+    MockRequest.expect
+        url: '/products'
+        method: 'GET'
+      ,
+        someMetaData: "foo"
+        products: [
+          name: "testA"
+          cost: 20
+        ,
+          name: "testB"
+          cost: 10
+        ]
+
+    @adapter.after 'readAll', ([err, records, data, options]) ->
+      equal data.someMetaData, "foo"
+      [err, records, data, options]
+
+    @adapter.readAll undefined, {}, (err, readProducts) ->
+      ok !err
+      ok readProducts
+      QUnit.start()
+
+  sharedStorageTestSuite(restStorageTestSuite.sharedSuiteHooks)
+
+restStorageTestSuite.sharedSuiteHooks =
+  'creating in storage: should succeed if the record doesn\'t already exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+  'creating in storage: should fail if the record does already exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    ,
+      error: "Product already exists!"
+
+  "creating in storage: should create a primary key if the record doesn't already have one": ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+  "creating in storage: should encode data before saving it": ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    ,
+    product:
+      name: 'TEST'
+      id: 10
+
+  'reading from storage: should callback with the record if the record has been created': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , productJSON
+
+  'reading from storage: should callback with decoded data after reading it': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , productJSON
+
+  'reading from storage: should callback with an error if the record hasn\'t been created': ->
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , error: 'specified record doesn\'t exist'
+
+  'reading many from storage: should callback with the records if they exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    ,product:
+        name: "testA"
+        cost: 20
+
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , product:
+        name: "testB"
+        cost: 10
+
+    MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    , products: [
+        name: "testA"
+        cost: 20
+      ,
+        name: "testB"
+        cost: 10
+      ]
+
+  'reading many from storage: should callback with the decoded records if they exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    ,product:
+        name: "testA"
+        cost: 20
+
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , product:
+        name: "testB"
+        cost: 10
+
+    MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    , products: [
+        name: "testA"
+        cost: 20
+      ,
+        name: "testB"
+        cost: 10
+      ]
+
+  'reading many from storage: should callback with an empty array if no records exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'GET'
+    , products: []
+
+  'updating in storage: should callback with the record if it exists': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'PUT'
+    , product:
+        name: 'test'
+        cost: 10
+        id: 10
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , product:
+        name: 'test'
+        cost: 10
+        id: 10
+
+  'updating in storage: should callback with an error if the record hasn\'t been created': ->
+  'destroying in storage: should succeed if the record exists': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , productJSON
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'DELETE'
+    , success: true
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'GET'
+    , error: 'specified product couldn\'t be found!'
+
+  'destroying in storage: should callback with an error if the record hasn\'t been created': ->
+
+class MockRequest extends MockClass
+  @expects = {}
+  @reset: ->
+    MockClass.reset.call(@)
+    @expects = {}
+
+  @expect: (request, response) ->
+    responses = @expects[request.url] ||= []
+    responses.push {request, response}
+
+  @chainedCallback 'success'
+  @chainedCallback 'error'
+
+  @getExpectedForUrl: (url) ->
+    @expects[url] || []
+
+  constructor: (requestOptions) ->
+    super()
+    @success(requestOptions.success) if requestOptions.success?
+    @error(requestOptions.error) if requestOptions.error?
+    allExpected = @constructor.getExpectedForUrl(requestOptions.url)
+    expected = allExpected.shift()
+    if ! expected?
+      @fireError {message: "Unrecognized mocked request!", request: @}
+    else
+      setTimeout =>
+        {request, response} = expected
+        if request.method != requestOptions.method
+          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
+        if response.error
+          if typeof response.error is 'string'
+            @fireError {message: response.error, request: @}
+          else
+            response.error.request = @
+            @status = response.error.status
+            @response = response.error.response
+            @fireError response.error
+        else
+          @response = response
+          @fireSuccess response
+      , 1
+
+  get: (k) ->
+    throw "Can't get anything other than 'response' and 'status' on the Requests" unless k in ['response', 'status']
+    @[k]
+
+restStorageTestSuite.MockRequest = MockRequest
+
+if typeof exports is 'undefined'
+  window.restStorageTestSuite = restStorageTestSuite
+else
+  exports.restStorageTestSuite = restStorageTestSuite
