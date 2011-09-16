@@ -252,6 +252,19 @@ asyncTest 'it should allow click events to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
+asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
+  debugger
+  spy = createSpy()
+  class Foo extends Batman.Model
+    handleClick: spy
+  context =
+    foo: new Foo()
+  source = '<button data-event-click="foo.handleClick"></button>'
+  helpers.render source, context, (node) ->
+    helpers.triggerClick(node[0])
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
   context = new Batman.Object
