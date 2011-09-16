@@ -570,7 +570,7 @@ class BatmanObject
   # This should be used sparingly; it's mostly useful for debugging.
   @global: (isGlobal) ->
     return if isGlobal is false
-    container[@name] = @
+    container[$functionName(@)] = @
 
   # Apply mixins to this class.
   @classMixin: -> $mixin @, arguments...
@@ -1606,7 +1606,7 @@ class Batman.Model extends Batman.Object
       callback = options
       options = {}
 
-    throw new Error("Can't load model #{@name} without any storage adapters!") unless @::_batman.getAll('storage').length
+    throw new Error("Can't load model #{$functionName(@)} without any storage adapters!") unless @::_batman.getAll('storage').length
 
     do @loading
     @::_doStorageOperation 'readAll', options, (err, records) =>
