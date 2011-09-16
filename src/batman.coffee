@@ -2319,7 +2319,7 @@ class Batman.Renderer extends Batman.Object
       setTimeout @resume, 0
       return
 
-    if node.getAttribute
+    if typeof node.getAttribute == 'function'
       bindings = for attr in node.attributes
         name = attr.nodeName.match(bindingRegexp)?[1]
         continue if not name
