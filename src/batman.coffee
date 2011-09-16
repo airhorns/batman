@@ -1676,7 +1676,7 @@ class Batman.Model extends Batman.Object
 
   # Add a default accessor to make models store their attributes under a namespace by default.
   @accessor
-    get: (k) -> (@_batman.attributes ||= {})[k]
+    get: (k) -> (@_batman.attributes ||= {})[k] || @[k]
     set: (k, v) -> (@_batman.attributes ||= {})[k] = v
     unset: (k) ->
       x = (@_batman.attributes ||={})[k]
