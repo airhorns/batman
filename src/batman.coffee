@@ -2644,11 +2644,13 @@ Batman.DOM = {
 
       context.bind(node, key, (value) ->
         if !!value is !invert
-          Batman.data(node, 'show')?()
+          Batman.data(node, 'show')?.call(node)
           node.style.display = originalDisplay
         else
-          hide = Batman.data node, 'hide'
-          if typeof hide is 'function' then hide.call node else node.style.display = 'none'
+          if typeof (hide = Batman.data(node, 'hide')) == 'function'
+            hide.call node
+          else
+            node.style.display = 'none'
       , -> )
 
     hideif: (args...) ->
@@ -2809,8 +2811,7 @@ Batman.DOM = {
 
             childRenderer = new Batman.Renderer newNode, do (newNode) ->
               ->
-                show = Batman.data newNode, 'show'
-                if typeof show is 'function'
+                if typeof (show = Batman.data(newNode, 'show')) == 'function'
                   show.call newNode, before: sibling
                 else
                   fragment.appendChild newNode
