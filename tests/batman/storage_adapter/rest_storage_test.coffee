@@ -68,9 +68,9 @@ asyncTest 'response metadata should be available in the after read callbacks', 3
         cost: 10
       ]
 
-  @adapter.after 'readAll', ([records, data, options]) ->
+  @adapter.after 'readAll', ([err, records, data, options]) ->
     equal data.someMetaData, "foo"
-    [records, data, options]
+    [err, records, data, options]
 
   @adapter.readAll undefined, {}, (err, readProducts) ->
     ok !err

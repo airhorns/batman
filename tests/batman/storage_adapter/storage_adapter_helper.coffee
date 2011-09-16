@@ -51,11 +51,12 @@ sharedStorageTestSuite = (hooks = {}) ->
       ok record.get('id')
       QUnit.start()
 
-  asyncTestWithHooks 'reading from storage: should callback with the record if the record has been created', 2, ->
+  asyncTestWithHooks 'reading from storage: should callback with the record if the record has been created', 3, ->
     product = new @Product(name: "test")
 
     @adapter.create product, {}, (err, record) =>
       throw err if err
+      ok record.get('id')
       createdLater = new @Product(record.get('id'))
       @adapter.read createdLater, {}, (err, foundRecord) ->
         throw err if err
@@ -96,8 +97,6 @@ sharedStorageTestSuite = (hooks = {}) ->
         throw err if err
         @adapter.readAll undefined, {}, (err, readProducts) ->
           throw err if err
-          t = (array) ->
-            array.map((p) -> p.get('name')).sort()
           deepEqual t(readProducts), t([createdRecord1, createdRecord2])
           QUnit.start()
 
