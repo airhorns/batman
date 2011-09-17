@@ -2222,7 +2222,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
 
   readAll: (_, recordsOptions, callback) ->
     @optionsForCollection recordsOptions, (err, options) ->
-      [err, recordOptions] = @_filterData('before', 'readAll', err, recordOptions)
+      [err, recordsOptions] = @_filterData('before', 'readAll', err, recordsOptions)
       if err
         callback(err)
         return
@@ -2230,8 +2230,8 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         data: recordsOptions
         method: 'GET'
-        success: (data) => callback(@_filterData('after', 'readAll', undefined, data, recordOptions)...)
-        error:  (error) => callback(@_filterData('after', 'readAll', error, error.request.get('response'), recordOptions)...)
+        success: (data) => callback(@_filterData('after', 'readAll', undefined, data, recordsOptions)...)
+        error:  (error) => callback(@_filterData('after', 'readAll', error, error.request.get('response'), recordsOptions)...)
 
   @::after 'readAll', $passError ([data, options]) ->
     recordData = if data[@collectionJsonNamespace] then data[@collectionJsonNamespace] else data
