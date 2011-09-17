@@ -36,7 +36,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     # 3. Compiling each complete platform specific batman distribution into JavaScript in `./lib/dist`
     # 4. Minify each complete platform specific distribution in to a .min.js file in `./lib/dist`
     compileDist = (platformName) ->
-      return if platformName == 'node'
+      return if platformName in ['node', 'rails']
       joinedCoffeePath = "#{tmpdir}/batman.#{platformName}.coffee"
 
       # Read the platform specific code
