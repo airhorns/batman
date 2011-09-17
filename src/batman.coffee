@@ -1159,12 +1159,18 @@ class Batman.App extends Batman.Object
         contexts: [@]
         node: document
 
+      @get('layout').ready => @ready()
+
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @historyManager = Batman.historyManager = new Batman.HashHistory @
       @historyManager.start()
 
     @hasRun = yes
     @
+
+  # The `MyApp.ready` event will fire once the app's layout view has finished rendering. This includes
+  # partials, loops, and all the other deferred renders, but excludes data fetching.
+  @ready: @eventOneShot -> true
 
   @stop: @eventOneShot ->
     @historyManager?.stop()
@@ -1320,7 +1326,6 @@ class Batman.HistoryManager
 
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
-
   start: =>
     return if typeof window is 'undefined'
     return if @started
@@ -1331,6 +1336,8 @@ class Batman.HashHistory extends Batman.HistoryManager
     else
       @interval = setInterval @parseHash, 100
 
+    @first = true
+    Batman.currentApp.prevent 'ready'
     setTimeout @parseHash, 0
 
   stop: =>
@@ -1348,7 +1355,12 @@ class Batman.HashHistory extends Batman.HistoryManager
     hash = window.location.hash.replace @HASH_PREFIX, ''
     return if hash is @cachedHash
 
-    @dispatch (@cachedHash = hash)
+    result = @dispatch (@cachedHash = hash)
+    if @first
+      Batman.currentApp.allow 'ready'
+      Batman.currentApp.fire 'ready'
+      @first = false
+    result
 
   redirect: (params) ->
     url = super
@@ -1483,9 +1495,12 @@ class Batman.Controller extends Batman.Object
       options.view = new Batman.View(options)
 
     if view = options.view
+      Batman.currentApp?.prevent 'ready'
       view.contexts.push @
       view.ready ->
         Batman.DOM.contentFor('main', view.get('node'))
+        Batman.currentApp?.allow 'ready'
+        Batman.currentApp?.fire 'ready'
     view
 
 # Models
@@ -2314,8 +2329,9 @@ class Batman.View extends Batman.Object
 # fragment is particularly long.
 class Batman.Renderer extends Batman.Object
 
-  constructor: (@node, @callback, contexts = []) ->
+  constructor: (@node, callback, contexts = []) ->
     super
+    @parsed callback if callback?
     @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)
     setTimeout @start, 0
 
@@ -2330,7 +2346,6 @@ class Batman.Renderer extends Batman.Object
   finish: ->
     @startTime = null
     @fire 'parsed'
-    @callback?()
     @fire 'rendered'
 
   forgetAll: ->
@@ -2724,11 +2739,17 @@ Batman.DOM = {
 
       Batman.DOM.events.click node, (-> $redirect url)
 
-    partial: (node, path, context) ->
+    partial: (node, path, context, renderer) ->
+      renderer.prevent('rendered')
+
       view = new Batman.View
         source: path + '.html'
         contentFor: node
         contexts: Array.prototype.slice.call(context.contexts)
+
+      view.ready ->
+        renderer.allow 'rendered'
+        renderer.fire 'rendered'
 
     yield: (node, key) ->
       setTimeout (-> Batman.DOM.yield key, node), 0
