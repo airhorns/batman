@@ -23,6 +23,16 @@ test "primary key is 'id' by default", ->
   product = new @Product(id: 10)
   equal product.get('id'), 10
 
+test "updateAttributes will update a model's attributes", ->
+  product = new @Product(id: 10)
+  product.updateAttributes {name: "foobar", id: 20}
+  equal product.get('id'), 20
+  equal product.get('name'), "foobar"
+
+test "updateAttributes will returns the updated record", ->
+  product = new @Product(id: 10)
+  equal product, product.updateAttributes {name: "foobar", id: 20}
+
 test "primary key can be changed by setting primary key on the model class", ->
   @Product.primaryKey = 'uuid'
   product = new @Product(uuid: "abc123")

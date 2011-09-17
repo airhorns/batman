@@ -253,7 +253,6 @@ asyncTest 'it should allow click events to be bound', 2, ->
       equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
-  debugger
   spy = createSpy()
   class Foo extends Batman.Model
     handleClick: spy

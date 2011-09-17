@@ -37,6 +37,38 @@ asyncTest "models will find the same instance if called twice", ->
       equal @Product.get('loaded').length, 1
       QUnit.start()
 
+QUnit.module "Batman.Model class findOrCreating"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @adapter.storage =
+      'products1': {name: "One", cost: 10, id:1}
+
+    @Product.persist @adapter
+
+asyncTest "models will create a fixture model", ->
+  @Product.findOrCreate {id: 3, name: "three"}, (err, product) =>
+    throw err if err
+    ok !product.isNew()
+    equal @Product.get('loaded').length, 1, "the product is added to the identity map"
+    QUnit.start()
+
+asyncTest "models will find an already loaded model and update the data", ->
+  @Product.find 1, (err, existingProduct) =>
+    throw err if err
+    ok existingProduct
+
+    @Product.findOrCreate {id: 1, name: "three"}, (err, product) =>
+      throw err if err
+      ok !product.isNew()
+      equal @Product.get('loaded').length, 1, "the identity map is maintained"
+      equal product.get('id'), 1
+      equal product.get('name'), 'three'
+      equal product.get('cost'), 10
+      QUnit.start()
+
 QUnit.module "Batman.Model class loading"
   setup: ->
     class @Product extends Batman.Model

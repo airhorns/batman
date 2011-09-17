@@ -1641,6 +1641,17 @@ class Batman.Model extends Batman.Object
     obj.save(callback)
     obj
 
+  # `findOrLoad` takes an attributes hash, optionally containing a primary key, and returns to you a saved record
+  # representing those attributes, either from the server or from the identity map.
+  @findOrCreate: (attrs, callback) ->
+    record = new this(attrs)
+    if record.isNew()
+      record.save(callback)
+    else
+      foundRecord = @_mapIdentities([record])[0]
+      foundRecord.updateAttributes(attrs)
+      callback(undefined, foundRecord)
+
   @_mapIdentities: (records) ->
     all = @get('loaded').toArray()
     newRecords = []
@@ -1730,6 +1741,10 @@ class Batman.Model extends Batman.Object
     # Mark the model as dirty if isn't already.
     @dirty() unless @state() in ['dirty', 'loading', 'creating']
     result
+
+  updateAttributes: (attrs) ->
+    @mixin(attrs)
+    @
 
   toString: ->
     "#{$functionName(@constructor)}: #{@get('id')}"
