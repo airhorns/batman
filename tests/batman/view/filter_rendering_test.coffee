@@ -119,6 +119,17 @@ asyncTest 'should allow filtered keypaths as arguments to mixin', 1, ->
     delay ->
       equals Batman.data(node[0], 'someKey'), 'foobar'
 
+asyncTest 'should allow filtered keypaths as arguments to event', 1, ->
+  context = Batman
+    foo: Batman
+      baz: spy = createSpy()
+    bar: 'baz'
+
+  helpers.render '<button id="test" data-event-click="foo | get bar"></button>', context, (node) ->
+    helpers.triggerClick(node[0])
+    delay ->
+      ok spy.called
+
 asyncTest 'should allow filtered keypaths as arguments to foreach', 3, ->
   context = Batman
     foo: Batman

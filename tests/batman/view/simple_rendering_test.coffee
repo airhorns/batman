@@ -252,18 +252,19 @@ asyncTest 'it should allow click events to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
-asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
-  spy = createSpy()
-  class Foo extends Batman.Model
-    handleClick: spy
-  context =
-    foo: new Foo()
-  source = '<button data-event-click="foo.handleClick"></button>'
+asyncTest 'it should allow event handlers to update', 2, ->
+  context = Batman
+    doSomething: spy = createSpy()
+
+  source = '<button data-event-click="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
     delay ->
       ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+      context.set('doSomething', newSpy = createSpy())
+      helpers.triggerClick(node[0])
+      delay ->
+        ok newSpy.called
 
 asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
   context = new Batman.Object
@@ -296,6 +297,19 @@ asyncTest 'it should allow form submit events to be bound', 1, ->
     helpers.triggerSubmit(node[0])
     delay =>
       ok spy.called
+
+asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
+  spy = createSpy()
+  class Foo extends Batman.Model
+    handleClick: spy
+
+  source = '<button data-event-click="foo.handleClick"></button>'
+
+  helpers.render source, {foo: new Foo()}, (node) ->
+    helpers.triggerClick(node[0])
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow mixins to be applied', 1, ->
   Batman.mixins.set 'test',
@@ -336,7 +350,7 @@ asyncTest 'should bind radio buttons to a value', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
     <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
     <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade"/>'
-  context = Batman 
+  context = Batman
     ad: Batman
       sale_type: 'free'
 

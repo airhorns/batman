@@ -2813,18 +2813,20 @@ Batman.DOM = {
     context: (node, contextName, key, context) -> context.addKeyToScopeForNode(node, key, contextName)
 
     event: (node, eventName, key, context) ->
-      if key.substr(0, 1) is '@'
-        callback = new Function key.substr(1)
-      else
-        [callback, subContext] = context.findKey key
+      props =
+        callback:  null
+        subContext: null
 
+      context.bind node, key, (value, node, binding) ->
+        props.callback = value
+        props.subContext = binding.get('keyContext')
+      , ->
+
+      confirmText = node.getAttribute('data-confirm')
       Batman.DOM.events[eventName] node, ->
-        confirmText = node.getAttribute('data-confirm')
         if confirmText and not confirm(confirmText)
           return
-        x = eventName
-        x = key
-        callback?.apply subContext, arguments
+        props.callback?.apply props.subContext, arguments
 
     addclass: (node, className, key, context, parentRenderer, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
