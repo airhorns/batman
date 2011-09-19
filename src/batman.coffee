@@ -146,10 +146,11 @@ helpers = Batman.helpers = {
           .replace('-', '_').toLowerCase()
 
   singularize: (string) ->
-    if string.substr(-3) is 'ies'
-      string.substr(0, string.length - 3) + 'y'
-    else if string.substr(-1) is 's'
-      string.substr(0, string.length - 1)
+    len = string.length
+    if string.substr(len - 3) is 'ies'
+      string.substr(0, len - 3) + 'y'
+    else if string.substr(len - 1) is 's'
+      string.substr(0, len - 1)
     else
       string
 
@@ -159,9 +160,10 @@ helpers = Batman.helpers = {
     else
       string = count
 
-    lastLetter = string.substr(-1)
+    len = string.length
+    lastLetter = string.substr(len - 1)
     if lastLetter is 'y'
-      "#{string.substr(0,string.length-1)}ies"
+      "#{string.substr(0, len - 1)}ies"
     else if lastLetter is 's'
       string
     else
