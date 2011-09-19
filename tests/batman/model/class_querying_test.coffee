@@ -14,7 +14,7 @@ QUnit.module "Batman.Model class finding"
 
 test "will error unless a callback is provided", ->
   raises (=> @Product.find 1),
-    (message) -> message is "missing callback"
+    (message) -> ok message; true
 
 asyncTest "models will find an instance in the store", ->
   @Product.find 1, (err, product) ->
@@ -85,6 +85,7 @@ asyncTest "models will load all their records", ->
   @Product.load (err, products) =>
     throw err if err
     equal products.length, 2
+
     equal @Product.get('all.length'), 2
     QUnit.start()
 

@@ -5,11 +5,11 @@ QUnit.module "Batman.Model",
 test "constructors should always be called with new", ->
   Product = @Product
   raises (-> product = Product()),
-    (message) -> message is "constructors must be called with new"
+    (message) -> ok message; true
 
   Namespace = Product: Product
   raises (-> product = Namespace.Product()),
-    (message) -> message is "constructors must be called with new"
+    (message) -> ok message; true
 
   product = new Namespace.Product()
   ok product instanceof Product

@@ -1,3 +1,4 @@
 node_modules
-build
+/build
 examples/test.html
+tests/batman/build/test_file.js

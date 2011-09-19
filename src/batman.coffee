@@ -120,6 +120,7 @@ Batman._functionName = $functionName = (f) ->
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
+
 # `$removeEventListener` uses detachEvent when necessary
 Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
   if elem.removeEventListener
@@ -138,6 +139,20 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
     return true if node == parentNode
     node = node.parentNode
   false
+
+# Developer Tooling
+# -----------------
+
+developer =
+  DevelopmentError: class extends Error
+  log: -> console.log(arguments...)
+  warn: -> console.warn(arguments...)
+  error: (message) -> throw new DevelopmentError(message)
+  assert: (result, message) ->
+    developer.error(message) unless result
+  addFilters: ->
+
+Batman.developer = developer
 
 # Helpers
 # -------
@@ -399,7 +414,7 @@ Batman.EventEmitter =
     # to register or a value to fire the event with.
     f = (observer) ->
       if not @observe
-        throw "EventEmitter requires Observable"
+        developer.error "EventEmitter requires Observable"
 
       Batman.initializeObject @
 
@@ -1025,8 +1040,7 @@ Batman.StateMachine = {
     if not name
       return @_batman.getFirst 'state'
 
-    if not @event
-      throw "StateMachine requires EventEmitter"
+    developer.assert @event, "StateMachine requires EventEmitter"
 
     event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
     event.call(@, callback) if typeof callback is 'function'
@@ -1114,7 +1128,7 @@ class Batman.Request extends Batman.Object
 
   # `send` is implmented in the platform layer files. One of those must be required for
   # `Batman.Request` to be useful.
-  send: () -> throw "Please source a dependency file for a request implementation"
+  send: () -> developer.error "Please source a dependency file for a request implementation"
 
   cancel: ->
     clearTimeout(@_autosendTimeout) if @_autosendTimeout
@@ -1632,7 +1646,7 @@ class Batman.Model extends Batman.Object
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
 
   @find: (id, callback) ->
-    throw "missing callback" unless callback
+    developer.assert callback, "Must call find with a callback!"
     record = new @(id)
     newRecord = @_mapIdentity(record)
     newRecord.load callback
@@ -1644,7 +1658,7 @@ class Batman.Model extends Batman.Object
       callback = options
       options = {}
 
-    throw new Error("Can't load model #{$functionName(@)} without any storage adapters!") unless @::_batman.getAll('storage').length
+    developer.assert @::_batman.getAll('storage').length, "Can't load model #{$functionName(@)} without any storage adapters!"
 
     do @loading
     @::_doStorageOperation 'readAll', options, (err, records) =>
@@ -1724,7 +1738,7 @@ class Batman.Model extends Batman.Object
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
   constructor: (idOrAttributes = {}) ->
-    throw "constructors must be called with new" unless @ instanceof Batman.Object
+    developer.assert  @ instanceof Batman.Object, "constructors must be called with new"
 
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
@@ -1806,7 +1820,7 @@ class Batman.Model extends Batman.Object
     @classState k
 
   _doStorageOperation: (operation, options, callback) ->
-    throw new Error("Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!") unless @hasStorage()
+    developer.assert @hasStorage(), "Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!"
     mechanisms = @_batman.get('storage')
     for mechanism in mechanisms
       mechanism[operation] @, options, callback
@@ -1918,8 +1932,8 @@ class Batman.ErrorsHash extends Batman.Hash
 
         Batman.SimpleHash::set.call(@, key, set)
       set
-    set: -> throw new Error("Can't set on an errors hash, use add instead!")
-    unset: -> throw new Error("Can't unset on an errors hash, use clear instead!")
+    set: -> developer.error "Can't set on an errors hash, use add instead!"
+    unset: -> developer.error "Can't unset on an errors hash, use clear instead!"
 
   # Define a shorthand method for adding errors to a key.
   add: (key, error) -> @get(key).add(error)
@@ -1933,8 +1947,7 @@ class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
     super mixins...
 
-  validate: (record) ->
-    throw "You must override validate in Batman.Validator subclasses."
+  validate: (record) -> developer.error "You must override validate in Batman.Validator subclasses."
 
   @options: (options...) ->
     Batman.initializeObject @
@@ -2317,7 +2330,7 @@ class Batman.View extends Batman.Object
           viewSources[source] = response
           @set('html', response)
         error: (response) ->
-          throw "Could not load view from #{url}"
+          throw new Error("Could not load view from #{url}")
 
   @observeAll 'html', (html) ->
     node = @node || document.createElement 'div'
@@ -2553,7 +2566,8 @@ class Binding extends Batman.Object
     try
       key = @parseSegment(orig = filters.shift())[0]
     catch e
-      throw "Bad binding keypath \"#{orig}\"!"
+      developer.warn e
+      developer.error "Error! Couldn't parse keypath in \"#{orig}\". Parsing error above."
     if key and key._keypath
       @key = key._keypath
     else
@@ -2579,11 +2593,11 @@ class Binding extends Batman.Object
             try
               @filterArguments.push @parseSegment(args)
             catch e
-              throw new Error("Bad filter arguments \"#{args}\"!")
+              developer.error "Bad filter arguments \"#{args}\"!"
           else
             @filterArguments.push []
         else
-          throw new Error("Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!")
+          developer.error "Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!"
 
       # Map over each array of arguments to grab the context for any keypaths.
       @filterArguments = @filterArguments.map (argumentList) =>
@@ -2960,6 +2974,8 @@ Batman.DOM = {
             observers.add(array...)
           else for k, v of collection
               observers.add(k)
+        else
+          developer.warn "Warning! data-foreach-#{iteratorName} called with an undefined binding. Key was: #{key}."
       , -> )
 
       false # Return false so the Renderer doesn't descend into this node's children.
@@ -3372,7 +3388,8 @@ Batman.Encoders =
       if a
         return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
       else
-        throw "Unrecognized rails date #{value}!"
+        developer.error "Unrecognized rails date #{value}!"
+
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
@@ -3393,4 +3410,3 @@ Batman.exportHelpers = (onto) ->
 
 Batman.exportGlobals = () ->
   Batman.exportHelpers(container)
-

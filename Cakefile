@@ -16,8 +16,9 @@ option '-m', '--compare', 'compare to git refs (stat task only)'
 option '-s', '--coverage', 'run jscoverage during tests and report coverage (test task only)'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
+  files = glob.globSync('./src/**/*')
   muffin.run
-    files: './src/**/*'
+    files: files
     options: options
     map:
       'src/batman\.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/batman.js', options)
@@ -29,7 +30,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     temp    = require 'temp'
     tmpdir = temp.mkdirSync()
     distDir = "lib/dist"
-
+    developmentTransform = require('./tools/build/remove_development_transform').removeDevelopment
     # Compile the scripts to the distribution folder by:
     # 1. Finding each platform specific batman file of the form `batman.platform.coffee`
     # 2. Concatenating each platform specific file with the main Batman source, and storing that in a temp file.
@@ -38,7 +39,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     compileDist = (platformName) ->
       return if platformName in ['node', 'rails']
       joinedCoffeePath = "#{tmpdir}/batman.#{platformName}.coffee"
-
+      #transform = require 'src/tools/build'
       # Read the platform specific code
       platform = muffin.readFile "src/batman.#{platformName}.coffee", options
       standard = muffin.readFile 'src/batman.coffee', options
@@ -51,6 +52,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           destination = "#{distDir}/batman#{if platformName is 'solo' then '' else '.' + platformName}.js"
           compile = muffin.compileScript(joinedCoffeePath, destination, options)
           compile.then( ->
+            options.transform = developmentTransform
             muffin.minifyScript destination, options
           ).then( ->
             muffin.notify(destination, "File #{destination} minified.")
