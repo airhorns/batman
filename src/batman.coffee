@@ -1612,7 +1612,7 @@ class Batman.Model extends Batman.Object
   @find: (id, callback) ->
     throw "missing callback" unless callback
     record = new @(id)
-    newRecord = @_mapIdentities([record])[0]
+    newRecord = @_mapIdentity(record)
     newRecord.load callback
     return
 
@@ -1629,9 +1629,9 @@ class Batman.Model extends Batman.Object
       if err?
         callback?(err, [])
       else
-        records = @_mapIdentities(records)
+        mappedRecords = (@_mapIdentity(record) for record in records)
         do @loaded
-        callback?(err, records)
+        callback?(err, mappedRecords)
 
   # `create` takes an attributes hash, creates a record from it, and saves it given the callback.
   @create: (attrs, callback) ->
@@ -1641,38 +1641,27 @@ class Batman.Model extends Batman.Object
     obj.save(callback)
     obj
 
-  # `findOrLoad` takes an attributes hash, optionally containing a primary key, and returns to you a saved record
+  # `findOrCreate` takes an attributes hash, optionally containing a primary key, and returns to you a saved record
   # representing those attributes, either from the server or from the identity map.
   @findOrCreate: (attrs, callback) ->
     record = new this(attrs)
     if record.isNew()
       record.save(callback)
     else
-      foundRecord = @_mapIdentities([record])[0]
+      foundRecord = @_mapIdentity(record)
       foundRecord.updateAttributes(attrs)
       callback(undefined, foundRecord)
 
-  @_mapIdentities: (records) ->
-    all = @get('loaded').toArray()
-    newRecords = []
-    returnRecords = []
-    for record in records
-      continue if typeof record is 'undefined'
-      if typeof (id = record.get('id')) == 'undefined' || id == ''
-        returnRecords.push record
+  @_mapIdentity: (record) ->
+    if typeof (id = record.get('id')) == 'undefined' || id == ''
+      return record
+    else
+      existing = @get("loaded.indexedBy.id").get(id).toArray()[0]
+      if existing
+        return existing
       else
-        existingRecord = false
-        for potential in all
-          if record.get('id') == potential.get('id')
-            existingRecord = potential
-            break
-        if existingRecord
-          returnRecords.push existingRecord
-        else
-          newRecords.push record
-          returnRecords.push record
-    @get('loaded').add(newRecords...) if newRecords.length > 0
-    returnRecords
+        @get('loaded').add(record)
+        return record
 
   # ### Record API
 
@@ -1811,8 +1800,9 @@ class Batman.Model extends Batman.Object
 
     do @loading
     @_doStorageOperation 'read', {}, (err, record) =>
-      do @loaded unless err
-      record = @constructor._mapIdentities([record])[0]
+      unless err
+        do @loaded
+        record = @constructor._mapIdentity(record)
       callback?(err, record)
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
@@ -1835,7 +1825,7 @@ class Batman.Model extends Batman.Object
             do @created
           do @saved
           @dirtyKeys.clear()
-          record = @constructor._mapIdentities([record])[0]
+          record = @constructor._mapIdentity(record)
         callback?(err, record)
 
   # `destroy` destroys a record in all the stores.
