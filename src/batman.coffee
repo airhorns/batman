@@ -119,6 +119,12 @@ Batman._functionName = $functionName = (f) ->
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
+Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
+  if elem.removeEventListener
+    elem.removeEventListener eventType, handler, false
+  else if elem.detachEvent
+    elem.detachEvent 'on'+eventType, handler
+
 # Helpers
 # -------
 
@@ -1343,8 +1349,8 @@ class Batman.HashHistory extends Batman.HistoryManager
   stop: =>
     if @interval
       @interval = clearInterval @interval
-    else
-      window.removeEventListener 'hashchange', @parseHash, false
+    else 
+      $removeEventListener window, 'hashchange', @parseHash
 
     @started = no
 
