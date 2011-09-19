@@ -948,14 +948,14 @@ class Batman.SortableSet extends Batman.Set
       @setWasSorted(@)
   setWasSorted: @event ->
     return false if @length is 0
-  add: ->
-    results = super
-    @_reIndex()
-    results
-  remove: ->
-    results = super
-    @_reIndex()
-    results
+
+  for k in ['add', 'remove', 'clear']
+    do (k) =>
+      @::[k] = ->
+        results = Batman.Set::[k].apply(@, arguments)
+        @_reIndex()
+        results
+
   addIndex: (index) ->
     @_reIndex(index)
   removeIndex: (index) ->
@@ -1811,6 +1811,7 @@ class Batman.Model extends Batman.Object
     if @state() in ['destroying', 'destroyed']
       callback?(new Error("Can't save a destroyed record!"))
       return
+
     @validate (isValid, errors) =>
       if !isValid
         callback?(errors)
@@ -2857,7 +2858,7 @@ Batman.DOM = {
         # and only observe the new collection.
         if oldCollection
           return if collection == oldCollection
-          nodeMap.forEach (item, node) -> parent.removeChild node
+          nodeMap.forEach (item, node) -> parent.removeChild node if node.parentNode
           nodeMap.clear()
           if oldCollection.forget
             oldCollection.forget 'itemsWereAdded', observers.add

@@ -89,6 +89,12 @@ test "remove(item) updates the indexes", ->
   ok ary[0] is @freds
   ok ary[1] is @zekes
 
+test "clear() updates the indexes", ->
+  @set.sortBy 'owner.name'
+  @set.clear()
+  ary = @set.toArray()
+  equal ary.length, 0
+
 test "undefined values have undefined sort order, but don't explode anything", ->
   noOwner = Batman
     id: 3
