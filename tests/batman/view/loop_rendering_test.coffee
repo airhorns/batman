@@ -45,8 +45,10 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
     # multiple reordering all at once should not end up with duplicate DOM nodes
     context.set 'currentSort', 'name'
     delay =>
+      ($('p', view.get('node')).map -> @innerHTML)
       context.set 'currentSort', 'id'
       delay =>
+        ($('p', view.get('node')).map -> @innerHTML)
         context.set 'currentSort', 'name'
         delay =>
           names = ($('p', view.get('node')).map -> @innerHTML).toArray()

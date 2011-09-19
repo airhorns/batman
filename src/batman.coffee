@@ -1656,7 +1656,7 @@ class Batman.Model extends Batman.Object
     if typeof (id = record.get('id')) == 'undefined' || id == ''
       return record
     else
-      existing = @get("loaded.indexedBy.id").get(id).toArray()[0]
+      existing = @get("loaded.indexedBy.id").get(id)?.toArray()[0]
       if existing
         return existing
       else
@@ -2858,7 +2858,7 @@ Batman.DOM = {
         # and only observe the new collection.
         if oldCollection
           return if collection == oldCollection
-          nodeMap.forEach (item, node) -> parent.removeChild node if node.parentNode
+          nodeMap.forEach (item, node) -> node.parentNode?.removeChild node
           nodeMap.clear()
           if oldCollection.forget
             oldCollection.forget 'itemsWereAdded', observers.add
