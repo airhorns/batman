@@ -17,6 +17,7 @@ Batman = (mixins...) ->
 # like `String`, `Array`, or `Object`. Note that only `Object` will be returned for
 # the entire prototype chain.
 Batman.typeOf = $typeOf = (object) ->
+  return "Undefined" if typeof object == 'undefined'
   _objectToString.call(object).slice(8, -1)
 
 # Cache this function to skip property lookups.
