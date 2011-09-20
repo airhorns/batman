@@ -122,11 +122,11 @@ Batman._functionName = $functionName = (f) ->
 
 
 # `$removeEventListener` uses detachEvent when necessary
-Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
-  if elem.removeEventListener
-    elem.removeEventListener eventType, handler, false
-  else if elem.detachEvent
-    elem.detachEvent 'on'+eventType, handler
+Batman._removeEventListener = $removeEventListener =
+  if (div = document.createElement('div')).removeEventListener
+    (elem, eventType, handler) -> elem.removeEventListener eventType, handler, false
+  else if div.detachEvent
+    (elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler
 
 # `$preventDefault` checks for preventDefault, since it's not
 # always available across all browsers
