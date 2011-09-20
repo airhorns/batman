@@ -132,6 +132,13 @@ Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) 
 Batman._preventDefault = $preventDefault = (e) ->
   e.preventDefault?()
 
+Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
+  node = childNode.parentNode
+  while node
+    return true if node == parentNode
+    node = node.parentNode
+  false
+
 # Helpers
 # -------
 
@@ -3098,8 +3105,10 @@ Batman.DOM = {
     contents[name] = node
 
     if (yield = Batman.DOM._yields?[name])
+      content = if $isChildOf(yield, node) then node.cloneNode(true) else node
       yield.innerHTML = ''
-      yield.appendChild(node) if node
+      yield.appendChild(content) if content
+
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
