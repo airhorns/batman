@@ -29,7 +29,7 @@ window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
   if evt.initKeyEvent
     evt.initKeyEvent(eventName, true, true, window, 0, 0, 0, 0, keyCode, keyCode)
   else if evt.initKeyboardEvent
-    evt.initKeyboardEvent(eventName, true, true, window, keyIdentifers[keyCode], keyIdentifers[keyCode])
+    evt.initKeyboardEvent(eventName, true, true, window, keyIdentifers[keyCode], keyIdentifers[keyCode], false, false, keyCode, keyCode)
   else
     # JSDOM doesn't yet implement KeyboardEvents...  We'll simulate them instead.
     evt._type = eventName
