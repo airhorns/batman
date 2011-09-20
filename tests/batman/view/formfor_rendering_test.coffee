@@ -29,6 +29,7 @@ asyncTest 'it should update objects when form rendering', 1, ->
 
   node = helpers.render source, context, (node) =>
     $('input', node).val('new name')
+    # FIXME passes in IE8 with childNodes[0] because it doesn't have Text nodes
     helpers.triggerChange(node[0].childNodes[1])
     delay =>
       equals @User.lastInstance.name, "new name"
