@@ -66,7 +66,6 @@ asyncTest "new instances should be added to the identity map even if no callback
     throw err if err?
     equal @Product.get('loaded.length'), 1
 
-
 test "existing instances shouldn't be re added to the identity map", ->
   product = new @Product(10)
   product.load (err, product) =>
@@ -75,6 +74,14 @@ test "existing instances shouldn't be re added to the identity map", ->
     product.save (err, product) =>
       throw err if err?
       equal @Product.get('all.length'), 1
+
+test "existing instances should be updated with incoming attributes", ->
+  @adapter.storage = {"products10": {name: "override"}}
+  product = new @Product(id: 10, name: "underneath")
+  product.load (err, product) =>
+    throw err if err
+    equal product.get('name'), 'override'
+
 
 test "model instances should throw if they can't be saved", ->
   product = new @Product()

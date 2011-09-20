@@ -1706,6 +1706,7 @@ class Batman.Model extends Batman.Object
     else
       existing = @get("loaded.indexedBy.id").get(id)?.toArray()[0]
       if existing
+        existing.updateAttributes(record._batman.attributes || {})
         return existing
       else
         @get('loaded').add(record)
