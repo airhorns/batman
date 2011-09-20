@@ -2428,7 +2428,6 @@ class Batman.Renderer extends Batman.Object
 
       for readerArgs in bindings.sort(sortBindings)
         key = readerArgs[1]
-        throw "property is a reserved keyword" if key == 'property'
         result = if readerArgs.length == 2
           Batman.DOM.readers[readerArgs[0]]?(node, key, @context, @)
         else
