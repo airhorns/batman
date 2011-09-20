@@ -3,7 +3,8 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 QUnit.module 'Batman.View simple rendering'
 
 hte = (actual, expected) ->
-  equal actual.innerHTML, expected
+  equal actual.innerHTML.toLowerCase().replace(/\n|\r/g, ""),
+    expected.toLowerCase().replace(/\n|\r/g, "")
 
 test 'it should render simple nodes', ->
   hte helpers.render("<div></div>", false), "<div></div>"
