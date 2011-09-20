@@ -6,14 +6,20 @@ else
   exports = module.exports
 
 exports.triggerChange = (domNode) ->
-  evt = document.createEvent("HTMLEvents")
-  evt.initEvent("change", true, true)
-  domNode.dispatchEvent(evt)
+  if document.createEvent
+    evt = document.createEvent("HTMLEvents")
+    evt.initEvent("change", true, true)
+    domNode.dispatchEvent(evt)
+  else if document.createEventObject
+    domNode.fireEvent 'onchange'
 
 exports.triggerClick = (domNode) ->
-  evt = document.createEvent("MouseEvents")
-  evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
-  domNode.dispatchEvent(evt)
+  if document.createEvent
+    evt = document.createEvent("MouseEvents")
+    evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+    domNode.dispatchEvent(evt)
+  else if document.createEventObject
+    domNode.fireEvent 'onclick'
 
 keyIdentifers =
   13: 'Enter'
@@ -38,9 +44,14 @@ window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
   evt
 
 exports.triggerKey = (domNode, keyCode) ->
-  domNode.dispatchEvent(_getKeyEvent("keydown", keyCode))
-  domNode.dispatchEvent(_getKeyEvent("keypress", keyCode))
-  domNode.dispatchEvent(_getKeyEvent("keyup", keyCode))
+  if document.createEvent
+    domNode.dispatchEvent(_getKeyEvent("keydown", keyCode))
+    domNode.dispatchEvent(_getKeyEvent("keypress", keyCode))
+    domNode.dispatchEvent(_getKeyEvent("keyup", keyCode))
+  else if document.createEventObject
+    domNode.fireEvent 'onkeydown', keyCode
+    domNode.fireEvent 'onkeypress', keyCode
+    domNode.fireEvent 'onkeyup', keyCode
 
 exports.withNodeInDom = (node, callback) ->
   node = $(node)
@@ -49,10 +60,12 @@ exports.withNodeInDom = (node, callback) ->
   node.remove()
 
 exports.triggerSubmit = (domNode) ->
-  # TODO: Verify portability.
-  evt = document.createEvent('HTMLEvents')
-  evt.initEvent('submit', true, true)
-  domNode.dispatchEvent(evt)
+  if document.createEvent
+    evt = document.createEvent('HTMLEvents')
+    evt.initEvent('submit', true, true)
+    domNode.dispatchEvent(evt)
+  else if document.createEventObject
+    domNode.fireEvent 'onsubmit'
 
 # Helper function for rendering a view given a context. Optionally returns a jQuery of the nodes,
 # and calls a callback with the same. Beware of the 50ms timeout when rendering views, tests should
