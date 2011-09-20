@@ -68,7 +68,8 @@ Batman.Request::send = (data) ->
         if (status >= 200 and status < 300) or status is 304
           @success data
         else
-          @error data
+          request.request = @
+          @error request
 
     # Set auth if its given
     auth = if @get 'username'

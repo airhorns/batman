@@ -29,7 +29,8 @@ Batman.Request::send = (data) ->
     error: (xhr, status, error) =>
       @set 'status', xhr.status
       @set 'response', xhr.responseText
-      @error error
+      xhr.request = @
+      @error xhr
 
     complete: =>
       @loading no
