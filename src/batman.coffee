@@ -149,15 +149,15 @@ developer =
   addFilters: ->
     $mixin Batman.Filters,
       log: (value, key) ->
-        console.log arguments if console?.log
+        console?.log? arguments
         value
 
       logStack: (value) ->
-        console.log developer.currentFilterStack
+        console?.log? developer.currentFilterStack
         value
 
       logContext: (value) ->
-        console.log developer.currentFilterContext
+        console?.log? developer.currentFilterContext
         value
 
 Batman.developer = developer
@@ -2333,7 +2333,7 @@ class Batman.View extends Batman.Object
       @set('html', viewSources[source])
     else
       new Batman.Request
-        url: "#{@prefix}/#{@source}"
+        url: url = "#{@prefix}/#{@source}"
         type: 'html'
         success: (response) =>
           viewSources[source] = response
