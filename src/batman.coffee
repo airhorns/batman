@@ -3116,7 +3116,7 @@ Batman.DOM = {
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
         Batman.DOM.addEventListener node, 'keyup', (args...) ->
-          if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter'
+          if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter' || args[0].key is 'Enter'
             callback node, args...
             $preventDefault args[0]
       else

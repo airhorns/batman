@@ -288,8 +288,7 @@ asyncTest 'it should allow submit events on inputs to be bound', 2, ->
     helpers.triggerKey(node[0].childNodes[0], 13)
     delay ->
       ok spy.called
-      # FIXME fails in IE9; triggerKey doesn't work
-      equal spy.lastCallArguments?[0], node[0].childNodes[0]
+      equal spy.lastCallArguments[0], node[0].childNodes[0]
 
 asyncTest 'it should allow form submit events to be bound', 1, ->
   context =
