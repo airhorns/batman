@@ -114,17 +114,23 @@ Batman._findName = $findName = (f, context) ->
 
   f.displayName
 
-# `functionName` returns the name of a given function, if any
+# `$functionName` returns the name of a given function, if any
 # Used to deal with functions not having the `name` property in IE
 Batman._functionName = $functionName = (f) ->
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
+# `$removeEventListener` uses detachEvent when necessary
 Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
   if elem.removeEventListener
     elem.removeEventListener eventType, handler, false
   else if elem.detachEvent
     elem.detachEvent 'on'+eventType, handler
+
+# `$preventDefault` checks for preventDefault, since it's not
+# always available across all browsers
+Batman._preventDefault = $preventDefault = (e) ->
+  e.preventDefault?()
 
 # Helpers
 # -------
@@ -2953,7 +2959,7 @@ Batman.DOM = {
 
     formfor: (node, localName, key, context) ->
       binding = context.addKeyToScopeForNode(node, key, localName)
-      Batman.DOM.events.submit node, (node, e) -> e.preventDefault()
+      Batman.DOM.events.submit node, (node, e) -> $preventDefault e
   }
 
   # `Batman.DOM.binders` contains functions used to create element bindings
@@ -3038,7 +3044,7 @@ Batman.DOM = {
     click: (node, callback) ->
       Batman.DOM.addEventListener node, 'click', (args...) ->
         callback node, args...
-        args[0].preventDefault()
+        $preventDefault args[0]
 
       if node.nodeName.toUpperCase() is 'A' and not node.href
         node.href = '#'
@@ -3068,11 +3074,11 @@ Batman.DOM = {
         Batman.DOM.addEventListener node, 'keyup', (args...) ->
           if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter'
             callback node, args...
-            args[0].preventDefault()
+            $preventDefault args[0]
       else
         Batman.DOM.addEventListener node, 'submit', (args...) ->
           callback node, args...
-          args[0].preventDefault()
+          $preventDefault args[0]
 
       node
   }
