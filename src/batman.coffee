@@ -147,10 +147,22 @@ developer =
   DevelopmentError: class extends Error
   log: -> console.log(arguments...)
   warn: -> console.warn(arguments...)
-  error: (message) -> throw new DevelopmentError(message)
+  error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) ->
     developer.error(message) unless result
   addFilters: ->
+    $mixin Batman.Filters,
+      log: (value, key) ->
+        console.log arguments if console?.log
+        value
+
+      logStack: (value) ->
+        console.log developer.currentFilterStack
+        value
+
+      logContext: (value) ->
+        console.log developer.currentFilterContext
+        value
 
 Batman.developer = developer
 
@@ -1379,7 +1391,7 @@ class Batman.HashHistory extends Batman.HistoryManager
   stop: =>
     if @interval
       @interval = clearInterval @interval
-    else 
+    else
       $removeEventListener window, 'hashchange', @parseHash
 
     @started = no
@@ -2492,21 +2504,30 @@ class Binding extends Batman.Object
 
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
-    value = @get('unfilteredValue')
+    unfilteredValue = @get('unfilteredValue')
     ctx = @get('keyContext') if @get('key')
+
     if @filterFunctions.length > 0
-      @filterFunctions.reduce((value, fn, i) =>
+      developer.currentFilterContext = ctx
+      developer.currentFilterStack = @renderContext
+
+      result = @filterFunctions.reduce((value, fn, i) =>
         # Get any argument keypaths from the context stored at parse time.
         args = @filterArguments[i].map (argument) ->
           if argument._keypath
             argument.context.get(argument._keypath)
           else
             argument
+
         # Apply the filter.
-        fn.call(ctx, value, args...)
-      , value)
+        args.unshift value
+        fn.apply(ctx, args)
+      , unfilteredValue)
+      developer.currentFilterContext = null
+      developer.currentFilterStack = null
+      result
     else
-      value
+      unfilteredValue
 
   # The `unfilteredValue` is whats evaluated each time any dependents change.
   @accessor 'unfilteredValue', ->
@@ -3214,6 +3235,8 @@ filters = Batman.Filters =
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
+
+developer.addFilters()
 
 # Data
 # ----
