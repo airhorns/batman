@@ -2,3 +2,4 @@ node_modules
 /build
 examples/test.html
 tests/batman/build/test_file.js
+tests/build
