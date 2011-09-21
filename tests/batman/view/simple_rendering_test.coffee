@@ -254,6 +254,18 @@ asyncTest 'it should allow click events to be bound', 2, ->
       # FIXME fails in IE8; lastCallArguments undefined
       equal spy.lastCallArguments[0], node[0]
 
+asyncTest 'it should allow double click events to be bound', 2, ->
+  context =
+    doSomething: spy = createSpy()
+
+  source = '<button data-event-doubleclick="doSomething"></button>'
+  helpers.render source, context, (node) ->
+    helpers.triggerDoubleClick(node[0])
+    delay ->
+      ok spy.called
+      # FIXME fails in IE8; lastCallArguments undefined
+      equal spy.lastCallArguments[0], node[0]
+
 asyncTest 'it should allow event handlers to update', 2, ->
   context = Batman
     doSomething: spy = createSpy()

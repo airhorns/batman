@@ -13,13 +13,16 @@ exports.triggerChange = (domNode) ->
   else if document.createEventObject
     domNode.fireEvent 'onchange'
 
-exports.triggerClick = (domNode) ->
+exports.triggerClick = (domNode, eventName = 'click') ->
   if document.createEvent
     evt = document.createEvent("MouseEvents")
-    evt.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
+    evt.initMouseEvent(eventName, true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
     domNode.dispatchEvent(evt)
   else if document.createEventObject
-    domNode.fireEvent 'onclick'
+    domNode.fireEvent 'on'+eventName
+
+exports.triggerDoubleClick = (domNode) ->
+  exports.triggerClick domNode, 'dblclick'
 
 keyIdentifiers =
   13: 'Enter'

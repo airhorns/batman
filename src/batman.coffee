@@ -3074,8 +3074,8 @@ Batman.DOM = {
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
-    click: (node, callback) ->
-      $addEventListener node, 'click', (args...) ->
+    click: (node, callback, eventName = 'click') ->
+      $addEventListener node, eventName, (args...) ->
         callback node, args...
         $preventDefault args[0]
 
@@ -3083,6 +3083,9 @@ Batman.DOM = {
         node.href = '#'
 
       node
+
+    doubleclick: (node, callback) ->
+      Batman.DOM.events.click node, callback, 'dblclick'
 
     change: (node, callback) ->
       eventNames = switch node.nodeName.toUpperCase()
