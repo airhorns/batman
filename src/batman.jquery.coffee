@@ -10,6 +10,7 @@
 # project already uses jQuery. It will map a few
 # batman.js methods to existing jQuery methods.
 
+
 Batman.Request::send = (data) ->
   options =
     url: @get 'url'
@@ -37,7 +38,13 @@ Batman.Request::send = (data) ->
       @loaded yes
 
   if @get('method') in ['PUT', 'POST']
-    options.contentType = @get 'contentType'
+
+    unless @get 'formData'
+      options.contentType = @get 'contentType'
+    else
+      options.contentType = false
+      options.processData = false
+      options.data = @constructor.objectToFormData(options.data)
 
   jQuery.ajax options
 

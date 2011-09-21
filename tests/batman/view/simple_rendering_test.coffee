@@ -300,7 +300,8 @@ asyncTest 'it should allow submit events on inputs to be bound', 2, ->
     helpers.triggerKey(node[0].childNodes[0], 13)
     delay ->
       ok spy.called
-      equal spy.lastCallArguments[0], node[0].childNodes[0]
+      # FIXME fails in IE9; triggerKey doesn't work
+      equal spy.lastCallArguments?[0], node[0].childNodes[0]
 
 asyncTest 'it should allow form submit events to be bound', 1, ->
   context =
@@ -399,8 +400,10 @@ asyncTest 'should bind to the value of radio buttons', ->
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
 
-asyncTest 'source should update only the binding value', 3, ->
-  source = '<input type="text" data-source="foo" value="start"/>'
+QUnit.module 'one-way bindings'
+
+asyncTest 'read should update only the binding value', 3, ->
+  source = '<input type="text" data-read="foo" value="start"/>'
   context = Batman foo: null
   helpers.render source, context, (node) ->
     node = node[0]
@@ -412,4 +415,47 @@ asyncTest 'source should update only the binding value', 3, ->
       context.set 'foo', 'baz'
       delay =>
         equal node.value, 'bar'
+
+asyncTest 'write should update only the bound node', 3, ->
+  source = '<input type="text" data-write="foo" value="start"/>'
+  context = Batman foo: 'bar'
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.value, 'bar'
+    node.value = 'baz'
+    helpers.triggerChange node
+    delay =>
+      equal context.get('foo'), 'bar'
+      context.set 'foo', 'end'
+      delay =>
+        equal node.value, 'end'
+
+asyncTest 'attribute write should update only the bound attribute', 3, ->
+  source = '<input type="text" data-write-width="foo.width" value="start" width="10"/>'
+  context = Batman
+    foo: Batman
+      width: 20
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.getAttribute('width'), '20'
+    node.setAttribute 'width', 30
+    helpers.triggerChange node
+    delay =>
+      equal context.get('foo.width'), 20
+      context.set 'foo.width', 40
+      delay =>
+        equal node.getAttribute('width'), '40'
+
+asyncTest 'data-write and data-read work correctly on the same node', ->
+  source = '<input type="text" data-read="there" data-write="here" value="start"/>'
+  context = Batman here: 'here', there: ''
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.value, 'here'
+    equal context.get('there'), ''
+    node.value = 'there'
+    helpers.triggerChange node
+    delay =>
+      equal context.get('there'), 'there'
+      equal context.get('here'), 'here'
 

@@ -51,3 +51,59 @@ asyncTest 'should call the success callback if the request was successful', 1, -
 
     delay =>
       deepEqual observer.lastCallArguments, ['some test data']
+
+if typeof FormData isnt 'undefined'
+  oldFormData = FormData
+else
+  oldFormData = {}
+
+class MockFormData extends MockClass
+  constructor: ->
+    super
+    @appended = []
+    @appends = 0
+  append: (k, v) ->
+    @appends++
+    @appended.push [k, v]
+
+container = (if typeof IN_NODE isnt undefined && IN_NODE then global else window)
+QUnit.module 'Batman.Request: serializing to FormData'
+  setup: ->
+    container.FormData = MockFormData
+    MockFormData.reset()
+  teardown: ->
+    container.FormData = oldFormData
+
+test 'should serialize simple data to FormData objects', ->
+  object =
+    foo: "bar"
+
+  formData = Batman.Request.objectToFormData(object)
+  deepEqual formData.appended, [["foo", "bar"]]
+
+test 'should serialize array data to FormData objects', ->
+  object =
+    foo: ["bar", "baz"]
+
+  formData = Batman.Request.objectToFormData(object)
+  deepEqual formData.appended, [["foo[]", "bar"], ["foo[]", "baz"]]
+
+test 'should serialize object data to FormData objects', ->
+  object =
+    foo:
+      bar: "baz"
+      qux: "corge"
+
+  formData = Batman.Request.objectToFormData(object)
+  deepEqual formData.appended, [["foo[bar]", "baz"], ["foo[qux]", "corge"]]
+
+test 'should serialize nested object and array data to FormData objects', ->
+  object =
+    foo:
+      bar: ["baz", "qux"]
+    corge: [{ding: "dong"}, {walla: "walla"}]
+
+  formData = Batman.Request.objectToFormData(object)
+  deepEqual formData.appended, [["foo[bar][]", "baz"], ["foo[bar][]", "qux"], ["corge[][ding]", "dong"], ["corge[][walla]", "walla"]]
+
+

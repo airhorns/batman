@@ -122,6 +122,13 @@ Batman._functionName = $functionName = (f) ->
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
 
+# `$removeEventListener` uses detachEvent when necessary
+Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
+  if elem.removeEventListener
+    elem.removeEventListener eventType, handler, false
+  else if elem.detachEvent
+    elem.detachEvent 'on'+eventType, handler
+
 # `$preventDefault` checks for preventDefault, since it's not
 # always available across all browsers
 Batman._preventDefault = $preventDefault = (e) ->
@@ -136,14 +143,20 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
 
 # Developer Tooling
 # -----------------
-_ie_console = (f, args) ->
-  console[f] "...#{f} of #{args.length} items..." unless args.length == 1
-  console[f] arg for arg in args
 
 developer =
-  DevelopmentError: class extends Error
-  log: -> if console.log.apply then console.log(arguments...) else _ie_console "log", arguments
-  warn: -> if console.warn.apply then console.warn(arguments...) else _ie_console "warn", arguments
+  DevelopmentError: (@message) ->
+    @:: = Error::
+    @name = "DevelopmentError"
+  _ie_console: (f, args) ->
+    console?[f] "...#{f} of #{args.length} items..." unless args.length == 1
+    console?[f] arg for arg in args
+  log: ->
+    return unless console?.log?
+    if console.log.apply then console.log(arguments...) else _ie_console "log", arguments
+  warn: ->
+    return unless console?.warn?
+    if console.warn.apply then console.warn(arguments...) else _ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) -> developer.error(message) unless result
   addFilters: ->
@@ -1113,9 +1126,31 @@ _stateMachine_setState = (newState) ->
 
 # `Batman.Request` is a normalizer for XHR requests in the Batman world.
 class Batman.Request extends Batman.Object
+  @objectToFormData: (data) ->
+    pairForList = (key, object, first = false) ->
+      list = switch Batman.typeOf(object)
+        when 'Object'
+          list = for k, v of object
+            pairForList((if first then k else "#{key}[#{k}]"), v)
+          list.reduce((acc, list) ->
+            acc.concat list
+          , [])
+        when 'Array'
+          object.reduce((acc, element) ->
+            acc.concat pairForList("#{key}[]", element)
+          , [])
+        else
+          [[key, object]]
+
+    formData = new FormData()
+    for [key, val] in pairForList("", data, true)
+      formData.append(key, val)
+    formData
+
   url: ''
   data: ''
   method: 'get'
+  formData: false
   response: null
   status: null
 
@@ -2261,6 +2296,9 @@ class Batman.RestStorage extends Batman.StorageAdapter
       if err
         callback(err)
         return
+      if recordsOptions && recordsOptions.url
+        options.url = recordsOptions.url
+        delete recordsOptions.url
 
       new Batman.Request $mixin options,
         data: recordsOptions
@@ -2557,14 +2595,14 @@ class Binding extends Batman.Object
     shouldSet = yes
 
     # And attach them.
-    if Batman.DOM.nodeIsEditable(@node)
+    if @only != 'write' and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
         @nodeChange(@node, @_keyContext || @value, @)
         shouldSet = yes
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     @observe 'filteredValue', yes, (value) =>
-      if shouldSet and @only != 'source'
+      if shouldSet and @only != 'read'
         @dataChange(value, @node, @)
     @
 
@@ -2684,7 +2722,7 @@ class RenderContext
   # This is good because it allows `data-context` to take filtered keys and even filters which take
   # keypath arguments, calculate the context to descend into when any of those keys change, and importantly
   # expose a friendly `Batman.Object` interface for the rest of the `Binding` code to work with.
-  class BindingProxy extends Batman.Object
+  @BindingProxy = class BindingProxy extends Batman.Object
     isBindingProxy: true
     # Take the `binding` which needs to be proxied, and optionally rest it at the `localKey` scope.
     constructor: (@binding, @localKey) ->
@@ -2712,7 +2750,7 @@ class RenderContext
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
   # when appropriate. Note that `Binding` has default observers for `dataChange` and `nodeChange` that
   # will set node/object values if these observers aren't passed in here.
-  # The optional `only` parameter can be used to create a source-only binding. If left unset,
+  # The optional `only` parameter can be used to create read-only or write-only bindings. If left unset,
   # both read and write events are observed.
   bind: (only, node, key, dataChange, nodeChange) ->
     if !nodeChange and only and typeof only != 'string'
@@ -2730,18 +2768,27 @@ Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    source: (node, key, context, renderer) ->
-      Batman.DOM.readers.bind(node, key, context, renderer, 'source')
+    read: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'read')
+
+    write: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'write')
 
     bind: (node, key, context, renderer, only) ->
-      if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
-        Batman.DOM.attrReaders.bind(node, 'checked', key, context, only)
-      else if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'radio'
-        Batman.DOM.binders.radio node, key, context, renderer, only
-      else if node.nodeName.toLowerCase() == 'select'
-        Batman.DOM.binders.select node, key, context, renderer, only
-      else
-        context.bind(only, node, key)
+      switch node.nodeName.toLowerCase()
+        when 'input'
+          switch node.getAttribute('type')
+            when 'checkbox'
+              return Batman.DOM.attrReaders.bind(node, 'checked', key, context, only)
+            when 'radio'
+              return Batman.DOM.binders.radio(arguments...)
+            when 'file'
+              return Batman.DOM.binders.file(arguments...)
+        when 'select'
+          return Batman.DOM.binders.select(arguments...)
+
+      # Fallback on the default nodeChange and dataChange observers in Binding
+      context.bind(only, node, key)
 
     context: (node, key, context) -> context.addKeyToScopeForNode(node, key)
 
@@ -2822,6 +2869,9 @@ Batman.DOM = {
       if value is 'false' then value = false
       if value is 'true' then value = true
       value
+
+    write: (node, attr, key, context) ->
+      Batman.DOM.attrReaders.bind node, attr, key, context, 'write'
 
     bind: (node, attr, key, context, only) ->
       switch attr
@@ -3070,6 +3120,24 @@ Batman.DOM = {
       nodeChange = (newNode, subContext) ->
         subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
       context.bind only, node, key, contextChange, nodeChange
+
+    file: (node, key, context, renderer, only) ->
+      context.bind(only, node, key, ->
+        developer.warn "Can't write to file inputs! Tried to on key #{key}."
+      , (node, subContext) ->
+        if subContext instanceof RenderContext.BindingProxy
+          actualObject = subContext.binding.get('filteredValue')
+        else
+          actualObject = subContext
+        if actualObject.hasStorage && actualObject.hasStorage()
+          for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
+            adapter.defaultOptions.formData = true
+
+        if node.hasAttribute('multiple')
+          subContext.set key, Array::slice.call(node.files)
+        else
+          subContext.set key, node.files[0]
+      )
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
@@ -3110,12 +3178,12 @@ Batman.DOM = {
       if Batman.DOM.nodeIsEditable(node)
         $addEventListener node, 'keyup', (args...) ->
           if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter' || args[0].key is 'Enter'
-            callback node, args...
             $preventDefault args[0]
+            callback node, args...
       else
         $addEventListener node, 'submit', (args...) ->
-          callback node, args...
           $preventDefault args[0]
+          callback node, args...
 
       node
   }

@@ -344,13 +344,16 @@ Batman.Request::send = (data) ->
       @loading no
       @loaded yes
 
-  options.headers['Content-type'] = @get 'contentType' if options.method in ['PUT', 'POST']
-  data = data || @get('data')
-  if data
-    if options.method is 'GET'
-      options.url += param(data)
+  if options.method in ['PUT', 'POST']
+    unless @get('formData')
+      options.headers['Content-type'] = @get 'contentType'
+      data = data || @get('data')
+      if options.method is 'GET'
+        options.url += param(data)
+      else
+        options.data = param(data)
     else
-      options.data = param(data)
+      options.data = @constructor.objectToFormData(options.data)
 
   # Fires the request. Grab a reference to the xhr object so we can get the status code elsewhere.
   xhr = (reqwest options).request
