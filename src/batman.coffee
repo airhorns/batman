@@ -142,14 +142,16 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
 
 # Developer Tooling
 # -----------------
+_ie_console = (f, args) ->
+  console[f] "...#{f} of #{args.length} items..." unless args.length == 1
+  console[f] arg for arg in args
 
 developer =
   DevelopmentError: class extends Error
-  log: -> console.log(arguments...)
-  warn: -> console.warn(arguments...)
+  log: -> if console.log.apply then console.log(arguments...) else _ie_console "log", arguments
+  warn: -> if console.warn.apply then console.warn(arguments...) else _ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
-  assert: (result, message) ->
-    developer.error(message) unless result
+  assert: (result, message) -> developer.error(message) unless result
   addFilters: ->
     $mixin Batman.Filters,
       log: (value, key) ->
