@@ -121,13 +121,6 @@ Batman._functionName = $functionName = (f) ->
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
 
-# `$removeEventListener` uses detachEvent when necessary
-Batman._removeEventListener = $removeEventListener =
-  if (div = document.createElement('div')).removeEventListener
-    (elem, eventType, handler) -> elem.removeEventListener eventType, handler, false
-  else if div.detachEvent
-    (elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler
-
 # `$preventDefault` checks for preventDefault, since it's not
 # always available across all browsers
 Batman._preventDefault = $preventDefault = (e) ->
@@ -3167,6 +3160,11 @@ Batman.DOM = {
       node.attachEvent "on#{eventName}", callback
 }
 
+
+# `$removeEventListener` uses detachEvent when necessary
+Batman.DOM.removeEventListener = $removeEventListener =
+  if window?.removeEventListener then ((elem, eventType, handler) -> elem.removeEventListener eventType, handler, false)
+  else ((elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler)
 
 # Filters
 # -------
