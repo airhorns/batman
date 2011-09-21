@@ -79,6 +79,46 @@ asyncTest 'should update bindings when argument keypaths change', 1, ->
     delay ->
       equals node.html(), '1-2-3'
 
+asyncTest 'it shouldn\'t update the data object if value bindings are filtered', 3, ->
+  context = new Batman.Object
+
+  # Define an accessor on a normal key
+  context.accessor "one"
+    get: getSpy = createSpy().whichReturns("abcabcabc")
+    set: setSpy = createSpy().whichReturns("defdefdef")
+
+  # Try it without a filter
+  helpers.render '<textarea data-bind="one"></textarea>', context, (node) ->
+    node.val('defdefdef')
+    helpers.triggerChange(node.get(0))
+    delay =>
+      equal node.val(), 'defdefdef'
+      ok getSpy.called
+      ok setSpy.called
+
+asyncTest 'it should update the data object if value bindings aren\'t filtered', 5, ->
+  # Try it with a filter
+  context = new Batman.Object
+    one: "abcabcabcabcabc"
+
+  context.accessor "one"
+    get: getSpy = createSpy().whichReturns("abcabcabc")
+    set: setSpy = createSpy().whichReturns("defdefdef")
+
+  context.accessor
+    get: defaultGetSpy = createSpy()
+    set: defaultSetSpy = createSpy()
+
+  helpers.render '<textarea data-bind="one | truncate 5"></textarea>', context, (node) ->
+    node.val('defdefdefdef')
+    helpers.triggerChange(node.get(0))
+    delay =>
+      equal node.val(), 'defdefdefdef'
+      ok getSpy.called
+      ok !setSpy.called
+      ok !defaultGetSpy.called
+      ok !defaultSetSpy.called
+
 asyncTest 'should allow filtered keypaths as arguments to context', 1, ->
   context = Batman
     foo: Batman

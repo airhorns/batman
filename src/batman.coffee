@@ -2587,7 +2587,7 @@ class Binding extends Batman.Object
 
     # Define the default observers.
     @nodeChange ||= (node, context) =>
-      if @key
+      if @key && @filterFunctions.length == 0
         @get('keyContext').set @key, @node.value
     @dataChange ||= (value, node) ->
       Batman.DOM.valueForNode @node, value

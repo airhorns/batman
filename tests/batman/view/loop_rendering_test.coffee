@@ -60,9 +60,10 @@ asyncTest 'it should add items in order', ->
   helpers.render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
     delay =>
-      names = $('p', view.get('node')).map -> @innerHTML
-      names = names.toArray()
-      deepEqual names, ['zero', 'foo', 'bar']
+      delay =>
+        names = $('p', view.get('node')).map -> @innerHTML
+        names = names.toArray()
+        deepEqual names, ['zero', 'foo', 'bar']
 
 asyncTest 'the ready event should wait for all children to be rendered', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
