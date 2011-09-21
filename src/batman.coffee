@@ -1375,7 +1375,7 @@ class Batman.HashHistory extends Batman.HistoryManager
     @started = yes
 
     if 'onhashchange' of window
-      Batman.DOM.addEventListener window, 'hashchange', @parseHash
+      $addEventListener window, 'hashchange', @parseHash
     else
       @interval = setInterval @parseHash, 100
 
@@ -3075,7 +3075,7 @@ Batman.DOM = {
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
     click: (node, callback) ->
-      Batman.DOM.addEventListener node, 'click', (args...) ->
+      $addEventListener node, 'click', (args...) ->
         callback node, args...
         $preventDefault args[0]
 
@@ -3099,17 +3099,17 @@ Batman.DOM = {
         else ['change']
 
       for eventName in eventNames
-        Batman.DOM.addEventListener node, eventName, (args...) ->
+        $addEventListener node, eventName, (args...) ->
           callback node, args...
 
     submit: (node, callback) ->
       if Batman.DOM.nodeIsEditable(node)
-        Batman.DOM.addEventListener node, 'keyup', (args...) ->
+        $addEventListener node, 'keyup', (args...) ->
           if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter' || args[0].key is 'Enter'
             callback node, args...
             $preventDefault args[0]
       else
-        Batman.DOM.addEventListener node, 'submit', (args...) ->
+        $addEventListener node, 'submit', (args...) ->
           callback node, args...
           $preventDefault args[0]
 
@@ -3152,14 +3152,12 @@ Batman.DOM = {
         if isSetting then (node.innerHTML = value) else node.innerHTML
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA', 'SELECT']
-
-  addEventListener: (node, eventName, callback) ->
-    if node.addEventListener
-      node.addEventListener eventName, callback, false
-    else
-      node.attachEvent "on#{eventName}", callback
 }
 
+# `$addEventListener uses attachEvent when necessary
+Batman.DOM.addEventListener = $addEventListener = 
+  if window?.addEventListener then ((node, eventName, callback) -> node.addEventListener eventName, callback, false)
+  else ((node, eventName, callback) -> node.attachEvent "on#{eventName}", callback)
 
 # `$removeEventListener` uses detachEvent when necessary
 Batman.DOM.removeEventListener = $removeEventListener =
