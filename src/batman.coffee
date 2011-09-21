@@ -2561,14 +2561,14 @@ class Binding extends Batman.Object
     shouldSet = yes
 
     # And attach them.
-    if @only != 'write' and Batman.DOM.nodeIsEditable(@node)
+    if Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
         @nodeChange(@node, @_keyContext || @value, @)
         shouldSet = yes
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     @observe 'filteredValue', yes, (value) =>
-      if shouldSet and @only != 'read'
+      if shouldSet and @only != 'source'
         @dataChange(value, @node, @)
     @
 
@@ -2716,7 +2716,7 @@ class RenderContext
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
   # when appropriate. Note that `Binding` has default observers for `dataChange` and `nodeChange` that
   # will set node/object values if these observers aren't passed in here.
-  # The optional `only` parameter can be used to create read-only or write-only bindings. If left unset,
+  # The optional `only` parameter can be used to create a source-only binding. If left unset,
   # both read and write events are observed.
   bind: (only, node, key, dataChange, nodeChange) ->
     if !nodeChange and only and typeof only != 'string'
@@ -2734,11 +2734,8 @@ Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    read: (node, key, context, renderer) ->
-      Batman.DOM.readers.bind(node, key, context, renderer, 'read')
-
-    write: (node, key, context, renderer) ->
-      Batman.DOM.readers.bind(node, key, context, renderer, 'write')
+    source: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'source')
 
     bind: (node, key, context, renderer, only) ->
       if node.nodeName.toLowerCase() == 'input' and node.getAttribute('type') == 'checkbox'
@@ -2829,9 +2826,6 @@ Batman.DOM = {
       if value is 'false' then value = false
       if value is 'true' then value = true
       value
-
-    write: (node, attr, key, context) ->
-      Batman.DOM.attrReaders.bind node, attr, key, context, 'write'
 
     bind: (node, attr, key, context, only) ->
       switch attr
