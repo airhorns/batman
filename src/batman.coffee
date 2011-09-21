@@ -117,6 +117,7 @@ Batman._findName = $findName = (f, context) ->
 # `$functionName` returns the name of a given function, if any
 # Used to deal with functions not having the `name` property in IE
 Batman._functionName = $functionName = (f) ->
+  return f.__name__ if f.__name__
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
