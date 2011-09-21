@@ -3300,7 +3300,7 @@ developer.addFilters()
 $mixin Batman,
   cache: {}
   uuid: 0
-  expando: ("batman" + Math.random()).replace /\D/g, ''
+  expando: "batman" + Math.random().toString().replace(/\D/g, '')
   canDeleteExpando: true
   noData: # these throw exceptions if you attempt to add expandos to them
     "embed": true,
