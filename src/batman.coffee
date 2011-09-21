@@ -2386,7 +2386,7 @@ class Batman.View extends Batman.Object
 class Batman.Renderer extends Batman.Object
 
   constructor: (@node, callback, contexts = []) ->
-    super
+    super()
     @parsed callback if callback?
     @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)
     setTimeout @start, 0
