@@ -36,7 +36,7 @@ Batman.Request::send = (data) ->
       @loading no
       @loaded yes
 
-  if @get 'method' in ['PUT', 'POST']
+  if @get('method') in ['PUT', 'POST']
     options.contentType = @get 'contentType'
 
   jQuery.ajax options
