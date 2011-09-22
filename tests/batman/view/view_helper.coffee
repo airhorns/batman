@@ -28,30 +28,40 @@ keyIdentifiers =
   13: 'Enter'
 
 window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
-  evt = document.createEvent("KeyboardEvent")
-  if evt.initKeyEvent
-    evt.initKeyEvent(eventName, true, true, window, 0, 0, 0, 0, keyCode, keyCode)
-  else if evt.initKeyboardEvent
-    evt.initKeyboardEvent(eventName, true, true, window, keyIdentifiers[keyCode], keyIdentifiers[keyCode], false, false, keyCode, keyCode)
-  else
-    # JSDOM doesn't yet implement KeyboardEvents...  We'll simulate them instead.
-    evt._type = eventName
-    evt._bubbles = true
-    evt._cancelable = true
-    evt._target = window
-    evt._currentTarget = null
-    evt._keyIdentifier = keyIdentifiers[keyCode]
-    evt._keyLocation = keyIdentifiers[keyCode]
-    evt.which = evt.keyCode = keyCode
+  if document.createEvent
+    evt = document.createEvent "KeyboardEvent"
+
+    if evt.initKeyEvent
+      evt.initKeyEvent(eventName, true, true, window, 0, 0, 0, 0, keyCode, keyCode)
+    else if evt.initKeyboardEvent
+      evt.initKeyboardEvent(eventName, true, true, window, keyIdentifiers[keyCode], keyIdentifiers[keyCode], false, false, keyCode, keyCode)
+    else
+      # JSDOM doesn't yet implement KeyboardEvents...  We'll simulate them instead.
+      evt._type = eventName
+      evt._bubbles = true
+      evt._cancelable = true
+      evt._target = window
+      evt._currentTarget = null
+      evt._keyIdentifier = keyIdentifiers[keyCode]
+      evt._keyLocation = keyIdentifiers[keyCode]
+      evt.which = evt.keyCode = keyCode
+
+  else if document.createEventObject
+    # IE 8 land
+    evt = document.createEventObject("KeyboardEvent")
+    evt.type = eventName
+    evt.cancelBubble = false
+    evt.keyCode = keyCode
 
   evt
 
 exports.triggerKey = (domNode, keyCode) ->
   for eventName in ["keydown", "keypress", "keyup"]
+    event = _getKeyEvent(eventName, keyCode)
     if document.createEvent
-      domNode.dispatchEvent(_getKeyEvent(eventName, keyCode))
+      domNode.dispatchEvent event
     else if document.createEventObject
-      domNode.fireEvent 'on'+eventName, keyCode
+      domNode.fireEvent 'on'+eventName, event
 
 exports.withNodeInDom = (node, callback) ->
   node = $(node)

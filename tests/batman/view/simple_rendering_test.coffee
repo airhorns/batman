@@ -251,7 +251,6 @@ asyncTest 'it should allow click events to be bound', 2, ->
     helpers.triggerClick(node[0])
     delay ->
       ok spy.called
-      # FIXME fails in IE8; lastCallArguments undefined
       equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow double click events to be bound', 2, ->
@@ -263,7 +262,6 @@ asyncTest 'it should allow double click events to be bound', 2, ->
     helpers.triggerDoubleClick(node[0])
     delay ->
       ok spy.called
-      # FIXME fails in IE8; lastCallArguments undefined
       equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow event handlers to update', 2, ->
@@ -323,7 +321,6 @@ asyncTest 'allows data-event-click attributes to reference native model properti
     helpers.triggerClick(node[0])
     delay ->
       ok spy.called
-      # FIXME fails in IE8; spy.lastCallArguments undefined
       equal spy.lastCallArguments[0], node[0]
 
 asyncTest 'it should allow mixins to be applied', 1, ->
