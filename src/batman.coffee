@@ -145,10 +145,10 @@ developer =
     console?[f] arg for arg in args
   log: ->
     return unless console?.log?
-    if console.log.apply then console.log(arguments...) else _ie_console "log", arguments
+    if console.log.apply then console.log(arguments...) else developer._ie_console "log", arguments
   warn: ->
     return unless console?.warn?
-    if console.warn.apply then console.warn(arguments...) else _ie_console "warn", arguments
+    if console.warn.apply then console.warn(arguments...) else developer._ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) -> developer.error(message) unless result
   addFilters: ->
