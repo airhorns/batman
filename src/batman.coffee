@@ -121,14 +121,6 @@ Batman._functionName = $functionName = (f) ->
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
-
-# `$removeEventListener` uses detachEvent when necessary
-Batman._removeEventListener = $removeEventListener = (elem, eventType, handler) ->
-  if elem.removeEventListener
-    elem.removeEventListener eventType, handler, false
-  else if elem.detachEvent
-    elem.detachEvent 'on'+eventType, handler
-
 # `$preventDefault` checks for preventDefault, since it's not
 # always available across all browsers
 Batman._preventDefault = $preventDefault = (e) ->
