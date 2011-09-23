@@ -1478,7 +1478,6 @@ Batman.App.classMixin
     @route "#{resource}/new", "#{controller}#new", resource: controller, action: 'new'
     @route "#{resource}/:id", "#{controller}#show", resource: controller, action: 'show'
     @route "#{resource}/:id/edit", "#{controller}#edit", resource: controller, action: 'edit'
-    @route "#{resource}/:id/destroy", "#{controller}#destroy", resource: controller, action: 'destroy'
 
     if callback
       app = @
