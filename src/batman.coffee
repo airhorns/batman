@@ -2823,8 +2823,9 @@ Batman.DOM = {
           name = helpers.underscore(helpers.pluralize($functionName(model.constructor)))
           url = dispatcher.findUrl({resource: name, id: model.get('id'), action: action})
         else if model?.prototype # TODO write test for else case
+          action ||= 'index'
           name = helpers.underscore(helpers.pluralize($functionName(model)))
-          url = dispatcher.findUrl({resource: name, action: 'index'})
+          url = dispatcher.findUrl({resource: name, action: action})
 
       return unless url
 
