@@ -23,14 +23,16 @@ test "new Batman.SetIndex(set, key) constructs an index on the set for that keyp
 
 test "new Batman.SetIndex(set, key) with unobservable items will observe the set but not the items", ->
   set = new Batman.Set("foo", "bar", "ba")
-  setSpy = spyOn(set, 'observe')
+  itemsAddedSpy = spyOn(set.event('itemsWereAdded'), 'addHandler')
+  itemsRemovedSpy = spyOn(set.event('itemsWereRemoved'), 'addHandler')
   fooSpy = spyOn(@zeke, 'observe')
   barSpy = spyOn(@mary, 'observe')
   baSpy = spyOn(@mary, 'observe')
   simpleIndex = new Batman.SetIndex(set, 'length')
   deepEqual simpleIndex.get(3).toArray(), ["foo", "bar"]
 
-  ok setSpy.called, "the set should be observed"
+  ok itemsAddedSpy.called, "the set should be observed"
+  ok itemsRemovedSpy.called, "the set should be observed"
   ok !fooSpy.called, "the items should not be observed"
   ok !barSpy.called, "the items should not be observed"
   ok !baSpy.called, "the items should not be observed"
@@ -56,28 +58,28 @@ test "get(value) returns a Batman.Set of items indexed on that value for the ind
 
 test "the result set from get(value) should be updated to remove items which are removed from the underlying set", ->
   allByFred = @authorNameIndex.get("Fred")
-  allByFred.observe 'itemsWereRemoved', observer = createSpy()
+  allByFred.on 'itemsWereRemoved', handler = createSpy()
   @base.remove(@anotherByFred)
 
-  equal observer.lastCallArguments.length, 1
-  ok observer.lastCallArguments[0] is @anotherByFred
+  equal handler.lastCallArguments?.length, 1
+  ok handler.lastCallArguments?[0] is @anotherByFred
   equal allByFred.has(@anotherByFred), false
 
 test "the result set from get(value) should be updated to add matching items when they are added to the underlying set", ->
   allByZeke = @authorNameIndex.get("Zeke")
-  allByZeke.observe 'itemsWereAdded', observer = createSpy()
+  allByZeke.on 'itemsWereAdded', handler = createSpy()
   @base.add @anotherByZeke
 
-  equal observer.lastCallArguments.length, 1
-  ok observer.lastCallArguments[0] is @anotherByZeke
+  equal handler.lastCallArguments.length, 1
+  ok handler.lastCallArguments[0] is @anotherByZeke
   equal allByZeke.has(@anotherByZeke), true
 
 test "the result set from get(value) should not be updated to add items which don't match the value", ->
   allByFred = @authorNameIndex.get("Fred")
-  allByFred.observe 'itemsWereAdded', observer = createSpy()
+  allByFred.on 'itemsWereAdded', handler = createSpy()
   @base.add @anotherByZeke
 
-  equal observer.called, false
+  equal handler.called, false
   equal allByFred.has(@anotherByZeke), false
 
 test "adding items with as-yet-unused index keys should add them to the appropriate result sets", ->

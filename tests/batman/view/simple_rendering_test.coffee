@@ -414,7 +414,7 @@ asyncTest 'should bind to the value of radio buttons', ->
     <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
     <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade" checked/>'
   context = Batman
-    ad: Batman
+    ad: Batman()
 
   helpers.render source, context, (node) ->
     fixed = node[0]

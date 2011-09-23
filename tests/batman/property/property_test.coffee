@@ -42,6 +42,88 @@ QUnit.module 'Batman.Property',
     @base.constructor::accessor 'baz', @prototypeKeyAccessor
     @property = new Batman.Property(@base, 'foo')
     @customBaseAccessorProperty = new Batman.Property(@base, 'bar')
+    
+    class ObjectWithNestedAccessors extends Batman.Object
+      @accessor 'fromFooAndQux', -> [@get('foo').name(), @get('qux')]
+      @accessor 'foo', -> @get('bar')
+      @accessor 'bar', -> @get('baz')
+    
+    name = ->
+      @registerAsMutableSource()
+      @_name
+    @mutableSomething = $mixin({name: name, _name: 'Jim'}, Batman.EventEmitter)
+    
+    @baseWithNestedAccessors = new ObjectWithNestedAccessors
+    @baseWithNestedAccessors.set('baz', @mutableSomething)
+    @baseWithNestedAccessors.set('qux', "quxVal")
+    
+###
+# caching
+###
+
+test "getValue() stores the value in .value and sets .cached to true", ->
+  property = @baseWithNestedAccessors.property('baz')
+  strictEqual property.getValue(), @mutableSomething
+  strictEqual property.value, @mutableSomething
+  strictEqual property.cached, yes
+
+test "getValue() just returns the .value without hitting the accessor if .cached is true", ->
+  property = @baseWithNestedAccessors.property('baz')
+  spy = spyOn(property.accessor(), 'get')
+  
+  property.cached = yes
+  property.value = 'cached'
+  strictEqual property.getValue(), 'cached'
+  ok not spy.called
+  
+test "refreshCacheAndSources() should recursively refresh .value and set .sources to the properties accessed directly by the accessor's getter", ->
+  foo = @baseWithNestedAccessors.property('foo')
+  bar = @baseWithNestedAccessors.property('bar')
+  baz = @baseWithNestedAccessors.property('baz')
+  qux = @baseWithNestedAccessors.property('qux')
+  fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
+  fromFooAndQux.refreshCacheAndSources()
+  
+  deepEqual foo.sources.toArray(), [bar]
+  deepEqual bar.sources.toArray(), [baz]
+  deepEqual baz.sources.toArray(), []
+  deepEqual foo.sources.toArray(), [bar]
+  deepEqual foo.sources.toArray(), [bar]
+  
+  fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
+  qux = @baseWithNestedAccessors.property('qux')
+  fromFooAndQux.refreshCacheAndSources()
+  deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
+
+test "if the value of a property fires its 'change' event at some point after the property has refreshed its sources, then the property will refresh its .value and .sources", ->
+  foo = @baseWithNestedAccessors.property('foo')
+  bar = @baseWithNestedAccessors.property('bar')
+  baz = @baseWithNestedAccessors.property('baz')
+  qux = @baseWithNestedAccessors.property('qux')
+  fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
+  
+  fromFooAndQux.refreshCacheAndSources()
+  deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
+  deepEqual fromFooAndQux.value, ['Jim', 'quxVal']
+  
+  @mutableSomething._name = 'Wanda'
+  @mutableSomething.fire('change')
+  
+  deepEqual foo.sources.toArray(), [bar]
+  deepEqual bar.sources.toArray(), [baz]
+  deepEqual baz.sources.toArray(), []
+  deepEqual qux.sources.toArray(), []
+  deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
+  
+  strictEqual foo.value, @mutableSomething
+  strictEqual bar.value, @mutableSomething
+  strictEqual baz.value, @mutableSomething
+  strictEqual qux.value, 'quxVal'
+  deepEqual fromFooAndQux.value, ['Wanda', 'quxVal']
+  
+###
+# 
+###
 
 test "Property.defaultAccessor does vanilla JS property access", ->
   obj = {}
@@ -86,54 +168,20 @@ test "unsetValue() calls the accessor's unset(key) method in the context of the 
   equal typeof @property.unsetValue(), 'undefined'
   deepEqual @customKeyAccessor.unset.lastCallArguments, ['foo']
   equal @customKeyAccessor.unset.lastCallContext, @base
-  
-test "refreshTriggers() sets this.triggers to all properties that this one is dependent on, and maintains the inverse 'dependents' on other Properties", ->
-  fullNameAccessor = get: (key) -> firstNameProp.getValue()+' '+lastNameProp.getValue()
-  keyAccessors = new Batman.SimpleHash
-  keyAccessors.set('fullName', fullNameAccessor)
-  person = Batman
-    firstName: 'James'
-    lastName: 'MacAulay'
-  person._batman.keyAccessors = keyAccessors
-
-  firstNameProp = new Batman.Property(person, 'firstName')
-  lastNameProp = new Batman.Property(person, 'lastName')
-  fullNameProp = new Batman.Property(person, 'fullName')
-
-  equal fullNameProp.getValue(), 'James MacAulay'
-
-  fullNameProp.refreshTriggers()
-
-  equal fullNameProp.triggers.length, 3
-  ok fullNameProp.triggers.has(firstNameProp)
-  ok fullNameProp.triggers.has(lastNameProp)
-  ok fullNameProp.triggers.has(fullNameProp)
-
-  equal firstNameProp.dependents.length, 1
-  ok firstNameProp.dependents.has(fullNameProp)
-
-  equal firstNameProp.dependents.length, 1
-  ok firstNameProp.dependents.has(fullNameProp)
-  equal lastNameProp.dependents.length, 1
-  ok lastNameProp.dependents.has(fullNameProp)
-  equal fullNameProp.dependents.length, 1
-  ok fullNameProp.dependents.has(fullNameProp)
 
 test "property() works on non Batman objects", ->
-  property = new Batman.Property(window, 'Array')
-  ok ! property.hasObserversToFire()
+  property = Batman.Property.forBaseAndKey(window, 'Array')
   property.observe spy = createSpy()
   property.fire()
   ok spy.called
 
-  property = new Batman.Property({}, 'foo')
-  ok ! property.hasObserversToFire()
+  property = Batman.Property.forBaseAndKey({}, 'foo')
   property.observe spy = createSpy()
   property.fire()
   ok spy.called
 
 test "only fires when its prevents and allows are balanced", ->
-  property = new Batman.Property(window, 'Array')
+  property = Batman.Property.forBaseAndKey({}, 'foo')
   property.observe spy = createSpy()
 
   property.prevent()

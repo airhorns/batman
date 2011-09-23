@@ -117,6 +117,7 @@ asyncTest "Model.all will get all without storage adapters", ->
 
 asyncTest "classes fire their loading/loaded callbacks", ->
   callOrder = []
+
   @Product.loading -> callOrder.push 1
   @Product.loaded -> callOrder.push 2
 

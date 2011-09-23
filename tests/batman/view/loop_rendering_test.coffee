@@ -73,9 +73,9 @@ asyncTest 'the ready event should wait for all children to be rendered', ->
   view = new Batman.View
     contexts: [Batman(), Batman({objects})]
     node: node
-  ok !view.oneShotFired 'ready', 'make sure views render async'
+  ok !view.event('ready').oneShotFired, 'make sure views render async'
   view._renderer.parsed =>
-    ok !view.oneShotFired 'ready', 'make sure parsed fires before rendered'
+    ok !view.event('ready').oneShotFired, 'make sure parsed fires before rendered'
   view.ready =>
     tracking = {foo: false, bar: false, baz: false}
     node = $(view.get('node')).children()

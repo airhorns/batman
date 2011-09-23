@@ -219,108 +219,201 @@ helpers = Batman.helpers = {
   trim: (string) -> if string then string.trim() else ""
 }
 
-# Properties
-# ----------
+
+class Batman.Event
+  @forBaseAndKey: (base, key) ->
+    if base.isEventEmitter
+      base.event(key)
+    else
+      new Batman.Event(base, key)
+  constructor: (@base, @key) ->
+    @handlers = new Batman.SimpleSet
+    @_preventCount = 0
+  isEvent: true
+  isEqual: (other) ->
+    @constructor is other.constructor and @base is other.base and @key is other.key
+  
+  addHandler: (handler) ->
+    @handlers.add(handler)
+    @autofireHandler(handler) if @oneShot
+    this
+  removeHandler: (handler) ->
+    @handlers.remove(handler)
+    this
+  
+  eachHandler: (iterator) ->
+    @handlers.forEach(iterator)
+    if @base?.isEventEmitter
+      key = @key
+      @base._batman.ancestors (ancestor) ->
+        if ancestor.isEventEmitter
+          handlers = ancestor.event(key).handlers
+          handlers.forEach(iterator)
+          
+  handlerContext: -> @base
+  
+  prevent: -> @_preventCount++
+  allow: -> @_preventCount-- if @_preventCount > 0
+  isPrevented: -> @_preventCount > 0
+  autofireHandler: (handler) ->
+    if @_oneShotFired and @_oneShotArgs?
+      handler.apply(@handlerContext(), @_oneShotArgs)
+  resetOneShot: ->
+    @_oneShotFired = false
+    @_oneShotArgs = null
+  fire: ->
+    return false if @isPrevented() or @_oneShotFired
+    context = @handlerContext()
+    args = arguments
+    if @oneShot
+      @_oneShotFired = true
+      @_oneShotArgs = arguments
+    @eachHandler (handler) -> handler.apply(context, args)
+    
+
+class Batman.PropertyEvent extends Batman.Event
+  eachHandler: (iterator) -> @base.eachObserver(iterator)
+  handlerContext: -> @base.base
+
+Batman.EventEmitter =
+  isEventEmitter: true
+  event: (key) ->
+    Batman.initializeObject @
+    eventClass = @eventClass or Batman.Event
+    events = @_batman.events ||= new Batman.SimpleHash
+    if existingEvent = events.get(key)
+      existingEvent
+    else
+      existingEvents = @_batman.get('events')
+      newEvent = events.set(key, new eventClass(this, key))
+      newEvent.oneShot = existingEvents?.get(key)?.oneShot
+      newEvent
+  eventFunction: (key, opts, wrappedFunction) ->
+    if typeof opts is 'function'
+      wrappedFunction = opts
+    @event(key).oneShot = true if opts?.oneShot
+    @[key] = (callback) ->
+      if typeof callback is 'function'
+        @on(key, callback)
+      else
+        result = wrappedFunction?.apply(this, arguments)
+        @fire(key, arguments...)
+        result
+  on: (key, handler) ->
+    @event(key).addHandler(handler)
+  
+  registerAsMutableSource: ->
+    Batman.Property.registerSource(@)
+for k in ['prevent', 'allow', 'fire', 'isPrevented']
+  do (k) ->
+    Batman.EventEmitter[k] = (key, args...) ->
+      @event(key)[k](args...)
+      @
+
 class Batman.Property
+  $mixin @prototype, Batman.EventEmitter
+  
+  @_sourceTrackerStack: []
+  @sourceTracker: -> (stack = @_sourceTrackerStack)[stack.length - 1]
   @defaultAccessor:
     get: (key) -> @[key]
     set: (key, val) -> @[key] = val
     unset: (key) -> x = @[key]; delete @[key]; x
-  @triggerTracker: null
   @forBaseAndKey: (base, key) ->
-    propertyClass = base.propertyClass or Batman.Keypath
-    if base._batman
-      Batman.initializeObject base
-      properties = base._batman.properties ||= new Batman.SimpleHash
-      properties.get(key) or properties.set(key, new propertyClass(base, key))
+    if base.isObservable
+      base.property(key)
     else
-      new propertyClass(base, key)
+      new Batman.Keypath(base, key)
+      
+  @registerSource: (obj) ->
+    return unless obj.isEventEmitter
+    @sourceTracker()?.add(obj)
+  
   constructor: (@base, @key) ->
-    @observers = new Batman.SimpleSet
-    @refreshTriggers() if @hasObserversToFire()
-    @_preventCount = 0
+  
+  cached: no
+  value: null
+  sources: null
   isProperty: true
+  eventClass: Batman.PropertyEvent
+  
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
+    
   accessor: ->
     accessors = @base._batman?.get('keyAccessors')
     if accessors && (val = accessors.get(@key))
       return val
     else
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
-  registerAsTrigger: ->
-    tracker.add @ if tracker = Batman.Property.triggerTracker
+  eachObserver: (iterator) ->
+    key = @key
+    @event('change').handlers.forEach(iterator)
+    if @base.isObservable
+      @base._batman.ancestors (ancestor) ->
+        if ancestor.isObservable
+          property = ancestor.property(key)
+          handlers = property.event('change').handlers
+          handlers.forEach(iterator)
+    
+  sourceChangeHandler: ->
+    @_sourceChangeHandler ||= @refreshCacheAndSources.bind(@)
+  
+  pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
+  updateSourcesFromTracker: ->
+    newSources = Batman.Property._sourceTrackerStack.pop()
+    sourceChangeHandler = @sourceChangeHandler()
+    if @sources
+      @sources.forEach (source) ->
+        source.event('change').removeHandler(sourceChangeHandler)
+    @sources = newSources
+    @sources.forEach (source) ->
+      source.event('change').addHandler(sourceChangeHandler)
+  
   getValue: ->
-    @registerAsTrigger()
-    @accessor()?.get.call @base, @key
+    @registerAsMutableSource()
+    unless @cached
+      @pushSourceTracker()
+      @value = @valueFromAccessor()
+      @cached = yes
+      @updateSourcesFromTracker()
+    @value
+  
+  refreshCacheAndSources: ->
+    @cached = no
+    previousValue = @value
+    value = @getValue()
+    if value isnt previousValue
+      @fire(value, previousValue)
+  
+  valueFromAccessor: -> @accessor()?.get?.call(@base, @key)
+    
   setValue: (val) ->
-    @cacheDependentValues()
-    result = @accessor()?.set.call @base, @key, val
-    @fireDependents()
+    result = @accessor()?.set?.call(@base, @key, val)
+    @refreshCacheAndSources()
     result
   unsetValue: ->
-    @cacheDependentValues()
-    result = @accessor()?.unset.call @base, @key
-    @fireDependents()
+    result = @accessor()?.unset?.call(@base, @key)
+    @refreshCacheAndSources()
     result
-  cacheDependentValues: ->
-    if @dependents
-      @dependents.forEach (prop) -> prop.cachedValue = prop.getValue()
-  fireDependents: ->
-    if @dependents
-      @dependents.forEach (prop) ->
-        prop.fire(prop.getValue(), prop.cachedValue) if prop.hasObserversToFire?()
-  observe: (fireImmediately..., callback) ->
-    fireImmediately = fireImmediately[0] is true
-    currentValue = @getValue()
-    @observers.add callback
-    @refreshTriggers()
-    callback.call(@base, currentValue, currentValue) if fireImmediately
-    @
-  hasObserversToFire: ->
-    return true if @observers.length > 0
-    if @base._batman
-      @base._batman.ancestors().some((ancestor) => ancestor.property?(@key)?.observers?.length > 0)
+  
+  forget: (handler) ->
+    if handler?
+      @event('change').removeHandler(handler)
     else
-      false
-  prevent: -> @_preventCount++
-  allow: -> @_preventCount-- if @_preventCount > 0
-  isAllowedToFire: -> @_preventCount <= 0
-  fire: (args...) ->
-    return unless @isAllowedToFire() and @hasObserversToFire()
-    key = @key
-    base = @base
-    observerSets = [@observers]
-    @observers.forEach (callback) ->
-      callback?.apply base, args
-    if @base._batman
-      @base._batman.ancestors (ancestor) ->
-        ancestor.property?(key).observers.forEach (callback) ->
-          callback?.apply base, args
-    @refreshTriggers()
-  forget: (observer) ->
-    if observer
-      @observers.remove(observer)
-    else
-      @observers = new Batman.SimpleSet
-    @clearTriggers() unless @hasObserversToFire()
-  refreshTriggers: ->
-    Batman.Property.triggerTracker = new Batman.SimpleSet
+      @event('change').handlers.clear()
+  observeAndFire: (handler) ->
+    @observe(handler)
+    handler.call(@base, @value, @value)
+  observe: (handler) ->
+    @event('change').addHandler(handler)
     @getValue()
-    if @triggers
-      @triggers.forEach (property) =>
-        unless Batman.Property.triggerTracker.has(property)
-          property.dependents?.remove @
-    @triggers = Batman.Property.triggerTracker
-    @triggers.forEach (property) =>
-      property.dependents ||= new Batman.SimpleSet
-      property.dependents.add @
-    delete Batman.Property.triggerTracker
-  clearTriggers: ->
-    if @triggers
-      @triggers.forEach (property) =>
-        property.dependents.remove @
-      @triggers = new Batman.SimpleSet
+    this
+  prevent: -> @event('change').prevent()
+  allow: -> @event('change').allow()
+  fire: -> @event('change').fire(arguments...)
+  isPrevented: -> @event('change').isPrevented()
+  
 
 # Keypaths
 # --------
@@ -334,17 +427,18 @@ class Batman.Keypath extends Batman.Property
       @segments = [key]
       @depth = 1
     super
-  slice: (begin, end = @depth) ->
+  slice: (begin, end=@depth) ->
     base = @base
     for segment in @segments.slice(0, begin)
       return unless base? and base = Batman.Property.forBaseAndKey(base, segment).getValue()
     Batman.Property.forBaseAndKey base, @segments.slice(begin, end).join('.')
   terminalProperty: -> @slice -1
-  getValue: ->
-    @registerAsTrigger()
+  valueFromAccessor: ->
     if @depth is 1 then super else @terminalProperty()?.getValue()
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
+
+
 
 # Observable
 # ----------
@@ -355,7 +449,9 @@ Batman.Observable =
   isObservable: true
   property: (key) ->
     Batman.initializeObject @
-    Batman.Property.forBaseAndKey(@, key)
+    propertyClass = @propertyClass or Batman.Keypath
+    properties = @_batman.properties ||= new Batman.SimpleHash
+    properties.get(key) or properties.set(key, new propertyClass(this, key))
   get: (key) ->
     @property(key).getValue()
   set: (key, val) ->
@@ -380,11 +476,6 @@ Batman.Observable =
       @_batman.properties.forEach (key, property) -> property.forget()
     @
 
-  # `allowed` returns a boolean describing whether or not the key is
-  # currently allowed to fire its observers.
-  allowed: (key) ->
-    @property(key).isAllowedToFire()
-
 # `fire` tells any observers attached to a key to fire, manually.
 # `prevent` stops of a given binding from firing. `prevent` calls can be repeated such that
 # the same number of calls to allow are needed before observers can be fired.
@@ -392,128 +483,20 @@ Batman.Observable =
 # must have a matching call to allow later if observers are to be fired.
 # `observe` takes a key and a callback. Whenever the value for that key changes, your
 # callback will be called in the context of the original object.
-for k in ['observe', 'prevent', 'allow', 'fire']
-  do (k) ->
-    Batman.Observable[k] = (key, args...) ->
-      @property(key)[k](args...)
-      @
+
+  observe: (key, args...) ->
+    @property(key).observe(args...)
+    @
+    
+  observeAndFire: (key, args...) ->
+    @property(key).observeAndFire(args...)
+    @
 
 $get = Batman.get = (object, key) ->
   if object.get
     object.get(key)
   else
     Batman.Observable.get.call(object, key)
-
-# Events
-# ------
-
-# `Batman.EventEmitter` is another generic mixin that simply allows an object to
-# emit events. Batman events use observers to manage the callbacks, so they require that
-# the object emitting the events be observable. If events need to be attached to an object
-# which isn't a `Batman.Object` or doesn't have the `Batman.Observable` and `Batman.EventEmitter`
-# mixins applied, the $event function can be used to create ephemeral event objects which
-# use those mixins internally.
-
-Batman.EventEmitter =
-  # An event is a convenient observer wrapper. Any function can be wrapped in an event, and
-  # when called, it will cause it's object to fire all the observers for that event. There is
-  # also some syntactical sugar so observers can be registered simply by calling the event with a
-  # function argument. Notice that the `$block` helper is used here so events can be declared in
-  # class definitions using the second function application syntax and no wrapping brackets.
-  event: $block (key, context, callback) ->
-    if not callback and typeof context isnt 'undefined'
-      callback = context
-      context = null
-    if not callback and $typeOf(key) isnt 'String'
-      callback = key
-      key = null
-
-    # Return a function which either takes another observer
-    # to register or a value to fire the event with.
-    f = (observer) ->
-      if not @observe
-        developer.error "EventEmitter requires Observable"
-
-      Batman.initializeObject @
-
-      key ||= $findName(f, @)
-      fired = @_batman.oneShotFired?[key]
-
-      # Pass a function to the event to register it as an observer.
-      if typeof observer is 'function'
-        @observe key, observer
-        observer.apply(@, f._firedArgs) if f.isOneShot and fired
-
-      # Otherwise, calling the event will cause it to fire. Any
-      # arguments you pass will be passed to your wrapped function.
-      else if @allowed key
-        return false if f.isOneShot and fired
-        value = callback?.apply @, arguments
-
-        # Observers will only fire if the result of the event is not false.
-        if value isnt false
-          # Get and cache the arguments for the event listeners. Add the value if
-          # its not undefined, and then concat any more arguments passed to this
-          # event when fired.
-          f._firedArgs = unless typeof value is 'undefined'
-              [value].concat arguments...
-            else
-              if arguments.length == 0
-                []
-              else
-                Array.prototype.slice.call arguments
-
-          # Copy the array and add in the key for `fire`
-          args = Array.prototype.slice.call f._firedArgs
-          args.unshift key
-          @fire(args...)
-
-          if f.isOneShot
-            firings = @_batman.oneShotFired ||= {}
-            firings[key] = yes
-
-        value
-      else
-        false
-
-    # This could be its own mixin but is kept here for brevity.
-    f = f.bind(context) if context
-    @[key] = f if key?
-    $mixin f,
-      isEvent: yes
-      action: callback
-
-  # One shot events can be used for something that only fires once. Any observers
-  # added after it has already fired will simply be executed immediately. This is useful
-  # for things like `ready` events on requests or renders, because once ready they always
-  # remain ready. If an AJAX request had a vanilla `ready` event, observers attached after
-  # the ready event fired the first time would never fire, as they would be waiting for
-  # the next time `ready` would fire as is standard with vanilla events. With a one shot
-  # event, any observers attached after the first fire will fire immediately, meaning no logic
-  eventOneShot: (callback) ->
-    $mixin Batman.EventEmitter.event.apply(@, arguments),
-      isOneShot: yes
-      oneShotFired: @oneShotFired.bind @
-
-  oneShotFired: (key) ->
-    Batman.initializeObject @
-    firings = @_batman.oneShotFired ||= {}
-    !!firings[key]
-
-# `$event` lets you create an ephemeral event without needing an EventEmitter.
-# If you already have an EventEmitter object, you should call .event() on it.
-Batman.event = $event = (callback) ->
-  context = new Batman.Object
-  context.event('_event', context, callback)
-
-# `$eventOneShot` lets you create an ephemeral one-shot event without needing an EventEmitter.
-# If you already have an EventEmitter object, you should call .eventOneShot() on it.
-Batman.eventOneShot = $eventOneShot = (callback) ->
-  context = new Batman.Object
-  oneShot = context.eventOneShot('_event', context, callback)
-  oneShot.oneShotFired = ->
-    context.oneShotFired('_event')
-  oneShot
 
 # Objects
 # -------
@@ -620,6 +603,8 @@ Batman._Batman = class _Batman
 
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract.
 class BatmanObject
+  Batman.initializeObject(this)
+  Batman.initializeObject(@prototype)
   # Setting `isGlobal` to true will cause the class name to be defined on the
   # global object. For example, Batman.Model will be aliased to window.Model.
   # This should be used sparingly; it's mostly useful for debugging.
@@ -678,10 +663,11 @@ class BatmanObject
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
     @mixin mixins...
-
+  
+  
   # Make every subclass and their instances observable.
-  @classMixin Batman.Observable, Batman.EventEmitter
-  @mixin Batman.Observable, Batman.EventEmitter
+  @classMixin Batman.EventEmitter, Batman.Observable
+  @mixin Batman.EventEmitter, Batman.Observable
 
   # Observe this property on every instance of this class.
   @observeAll: -> @::observe.apply @prototype, arguments
@@ -752,6 +738,7 @@ class Batman.SimpleHash
       matches.push(pair)
       @length++
     pair[1] = val
+    val
   unset: (key) ->
     if matches = @_storage[key]
       for [obj,v], index in matches
@@ -767,7 +754,7 @@ class Batman.SimpleHash
     return false
   forEach: (iterator) ->
     for key, values of @_storage
-      iterator(obj, value) for [obj, value] in values
+      iterator(obj, value) for [obj, value] in values.slice()
   keys: ->
     result = []
     # Explicitly reference this foreach so that if it's overriden in subclasses the new implementation isn't used.
@@ -839,7 +826,9 @@ class Batman.SimpleSet
         @_storage.set item, true
         addedItems.push item
         @length++
-    @itemsWereAdded(addedItems...) unless addedItems.length is 0
+    if @fire and addedItems.length isnt 0
+      @fire('change', this, this)
+      @fire('itemsWereAdded', addedItems...)
     addedItems
   remove: (items...) ->
     removedItems = []
@@ -848,7 +837,9 @@ class Batman.SimpleSet
         @_storage.unset item
         removedItems.push item
         @length--
-    @itemsWereRemoved(removedItems...) unless removedItems.length is 0
+    if @fire and removedItems.length isnt 0
+      @fire('change', this, this)
+      @fire('itemsWereRemoved', removedItems...)
     removedItems
   forEach: (iterator) ->
     @_storage.forEach (key, value) -> iterator(key)
@@ -857,7 +848,9 @@ class Batman.SimpleSet
     items = @toArray()
     @_storage = new Batman.SimpleHash
     @length = 0
-    @itemsWereRemoved(items...)
+    if @fire and items.length isnt 0
+      @fire('change', this, this)
+      @fire('itemsWereRemoved', items...)
     items
   toArray: ->
     @_storage.keys()
@@ -871,48 +864,33 @@ class Batman.SimpleSet
     @_indexes.get(key) or @_indexes.set(key, new Batman.SetIndex(@, key))
   sortedBy: (key) ->
     @_sorts.get(key) or @_sorts.set(key, new Batman.SetSort(@, key))
-  itemsWereAdded: ->
-  itemsWereRemoved: ->
 
 class Batman.Set extends Batman.Object
   constructor: ->
     Batman.SimpleSet.apply @, arguments
-    @set 'length', 0
 
   $extendsEnumerable(@::)
 
-  itemsWereAdded: @event ->
-  itemsWereRemoved: @event ->
-
-  for k in ['has', 'forEach', 'isEmpty', 'toArray', 'indexedBy', 'sortedBy']
+  for k in ['add', 'remove', 'clear', 'merge', 'has', 'forEach', 'isEmpty', 'toArray', 'indexedBy', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
-
-  for k in ['add', 'remove', 'clear', 'merge']
-    do (k) =>
-      @::[k] = ->
-        oldLength = @length
-        @prevent 'length'
-        results = Batman.SimpleSet::[k].apply(@, arguments)
-        [newLength, @length] = [@length, oldLength]
-        @allow 'length'
-        @set 'length', newLength if newLength != oldLength
-        results
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
-  @accessor 'isEmpty', -> @isEmpty()
+  @accessor 'isEmpty', ->
+    @registerAsMutableSource()
+    @isEmpty()
+  @accessor 'length', ->
+    @registerAsMutableSource()
+    @length
 
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
     @_itemObservers = new Batman.Hash
     @_setObservers = new Batman.Hash
-    @_setObservers.set("itemsWereAdded", @itemsWereAdded.bind(@))
-    @_setObservers.set("itemsWereRemoved", @itemsWereRemoved.bind(@))
-    @observe 'itemsWereAdded', @startObservingItems.bind(@)
-    @observe 'itemsWereRemoved', @stopObservingItems.bind(@)
-
-  itemsWereAdded: @event ->
-  itemsWereRemoved: @event ->
+    @_setObservers.set "itemsWereAdded", => @fire('itemsWereAdded', arguments...)
+    @_setObservers.set "itemsWereRemoved", => @fire('itemsWereRemoved', arguments...)
+    @on 'itemsWereAdded', @startObservingItems.bind(@)
+    @on 'itemsWereRemoved', @stopObservingItems.bind(@)
 
   observedItemKeys: []
   observerForItemAndKey: (item, key) ->
@@ -924,10 +902,10 @@ class Batman.SetObserver extends Batman.Object
         @observerForItemAndKey(item, key)
   startObserving: ->
     @_manageItemObservers("observe")
-    @_manageSetObservers("observe")
+    @_manageSetObservers("addHandler")
   stopObserving: ->
     @_manageItemObservers("forget")
-    @_manageSetObservers("forget")
+    @_manageSetObservers("removeHandler")
   startObservingItems: (items...) ->
     @_manageObserversForItem(item, "observe") for item in items
   stopObservingItems: (items...) ->
@@ -942,7 +920,7 @@ class Batman.SetObserver extends Batman.Object
   _manageSetObservers: (method) ->
     return unless @base.isObservable
     @_setObservers.forEach (key, observer) =>
-      @base[method](key, observer)
+      @base.event(key)[method](observer)
 
 class Batman.SetSort extends Batman.Object
   constructor: (@base, @key) ->
@@ -951,8 +929,8 @@ class Batman.SetSort extends Batman.Object
       @_setObserver.observedItemKeys = [@key]
       boundReIndex = @_reIndex.bind(@)
       @_setObserver.observerForItemAndKey = -> boundReIndex
-      @_setObserver.observe 'itemsWereAdded', boundReIndex
-      @_setObserver.observe 'itemsWereRemoved', boundReIndex
+      @_setObserver.on 'itemsWereAdded', boundReIndex
+      @_setObserver.on 'itemsWereRemoved', boundReIndex
       @startObserving()
     @_reIndex()
   startObserving: -> @_setObserver?.startObserving()
@@ -987,13 +965,13 @@ class Batman.SetSort extends Batman.Object
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
     @_storage = new Batman.Hash
-    if @base.isObservable
+    if @base.isEventEmitter
       @_setObserver = new Batman.SetObserver(@base)
       @_setObserver.observedItemKeys = [@key]
       @_setObserver.observerForItemAndKey = @observerForItemAndKey.bind(@)
-      @_setObserver.observe 'itemsWereAdded', (items...) =>
+      @_setObserver.on 'itemsWereAdded', (items...) =>
         @_addItem(item) for item in items
-      @_setObserver.observe 'itemsWereRemoved', (items...) =>
+      @_setObserver.on 'itemsWereRemoved', (items...) =>
         @_removeItem(item) for item in items
     @base.forEach @_addItem.bind(@)
     @startObserving()
@@ -1037,17 +1015,18 @@ class Batman.SortableSet extends Batman.Set
     super
     @_sortIndexes = {}
     @observe 'activeIndex', =>
-      @setWasSorted(@)
-  setWasSorted: @event ->
-    return false if @length is 0
-
+      @setWasSorted()
+  setWasSorted: -> @fire('setWasSorted') unless @length is 0
+  
   for k in ['add', 'remove', 'clear']
     do (k) =>
       @::[k] = ->
         results = Batman.Set::[k].apply(@, arguments)
         @_reIndex()
         results
-
+      
+  isSortableSet: yes
+  
   addIndex: (index) ->
     @_reIndex(index)
   removeIndex: (index) ->
@@ -1074,10 +1053,10 @@ class Batman.SortableSet extends Batman.Set
         valueB = (Batman.Observable.property.call(b, keypath)).getValue()?.valueOf()
         [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
         if valueA < valueB then -1 else if valueA > valueB then 1 else 0
-      @setWasSorted(@) if @activeIndex is index
+      @setWasSorted() if @activeIndex is index
     else
       @_reIndex(index) for index of @_sortIndexes
-      @setWasSorted(@)
+      @setWasSorted()
     @
 
 # State Machines
@@ -1092,27 +1071,21 @@ Batman.StateMachine = {
   state: (name, callback) ->
     Batman.StateMachine.initialize.call @
 
-    if not name
-      return @_batman.getFirst 'state'
-
-    developer.assert @event, "StateMachine requires EventEmitter"
-
-    event = @[name] || @event name, -> _stateMachine_setState.call(@, name); false
-    event.call(@, callback) if typeof callback is 'function'
-    event
+    return @_batman.getFirst 'state' unless name
+    developer.assert @isEventEmitter, "StateMachine requires EventEmitter"
+    
+    @[name] ||= (callback) ->
+      if typeof callback is 'function'
+        @on(name, callback)
+      else
+        _stateMachine_setState.call(@, name)
+    @on(name, callback) if typeof callback is 'function'
 
   transition: (from, to, callback) ->
     Batman.StateMachine.initialize.call @
-
     @state from
     @state to
-
-    name = "#{from}->#{to}"
-    transitions = @_batman.states
-
-    event = transitions.get(name) || transitions.set(name, $event ->)
-    event(callback) if callback
-    event
+    @on("#{from}->#{to}", callback) if callback
 }
 
 # A special method to alias state machine methods to class methods
@@ -1140,15 +1113,12 @@ _stateMachine_setState = (newState) ->
 
   oldState = @state()
   @_batman.state = newState
-
+  
   if newState and oldState
-    name = "#{oldState}->#{newState}"
-    for event in @_batman.getAll((ancestor) -> ancestor._batman?.get('states')?.get(name))
-      if event
-        event newState, oldState
-
+    @fire("#{oldState}->#{newState}", newState, oldState)
+  
   if newState
-    @fire newState, newState, oldState
+    @fire(newState, newState, oldState)
 
   @_batman.isTransitioning = no
   @[@_batman.nextState.shift()]() if @_batman.nextState?.length
@@ -1196,12 +1166,11 @@ class Batman.Request extends Batman.Object
   # not desired, use @cancel() after setting the URL.
   @observeAll 'url', ->
     @_autosendTimeout = setTimeout (=> @send()), 0
-
-  loading: @event ->
-  loaded: @event ->
-
-  success: @event ->
-  error: @event ->
+  
+  @::eventFunction 'loading'
+  @::eventFunction 'loaded'
+  @::eventFunction 'success'
+  @::eventFunction 'error'
 
   # `send` is implmented in the platform layer files. One of those must be required for
   # `Batman.Request` to be useful.
@@ -1256,7 +1225,8 @@ class Batman.App extends Batman.Object
 
   # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
-  @run: @eventOneShot ->
+  
+  @eventFunction 'run', oneShot: yes, ->
     if Batman.currentApp
       return if Batman.currentApp is @
       Batman.currentApp.stop()
@@ -1281,11 +1251,9 @@ class Batman.App extends Batman.Object
     @hasRun = yes
     @
 
-  # The `MyApp.ready` event will fire once the app's layout view has finished rendering. This includes
-  # partials, loops, and all the other deferred renders, but excludes data fetching.
-  @ready: @eventOneShot -> true
+  @eventFunction 'ready', oneShot: yes, -> true
 
-  @stop: @eventOneShot ->
+  @eventFunction 'stop', oneShot: yes, ->
     @historyManager?.stop()
     Batman.historyManager = null
     @hasRun = no
@@ -1674,7 +1642,7 @@ class Batman.Model extends Batman.Object
     decode: (x) -> x
 
   # Attach encoders and decoders for the primary key, and update them if the primary key changes.
-  @observe 'primaryKey', yes, (newPrimaryKey) -> @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
+  @observeAndFire 'primaryKey', (newPrimaryKey) -> @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
 
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
@@ -2005,10 +1973,10 @@ class Batman.ErrorsHash extends Batman.Hash
     get: (key) ->
       unless set = Batman.SimpleHash::get.call(@, key)
         set = new Batman.Set
-        set.observe 'itemsWereAdded', (items...) =>
+        set.on 'itemsWereAdded', (items...) =>
           @meta.set('length', @meta.get('length') + items.length)
           @meta.get('messages').add(items...)
-        set.observe 'itemsWereRemoved', (items...) =>
+        set.on 'itemsWereRemoved', (items...) =>
           @meta.set('length', @meta.get('length') - arguments.length)
           @meta.get('messages').remove(items...)
 
@@ -2391,7 +2359,7 @@ class Batman.View extends Batman.Object
   contentFor: null
 
   # Fires once a node is parsed.
-  ready: @eventOneShot ->
+  @::eventFunction 'ready', oneShot: yes
 
   # Where to look for views on the server
   prefix: 'views'
@@ -2424,7 +2392,7 @@ class Batman.View extends Batman.Object
 
   @observeAll 'node', (node) ->
     return unless node
-    @ready.fired = false
+    @event('ready').resetOneShot()
 
     if @_renderer
       @_renderer.forgetAll()
@@ -2443,7 +2411,7 @@ class Batman.View extends Batman.Object
       , @contexts)
 
       @_renderer.rendered =>
-        @ready node
+        @ready(node)
 
 
 # DOM Helpers
@@ -2475,8 +2443,8 @@ class Batman.Renderer extends Batman.Object
 
   forgetAll: ->
 
-  parsed: @eventOneShot ->
-  rendered: @eventOneShot ->
+  @::eventFunction 'parsed', oneShot: yes
+  @::eventFunction 'rendered', oneShot: yes
 
   bindingRegexp = /data\-(.*)/
   sortBindings = (a, b) ->
@@ -2615,6 +2583,7 @@ class Binding extends Batman.Object
     unless @_keyContext
       [unfilteredValue, @_keyContext] = @renderContext.findKey @key
     @_keyContext
+    # @renderContext.findKey(@key)[1]
 
   constructor: ->
     super
@@ -2640,7 +2609,7 @@ class Binding extends Batman.Object
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     if @only in [false, 'dataChange']
-      @observe 'filteredValue', yes, (value) =>
+      @observeAndFire 'filteredValue', (value) =>
         if shouldSet
           @dataChange(value, @node, @)
     @
@@ -3003,10 +2972,10 @@ Batman.DOM = {
           return if collection == oldCollection
           nodeMap.forEach (item, node) -> node.parentNode?.removeChild node
           nodeMap.clear()
-          if oldCollection.forget
-            oldCollection.forget 'itemsWereAdded', observers.add
-            oldCollection.forget 'itemsWereRemoved', observers.remove
-            oldCollection.forget 'setWasSorted', observers.reorder
+          if oldCollection.isEventEmitter
+            oldCollection.event('itemsWereAdded').removeHandler(observers.add)
+            oldCollection.event('itemsWereRemoved').removeHandler(observers.remove)
+            oldCollection.event('setWasSorted').removeHandler(observers.reorder)
 
         oldCollection = collection
 
@@ -3066,12 +3035,12 @@ Batman.DOM = {
 
         # Observe the collection for events in the future
         if collection
-          if collection.observe
-            collection.observe 'itemsWereAdded', observers.add
-            collection.observe 'itemsWereRemoved', observers.remove
-            if collection.setWasSorted
-              collection.observe 'setWasSorted', observers.reorder
-            else
+          if collection.isEventEmitter
+            collection.on 'itemsWereAdded', observers.add
+            collection.on 'itemsWereRemoved', observers.remove
+            if collection.isSortableSet
+              collection.on 'setWasSorted', observers.reorder
+            else if collection.isObservable
               collection.observe 'toArray', observers.arrayChange
 
           # Add all the already existing items. For hash-likes, add the key.
@@ -3540,7 +3509,7 @@ $mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
-  for k in ['mixin', 'unmixin', 'route', 'redirect', 'event', 'eventOneShot', 'typeOf', 'redirect']
+  for k in ['mixin', 'unmixin', 'route', 'redirect', 'typeOf', 'redirect']
     onto["$#{k}"] = Batman[k]
   onto
 
