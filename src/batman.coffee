@@ -1474,10 +1474,11 @@ Batman.App.classMixin
     resource = helpers.pluralize(resource)
     controller = options?.controller || resource
 
-    @route(resource, "#{controller}#index", resource:controller, action:'index')
-    @route("#{resource}/:id", "#{controller}#show", resource:controller, action:'show')
-    @route("#{resource}/:id/edit", "#{controller}#edit", resource:controller, action:'edit')
-    @route("#{resource}/:id/destroy", "#{controller}#destroy", resource:controller, action:'destroy')
+    @route resource, "#{controller}#index", resource: controller, action: 'index'
+    @route "#{resource}/new", "#{controller}#new", resource: controller, action: 'new'
+    @route "#{resource}/:id", "#{controller}#show", resource: controller, action: 'show'
+    @route "#{resource}/:id/edit", "#{controller}#edit", resource: controller, action: 'edit'
+    @route "#{resource}/:id/destroy", "#{controller}#destroy", resource: controller, action: 'destroy'
 
     if callback
       app = @
