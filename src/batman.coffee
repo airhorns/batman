@@ -1531,6 +1531,7 @@ class Batman.Controller extends Batman.Object
       for filter in filters
         if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
+    developer.assert @[action], "Error! Controller action #{@get 'controllerName'}.#{action} couldn't be found!"
     @[action](params)
 
     if not @_actedDuringAction
