@@ -137,9 +137,12 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
 # -----------------
 
 developer =
-  DevelopmentError: (@message) ->
-    @:: = Error::
-    @name = "DevelopmentError"
+  DevelopmentError: (->
+    DevelopmentError = (@message) ->
+      @name = "DevelopmentError"
+    DevelopmentError:: = Error::
+    DevelopmentError
+  )()
   _ie_console: (f, args) ->
     console?[f] "...#{f} of #{args.length} items..." unless args.length == 1
     console?[f] arg for arg in args
