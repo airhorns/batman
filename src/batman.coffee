@@ -1469,15 +1469,15 @@ Batman.App.classMixin
   root: (signature, options) ->
     @route '/', signature, options
 
-  resources: (resource, options, callback) ->
-    (callback = options; options = null) if typeof options is 'function'
+  resources: (resource, options={}, callback) ->
+    (callback = options; options = {}) if typeof options is 'function'
     resource = helpers.pluralize(resource)
-    controller = options?.controller || resource
+    controller = options.controller || resource
 
-    @route resource, "#{controller}#index", resource: controller, action: 'index'
-    @route "#{resource}/new", "#{controller}#new", resource: controller, action: 'new'
-    @route "#{resource}/:id", "#{controller}#show", resource: controller, action: 'show'
-    @route "#{resource}/:id/edit", "#{controller}#edit", resource: controller, action: 'edit'
+    @route(resource, "#{controller}#index", resource: controller, action: 'index') unless options.index is false
+    @route("#{resource}/new", "#{controller}#new", resource: controller, action: 'new') unless options.new is false
+    @route("#{resource}/:id", "#{controller}#show", resource: controller, action: 'show') unless options.show is false
+    @route("#{resource}/:id/edit", "#{controller}#edit", resource: controller, action: 'edit') unless options.edit is false
 
     if callback
       app = @
