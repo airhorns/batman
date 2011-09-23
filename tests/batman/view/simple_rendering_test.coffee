@@ -100,6 +100,15 @@ asyncTest 'it should allow arbitrary (?!")\s+\|\s+(?!")attributes to be bound', 
     equal $(node[0]).attr('bar'), "qux"
     QUnit.start()
 
+asyncTest 'it should allow multiple class names to be bound and updated', ->
+  source = '<div data-bind-class="classes"></div>'
+  context = new Batman.Object classes: 'foo bar'
+  helpers.render source, context, (node) ->
+    equal node[0].className, 'foo bar'
+    context.set 'classes', 'bar baz'
+    delay =>
+      equal node[0].className, 'bar baz'
+
 asyncTest 'it should allow input values to be bound', 1, ->
   helpers.render '<input data-bind="one" type="text" />',
     one: "qux"

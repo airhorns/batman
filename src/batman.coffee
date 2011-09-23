@@ -2883,9 +2883,12 @@ Batman.DOM = {
             context: context
             key: key
 
-        when 'value'
-          dataChange = (value) -> node.value = value
-          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
+        when 'value', 'style', 'href', 'src', 'size'
+          dataChange = (value) -> node[attr] = value
+          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
+        when 'class'
+          dataChange = (value) -> node.className = value
+          nodeChange = (node, subContext) -> subContext.set key, node.className
         else
           dataChange = (value) -> node.setAttribute(attr, value)
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
