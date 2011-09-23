@@ -29,7 +29,7 @@ asyncTest 'should update its node with the contents of its view', 1, ->
 
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.on 'ready', observer = createSpy()
-  
+
   delay =>
     MockRequest.lastInstance.fireSuccess('view contents')
     delay =>

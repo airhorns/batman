@@ -288,6 +288,7 @@ Batman.EventEmitter =
       newEvent = events.set(key, new eventClass(this, key))
       newEvent.oneShot = existingEvents?.get(key)?.oneShot
       newEvent
+
   on: (key, handler) ->
     @event(key).addHandler(handler)
 
@@ -1097,7 +1098,7 @@ _stateMachine_setState = (newState) ->
 
   oldState = @state()
   @_batman.state = newState
-
+  
   if newState and oldState
     @fire("#{oldState}->#{newState}", newState, oldState)
 
@@ -2412,7 +2413,6 @@ class Batman.View extends Batman.Object
       , @contexts)
 
       @_renderer.on 'rendered', => @fire('ready', node)
-
 
 # DOM Helpers
 # -----------
