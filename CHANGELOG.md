@@ -1,3 +1,40 @@
+## 0.6.1 (September 22, 2011)
+
+Maintenance Release
+
+  - added support for multi-select boxes
+  - added batman.rails.coffee, a new adapter for use within Rails
+  - added developer namespace for easy debugging (it gets stripped out in building)
+  - one way bindings have been changed to `data-source` and `data-target` to avoid ambiguity
+  - added `data-bind` support for `input type='file'`
+  - added `data-event-doubleclick`
+  - added `length` filter
+  - `Model.find` will always return the shared record instance. you can then bind to this and when the data comes in from the storage adapter, your instance will be updated
+  - added `Model::findOrCreate`
+  - added `Model::updateAttributes`
+  - allow storage adapters to specific their namespace with `storageKey`
+  - storage adapter filter callbacks take errors
+  - added `App.ready` event that fires once the layout is ready in the DOM
+  - normalize `status`/`statusCode` in `Batman.Request`
+  - hashes now have meta objects to non-obtrusively bind metadata like `length`
+  - the `property` keyword is no longer reserved
+
+Bugfixes:
+
+  - hash history uses `Batman.DOM.addEventListener`
+  - fire `rendered` event after all children have been rendered
+  - model methods can be used as event handlers
+  - animation methods called with node as context
+  - `data-event` works within the binding system
+  - simpler model identity mapper
+  - `SortableSet::clear` invalidates sort indices
+  - IE: doesn't have Function.prototype.name (move things into $functionName)
+  - IE: doesn't support `isSameNode`
+  - IE: doesn't support `removeEventListener` (use `detachEvent` instead)
+  - IE: fix $typeOf for undefined objects
+  - IE: event dispatching fixes
+  - IE: include json2.js in the tests
+
 ## 0.6.0 (September 13, 2011)
 
 Major Maintenance Release
@@ -27,6 +64,7 @@ Bugfixes:
   - fixed `LocalStorage`'s primaryKey generation (#27)
   - made `Request` send the proper content type (#35)
   - made the current application always appear on the context stack (#46, #48)
+
   - made `@render false` prevent render on a controller action (#50)
   - made `data-foreach` work with cleared sets and many additions/removals (#52, #56, #67)
   - made empty bindings work (#54)
