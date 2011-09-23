@@ -90,7 +90,7 @@ asyncTest 'it should allow visibility to be bound on inline elements', 2, ->
           equal node.css('display'), 'none'
         QUnit.start()
 
-asyncTest 'it should allow arbitrary (?!")\s+\|\s+(?!")attributes to be bound', 2, ->
+asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
   source = '<div data-bind-foo="one" data-bind-bar="two" foo="before"></div>'
   helpers.render source,
     one: "baz"
