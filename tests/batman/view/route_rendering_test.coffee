@@ -22,9 +22,10 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   @App.set 'tweet', tweet
 
   source = '<a data-route="Tweet">index</a>' +
+    '<a data-route="Tweet/new">new</a>' +
     '<a data-route="tweet">show</a>' +
-    '<a data-route="tweet/edit">edit</a>' +
-    '<a data-route="tweet/destroy">destroy</a>'
+    '<a data-route="tweet/edit">edit</a>'
+
   node = document.createElement 'div'
   node.innerHTML = source
 
@@ -33,6 +34,6 @@ asyncTest 'should set corresponding href for model and action', 1, ->
     node: node
   view.ready ->
     urls = ($(a).attr('href') for a in view.get('node').children)
-    deepEqual urls, ['#!/tweets', '#!/tweets/1', '#!/tweets/1/edit', '#!/tweets/1/destroy']
+    deepEqual urls, ['#!/tweets', '#!/tweets/new', '#!/tweets/1', '#!/tweets/1/edit']
     QUnit.start()
   view.get 'node'

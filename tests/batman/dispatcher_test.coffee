@@ -101,9 +101,9 @@ asyncTest 'resources', ->
   @App.ProductsController::testMember = -> @render false
 
   equal @App.test('products'), @App.ProductsController::index
+  equal @App.test('products/new'), null
   equal @App.test('products/1'), @App.ProductsController::show
   equal @App.test('products/1/edit'), @App.ProductsController::edit
-  equal @App.test('products/1/destroy'), null
 
   equal @App.test('products/testCollection'), @App.ProductsController::testCollection
   equal @App.test('products/1/test'), @App.ProductsController::testMember
