@@ -1685,7 +1685,7 @@ class Batman.Model extends Batman.Object
     record = new @(id)
     newRecord = @_mapIdentity(record)
     newRecord.load callback
-    return
+    return newRecord
 
   # `load` fetches records from all sources possible
   @load: (options, callback) ->

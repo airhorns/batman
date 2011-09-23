@@ -37,6 +37,19 @@ asyncTest "models will find the same instance if called twice", ->
       equal @Product.get('loaded').length, 1
       QUnit.start()
 
+asyncTest "find on models will return the same instance if called twice", ->
+  callbackFirstProduct = false
+  callbackSecondProduct = false
+  returnedFirstProduct = @Product.find 1, (err, firstProduct) =>
+    throw err if err
+    callbackFirstProduct = firstProduct
+    returnedSecondProduct = @Product.find 1, (err, secondProduct) =>
+      throw err if err
+      callbackSecondProduct = secondProduct
+      delay ->
+        equal returnedFirstProduct, callbackFirstProduct, 'find returns the same product'
+        equal returnedSecondProduct, callbackSecondProduct, 'find returns the same product'
+
 QUnit.module "Batman.Model class findOrCreating"
   setup: ->
     class @Product extends Batman.Model
