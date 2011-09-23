@@ -1624,9 +1624,12 @@ class Batman.Model extends Batman.Object
         encoder = encoderOrLastKey.encode
         decoder = encoderOrLastKey.decode
 
+    encoder = @defaultEncoder.encode if typeof encoder is 'undefined'
+    decoder = @defaultEncoder.decode if typeof decoder is 'undefined'
+
     for key in keys
-      @::_batman.encoders.set key, (encoder || @defaultEncoder.encode)
-      @::_batman.decoders.set key, (decoder || @defaultEncoder.decode)
+      @::_batman.encoders.set(key, encoder) if encoder
+      @::_batman.decoders.set(key, decoder) if decoder
 
   # Set up the unit functions as the default for both
   @defaultEncoder:

@@ -41,6 +41,10 @@ test "keys not marked for decoding shouldn't be decoded", ->
   equal p.get('cost'), 12.99
   equal p.get('wibble'), undefined
 
+test "models shouldn't encode their primary keys by default", ->
+  p = new @Product {id: 10, name: "Cool snowboard"}
+  deepEqual p.toJSON(), {name: "Cool snowboard"}
+
 test "models without any decoders should decode all keys", ->
 
   class TestProduct extends Batman.Model
@@ -77,3 +81,20 @@ test "passing a function should shortcut to passing an encoder", ->
   p = new @Product(name: "snowboard")
   deepEqual p.toJSON(), {name: "SNOWBOARD"}
 
+test "passing false should not attach an encoder or decoder for that key", ->
+  class TestProduct extends Batman.Model
+    @encode 'name',
+      encode: false
+      decode: (x) -> x
+
+    @encode 'date',
+      encode: (x) -> x
+      decode: false
+
+  decoded = new TestProduct()
+  decoded.fromJSON(name: "snowboard", date: "10/10/2010")
+  equal decoded.get('date'), undefined
+  equal decoded.get('name'), "snowboard"
+
+  encoded = new TestProduct(name: "snowboard", date: "10/10/2010")
+  deepEqual encoded.toJSON(), {date: "10/10/2010"}
