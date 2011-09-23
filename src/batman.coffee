@@ -1637,7 +1637,7 @@ class Batman.Model extends Batman.Object
     decode: (x) -> x
 
   # Attach encoders and decoders for the primary key, and update them if the primary key changes.
-  @observe 'primaryKey', yes, (newPrimaryKey) -> @encode newPrimaryKey, @defaultEncoder
+  @observe 'primaryKey', yes, (newPrimaryKey) -> @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
 
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
@@ -2208,7 +2208,6 @@ class Batman.RestStorage extends Batman.StorageAdapter
     super
     @recordJsonNamespace = helpers.singularize(@modelKey)
     @collectionJsonNamespace = helpers.pluralize(@modelKey)
-    @model.encode('id')
 
   @::before 'create', 'update', $passError ([record, options]) ->
     json = record.toJSON()
