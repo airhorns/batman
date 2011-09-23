@@ -2587,15 +2587,17 @@ class Binding extends Batman.Object
     shouldSet = yes
 
     # And attach them.
-    if @only != 'write' and Batman.DOM.nodeIsEditable(@node)
+    if @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
         @nodeChange(@node, @_keyContext || @value, @)
         shouldSet = yes
+
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
-    @observe 'filteredValue', yes, (value) =>
-      if shouldSet and @only != 'read'
-        @dataChange(value, @node, @)
+    if @only in [false, 'dataChange']
+      @observe 'filteredValue', yes, (value) =>
+        if shouldSet
+          @dataChange(value, @node, @)
     @
 
   parseFilter: ->
@@ -2742,12 +2744,9 @@ class RenderContext
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
   # when appropriate. Note that `Binding` has default observers for `dataChange` and `nodeChange` that
   # will set node/object values if these observers aren't passed in here.
-  # The optional `only` parameter can be used to create read-only or write-only bindings. If left unset,
-  # both read and write events are observed.
-  bind: (only, node, key, dataChange, nodeChange) ->
-    if !nodeChange and only and typeof only != 'string'
-      [node, key, dataChange, nodeChange] = [only, node, key, dataChange]
-
+  # The optional `only` parameter can be used to create data-to-node-only or node-to-data-only bindings. If left unset,
+  # both data-to-node (source) and node-to-data (target) events are observed.
+  bind: (node, key, dataChange, nodeChange, only = false) ->
     return new Binding
       renderContext: @
       keyPath: key
@@ -2760,18 +2759,18 @@ Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
-    read: (node, key, context, renderer) ->
-      Batman.DOM.readers.bind(node, key, context, renderer, 'read')
+    target: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'nodeChange')
 
-    write: (node, key, context, renderer) ->
-      Batman.DOM.readers.bind(node, key, context, renderer, 'write')
+    source: (node, key, context, renderer) ->
+      Batman.DOM.readers.bind(node, key, context, renderer, 'dataChange')
 
     bind: (node, key, context, renderer, only) ->
       switch node.nodeName.toLowerCase()
         when 'input'
           switch node.getAttribute('type')
             when 'checkbox'
-              return Batman.DOM.attrReaders.bind(node, 'checked', key, context, only)
+              return Batman.DOM.attrReaders.bind(node, 'checked', key, context, renderer, only)
             when 'radio'
               return Batman.DOM.binders.radio(arguments...)
             when 'file'
@@ -2780,7 +2779,7 @@ Batman.DOM = {
           return Batman.DOM.binders.select(arguments...)
 
       # Fallback on the default nodeChange and dataChange observers in Binding
-      context.bind(only, node, key)
+      context.bind(node, key, undefined, undefined, only)
 
     context: (node, key, context) -> context.addKeyToScopeForNode(node, key)
 
@@ -2862,13 +2861,13 @@ Batman.DOM = {
       if value is 'true' then value = true
       value
 
-    write: (node, attr, key, context) ->
-      Batman.DOM.attrReaders.bind node, attr, key, context, 'write'
+    source: (node, attr, key, context, renderer) ->
+      Batman.DOM.attrReaders.bind node, attr, key, context, renderer, 'dataChange'
 
-    bind: (node, attr, key, context, only) ->
+    bind: (node, attr, key, context, renderer, only) ->
       switch attr
         when 'checked', 'disabled', 'selected'
-          contextChange = (value) ->
+          dataChange = (value) ->
             node[attr] = !!value
             # Update the parent's binding if necessary
             Batman.data(node.parentNode, 'updateBinding')?()
@@ -2882,13 +2881,13 @@ Batman.DOM = {
             key: key
 
         when 'value'
-          contextChange = (value) -> node.value = value
+          dataChange = (value) -> node.value = value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
         else
-          contextChange = (value) -> node.setAttribute(attr, value)
+          dataChange = (value) -> node.setAttribute(attr, value)
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
 
-      context.bind(only, node, key, contextChange, nodeChange)
+      context.bind(node, key, dataChange, nodeChange, only)
 
     context: (node, contextName, key, context) -> context.addKeyToScopeForNode(node, key, contextName)
 
@@ -3063,7 +3062,7 @@ Batman.DOM = {
       # wait for the select to render before binding to it
       renderer.rendered ->
         # Update the select box with the binding's new value.
-        contextChange = (newValue) ->
+        dataChange = (newValue) ->
           # For multi-select boxes, the `value` property only holds the first
           # selection, so we need to go through the child options and update
           # as necessary.
@@ -3097,10 +3096,10 @@ Batman.DOM = {
         Batman.data node, 'updateBinding', updateSelectBinding
 
         # Create the binding
-        context.bind only, node, key, contextChange, nodeChange
+        context.bind node, key, dataChange, nodeChange, only
 
     radio: (node, key, context, renderer, only) ->
-      contextChange = (value) ->
+      dataChange = (value) ->
         # don't overwrite `checked` attributes in the HTML unless a bound
         # value is defined in the context. if no bound value is found, bind
         # to the key if the node is checked.
@@ -3111,10 +3110,10 @@ Batman.DOM = {
           container.set key, node.value
       nodeChange = (newNode, subContext) ->
         subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
-      context.bind only, node, key, contextChange, nodeChange
+      context.bind node, key, dataChange, nodeChange, only
 
     file: (node, key, context, renderer, only) ->
-      context.bind(only, node, key, ->
+      context.bind(node, key, ->
         developer.warn "Can't write to file inputs! Tried to on key #{key}."
       , (node, subContext) ->
         if subContext instanceof RenderContext.BindingProxy
@@ -3129,7 +3128,7 @@ Batman.DOM = {
           subContext.set key, Array::slice.call(node.files)
         else
           subContext.set key, node.files[0]
-      )
+      , only)
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
@@ -3213,20 +3212,23 @@ Batman.DOM = {
       when 'SELECT'
         node.value = value
       else
-        if isSetting then (node.innerHTML = value) else node.innerHTML
+        if isSetting then (node.innerHTML = value) else node.innerHTMLa
+
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA', 'SELECT']
+
+  # `$addEventListener uses attachEvent when necessary
+  addEventListener: $addEventListener = if window?.addEventListener
+      ((node, eventName, callback) -> node.addEventListener eventName, callback, false)
+    else
+      ((node, eventName, callback) -> node.attachEvent "on#{eventName}", callback)
+
+  # `$removeEventListener` uses detachEvent when necessary
+  removeEventListener: $removeEventListener = if window?.removeEventListener
+      ((elem, eventType, handler) -> elem.removeEventListener eventType, handler, false)
+    else
+      ((elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler)
 }
-
-# `$addEventListener uses attachEvent when necessary
-Batman.DOM.addEventListener = $addEventListener = 
-  if window?.addEventListener then ((node, eventName, callback) -> node.addEventListener eventName, callback, false)
-  else ((node, eventName, callback) -> node.attachEvent "on#{eventName}", callback)
-
-# `$removeEventListener` uses detachEvent when necessary
-Batman.DOM.removeEventListener = $removeEventListener =
-  if window?.removeEventListener then ((elem, eventType, handler) -> elem.removeEventListener eventType, handler, false)
-  else ((elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler)
 
 # Filters
 # -------
