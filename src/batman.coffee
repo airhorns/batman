@@ -212,6 +212,8 @@ helpers = Batman.helpers = {
       "#{string}s"
 
   capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
+
+  trim: (string) -> if string then string.trim() else ""
 }
 
 # Properties
