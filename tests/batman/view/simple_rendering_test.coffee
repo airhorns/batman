@@ -27,7 +27,7 @@ asyncTest 'it should bind undefined values as empty strings', 1, ->
     QUnit.start()
 
 asyncTest 'it should ignore empty bindings', 1, ->
-  helpers.render '<div datdataChange-bind=""></div>', Batman(), (node) =>
+  helpers.render '<div data-bind=""></div>', Batman(), (node) =>
     equals node.html(), ""
     QUnit.start()
 

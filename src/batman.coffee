@@ -3224,7 +3224,7 @@ Batman.DOM = {
       when 'SELECT'
         node.value = value
       else
-        if isSetting then (node.innerHTML = value) else node.innerHTMLa
+        if isSetting then (node.innerHTML = value) else node.innerHTML
 
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA', 'SELECT']
