@@ -324,7 +324,7 @@ batman.js uses a bunch of these data attributes for different things:
 
 * `data-yield="identifier"`: used in your layout to specify the locations that other views get rendered into when they are rendered. By default, a controller action renders each whole view into whichever node is set up to yield `"main"`. If you want some content in a view to be rendered into a different `data-yield` node, you can use `data-contentfor`.
 
-* `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area.
+* `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area. Multiple contentfors with the same binding will append their content to the yielding node.
 
 * `data-partial="shared/sidebar"`: renders the view at the path `/views/shared/sidebar.html` within this node. Note that `/views/` is prepended.
 

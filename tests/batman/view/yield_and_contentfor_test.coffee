@@ -5,7 +5,7 @@ QUnit.module 'Batman.View yield and contentFor rendering'
 asyncTest 'it should insert content into yields when the content comes before the yield', 1, ->
   source = '''
   <div data-contentfor="baz">chunky bacon</div>
-  <div data-yield="baz" id="test">erased</div>
+  <div data-yield="baz" id="test"></div>
   '''
   node = helpers.render source, {}, (node) ->
     delay =>
@@ -13,12 +13,23 @@ asyncTest 'it should insert content into yields when the content comes before th
 
 asyncTest 'it should insert content into yields when the content comes after the yield', 1, ->
   source = '''
-  <div data-yield="baz" class="test">erased</div>
+  <div data-yield="baz" class="test"></div>
   <span data-contentfor="baz">chunky bacon</span>
   '''
   node = helpers.render source, {}, (node) ->
     delay =>
       equals node.children(0).html(), "chunky bacon"
+
+asyncTest 'it should yield multiple contentfors that render into the same yield', ->
+  source = '''
+  <div data-yield="mult" class="test"></div>
+  <span data-contentfor="mult">chunky bacon</span>
+  <span data-contentfor="mult">spicy sausage</span>
+  '''
+  node = helpers.render source, {}, (node) ->
+    delay =>
+      equals node.children(0).first().html(), "chunky bacon"
+      equals node.children(0).first().next().html(), "spicy sausage"
 
 asyncTest 'it shouldn\'t go nuts if the content is already inside the yield', 1, ->
   source = '<div data-yield="baz" class="test">
