@@ -82,13 +82,22 @@ setTestSuite = ->
     @set.remove('foo')
     equal spy.callCount, 2
 
-  test "clear fires length observers", ->
+  test "clear() fires length observers", ->
     spy = createSpy()
     @set.observe('length', spy)
 
     @set.add('foo', 'bar')
     @set.clear()
     equal spy.callCount, 2, 'clear() fires length observers'
+
+  test "filter() returnes a set", ->
+    @set.add 'foo', 'bar', 'baz'
+
+    @filtered = @set.filter (v) -> v.slice(0, 1) is 'b'
+    ok @filtered.constructor == @set.constructor
+    equal @filtered.length, 2
+    ok @filtered.has 'bar'
+    ok @filtered.has 'baz'
 
   test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
     index = @set.indexedBy('length')

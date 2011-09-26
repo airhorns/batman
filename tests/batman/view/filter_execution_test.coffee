@@ -186,16 +186,16 @@ asyncTest 'map with a numeric key', 1, ->
     equals node.html(), "2, 5"
     QUnit.start()
 
-asyncTest 'map', 1, ->
+asyncTest 'map over a set', 1, ->
   helpers.render '<div data-bind="posts | map \'name\' | join \', \'"></div>',
-    posts: [
+    posts: new Batman.Set(
       Batman
         name: 'one'
         comments: 10
     , Batman
         name: 'two'
         comments: 20
-    ]
+    )
   , (node) ->
     equals node.html(), "one, two"
     QUnit.start()

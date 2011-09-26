@@ -215,3 +215,17 @@ test "merge(other) returns a new hash without modifying the original", ->
 
   ok !@hash.hasKey(key3)
   equal @hash.get(key1), 1
+
+test "filter(f) returns a filtered hash", ->
+  key1 = {}
+  key2 = {}
+  @hash.set key1, 1
+  @hash.set key2, 2
+  @hash.set 'foo', 'baz'
+  @hash.set 'bar', 'buzz'
+
+  @filtered = @hash.filter (k, v) -> k in [key1, 'foo']
+  ok @filtered instanceof Batman.Hash
+  equal @filtered.length, 2
+  ok @filtered.get key1
+  ok @filtered.get 'foo'

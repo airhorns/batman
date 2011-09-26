@@ -719,10 +719,16 @@ Batman.Enumerable =
       wrap = (r, e) -> r.push(e) if f(e); r
     @reduce wrap, r
 
+# Provide this simple mixin ability so that during bootstrapping we don't have to use `$mixin`. `$mixin`
+# will correctly attempt to use `set` on the mixinee, which ends up requiring the definition of
+# `SimpleSet` to be complete during its definition.
+$extendsEnumerable = (onto) -> onto[k] = v for k,v of Batman.Enumerable
+
 class Batman.SimpleHash
   constructor: ->
     @_storage = {}
     @length = 0
+  $extendsEnumerable(@::)
   propertyClass: Batman.Property
   hasKey: (key) ->
     matches = @_storage[key] ||= []
@@ -791,6 +797,7 @@ class Batman.Hash extends Batman.Object
     @meta.accessor 'keys', -> self.keys()
     super
 
+  $extendsEnumerable(@::)
   propertyClass: Batman.Property
 
   @accessor
@@ -819,8 +826,12 @@ class Batman.SimpleSet
     @_sorts = new Batman.SimpleHash
     @length = 0
     @add.apply @, arguments if arguments.length > 0
+
+  $extendsEnumerable(@::)
+
   has: (item) ->
     @_storage.hasKey item
+
   add: (items...) ->
     addedItems = []
     for item in items
@@ -867,6 +878,8 @@ class Batman.Set extends Batman.Object
   constructor: ->
     Batman.SimpleSet.apply @, arguments
     @set 'length', 0
+
+  $extendsEnumerable(@::)
 
   itemsWereAdded: @event ->
   itemsWereRemoved: @event ->
