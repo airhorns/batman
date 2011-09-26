@@ -326,7 +326,7 @@ batman.js uses a bunch of these data attributes for different things:
 
 * `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area.
 
-* `data-partial="/views/shared/sidebar"`: renders the view at the path `/views/shared/sidebar.html` within this node.
+* `data-partial="shared/sidebar"`: renders the view at the path `/views/shared/sidebar.html` within this node. Note that `/views/` is prepended.
 
 * `data-route="/some/path"` or `data-route="some.model"`: loads a route when this node is clicked. The route can either be specified by a path beginning with a slash "/", or by a property leading to either a model instance (resulting in a resource's "show" action) or a model class (for the resource's "index" action).
 
