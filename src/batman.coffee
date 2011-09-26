@@ -695,6 +695,30 @@ Batman.Object = BatmanObject
 class Batman.Accessible extends Batman.Object
   constructor: -> @accessor.apply(@, arguments)
 
+
+# Collections
+
+Batman.Enumerable =
+  isEnumerable: true
+  map:   (f, ctx = container) -> r = []; @forEach(-> r.push f.apply(ctx, arguments)); r
+  every: (f, ctx = container) -> r = true; @forEach(-> r = r && f.apply(ctx, arguments)); r
+  some:  (f, ctx = container) -> r = false; @forEach(-> r = r || f.apply(ctx, arguments)); r
+  reduce: (f, r) ->
+    count = 0
+    self = @
+    @forEach -> if r? then r = f(r, arguments..., count, self) else r = arguments[0]
+    r
+  filter: (f) ->
+    r = new @constructor
+    if r.add
+      wrap = (r, e) -> r.add(e) if f(e); r
+    else if r.set
+      wrap = (r, k, v) -> r.set(k, v) if f(k, v); r
+    else
+      r = [] unless r.push
+      wrap = (r, e) -> r.push(e) if f(e); r
+    @reduce wrap, r
+
 class Batman.SimpleHash
   constructor: ->
     @_storage = {}
