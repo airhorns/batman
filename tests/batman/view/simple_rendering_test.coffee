@@ -251,6 +251,29 @@ asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
         delay =>
           f('foo')
 
+asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 1, ->
+  context = Batman
+    foo: Batman
+      bar: Batman
+        doSomething: spy = createSpy()
+
+  source = '<button data-event-click="foo.bar.doSomething"></button>'
+  helpers.render source, context, (node) ->
+    helpers.triggerClick(node[0])
+    delay ->
+      equal spy.lastCallContext, context.get('foo.bar')
+
+
+asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 1, ->
+  context = Batman
+    doSomething: spy = createSpy()
+
+  source = '<button data-event-click="doSomething"></button>'
+  helpers.render source, context, (node) ->
+    helpers.triggerClick(node[0])
+    delay ->
+      equal spy.lastCallContext, context
+
 asyncTest 'it should allow click events to be bound', 2, ->
   context =
     doSomething: spy = createSpy()

@@ -2947,7 +2947,13 @@ Batman.DOM = {
 
       context.bind node, key, (value, node, binding) ->
         props.callback = value
-        props.subContext = binding.get('keyContext')
+        if binding.get('key')
+          ks = binding.get('key').split('.')
+          ks.pop()
+          if ks.length > 0
+            props.subContext = binding.get('keyContext').get(ks.join('.'))
+          else
+            props.subContext = binding.get('keyContext')
       , ->
 
       confirmText = node.getAttribute('data-confirm')
