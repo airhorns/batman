@@ -32,7 +32,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   view = new Batman.View
     contexts: []
     node: node
-  view.ready ->
+  view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     deepEqual urls, ['#!/tweets', '#!/tweets/new', '#!/tweets/1', '#!/tweets/1/edit']
     QUnit.start()

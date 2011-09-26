@@ -288,17 +288,6 @@ Batman.EventEmitter =
       newEvent = events.set(key, new eventClass(this, key))
       newEvent.oneShot = existingEvents?.get(key)?.oneShot
       newEvent
-  eventFunction: (key, opts, wrappedFunction) ->
-    if typeof opts is 'function'
-      wrappedFunction = opts
-    @event(key).oneShot = true if opts?.oneShot
-    @[key] = (callback) ->
-      if typeof callback is 'function'
-        @on(key, callback)
-      else
-        result = wrappedFunction?.apply(this, arguments)
-        @fire(key, arguments...)
-        result
   on: (key, handler) ->
     @event(key).addHandler(handler)
   
@@ -1074,11 +1063,7 @@ Batman.StateMachine = {
     return @_batman.getFirst 'state' unless name
     developer.assert @isEventEmitter, "StateMachine requires EventEmitter"
     
-    @[name] ||= (callback) ->
-      if typeof callback is 'function'
-        @on(name, callback)
-      else
-        _stateMachine_setState.call(@, name)
+    @[name] ||= (callback) -> _stateMachine_setState.call(@, name)
     @on(name, callback) if typeof callback is 'function'
 
   transition: (from, to, callback) ->
@@ -1166,11 +1151,6 @@ class Batman.Request extends Batman.Object
   # not desired, use @cancel() after setting the URL.
   @observeAll 'url', ->
     @_autosendTimeout = setTimeout (=> @send()), 0
-  
-  @::eventFunction 'loading'
-  @::eventFunction 'loaded'
-  @::eventFunction 'success'
-  @::eventFunction 'error'
 
   # `send` is implmented in the platform layer files. One of those must be required for
   # `Batman.Request` to be useful.
@@ -1226,7 +1206,8 @@ class Batman.App extends Batman.Object
   # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
   
-  @eventFunction 'run', oneShot: yes, ->
+  @event('run').oneShot = true
+  @run: ->
     if Batman.currentApp
       return if Batman.currentApp is @
       Batman.currentApp.stop()
@@ -1242,21 +1223,24 @@ class Batman.App extends Batman.Object
         contexts: [@]
         node: document
 
-      @get('layout').ready => @ready()
+      @get('layout').on 'ready', => @fire 'ready'
 
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @historyManager = Batman.historyManager = new Batman.HashHistory @
       @historyManager.start()
 
     @hasRun = yes
+    @fire('run')
     @
 
-  @eventFunction 'ready', oneShot: yes, -> true
+  @event('ready').oneShot = true
 
-  @eventFunction 'stop', oneShot: yes, ->
+  @event('stop').oneShot = true
+  @stop: ->
     @historyManager?.stop()
     Batman.historyManager = null
     @hasRun = no
+    @fire('stop')
     @
 
 # Dispatcher
@@ -1579,7 +1563,7 @@ class Batman.Controller extends Batman.Object
     if view = options.view
       Batman.currentApp?.prevent 'ready'
       view.contexts.push @
-      view.ready ->
+      view.on 'ready', ->
         Batman.DOM.contentFor('main', view.get('node'))
         Batman.currentApp?.allow 'ready'
         Batman.currentApp?.fire 'ready'
@@ -1709,13 +1693,13 @@ class Batman.Model extends Batman.Object
 
     developer.assert @::_batman.getAll('storage').length, "Can't load model #{$functionName(@)} without any storage adapters!"
 
-    do @loading
+    @loading()
     @::_doStorageOperation 'readAll', options, (err, records) =>
       if err?
         callback?(err, [])
       else
         mappedRecords = (@_mapIdentity(record) for record in records)
-        do @loaded
+        @loaded()
         callback?(err, mappedRecords)
 
   # `create` takes an attributes hash, creates a record from it, and saves it given the callback.
@@ -1884,10 +1868,10 @@ class Batman.Model extends Batman.Object
       callback?(new Error("Can't load a destroyed record!"))
       return
 
-    do @loading
+    @loading()
     @_doStorageOperation 'read', {}, (err, record) =>
       unless err
-        do @loaded
+        @loaded()
         record = @constructor._mapIdentity(record)
       callback?(err, record)
 
@@ -2359,7 +2343,7 @@ class Batman.View extends Batman.Object
   contentFor: null
 
   # Fires once a node is parsed.
-  @::eventFunction 'ready', oneShot: yes
+  @::event('ready').oneShot = true
 
   # Where to look for views on the server
   prefix: 'views'
@@ -2410,8 +2394,7 @@ class Batman.View extends Batman.Object
           @contentFor.appendChild(node)
       , @contexts)
 
-      @_renderer.rendered =>
-        @ready(node)
+      @_renderer.on 'rendered', => @fire('ready', node)
 
 
 # DOM Helpers
@@ -2424,7 +2407,7 @@ class Batman.Renderer extends Batman.Object
 
   constructor: (@node, callback, contexts = []) ->
     super()
-    @parsed callback if callback?
+    @on('parsed', callback) if callback?
     @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)
     setTimeout @start, 0
 
@@ -2443,8 +2426,8 @@ class Batman.Renderer extends Batman.Object
 
   forgetAll: ->
 
-  @::eventFunction 'parsed', oneShot: yes
-  @::eventFunction 'rendered', oneShot: yes
+  @::event('parsed').oneShot = true
+  @::event('rendered').oneShot = true
 
   bindingRegexp = /data\-(.*)/
   sortBindings = (a, b) ->
@@ -2856,7 +2839,7 @@ Batman.DOM = {
         contentFor: node
         contexts: Array.prototype.slice.call(context.contexts)
 
-      view.ready ->
+      view.on 'ready', ->
         renderer.allow 'rendered'
         renderer.fire 'rendered'
 
@@ -2953,7 +2936,7 @@ Batman.DOM = {
       sibling = node.nextSibling
 
       # Remove the original node once the parent has moved past it.
-      parentRenderer.parsed ->
+      parentRenderer.on 'parsed', ->
         parent.removeChild node
 
       # Get a hash keyed by collection item with the nodes representing that item as values
@@ -3005,7 +2988,7 @@ Batman.DOM = {
                   fragment = document.createDocumentFragment()
             , localClone
 
-            childRenderer.rendered =>
+            childRenderer.on 'rendered', =>
               parentRenderer.allow 'rendered'
               parentRenderer.fire 'rendered'
 
@@ -3084,7 +3067,7 @@ Batman.DOM = {
                 subContainer.set subKey, child.selected
 
       # wait for the select to render before binding to it
-      renderer.rendered ->
+      renderer.on 'rendered', ->
         # Update the select box with the binding's new value.
         dataChange = (newValue) ->
           # For multi-select boxes, the `value` property only holds the first

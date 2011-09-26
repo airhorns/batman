@@ -9,15 +9,15 @@ asyncTest "new record lifecycle callbacks fire in order", ->
   callOrder = []
 
   product = new @Product()
-  product.dirty -> callOrder.push(0)
-  product.validating -> callOrder.push(1)
-  product.validated -> callOrder.push(2)
-  product.saving -> callOrder.push(3)
-  product.creating -> callOrder.push(4)
-  product.created -> callOrder.push(5)
-  product.saved -> callOrder.push(6)
-  product.destroying -> callOrder.push(8)
-  product.destroyed -> callOrder.push(9)
+  product.on 'dirty', -> callOrder.push(0)
+  product.on 'validating', -> callOrder.push(1)
+  product.on 'validated', -> callOrder.push(2)
+  product.on 'saving', -> callOrder.push(3)
+  product.on 'creating', -> callOrder.push(4)
+  product.on 'created', -> callOrder.push(5)
+  product.on 'saved', -> callOrder.push(6)
+  product.on 'destroying', -> callOrder.push(8)
+  product.on 'destroyed', -> callOrder.push(9)
   product.set('foo', 'bar')
   product.save (err) ->
     throw err if err
@@ -31,12 +31,12 @@ asyncTest "existing record lifecycle callbacks fire in order", ->
   callOrder = []
 
   @Product.find 10, (err, product) ->
-    product.validating -> callOrder.push(1)
-    product.validated -> callOrder.push(2)
-    product.saving -> callOrder.push(3)
-    product.saved -> callOrder.push(4)
-    product.destroying -> callOrder.push(6)
-    product.destroyed -> callOrder.push(7)
+    product.on 'validating', -> callOrder.push(1)
+    product.on 'validated', -> callOrder.push(2)
+    product.on 'saving', -> callOrder.push(3)
+    product.on 'saved', -> callOrder.push(4)
+    product.on 'destroying', -> callOrder.push(6)
+    product.on 'destroyed', -> callOrder.push(7)
     product.save (err) ->
       throw err if err
       callOrder.push(5)

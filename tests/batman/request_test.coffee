@@ -43,11 +43,11 @@ asyncTest 'should call the success callback if the request was successful', 1, -
   observer = createSpy()
   req = new Batman.Request
     url: 'some/test/url.html'
-  req.success(observer)
+  req.on 'success', observer
 
   delay =>
     req = @send.lastCallContext
-    req.success('some test data')
+    req.fire 'success', 'some test data'
 
     delay =>
       deepEqual observer.lastCallArguments, ['some test data']

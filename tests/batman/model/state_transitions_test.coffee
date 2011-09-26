@@ -18,7 +18,7 @@ asyncTest "loaded instances start 'loaded'", 2, ->
     equal product.state(), 'loaded'
     QUnit.start()
 
-test "instances has state transitions for observation", 1, ->
+test "instances have state transitions for observation", 1, ->
   product = new @Product
   product.transition 'loading', 'loaded', spy = createSpy()
   product.loading()
