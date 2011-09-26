@@ -124,7 +124,7 @@ Batman._functionName = $functionName = (f) ->
 # `$preventDefault` checks for preventDefault, since it's not
 # always available across all browsers
 Batman._preventDefault = $preventDefault = (e) ->
-  e.preventDefault?()
+  if typeof e.preventDefault is "function" then e.preventDefault() else e.returnValue = false
 
 Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
   node = childNode.parentNode
