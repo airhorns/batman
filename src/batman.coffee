@@ -860,14 +860,19 @@ class Batman.Set extends Batman.Object
 
   $extendsEnumerable(@::)
 
-  for k in ['add', 'remove', 'clear', 'merge', 'has', 'forEach', 'isEmpty', 'toArray', 'indexedBy', 'sortedBy']
+  for k in ['add', 'remove', 'clear', 'indexedBy', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
+    
+  for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']
+    proto = @prototype
+    do (k) ->
+      proto[k] = ->
+        @registerAsMutableSource()
+        Batman.SimpleSet::[k].apply(@, arguments)
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
-  @accessor 'isEmpty', ->
-    @registerAsMutableSource()
-    @isEmpty()
+  @accessor 'isEmpty', -> @isEmpty()
   @accessor 'length', ->
     @registerAsMutableSource()
     @length
