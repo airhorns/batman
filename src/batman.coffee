@@ -731,32 +731,27 @@ class Batman.SimpleHash
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
   hasKey: (key) ->
-    matches = @_storage[key] ||= []
-    for match in matches
-      if @equality(match[0], key)
-        pair = match
-        return true
+    if pairs = @_storage[key]
+      for pair in pairs
+        return true if @equality(pair[0], key)
     return false
   get: (key) ->
-    if matches = @_storage[key]
-      for [obj,v] in matches
-        return v if @equality(obj, key)
+    if pairs = @_storage[key]
+      for pair in pairs
+        return pair[1] if @equality(pair[0], key)
   set: (key, val) ->
-    matches = @_storage[key] ||= []
-    for match in matches
-      if @equality(match[0], key)
-        pair = match
-        break
-    unless pair
-      pair = [key]
-      matches.push(pair)
-      @length++
-    pair[1] = val
+    pairs = @_storage[key] ||= []
+    for pair in pairs
+      if @equality(pair[0], key)
+        return pair[1] = val
+    @length++
+    pairs.push([key, val])
+    val
   unset: (key) ->
-    if matches = @_storage[key]
-      for [obj,v], index in matches
+    if pairs = @_storage[key]
+      for [obj,value], index in pairs
         if @equality(obj, key)
-          matches.splice(index,1)
+          pairs.splice(index,1)
           @length--
           return
   getOrSet: Batman.Observable.getOrSet
