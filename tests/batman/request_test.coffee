@@ -39,18 +39,21 @@ asyncTest 'should request a url with data', 1, ->
     req = @send.lastCallContext
     deepEqual req.data, {a: "b", c: 1}
 
-asyncTest 'should call the success callback if the request was successful', 1, ->
-  observer = createSpy()
+asyncTest 'should call the success callback if the request was successful', 2, ->
+  postInstantiationObserver = createSpy()
+  optionsHashObserver = createSpy()
   req = new Batman.Request
     url: 'some/test/url.html'
-  req.on 'success', observer
+    success: optionsHashObserver
+  req.on 'success', postInstantiationObserver
 
   delay =>
     req = @send.lastCallContext
     req.fire 'success', 'some test data'
 
     delay =>
-      deepEqual observer.lastCallArguments, ['some test data']
+      deepEqual optionsHashObserver.lastCallArguments, ['some test data']
+      deepEqual postInstantiationObserver.lastCallArguments, ['some test data']
 
 if typeof FormData isnt 'undefined'
   oldFormData = FormData

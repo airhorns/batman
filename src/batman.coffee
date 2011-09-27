@@ -232,7 +232,7 @@ class Batman.Event
   isEvent: true
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
-  
+
   addHandler: (handler) ->
     @handlers.add(handler)
     @autofireHandler(handler) if @oneShot
@@ -240,7 +240,7 @@ class Batman.Event
   removeHandler: (handler) ->
     @handlers.remove(handler)
     this
-  
+
   eachHandler: (iterator) ->
     @handlers.forEach(iterator)
     if @base?.isEventEmitter
@@ -249,9 +249,9 @@ class Batman.Event
         if ancestor.isEventEmitter
           handlers = ancestor.event(key).handlers
           handlers.forEach(iterator)
-          
+
   handlerContext: -> @base
-  
+
   prevent: -> @_preventCount++
   allow: -> @_preventCount-- if @_preventCount > 0
   isPrevented: -> @_preventCount > 0
@@ -269,7 +269,7 @@ class Batman.Event
       @_oneShotFired = true
       @_oneShotArgs = arguments
     @eachHandler (handler) -> handler.apply(context, args)
-    
+
 
 class Batman.PropertyEvent extends Batman.Event
   eachHandler: (iterator) -> @base.eachObserver(iterator)
@@ -290,7 +290,7 @@ Batman.EventEmitter =
       newEvent
   on: (key, handler) ->
     @event(key).addHandler(handler)
-  
+
   registerAsMutableSource: ->
     Batman.Property.registerSource(@)
 for k in ['prevent', 'allow', 'fire', 'isPrevented']
@@ -301,7 +301,7 @@ for k in ['prevent', 'allow', 'fire', 'isPrevented']
 
 class Batman.Property
   $mixin @prototype, Batman.EventEmitter
-  
+
   @_sourceTrackerStack: []
   @sourceTracker: -> (stack = @_sourceTrackerStack)[stack.length - 1]
   @defaultAccessor:
@@ -313,22 +313,22 @@ class Batman.Property
       base.property(key)
     else
       new Batman.Keypath(base, key)
-      
+
   @registerSource: (obj) ->
     return unless obj.isEventEmitter
     @sourceTracker()?.add(obj)
-  
+
   constructor: (@base, @key) ->
-  
+
   cached: no
   value: null
   sources: null
   isProperty: true
   eventClass: Batman.PropertyEvent
-  
+
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
-    
+
   accessor: ->
     accessors = @base._batman?.get('keyAccessors')
     if accessors && (val = accessors.get(@key))
@@ -344,10 +344,10 @@ class Batman.Property
           property = ancestor.property(key)
           handlers = property.event('change').handlers
           handlers.forEach(iterator)
-    
+
   sourceChangeHandler: ->
     @_sourceChangeHandler ||= @refreshCacheAndSources.bind(@)
-  
+
   pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
   updateSourcesFromTracker: ->
     newSources = Batman.Property._sourceTrackerStack.pop()
@@ -358,7 +358,7 @@ class Batman.Property
     @sources = newSources
     @sources.forEach (source) ->
       source.event('change').addHandler(sourceChangeHandler)
-  
+
   getValue: ->
     @registerAsMutableSource()
     unless @cached
@@ -367,16 +367,16 @@ class Batman.Property
       @cached = yes
       @updateSourcesFromTracker()
     @value
-  
+
   refreshCacheAndSources: ->
     @cached = no
     previousValue = @value
     value = @getValue()
     if value isnt previousValue
       @fire(value, previousValue)
-  
+
   valueFromAccessor: -> @accessor()?.get?.call(@base, @key)
-    
+
   setValue: (val) ->
     result = @accessor()?.set?.call(@base, @key, val)
     @refreshCacheAndSources()
@@ -385,7 +385,7 @@ class Batman.Property
     result = @accessor()?.unset?.call(@base, @key)
     @refreshCacheAndSources()
     result
-  
+
   forget: (handler) ->
     if handler?
       @event('change').removeHandler(handler)
@@ -402,7 +402,7 @@ class Batman.Property
   allow: -> @event('change').allow()
   fire: -> @event('change').fire(arguments...)
   isPrevented: -> @event('change').isPrevented()
-  
+
 
 # Keypaths
 # --------
@@ -476,7 +476,7 @@ Batman.Observable =
   observe: (key, args...) ->
     @property(key).observe(args...)
     @
-    
+
   observeAndFire: (key, args...) ->
     @property(key).observeAndFire(args...)
     @
@@ -652,8 +652,8 @@ class BatmanObject
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
     @mixin mixins...
-  
-  
+
+
   # Make every subclass and their instances observable.
   @classMixin Batman.EventEmitter, Batman.Observable
   @mixin Batman.EventEmitter, Batman.Observable
@@ -862,7 +862,7 @@ class Batman.Set extends Batman.Object
 
   for k in ['add', 'remove', 'clear', 'indexedBy', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
-    
+
   for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']
     proto = @prototype
     do (k) ->
@@ -1011,16 +1011,16 @@ class Batman.SortableSet extends Batman.Set
     @observe 'activeIndex', =>
       @setWasSorted()
   setWasSorted: -> @fire('setWasSorted') unless @length is 0
-  
+
   for k in ['add', 'remove', 'clear']
     do (k) =>
       @::[k] = ->
         results = Batman.Set::[k].apply(@, arguments)
         @_reIndex()
         results
-      
+
   isSortableSet: yes
-  
+
   addIndex: (index) ->
     @_reIndex(index)
   removeIndex: (index) ->
@@ -1067,7 +1067,7 @@ Batman.StateMachine = {
 
     return @_batman.getFirst 'state' unless name
     developer.assert @isEventEmitter, "StateMachine requires EventEmitter"
-    
+
     @[name] ||= (callback) -> _stateMachine_setState.call(@, name)
     @on(name, callback) if typeof callback is 'function'
 
@@ -1103,10 +1103,10 @@ _stateMachine_setState = (newState) ->
 
   oldState = @state()
   @_batman.state = newState
-  
+
   if newState and oldState
     @fire("#{oldState}->#{newState}", newState, oldState)
-  
+
   if newState
     @fire(newState, newState, oldState)
 
@@ -1150,6 +1150,15 @@ class Batman.Request extends Batman.Object
 
   # Set the content type explicitly for PUT and POST requests.
   contentType: 'application/x-www-form-urlencoded'
+
+  constructor: (options) ->
+    handlers = {}
+    for k, handler of options when k in ['success', 'error', 'loading', 'loaded']
+      handlers[k] = handler
+      delete options[k]
+
+    super(options)
+    @on k, handler for k, handler of handlers
 
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is
@@ -1210,7 +1219,7 @@ class Batman.App extends Batman.Object
 
   # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
-  
+
   @event('run').oneShot = true
   @run: ->
     if Batman.currentApp
