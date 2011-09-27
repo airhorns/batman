@@ -23,7 +23,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     map:
       'src/batman\.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/batman.js', options)
       'src/batman\.(.+)\.coffee' : (matches) -> muffin.compileScript(matches[0], "lib/batman.#{matches[1]}.js", options)
-      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({bare: true}, options, {mode: 755}))
+      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({bare: true}, options, {mode: 0755}))
       'src/tools/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "tools/#{matches[1]}.js", options)
 
   if options.dist
@@ -99,7 +99,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         destination = "#{tmpdir}/#{matches[1]}_#{matches[2]}.js"
         destinationDir = path.dirname(destination)
         fs.mkdirSync(destinationDir, 0755) unless path.existsSync(destinationDir)
-        return muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
+        muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
     after: ->
       first = false
       runner.run
