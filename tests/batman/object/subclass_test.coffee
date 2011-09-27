@@ -1,7 +1,7 @@
 QUnit.module "Batman.Object sub-classes and sub-sub-classes",
   setup: ->
-    @subClass = class SubClass extends Batman.Object
-    @subSubClass = class SubSubClass extends SubClass
+    class @subClass extends Batman.Object
+    class @subSubClass extends @subClass
 
 test "subclasses should have the dsl helpers defined", ->
   ok @subClass.property
@@ -42,20 +42,19 @@ test "classes should share observables", ->
   @subClass.observe 'foo', spy = createSpy()
   @subSubClass.observe 'foo', subSpy = createSpy()
   @subSubClass.set 'foo', 'bar'
-  Batman.Object.set 'foo', 'bar'
 
-  ok spy.called
-  ok subSpy.called
+  equal spy.callCount, 1
+  equal subSpy.callCount, 1
 
   @subClass.set 'foo', 'bar'
-  ok spy.called
+  equal spy.callCount, 2
+  equal subSpy.callCount, 1
 
-test "newly created classes shouldn fire observers on parent classes", ->
+test "newly created classes should fire observers on parent classes", ->
   @subClass.observe 'foo', spy = createSpy()
 
   newSubClass = class TestSubClass extends @subClass
   newSubClass.observe 'foo', subSpy = createSpy()
-
   newSubClass.set 'foo', 'bar'
   ok spy.called
   ok subSpy.called

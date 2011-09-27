@@ -321,7 +321,7 @@ buildParams = (prefix, obj, add) ->
     add prefix, obj
 
 Batman.Request::send = (data) ->
-  @loading yes
+  @fire 'loading'
 
   options =
     url: @get 'url'
@@ -332,17 +332,16 @@ Batman.Request::send = (data) ->
     success: (response) =>
       @set 'response', response
       @set 'status', xhr.status
-      @success response
+      @fire 'success', response
 
     error: (xhr) =>
       @set 'response', xhr.responseText || xhr.content
       @set 'status', xhr.status
       xhr.request = @
-      @error xhr
+      @fire 'error', xhr
 
     complete: =>
-      @loading no
-      @loaded yes
+      @fire 'loaded'
 
   if options.method in ['PUT', 'POST']
     unless @get('formData')

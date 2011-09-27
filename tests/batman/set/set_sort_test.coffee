@@ -7,8 +7,8 @@ QUnit.module 'Batman.SetSort',
 
     @byZeke = Batman author: @zeke
     @byMary = Batman author: @mary
-    @byFred = Batman author: @fred
-    @anotherByFred = Batman author: @fred
+    @byFred = Batman author: @fred, prop: "byFred"
+    @anotherByFred = Batman author: @fred, prop: "anotherByFred"
 
     @base = new Batman.Set(@byMary, @byFred, @byZeke, @anotherByFred)
     @authorNameSort = new Batman.SetSort(@base, 'author.name')
@@ -50,8 +50,9 @@ test "items with null or undefined values for the sorted key come last and in th
   @base.add numberedName
   @base.add trueName
   @base.add falseName
+  @base.remove @anotherByFred
 
-  expected = [falseName, trueName, numberedName, anotherNumberedName, naNName, @byFred, @anotherByFred, @byMary, @byZeke, nullName, noName, anotherNoName]
+  expected = [falseName, trueName, numberedName, anotherNumberedName, naNName, @byFred, @byMary, @byZeke, nullName, noName, anotherNoName]
   deepEqual @authorNameSort.toArray(), expected
 
 test "forEach(iterator) loops in the correct order", ->

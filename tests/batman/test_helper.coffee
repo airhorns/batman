@@ -177,6 +177,13 @@ class MockClass
     @::["fire#{name.charAt(0).toUpperCase() + name.slice(1)}"] = () ->
       f.apply(@, arguments) for f in @callbackStacks[name]
 
+  on: (event, callback) ->
+    (@callbackStacks[event] ||= []).push(callback)
+    @
+  fire: (event) ->
+    return unless @callbackStacks[event]
+    f.apply(@, arguments) for f in @callbackStacks[event]
+  
   _callbackStacks: {}
 
   constructor: (options = {}) ->

@@ -55,7 +55,7 @@ asyncTest 'it should not render past its original node', ->
   view = new Batman.View
     contexts: [@context]
     node: node2
-  view.ready ->
+  view.on 'ready', ->
     equal node1.className, ''
     equal node2.className, 'bar'
     equal node3.className, ''

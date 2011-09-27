@@ -1,5 +1,5 @@
 getPropertyAccessor = ->
-  get: createSpy()
+  get: createSpy ->
   set: createSpy()
   unset: createSpy()
 
@@ -17,7 +17,7 @@ QUnit.module 'Batman.Observable',
     @obj.foo.accessor 'someProperty', (@fooPropertyAccessor = getPropertyAccessor())
 
 ###
-# keypath(key)
+# property(key)
 ###
 test 'property(key) returns a keypath of this object with the given key', ->
   keypath = @obj.property('foo.bar.baz')
@@ -46,11 +46,38 @@ test "get(key) with a simple key calls resolve() on the result if it is a Batman
   deepEqual @objPropertyAccessor.get.lastCallArguments, ['someProperty']
   ok @objPropertyAccessor.get.lastCallContext is @obj
 
-test "get(key) with a deep keypath calls resolve() on the result if it is a Batman.Property and returns that instead", ->
+test "get(key) with a deep keypath uses the last property's accessor with the last base as the context", ->
   @fooPropertyAccessor.get.whichReturns('resolvedValue')
   equal @obj.get('foo.someProperty'), 'resolvedValue'
   deepEqual @fooPropertyAccessor.get.lastCallArguments, ['someProperty']
   ok @fooPropertyAccessor.get.lastCallContext is @obj.foo
+ 
+test "get(key) is cached until one of its sources changes", ->
+  @obj.get('foo.someProperty')
+  equal @fooPropertyAccessor.get.callCount, 1
+  @obj.get('foo.someProperty')
+  equal @fooPropertyAccessor.get.callCount, 1
+   
+  @obj.set('foo.someProperty', yes)
+   
+  @obj.get('foo.someProperty')
+  equal @fooPropertyAccessor.get.callCount, 2
+  @obj.get('foo.someProperty')
+  equal @fooPropertyAccessor.get.callCount, 2
+ 
+test "get(key) works with cacheable properties with more than one level of accessor indirection", ->
+  @obj.accessor 'indirectProperty', -> @get('foo.someProperty')
+  @obj.get('indirectProperty')
+  equal @fooPropertyAccessor.get.callCount, 1
+  @obj.get('indirectProperty')
+  equal @fooPropertyAccessor.get.callCount, 1
+   
+  @obj.set('foo.someProperty', yes)
+   
+  @obj.get('indirectProperty')
+  equal @fooPropertyAccessor.get.callCount, 2
+  @obj.get('indirectProperty')
+  equal @fooPropertyAccessor.get.callCount, 2
 
 ###
 # set(key)
@@ -129,7 +156,7 @@ test "getOrSet(key, valueFunction) does conditional assignment with the return v
   equal "bar", @obj.get("foo2")
 
 ###
-# observe(key [, fireImmediately], callback)
+# observe(key, callback)
 ###
 test "observe(key, callback) stores the callback such that it is called with (value, oldValue) when the value of the key changes", ->
   callback = createSpy()
@@ -140,11 +167,6 @@ test "observe(key, callback) stores the callback such that it is called with (va
   [newValue, oldValue] = callback.lastCallArguments
   equal newValue, 'newVal'
   ok oldValue is foo
-
-test "observe(key, fireImmediately, callback) calls the callback immediately if fireImmediately is true", ->
-  callback = createSpy()
-  @obj.observe 'foo.bar.baz.qux', yes, callback
-  deepEqual callback.lastCallArguments, ['quxVal', 'quxVal']
 
 test "observe(key, callback) with a deep keypath will fire with the new value when the final key value is changed directly", ->
   @obj.observe 'foo.bar.baz.qux', callback = createSpy()
@@ -269,6 +291,15 @@ test "observe(key, callback) will only fire once and will not break when there's
 
 
 ###
+# observeAndFire(key, callback)
+###
+test "observeAndFire(key, callback) adds the callback and then calls it immediately", ->
+  callback = createSpy()
+  @obj.observeAndFire 'foo.bar.baz.qux', callback
+  deepEqual callback.lastCallArguments, ['quxVal', 'quxVal']
+
+
+###
 # forget(key [, callback])
 ###
 test "forget(key, callback) for a simple key will remove the specified callback from that key's observers", ->
@@ -322,7 +353,7 @@ test "forget() without any arguments removes all observers from all of this obje
   equal callback3.callCount, 0
 
 
-test "forget(key) for a deep keypath not remove any triggers when there are still observers present on the keypath", ->
+test "forget(key) for a deep keypath does not remove any sources when there are still observers present on the keypath", ->
   callback1 = createSpy()
   callback2 = createSpy()
 
@@ -331,25 +362,16 @@ test "forget(key) for a deep keypath not remove any triggers when there are stil
 
   equal @obj.forget('foo.bar.baz', callback2), @obj, "forget returns object for chaining"
 
-  equal @obj.property('foo').dependents.length, 1
-  equal @obj.foo.property('bar').dependents.length, 1
-  equal @obj.foo.bar.property('baz').dependents.length, 1
+  equal @obj.property('foo').event('change').handlers.length, 1
+  equal @obj.foo.property('bar').event('change').handlers.length, 1
+  equal @obj.foo.bar.property('baz').event('change').handlers.length, 1
 
-  equal @obj.property('foo.bar.baz').triggers.length, 4 #including itself
+  equal @obj.property('foo.bar.baz').sources.length, 3
 
   @obj.foo.bar.set 'baz', 'newBaz'
+  equal callback1.callCount, 1
   @obj.foo.set 'bar', 'newBar'
-  @obj.set 'foo', 'newFoo'
+  equal callback1.callCount, 2
+  @obj.set 'foo', Batman(bar: Batman(baz: 'reconstructedBaz'))
   equal callback1.callCount, 3
   equal callback2.callCount, 0
-
-test "forget(key) for a deep keypath will remove the keypath's triggers if there are no more observers present on the keypath", ->
-  @obj.observe 'foo.bar.baz', observer = createSpy()
-
-  equal @obj.forget('foo.bar.baz'), @obj
-
-  equal @obj.property('foo').dependents.length, 0
-  equal @obj.foo.property('bar').dependents.length, 0
-  equal @obj.foo.bar.property('baz').dependents.length, 0
-
-  equal @obj.property('foo.bar.baz').triggers.length, 0

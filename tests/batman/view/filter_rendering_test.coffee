@@ -79,7 +79,7 @@ asyncTest 'should update bindings when argument keypaths change', 1, ->
     delay ->
       equals node.html(), '1-2-3'
 
-asyncTest 'it shouldn\'t update the data object if value bindings are filtered', 3, ->
+asyncTest 'it should update the data object if value bindings aren\'t filtered', 3, ->
   context = new Batman.Object
 
   # Define an accessor on a normal key
@@ -96,7 +96,7 @@ asyncTest 'it shouldn\'t update the data object if value bindings are filtered',
       ok getSpy.called
       ok setSpy.called
 
-asyncTest 'it should update the data object if value bindings aren\'t filtered', 5, ->
+asyncTest 'it shouldn\'t update the data object if value bindings are filtered', 3, ->
   # Try it with a filter
   context = new Batman.Object
     one: "abcabcabcabcabc"
@@ -114,9 +114,7 @@ asyncTest 'it should update the data object if value bindings aren\'t filtered',
     helpers.triggerChange(node.get(0))
     delay =>
       equal node.val(), 'defdefdefdef'
-      ok getSpy.called
       ok !setSpy.called
-      ok !defaultGetSpy.called
       ok !defaultSetSpy.called
 
 asyncTest 'should allow filtered keypaths as arguments to context', 1, ->

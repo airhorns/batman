@@ -109,6 +109,60 @@ setTestSuite = ->
   test "get('indexedBy.someKey') returns the same index as indexedBy(key)", ->
     strictEqual @set.get('indexedBy.length'), @set.indexedBy('length')
 
+  test "using .has(key) in an accessor registers the set as a source of the property", ->
+    obj = new Batman.Object
+    obj.accessor 'hasFoo', => @set.has('foo')
+    obj.observe 'hasFoo', observer = createSpy()
+    @set.add('foo')
+    equal observer.callCount, 1
+    @set.add('bar')
+    equal observer.callCount, 1
+    @set.remove('foo')
+    equal observer.callCount, 2
+
+  test ".observe('isEmpty') fires when the value actually changes", ->
+    @set.add('foo')
+    @set.observe 'isEmpty', observer = createSpy()
+    @set.add('bar')
+    equal observer.callCount, 0
+    @set.remove('bar')
+    equal observer.callCount, 0
+    @set.remove('foo')
+    equal observer.callCount, 1
+    @set.add('foo')
+    equal observer.callCount, 2
+
+  test "using .toArray() in an accessor registers the set as a source of the property", ->
+    obj = new Batman.Object
+    obj.accessor 'array', => @set.toArray()
+    obj.observe 'array', observer = createSpy()
+    @set.add('foo')
+    equal observer.callCount, 1
+    @set.add('bar')
+    equal observer.callCount, 2
+
+  test "using .forEach() in an accessor registers the set as a source of the property", ->
+    obj = new Batman.Object
+    obj.accessor 'foreach', => @set.forEach ->
+    obj.observe 'foreach', observer = createSpy()
+    @set.add('foo')
+    equal observer.callCount, 1
+    @set.add('bar')
+    equal observer.callCount, 2
+
+  test "using .merge() in an accessor registers the original and merged sets as sources of the property", ->
+    obj = new Batman.Object
+    otherSet = new Batman.Set
+    obj.accessor 'mergedWithOther', => @set.merge(otherSet)
+    obj.observe 'mergedWithOther', observer = createSpy()
+    @set.add('foo')
+    equal observer.callCount, 1
+    @set.add('bar')
+    equal observer.callCount, 2
+    otherSet.add('baz')
+    equal observer.callCount, 3
+
+
 QUnit.module 'Batman.Set',
   setup: ->
     @set = new Batman.Set
