@@ -20,6 +20,17 @@ asyncTest 'it should insert content into yields when the content comes after the
     delay =>
       equals node.children(0).html(), "chunky bacon"
 
+asyncTest 'it should yield multiple contentfors that render into the same yield', ->
+  source = '''
+  <div data-yield="mult" class="test"></div>
+  <span data-contentfor="mult">chunky bacon</span>
+  <span data-contentfor="mult">spicy sausage</span>
+  '''
+  node = helpers.render source, {}, (node) ->
+    delay =>
+      equals node.children(0).first().html(), "chunky bacon"
+      equals node.children(0).first().next().html(), "spicy sausage"
+
 asyncTest 'it shouldn\'t go nuts if the content is already inside the yield', 1, ->
   source = '<div data-yield="baz" class="test">
               <span data-contentfor="baz">chunky bacon</span>
@@ -27,6 +38,12 @@ asyncTest 'it shouldn\'t go nuts if the content is already inside the yield', 1,
   node = helpers.render source, {}, (node) ->
     delay =>
       equals node.children(0).html(), "chunky bacon"
+
+asyncTest 'it should render content even if the yield doesn\'t exist yet', 1, ->
+  helpers.render '<div data-contentfor="foo">immediate</div>', {}, (content) ->
+    helpers.render '<div data-yield="foo"></div>', {}, (node) ->
+      delay =>
+        equal node.children(0).html(), 'immediate'
 
 QUnit.module 'Batman.View rendering with bindings'
 

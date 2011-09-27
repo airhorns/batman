@@ -2396,14 +2396,19 @@ class Batman.View extends Batman.Object
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
-      @_renderer = new Batman.Renderer( node, =>
-        content = @contentFor
-        if typeof content is 'string'
-          @contentFor = Batman.DOM._yields?[content]
+      @_renderer = new Batman.Renderer(node, =>
+        yieldTo = @contentFor
+        if typeof yieldTo is 'string'
+          @contentFor = Batman.DOM._yields[yieldTo]
 
         if @contentFor and node
           @contentFor.innerHTML = ''
           @contentFor.appendChild(node)
+        else if yieldTo
+          if contents = Batman.DOM._yieldContents[yieldTo]
+            contents.push node
+          else
+            Batman.DOM._yieldContents[yieldTo] = [node]
       , @contexts)
 
       @_renderer.on 'rendered', => @fire('ready', node)
@@ -2861,6 +2866,8 @@ Batman.DOM = {
     contentfor: (node, key) ->
       setTimeout (-> Batman.DOM.contentFor key, node), 0
   }
+  _yieldContents: {}  # name/content pairs of content to be yielded
+  _yields: {}         # name/container pairs of yielding nodes
 
   # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the
   # `data-dosomething-argument="keypath"` style. This means things like foreach, binding attributes like
@@ -3201,22 +3208,23 @@ Batman.DOM = {
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # This can be used for abstraction as well as repetition.
   yield: (name, node) ->
-    yields = Batman.DOM._yields ||= {}
-    yields[name] = node
+    Batman.DOM._yields[name] = node
 
-    if (content = Batman.DOM._yieldContents?[name])
-      node.innerHTML = ''
-      node.appendChild(content) if content
+    if contents = Batman.DOM._yieldContents[name]
+      if name == 'main' or !Batman.data(node, 'yielded')
+        node.innerHTML = ''
+      for content in contents when !Batman.data(content, 'yielded')
+        content = if $isChildOf(node, content) then content.cloneNode(true) else content
+        node.appendChild(content)
+        Batman.data(content, 'yielded', true)
+      Batman.data(node, 'yielded', true)
 
   contentFor: (name, node) ->
-    contents = Batman.DOM._yieldContents ||= {}
-    contents[name] = node
+    contents = Batman.DOM._yieldContents[name]
+    if contents then contents.push(node) else Batman.DOM._yieldContents[name] = [node]
 
-    if (yield = Batman.DOM._yields?[name])
-      content = if $isChildOf(yield, node) then node.cloneNode(true) else node
-      yield.innerHTML = ''
-      yield.appendChild(content) if content
-
+    if yieldingNode = Batman.DOM._yields[name]
+      Batman.DOM.yield name, yieldingNode
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
