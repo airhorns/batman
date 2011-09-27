@@ -3236,15 +3236,18 @@ Batman.DOM = {
     yields[name] = node
 
     if (content = Batman.DOM._yieldContents?[name])
+      node.innerHTML = ''
       node.appendChild(content) if content
 
   contentFor: (name, node) ->
     contents = Batman.DOM._yieldContents ||= {}
     contents[name] = node
 
-    if yield = Batman.DOM._yields?[name]
+    if (yield = Batman.DOM._yields?[name])
       content = if $isChildOf(yield, node) then node.cloneNode(true) else node
+      yield.innerHTML = ''
       yield.appendChild(content) if content
+
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
