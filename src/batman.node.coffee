@@ -22,6 +22,7 @@ Batman.Request::getModule = (protocol) ->
       throw "Unrecognized request protocol #{protocol}"
 
 Batman.Request::send = (data) ->
+    @fire 'loading'
     requestURL = url.parse(@get 'url', true)
     protocol = requestURL.protocol
     # Figure out which module to use
@@ -66,10 +67,11 @@ Batman.Request::send = (data) ->
         # Dispatch the appropriate event based on the status code
         status = @set 'status', response.statusCode
         if (status >= 200 and status < 300) or status is 304
-          @success data
+          @fire 'success', data
         else
           request.request = @
-          @error request
+          @fire 'error', request
+        @fire 'loaded'
 
     # Set auth if its given
     auth = if @get 'username'
@@ -86,7 +88,8 @@ Batman.Request::send = (data) ->
 
     request.on 'error', (e) ->
       @set 'response', error
-      @error error
+      @fire 'error', error
+      @fire 'loaded'
 
     request
 

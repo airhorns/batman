@@ -20,22 +20,21 @@ Batman.Request::send = (data) ->
     username: @get 'username'
     password: @get 'password'
     beforeSend: =>
-      @loading yes
+      @fire 'loading'
 
     success: (response, textStatus, xhr) =>
       @set 'status', xhr.status
       @set 'response', response
-      @success response
+      @fire 'success', response
 
     error: (xhr, status, error) =>
       @set 'status', xhr.status
       @set 'response', xhr.responseText
       xhr.request = @
-      @error xhr
+      @fire 'error', xhr
 
     complete: =>
-      @loading no
-      @loaded yes
+      @fire 'loaded'
 
   if @get('method') in ['PUT', 'POST']
 
