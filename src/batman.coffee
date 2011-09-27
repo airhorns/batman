@@ -1541,6 +1541,10 @@ class Batman.Controller extends Batman.Object
 
   @accessor 'controllerName',
     get: -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
+  @afterFilter: (nameOrFunction) ->
+    Batman.initializeObject @
+    filters = @_batman.afterFilters ||= []
+    filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
 
   @accessor 'action',
     get: -> @_currentAction
