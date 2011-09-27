@@ -1,6 +1,6 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 
-QUnit.module 'Batman.View yield and contentFor rendering'
+QUnit.module 'Batman.View yield, contentFor, and replace rendering'
 
 asyncTest 'it should insert content into yields when the content comes before the yield', 1, ->
   source = '''
@@ -44,6 +44,17 @@ asyncTest 'it should render content even if the yield doesn\'t exist yet', 1, ->
     helpers.render '<div data-yield="foo"></div>', {}, (node) ->
       delay =>
         equal node.children(0).html(), 'immediate'
+
+asyncTest 'data-replace should replace content without breaking contentfors', 2, ->
+  source = '''
+    <div data-yield="foo">start</div>
+    <div data-replace="foo">replaces</div>
+    <div data-contentfor="foo">appends</div>
+  '''
+  helpers.render source, {}, (node) ->
+    delay =>
+      equal node.children(0).first().html(), 'replaces'
+      equal node.children(0).first().next().html(), 'appends'
 
 QUnit.module 'Batman.View rendering with bindings'
 

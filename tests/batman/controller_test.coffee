@@ -20,7 +20,7 @@ test 'it should render views if given in the options', ->
   @controller.render
     view: testView
 
-  spyOnDuring Batman.DOM, 'contentFor', (contentFor) ->
+  spyOnDuring Batman.DOM, 'replace', (contentFor) ->
     testView.fireReady()
     deepEqual testView.get.lastCallArguments, ['node']
     deepEqual contentFor.lastCallArguments, ['main', 'view contents']
@@ -31,7 +31,7 @@ test 'it should pull in views if not present already', ->
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show.html'
 
-    spyOnDuring Batman.DOM, 'contentFor', (contentFor) =>
+    spyOnDuring Batman.DOM, 'replace', (contentFor) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
       deepEqual contentFor.lastCallArguments, ['main', 'view contents']

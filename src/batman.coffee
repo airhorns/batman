@@ -1576,7 +1576,7 @@ class Batman.Controller extends Batman.Object
       Batman.currentApp?.prevent 'ready'
       view.contexts.push @
       view.on 'ready', ->
-        Batman.DOM.contentFor('main', view.get('node'))
+        Batman.DOM.replace 'main', view.get('node')
         Batman.currentApp?.allow 'ready'
         Batman.currentApp?.fire 'ready'
     view
@@ -2860,11 +2860,9 @@ Batman.DOM = {
         renderer.allow 'rendered'
         renderer.fire 'rendered'
 
-    yield: (node, key) ->
-      setTimeout (-> Batman.DOM.yield key, node), 0
-
-    contentfor: (node, key) ->
-      setTimeout (-> Batman.DOM.contentFor key, node), 0
+    yield: (node, key) -> setTimeout (-> Batman.DOM.yield key, node), 0
+    contentfor: (node, key) -> setTimeout (-> Batman.DOM.contentFor key, node), 0
+    replace: (node, key) -> setTimeout (-> Batman.DOM.replace key, node), 0
   }
   _yieldContents: {}  # name/content pairs of content to be yielded
   _yields: {}         # name/container pairs of yielding nodes
@@ -3206,12 +3204,13 @@ Batman.DOM = {
   }
 
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
+  # `replace` is used to replace yielded content.
   # This can be used for abstraction as well as repetition.
-  yield: (name, node) ->
+  yield: (name, node, _replaceContent = !Batman.data(node, 'yielded')) ->
     Batman.DOM._yields[name] = node
 
     if contents = Batman.DOM._yieldContents[name]
-      if name == 'main' or !Batman.data(node, 'yielded')
+      if _replaceContent
         node.innerHTML = ''
       for content in contents when !Batman.data(content, 'yielded')
         content = if $isChildOf(node, content) then content.cloneNode(true) else content
@@ -3219,12 +3218,15 @@ Batman.DOM = {
         Batman.data(content, 'yielded', true)
       Batman.data(node, 'yielded', true)
 
-  contentFor: (name, node) ->
+  contentFor: (name, node, _replaceContent) ->
     contents = Batman.DOM._yieldContents[name]
     if contents then contents.push(node) else Batman.DOM._yieldContents[name] = [node]
 
     if yieldingNode = Batman.DOM._yields[name]
-      Batman.DOM.yield name, yieldingNode
+      Batman.DOM.yield name, yieldingNode, _replaceContent
+
+  replace: (name, node) ->
+    Batman.DOM.contentFor name, node, true
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
