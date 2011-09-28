@@ -1,7 +1,7 @@
 pygments: true
 download:
-    version: 0.6.0
-    date: "September 13, 2011"
+    version: 0.6.1
+    date: "September 27, 2011"
     size: 18kb gzipped
     blurb: Second alpha release of batman.js. Please see the blog post or release notes for more information.
 examples:
