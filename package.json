@@ -8,7 +8,7 @@
     "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/ktusznio)"
   ],
 
-  "version": "0.6.0",
+  "version": "0.6.1",
   "homepage": "http://batmanjs.org",
   "repository": {
     "type": "git",
@@ -32,7 +32,7 @@
     "docco": "~0.3.0",
     "now": "~0.5",
     "glob": "~2.0",
-    "jsdom": "~0.2.0",
+    "jsdom": "0.2.5",
     "qunit": "0.1.5",
     "q": "~>0.6.0",
     "muffin": "~>0.2.0",

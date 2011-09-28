@@ -1,7 +1,8 @@
-## 0.6.1 (September 22, 2011)
+## 0.6.1 (September 27, 2011)
 
 Maintenance Release
 
+  - added `Batman.Enumerable`
   - added support for multi-select boxes
   - added batman.rails.coffee, a new adapter for use within Rails
   - added developer namespace for easy debugging (it gets stripped out in building)
@@ -9,6 +10,8 @@ Maintenance Release
   - added `data-bind` support for `input type='file'`
   - added `data-event-doubleclick`
   - added `length` filter
+  - added `trim` helper
+  - `Controller.resources` creates a `new` route instead of `destroy`
   - `Model.find` will always return the shared record instance. you can then bind to this and when the data comes in from the storage adapter, your instance will be updated
   - added `Model::findOrCreate`
   - added `Model::updateAttributes`
@@ -21,7 +24,10 @@ Maintenance Release
 
 Bugfixes:
 
+  - `Controller.afterFilter` was missing
   - hash history uses `Batman.DOM.addEventListener`
+  - routes such as `data-route="Model/new"` will route correctly
+  - fix `Batman.DOM.removeEventListener` so it doesn't depend on document
   - fire `rendered` event after all children have been rendered
   - model methods can be used as event handlers
   - animation methods called with node as context

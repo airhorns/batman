@@ -111,21 +111,14 @@ asyncTest 'resources', ->
   $redirect 'products/1'
 
 asyncTest 'hash manager', ->
-  @App.route 'test', spy = createSpy()
-  @App.route 'test2', spy2 = createSpy()
+  @App.route 'test', ->
+    window.location.hash = '#!/test2'
+  @App.route 'test2', ->
+    ok true, 'routes called'
+    QUnit.start()
   @App.run()
 
   window.location.hash = '#!/test'
-
-  setTimeout(->
-    equal spy.callCount, 1
-    window.location.hash = "#!/test2"
-  , 210)
-
-  setTimeout(->
-    equal spy2.callCount, 1
-    QUnit.start()
-  , 420)
 
 asyncTest '404', 1, ->
   @App.route '404', ->
