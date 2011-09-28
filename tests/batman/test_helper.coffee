@@ -8,7 +8,7 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
-unless exports.window.location.hash?
+if exports.IN_NODE
   do ->
     hash = ''
     exports.window.location.__defineGetter__ 'hash', -> hash
