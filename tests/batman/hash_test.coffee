@@ -15,13 +15,13 @@ test "isEmpty() on an empty hash returns true", ->
   ok @hash.isEmpty()
   ok @hash.meta.get('isEmpty')
 
-test "has(key) on an empty hash returns false", ->
+test "hasKey(key) on an empty hash returns false", ->
   equal @hash.hasKey('foo'), false
 
-test "has(undefined) returns false", ->
+test "hasKey(undefined) returns false", ->
   equal @hash.hasKey(undefined), false
 
-test "hash(key) for an existing key who's value is undefined returns true", ->
+test "hasKey(key) for an existing key whose value is undefined returns true", ->
   @hash.set('foo', undefined)
   ok @hash.hasKey('foo')
 
@@ -113,6 +113,52 @@ test "length is maintained over get, set, and unset", ->
 
   @hash.clear()
   equalHashLength @hash, 0
+
+test "using .hasKey(key) in an accessor registers the hash as a source of the property", ->
+  obj = new Batman.Object
+  obj.accessor 'hasFoo', => @hash.hasKey('foo')
+  obj.observe 'hasFoo', observer = createSpy()
+  @hash.set('foo', 'bar')
+  equal observer.callCount, 1
+  @hash.unset('foo')
+  equal observer.callCount, 2
+
+test "using .forEach() in an accessor registers the hash as a source of the property", ->
+  obj = new Batman.Object
+  obj.accessor 'foreach', => @hash.forEach ->
+  obj.observe 'foreach', observer = createSpy()
+  @hash.set('foo', 'bar')
+  equal observer.callCount, 1
+  @hash.unset('foo')
+  equal observer.callCount, 2
+
+test "using .isEmpty() in an accessor registers the hash as a source of the property", ->
+  obj = new Batman.Object
+  obj.accessor 'isEmpty', => @hash.isEmpty()
+  obj.observe 'isEmpty', observer = createSpy()
+  @hash.set('foo', 'bar')
+  equal observer.callCount, 1
+  @hash.unset('foo')
+  equal observer.callCount, 2
+
+test "using .keys() in an accessor registers the hash as a source of the property", ->
+  obj = new Batman.Object
+  obj.accessor 'keys', => @hash.keys()
+  obj.observe 'keys', observer = createSpy()
+  @hash.set('foo', 'bar')
+  equal observer.callCount, 1
+  @hash.unset('foo')
+  equal observer.callCount, 2
+
+test "using .merge(other) in an accessor registers the hash as a source of the property", ->
+  obj = new Batman.Object
+  otherHash = new Batman.Hash
+  obj.accessor 'mergedWithOther', => @hash.merge(otherHash)
+  obj.observe 'mergedWithOther', observer = createSpy()
+  @hash.set('foo', 'bar')
+  equal observer.callCount, 1
+  @hash.unset('foo')
+  equal observer.callCount, 2
 
 test "equality(lhs, rhs) uses === by default", ->
   equal @hash.equality({}, {}), false

@@ -288,12 +288,16 @@ Batman.EventEmitter =
       newEvent = events.set(key, new eventClass(this, key))
       newEvent.oneShot = existingEvents?.get(key)?.oneShot
       newEvent
-
   on: (key, handler) ->
     @event(key).addHandler(handler)
-
   registerAsMutableSource: ->
     Batman.Property.registerSource(@)
+  mutation: (wrappedFunction) ->
+    ->
+      result = wrappedFunction.apply(this, arguments)
+      @event('change').fire(this, this)
+      result
+    
 for k in ['prevent', 'allow', 'fire', 'isPrevented']
   do (k) ->
     Batman.EventEmitter[k] = (key, args...) ->
@@ -762,33 +766,32 @@ class Batman.Hash extends Batman.Object
     Batman.SimpleHash.apply(@, arguments)
     # Add a meta object to all hashes which we can then use in the `meta` filter to allow binding
     # to hash meta-properties without reserving keys.
-    @meta = new Batman.Object(length: 0)
+    @meta = new Batman.Object
     self = this
+    @meta.accessor 'length', ->
+      self.registerAsMutableSource()
+      self.length
     @meta.accessor 'isEmpty', -> self.isEmpty()
     @meta.accessor 'keys', -> self.keys()
     super
-
+  
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
 
   @accessor
     get: Batman.SimpleHash::get
-    set: ->
-      results = Batman.SimpleHash::set.apply(@, arguments)
-      @meta.set('length', @length)
-      results
-    unset: ->
-      results = Batman.SimpleHash::unset.apply(@, arguments)
-      @meta.set('length', @length)
-      results
+    set: @mutation(Batman.SimpleHash::set)
+    unset: @mutation(Batman.SimpleHash::unset)
 
-  for k in ['hasKey', 'equality', 'forEach', 'keys', 'isEmpty', 'merge']
-    @::[k] = Batman.SimpleHash::[k]
+  clear: @mutation(Batman.SimpleHash::clear)
+  equality: Batman.SimpleHash::equality
 
-  clear: ->
-    results = Batman.SimpleHash::clear.apply(@, arguments)
-    @meta.set('length', @length)
-    results
+  for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge']
+    proto = @prototype
+    do (k) ->
+      proto[k] = ->
+        @registerAsMutableSource()
+        Batman.SimpleHash::[k].apply(@, arguments)
 
 class Batman.SimpleSet
   constructor: ->
