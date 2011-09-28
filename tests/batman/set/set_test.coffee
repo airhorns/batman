@@ -162,6 +162,11 @@ setTestSuite = ->
     otherSet.add('baz')
     equal observer.callCount, 3
 
+  test "using .toJSON() returns an array representation of the set", ->
+    set = new Batman.Set
+    set.add new Batman.Object foo: 'bar'
+    set.add new Batman.Object bar: 'baz'
+    deepEqual set.toJSON(), set.toArray()
 
 QUnit.module 'Batman.Set',
   setup: ->

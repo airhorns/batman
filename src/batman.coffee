@@ -865,6 +865,9 @@ class Batman.Set extends Batman.Object
         @registerAsMutableSource()
         Batman.SimpleSet::[k].apply(@, arguments)
 
+  @::toJSON = ->
+    Batman.Set::toArray.apply @, arguments
+
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
   @accessor 'isEmpty', -> @isEmpty()
@@ -1033,6 +1036,7 @@ class Batman.SortableSet extends Batman.Set
     @_sortIndexes[@get('activeIndex')]?
   toArray: ->
     @_sortIndexes[@get('activeIndex')] || super
+
   _reIndex: (index) ->
     if index
       [keypath, ordering] = index.split ' '
