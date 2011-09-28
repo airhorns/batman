@@ -865,8 +865,7 @@ class Batman.Set extends Batman.Object
         @registerAsMutableSource()
         Batman.SimpleSet::[k].apply(@, arguments)
 
-  @::toJSON = ->
-    Batman.Set::toArray.apply @, arguments
+  toJSON: @::toArray
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
