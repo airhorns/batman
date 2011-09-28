@@ -53,18 +53,18 @@ test "if .oneShot is true, fire(args) calls each existing handler right now, the
   
 
 test "isPrevented() returns true if prevent() has been called more times than allow()", ->
-  @rain.prevent()
+  equal @rain.prevent(), 1
   equal @rain.isPrevented(), true
   
-  @rain.allow()
+  equal @rain.allow(), 0
   equal @rain.isPrevented(), false
   
-  @rain.prevent()
-  @rain.prevent()
-  @rain.allow()
+  equal @rain.prevent(), 1
+  equal @rain.prevent(), 2
+  equal @rain.allow(), 1
   equal @rain.isPrevented(), true
   
-  @rain.allow()
+  equal @rain.allow(), 0
   equal @rain.isPrevented(), false
 
 test "fire() only calls handlers if isPrevented() returns false", ->

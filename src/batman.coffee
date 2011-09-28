@@ -252,8 +252,10 @@ class Batman.Event
 
   handlerContext: -> @base
 
-  prevent: -> @_preventCount++
-  allow: -> @_preventCount-- if @_preventCount > 0
+  prevent: -> ++@_preventCount
+  allow: ->
+    --@_preventCount if @_preventCount
+    @_preventCount
   isPrevented: -> @_preventCount > 0
   autofireHandler: (handler) ->
     if @_oneShotFired and @_oneShotArgs?
