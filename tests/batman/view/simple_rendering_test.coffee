@@ -31,6 +31,47 @@ asyncTest 'it should ignore empty bindings', 1, ->
     equals node.html(), ""
     QUnit.start()
 
+asyncTest 'it should allow bindings to be defined later', 2, ->
+  context = Batman()
+  helpers.render '<div data-bind="foo.bar"></div>', context, (node) =>
+    equals node.html(), ""
+    context.set 'foo', Batman(bar: "baz")
+    delay ->
+      equals node.html(), "baz"
+
+asyncTest 'bindings in lower down scopes should shadow higher ones', 3, ->
+  context = Batman
+    namespace: Batman
+      foo: 'inner'
+    foo: 'outer'
+  helpers.render '<div data-context="namespace"><div id="inner" data-bind="foo"></div></div>', context, (node) =>
+    node = $('#inner', node)
+    equals node.html(), "inner"
+    context.set 'foo', "outer changed"
+    delay ->
+      equals node.html(), "inner"
+      context.set 'namespace.foo', 'inner changed'
+      delay ->
+        equals node.html(), "inner changed"
+
+asyncTest 'bindings in lower down scopes should shadow higher ones with shadowing defined as the base of the keypath being defined', 3, ->
+  context = Batman
+    namespace: Batman
+      foo: Batman()
+    foo: Batman
+      bar: 'outer'
+
+  helpers.render '<div data-context="namespace"><div id="inner" data-bind="foo.bar"></div></div>', context, (node) =>
+    node = $('#inner', node)
+    equals node.html(), ""
+    context.set 'foo', "outer changed"
+    delay ->
+      equals node.html(), ""
+      context.set 'namespace.foo.bar', 'inner'
+      delay ->
+        equals node.html(), "inner"
+
+
 asyncTest 'it should allow a class to be bound', 6, ->
   source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'
   helpers.render source,
@@ -147,7 +188,7 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
       equal context.get('one'), false
 
 asyncTest 'it should bind the value of a select box and update when the value changes', 2, ->
-  context = new Batman.Object
+  window.currentContext = context = new Batman.Object
     heros: new Batman.Set('mario', 'crono', 'link')
     selected: new Batman.Object(name: 'crono')
   helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->

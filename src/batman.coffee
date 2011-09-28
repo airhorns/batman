@@ -1104,7 +1104,7 @@ _stateMachine_setState = (newState) ->
 
   oldState = @state()
   @_batman.state = newState
-  
+
   if newState and oldState
     @fire("#{oldState}->#{newState}", newState, oldState)
 
@@ -2326,7 +2326,7 @@ class Batman.View extends Batman.Object
       @contexts.push context
       @unset('context')
 
-  viewSources = {}
+  @viewSources: {}
 
   # Set the source attribute to an html file to have that file loaded.
   source: ''
@@ -2353,14 +2353,14 @@ class Batman.View extends Batman.Object
     source = @get 'source'
     return if not source
 
-    if viewSources[source]
-      @set('html', viewSources[source])
+    if Batman.View.viewSources[source]
+      @set('html', Batman.View.viewSources[source])
     else
       new Batman.Request
         url: url = "#{@prefix}/#{@source}"
         type: 'html'
         success: (response) =>
-          viewSources[source] = response
+          Batman.View.viewSources[source] = response
           @set('html', response)
         error: (response) ->
           throw new Error("Could not load view from #{url}")
@@ -2409,7 +2409,7 @@ class Batman.Renderer extends Batman.Object
   constructor: (@node, callback, contexts = []) ->
     super()
     @on('parsed', callback) if callback?
-    @context = if contexts instanceof RenderContext then contexts else new RenderContext(contexts...)
+    @context = if contexts instanceof RenderContext then contexts else RenderContext.start(contexts...)
     setTimeout @start, 0
 
   start: =>
@@ -2472,6 +2472,8 @@ class Batman.Renderer extends Batman.Object
         if result is false
           skipChildren = true
           break
+        else if result instanceof RenderContext
+          @context = result
 
     if (nextNode = @nextNode(node, skipChildren)) then @parseNode(nextNode) else @finish()
 
@@ -2563,11 +2565,7 @@ class Binding extends Batman.Object
       @get('value')
 
   # The `keyContext` accessor is
-  @accessor 'keyContext', ->
-    unless @_keyContext
-      [unfilteredValue, @_keyContext] = @renderContext.findKey @key
-    @_keyContext
-    # @renderContext.findKey(@key)[1]
+  @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
 
   constructor: ->
     super
@@ -2588,7 +2586,7 @@ class Binding extends Batman.Object
     if @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
-        @nodeChange(@node, @_keyContext || @value, @)
+        @nodeChange(@node, @get('keyContext') || @value, @)
         shouldSet = yes
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
@@ -2666,62 +2664,30 @@ class Binding extends Batman.Object
 # binding, or by using the RenderContext.bind method. This is so that the proper order of objects
 # is traversed and any observers are properly attached.
 class RenderContext
-  constructor: (contexts...) ->
-    @contexts = contexts
-    @storage = new Batman.Object
-    @defaultContexts = [@storage]
-    @defaultContexts.push Batman.currentApp if Batman.currentApp
+  @start: (contexts...) ->
+    node = new @(window)
+    contexts.unshift Batman.currentApp if Batman.currentApp
+    while context = contexts.pop()
+      node = node.descend(context)
+    node
+
+  constructor: (@object, @parent) ->
 
   findKey: (key) ->
     base = key.split('.')[0].split('|')[0].trim()
-    for contexts in [@contexts, @defaultContexts]
-      i = contexts.length
-      while i--
-        context = contexts[i]
-        if context.get?
-          val = context.get(base)
-        else
-          val = context[base]
+    currentNode = @
+    while currentNode
+      if currentNode.object.get?
+        val = currentNode.object.get(base)
+      else
+        val = currentNode.object[base]
 
-        if typeof val isnt 'undefined'
-          # we need to pass the check if the basekey exists, even if the intermediary keys do not.
-          return [$get(context, key), context]
+      if typeof val isnt 'undefined'
+        # we need to pass the check if the basekey exists, even if the intermediary keys do not.
+        return [$get(currentNode.object, key), currentNode.object]
+      currentNode = currentNode.parent
 
     return [container.get(key), container]
-
-  set: (args...) ->
-    @storage.set(args...)
-
-  push: (x) ->
-    @contexts.push(x)
-
-  pop: ->
-    @contexts.pop()
-
-  clone: ->
-    context = new @constructor(@contexts...)
-    newStorage = $mixin {}, @storage
-    context.setStorage(newStorage)
-    context
-
-  setStorage: (storage) ->
-    @defaultContexts[0] = storage
-
-  # `BindingProxy` is a simple class which assists in allowing bound contexts to be popped to the top of
-  # the stack. This happens when a `data-context` is descended into, for each iteration in a `data-foreach`,
-  # and in other specific HTML bindings like `data-formfor`. `BindingProxy`s use accessors so that if the
-  # value of the binding they proxy changes, the changes will be propagated to any thing observing it.
-  # This is good because it allows `data-context` to take filtered keys and even filters which take
-  # keypath arguments, calculate the context to descend into when any of those keys change, and importantly
-  # expose a friendly `Batman.Object` interface for the rest of the `Binding` code to work with.
-  @BindingProxy = class BindingProxy extends Batman.Object
-    isBindingProxy: true
-    # Take the `binding` which needs to be proxied, and optionally rest it at the `localKey` scope.
-    constructor: (@binding, @localKey) ->
-      if @localKey
-        @accessor @localKey, -> @binding.get('filteredValue')
-      else
-        @accessor (key) -> @binding.get("filteredValue.#{key}")
 
   # Below are the two primitives that all the `Batman.DOM` helpers are composed of.
   # `addKeyToScopeForNode` takes a `node`, `key`, and optionally a `localName`. It creates a `Binding` to
@@ -2729,14 +2695,16 @@ class RenderContext
   # bound value onto the stack of contexts for the given `node`. If `localName` is given, the bound value
   # is available using that identifier in child bindings. Otherwise, the value itself is pushed onto the
   # context stack and member properties can be accessed directly in child bindings.
-  addKeyToScopeForNode: (node, key, localName) ->
-    @bind(node, key, (value, node, binding) =>
-      @push new BindingProxy(binding, localName)
-    , ->
-      true
-    )
-    # Pop the `BindingProxy` off the stack once this node has been parsed.
-    Batman.data node, 'onParseExit', => @pop()
+  descend: (object, scopedKey) ->
+    if scopedKey
+      oldObject = object
+      object = new Batman.Object()
+      object[scopedKey] = oldObject
+    return new @constructor(object, @)
+
+  descendWithKey: (key, scopedKey) ->
+   proxy = new ContextProxy(@, key, scopedKey)
+   return new @constructor(proxy, @)
 
   # `bind` takes a `node`, a `key`, and observers for when the `dataChange`s and the `nodeChange`s. It
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
@@ -2753,15 +2721,47 @@ class RenderContext
       nodeChange: nodeChange
       only: only
 
+  chain: ->
+    x = []
+    parent = this
+    while parent
+      x.push parent.object
+      parent = parent.parent
+    x
+
+  # `BindingProxy` is a simple class which assists in allowing bound contexts to be popped to the top of
+  # the stack. This happens when a `data-context` is descended into, for each iteration in a `data-foreach`,
+  # and in other specific HTML bindings like `data-formfor`. `BindingProxy`s use accessors so that if the
+  # value of the binding they proxy changes, the changes will be propagated to any thing observing it.
+  # This is good because it allows `data-context` to take filtered keys and even filters which take
+  # keypath arguments, calculate the context to descend into when any of those keys change, and importantly
+  # expose a friendly `Batman.Object` interface for the rest of the `Binding` code to work with.
+  @ContextProxy = class ContextProxy extends Batman.Object
+    isContextProxy: true
+    @accessor 'proxiedObject', -> @binding.get('filteredValue')
+    constructor: (@renderContext, @keyPath, @localKey) ->
+      @binding = new Binding
+        renderContext: @renderContext
+        keyPath: @keyPath
+        only: 'neither'
+
+      if @localKey
+        @accessor @localKey, -> @get('proxiedObject')
+      else
+        @accessor (key) -> @get("proxiedObject.#{key}")
+
+
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
   # and any other `data-#{name}=""` style DOM directives.
   readers: {
     target: (node, key, context, renderer) ->
       Batman.DOM.readers.bind(node, key, context, renderer, 'nodeChange')
+      true
 
     source: (node, key, context, renderer) ->
       Batman.DOM.readers.bind(node, key, context, renderer, 'dataChange')
+      true
 
     bind: (node, key, context, renderer, only) ->
       switch node.nodeName.toLowerCase()
@@ -2778,15 +2778,15 @@ Batman.DOM = {
 
       # Fallback on the default nodeChange and dataChange observers in Binding
       context.bind(node, key, undefined, undefined, only)
+      true
 
-    context: (node, key, context) -> context.addKeyToScopeForNode(node, key)
+    context: (node, key, context, renderer) -> return context.descendWithKey(key)
 
     mixin: (node, key, context) ->
-      context.push(Batman.mixins)
-      context.bind(node, key, (mixin) ->
+      context.descend(Batman.mixins).bind(node, key, (mixin) ->
         $mixin node, mixin
       , ->)
-      context.pop()
+      true
 
     showif: (node, key, context, renderer, invert) ->
       originalDisplay = node.style.display || ''
@@ -2801,9 +2801,11 @@ Batman.DOM = {
           else
             node.style.display = 'none'
       , -> )
+      true
 
     hideif: (args...) ->
       Batman.DOM.readers.showif args..., yes
+      true
 
     route: (node, key, context) ->
       # you must specify the / in front to route directly to hash route
@@ -2831,6 +2833,7 @@ Batman.DOM = {
         node.href = Batman.HashHistory::urlFor url
 
       Batman.DOM.events.click node, (-> $redirect url)
+      true
 
     partial: (node, path, context, renderer) ->
       renderer.prevent('rendered')
@@ -2838,15 +2841,23 @@ Batman.DOM = {
       view = new Batman.View
         source: path + '.html'
         contentFor: node
-        contexts: Array.prototype.slice.call(context.contexts)
+        contexts: context.chain()
 
       view.on 'ready', ->
         renderer.allow 'rendered'
         renderer.fire 'rendered'
 
-    yield: (node, key) -> setTimeout (-> Batman.DOM.yield key, node), 0
-    contentfor: (node, key) -> setTimeout (-> Batman.DOM.contentFor key, node), 0
-    replace: (node, key) -> setTimeout (-> Batman.DOM.replace key, node), 0
+      true
+
+    yield: (node, key) ->
+      setTimeout (-> Batman.DOM.yield key, node), 0
+      true
+    contentfor: (node, key) ->
+      setTimeout (-> Batman.DOM.contentFor key, node), 0
+      true
+    replace: (node, key) ->
+      setTimeout (-> Batman.DOM.replace key, node), 0
+      true
   }
   _yieldContents: {}  # name/content pairs of content to be yielded
   _yields: {}         # name/container pairs of yielding nodes
@@ -2890,8 +2901,9 @@ Batman.DOM = {
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
 
       context.bind(node, key, dataChange, nodeChange, only)
+      true
 
-    context: (node, contextName, key, context) -> context.addKeyToScopeForNode(node, key, contextName)
+    context: (node, contextName, key, context) -> return context.descendWithKey(key, contextName)
 
     event: (node, eventName, key, context) ->
       props =
@@ -2914,6 +2926,7 @@ Batman.DOM = {
         if confirmText and not confirm(confirmText)
           return
         props.callback?.apply props.subContext, arguments
+      true
 
     addclass: (node, className, key, context, parentRenderer, invert) ->
       className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
@@ -2925,9 +2938,9 @@ Batman.DOM = {
         else
           node.className = currentName.replace(className, '') if includesClassName
       , ->
+      true
 
-    removeclass: (args...) ->
-      Batman.DOM.attrReaders.addclass args..., yes
+    removeclass: (args...) -> Batman.DOM.attrReaders.addclass args..., yes
 
     foreach: (node, iteratorName, key, context, parentRenderer) ->
       prototype = node.cloneNode true
@@ -2971,11 +2984,6 @@ Batman.DOM = {
             newNode = prototype.cloneNode true
             nodeMap.set item, newNode
 
-            localClone = context.clone()
-            iteratorContext = new Batman.Object
-            iteratorContext[iteratorName] = item
-            localClone.push iteratorContext
-
             childRenderer = new Batman.Renderer newNode, do (newNode) ->
               ->
                 if typeof (show = Batman.data(newNode, 'show')) == 'function'
@@ -2987,7 +2995,7 @@ Batman.DOM = {
                   if collection.isSorted?()
                     observers.reorder()
                   fragment = document.createDocumentFragment()
-            , localClone
+            , context.descend(item, iteratorName)
 
             childRenderer.on 'rendered', =>
               parentRenderer.allow 'rendered'
@@ -3041,8 +3049,8 @@ Batman.DOM = {
       false # Return false so the Renderer doesn't descend into this node's children.
 
     formfor: (node, localName, key, context) ->
-      binding = context.addKeyToScopeForNode(node, key, localName)
       Batman.DOM.events.submit node, (node, e) -> $preventDefault e
+      context.descendWithKey(key, localName)
   }
 
   # `Batman.DOM.binders` contains functions used to create element bindings
@@ -3105,6 +3113,7 @@ Batman.DOM = {
 
         # Create the binding
         context.bind node, key, dataChange, nodeChange, only
+      true
 
     radio: (node, key, context, renderer, only) ->
       dataChange = (value) ->
@@ -3119,13 +3128,14 @@ Batman.DOM = {
       nodeChange = (newNode, subContext) ->
         subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
       context.bind node, key, dataChange, nodeChange, only
+      true
 
     file: (node, key, context, renderer, only) ->
       context.bind(node, key, ->
         developer.warn "Can't write to file inputs! Tried to on key #{key}."
       , (node, subContext) ->
-        if subContext instanceof RenderContext.BindingProxy
-          actualObject = subContext.binding.get('filteredValue')
+        if subContext instanceof RenderContext.ContextProxy
+          actualObject = subContext.get('proxiedObject')
         else
           actualObject = subContext
         if actualObject.hasStorage && actualObject.hasStorage()
@@ -3137,6 +3147,7 @@ Batman.DOM = {
         else
           subContext.set key, node.files[0]
       , only)
+      true
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
