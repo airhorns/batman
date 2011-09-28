@@ -1774,7 +1774,7 @@ class Batman.Model extends Batman.Object
     set: (k, v) -> @state(v)
 
   # Add a default accessor to make models store their attributes under a namespace by default.
-  @accessor
+  @accessor Model.defaultAccessor =
     get: (k) -> (@_batman.attributes ||= {})[k] || @[k]
     set: (k, v) -> (@_batman.attributes ||= {})[k] = v
     unset: (k) ->
@@ -1789,7 +1789,7 @@ class Batman.Model extends Batman.Object
 
     # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
     @dirtyKeys = new Batman.Hash
-    @errors = new Batman.ErrorsHash
+    @errors = new Batman.ErrorsSet
 
     # Find the ID from either the first argument or the attributes.
     if $typeOf(idOrAttributes) is 'Object'
@@ -1956,39 +1956,17 @@ class Batman.Model extends Batman.Object
 
   isNew: -> typeof @get('id') is 'undefined'
 
-# `ErrorHash` is a simple subclass of `Hash` which makes it a bit easier to
+class Batman.ValidationError extends Batman.Object
+  constructor: (attribute, message) -> super({attribute, message})
+
+# `ErrorSet` is a simple subclass of `Set` which makes it a bit easier to
 # manage the errors on a model.
-class Batman.ErrorsHash extends Batman.Hash
-  constructor: ->
-    super
-    @meta.observe 'length', (newLength) =>
-      @length = newLength
-    @meta.set 'messages', new Batman.Set
-
-  # Define a default accessor to instantiate a set for any requested key.
-  @accessor
-    get: (key) ->
-      unless set = Batman.SimpleHash::get.call(@, key)
-        set = new Batman.Set
-        set.on 'itemsWereAdded', (items...) =>
-          @meta.set('length', @meta.get('length') + items.length)
-          @meta.get('messages').add(items...)
-        set.on 'itemsWereRemoved', (items...) =>
-          @meta.set('length', @meta.get('length') - arguments.length)
-          @meta.get('messages').remove(items...)
-
-        Batman.SimpleHash::set.call(@, key, set)
-      set
-    set: -> developer.error "Can't set on an errors hash, use add instead!"
-    unset: -> developer.error "Can't unset on an errors hash, use clear instead!"
+class Batman.ErrorsSet extends Batman.Set
+  # Define a default accessor to get the set of errors on a key
+  @accessor (key) -> @indexedBy('attribute').get(key)
 
   # Define a shorthand method for adding errors to a key.
-  add: (key, error) -> @get(key).add(error)
-
-  # Ensure any observers placed on the sets stay around by clearing the sets instead of the whole hash
-  clear: ->
-    @forEach (key, set) -> set.clear()
-    @
+  add: (key, error) -> super(new Batman.ValidationError(key, error))
 
 class Batman.Validator extends Batman.Object
   constructor: (@options, mixins...) ->
@@ -3319,6 +3297,7 @@ filters = Batman.Filters =
     value[0]
 
   meta: buntUndefined (value, keypath) ->
+    developer.assert value.meta, "Error, value doesn't have a meta to filter on!"
     value.meta.get(keypath)
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']

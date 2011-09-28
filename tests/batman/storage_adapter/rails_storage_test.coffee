@@ -40,7 +40,7 @@ asyncTest 'creating in storage: should callback with the record with errors on i
 
   product = new @Product(name: "test")
   @adapter.create product, {}, (err, record) =>
-    ok err instanceof Batman.ErrorsHash
+    ok err instanceof Batman.ErrorsSet
     ok record
     equal record.get('errors').length, 2
     QUnit.start()
