@@ -327,6 +327,7 @@ class Batman.Property
 
   constructor: (@base, @key) ->
 
+  _isolationCount: 0
   cached: no
   value: null
   sources: null
@@ -352,19 +353,17 @@ class Batman.Property
           handlers = property.event('change').handlers
           handlers.forEach(iterator)
 
-  sourceChangeHandler: ->
-    @_sourceChangeHandler ||= @refreshCacheAndSources.bind(@)
-
   pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
   updateSourcesFromTracker: ->
     newSources = Batman.Property._sourceTrackerStack.pop()
-    sourceChangeHandler = @sourceChangeHandler()
-    if @sources
-      @sources.forEach (source) ->
-        source.event('change').removeHandler(sourceChangeHandler)
+    handler = @sourceChangeHandler()
+    @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
     @sources = newSources
-    @sources.forEach (source) ->
-      source.event('change').addHandler(sourceChangeHandler)
+    @_eachSourceChangeEvent (e) -> e.addHandler(handler)
+
+  _eachSourceChangeEvent: (iterator) ->
+    return unless @sources?
+    @sources.forEach (source) -> iterator(source.event('change'))
 
   getValue: ->
     @registerAsMutableSource()
@@ -379,8 +378,15 @@ class Batman.Property
     @cached = no
     previousValue = @value
     value = @getValue()
-    if value isnt previousValue
+    unless value is previousValue or @isIsolated()
       @fire(value, previousValue)
+
+  sourceChangeHandler: ->
+    @sourceChangeHandler = -> handler
+    handler = => @_handleSourceChange()
+
+  _markNeedsRefresh: -> @_needsRefresh = true
+  _handleSourceChange: @::refreshCacheAndSources
 
   valueFromAccessor: -> @accessor()?.get?.call(@base, @key)
 
@@ -405,10 +411,27 @@ class Batman.Property
     @event('change').addHandler(handler)
     @getValue()
     this
-  prevent: -> @event('change').prevent()
-  allow: -> @event('change').allow()
+
   fire: -> @event('change').fire(arguments...)
-  isPrevented: -> @event('change').isPrevented()
+
+  isolate: ->
+    if @_isolationCount is 0
+      @_preIsolationValue = @getValue()
+      @_handleSourceChange = @_markNeedsRefresh
+    @_isolationCount++
+  expose: ->
+    if @_isolationCount is 1
+      @_isolationCount--
+      @_handleSourceChange = @refreshCacheAndSources
+      if @_needsRefresh
+        @value = @_preIsolationValue
+        @refreshCacheAndSources()
+      else if @value isnt @_preIsolationValue
+        @fire(@value, @_preIsolationValue)
+      @_preIsolationValue = null
+    else if @_isolationCount > 0
+      @_isolationCount--
+  isIsolated: -> @_isolationCount > 0
 
 
 # Keypaths
