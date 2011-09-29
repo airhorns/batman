@@ -1,30 +1,31 @@
 validationsTestSuite = ->
-  asyncTest "validation shouldn leave the model in the same state it left it", ->
+  asyncTest "validation should leave the model in the same state it left it", ->
     class Product extends Batman.Model
       @validate 'name', presence: yes
 
     p = new Product
-    oldState = p.state()
-    p.validate (result, errors) ->
-      equal p.state(), oldState
+    oldState = p.lifecycle.get('state')
+    p.validate (error, errors) ->
+      equal p.lifecycle.get('state'), oldState
       QUnit.start()
 
-  asyncTest "length", 3, ->
+
+  asyncTest "length", 2, ->
     class Product extends Batman.Model
       @validate 'exact', length: 5
       @validate 'max', maxLength: 4
       @validate 'range', lengthWithin: [3, 5]
 
     p = new Product exact: '12345', max: '1234', range: '1234'
-    p.validate (result) ->
-      ok result
+    p.validate (error, errors) ->
+      throw error if error
+      equal errors.length, 0
 
       p.set 'exact', '123'
       p.set 'max', '12345'
       p.set 'range', '12'
-
-      p.validate (result, errors) ->
-        ok !result
+      p.validate (error, errors) ->
+        throw error if error
         equal errors.length, 3
         QUnit.start()
 
@@ -33,32 +34,30 @@ validationsTestSuite = ->
       @validate 'name', presence: yes
 
     p = new Product name: 'nick'
-    p.validate (result, errors) ->
-      ok result
+    p.validate (error, errors) ->
+      throw error if error
+      equal errors.length, 0
       p.unset 'name'
-      p.validate (result, errors) ->
-        ok !result
-        p.set 'name', ''
-        p.validate (result, errors) ->
-          ok !result
-          QUnit.start()
+      p.validate (error, errors) ->
+        throw error if error
+        equal errors.length, 1
 
   asyncTest "presence and length", 4, ->
     class Product extends Batman.Model
       @validate 'name', {presence: yes, maxLength: 10, minLength: 3}
 
     p = new Product
-    p.validate (result, errors) ->
-      ok !result
+    p.validate (err, errors) ->
+      throw err if err
       equal errors.length, 2
 
       p.set 'name', "beans"
-      p.validate (result, errors) ->
-        ok result
+      p.validate (err, errors) ->
+        throw err if err
         equal errors.length, 0
         QUnit.start()
 
-  asyncTest "custom async validations", ->
+  asyncTest "custom async validations which don't rely on model state", ->
     letItPass = true
     class Product extends Batman.Model
       @validate 'name', (errors, record, key, callback) ->
@@ -68,11 +67,13 @@ validationsTestSuite = ->
         , 0
 
     p = new Product
-    p.validate (result, errors) ->
-      ok result
+    p.validate (error, errors) ->
+      throw error if error
+      equal errors.length, 0
       letItPass = false
-      p.validate (result, errors) ->
-        ok !result
+      p.validate (error, errors) ->
+        throw error if error
+        equal errors.length, 1
         QUnit.start()
 
   asyncTest "numeric", ->
@@ -80,8 +81,8 @@ validationsTestSuite = ->
       @validate 'number', numeric: yes
 
     p = new Product number: 5
-    p.validate (result, errors) ->
-      ok result
+    p.validate (err, errors) ->
+      throw err if err
       p.set 'number', "not_a_number"
       p.validate (result, errors) ->
         ok !result
@@ -116,10 +117,12 @@ asyncTest "errors set length should be observable", 4, ->
   @product.get('errors').observe 'length', (newLength, oldLength) ->
     equal newLength, errorsAtCount[count++]
 
-  @product.validate (result, errors) =>
+  @product.validate (err, errors) ->
+    throw err if err
     equal errors.get('length'), 1
     @product.set 'name', 'Foo'
-    @product.validate (result, errors) =>
+    @product.validate (err, errors) ->
+      throw err if err
       equal errors.get('length'), 0
       QUnit.start()
 
@@ -128,7 +131,8 @@ asyncTest "errors set contents should be observable", 3, ->
   x.observe 'length', (newLength, oldLength) ->
     equal newLength, 1
 
-  @product.validate (result, errors) =>
+  @product.validate (error, errors) =>
+    throw error if error
     equal errors.get('length'), 1
     equal errors.length, 1
     QUnit.start()
@@ -144,7 +148,8 @@ asyncTest "errors set length should be bindable", 4, ->
     return if newVal == oldVal # Prevents the assertion below when the errors set is cleared and its length goes from 0 to 0
     equal newVal, 1, 'the foreign observer should fire when errors are added'
 
-  @product.validate (result, errors) =>
+  @product.validate (error, errors) =>
+    throw error if error
     equal errors.length, 1, 'the validation shouldn\'t succeed'
     equal @someObject.get('productErrorsLength'), 1, 'the foreign key should have updated'
     QUnit.start()
@@ -159,7 +164,8 @@ asyncTest "errors set contents should be bindable", 4, ->
     return if newVal == oldVal # Prevents the assertion below when the errors set is cleared and its length goes from 0 to 0
     equal newVal, 1, 'the foreign observer should fire when errors are added'
 
-  @product.validate (result, errors) =>
+  @product.validate (error, errors) =>
+    throw error if error
     equal errors.length, 1, 'the validation shouldn\'t succeed'
     equal @someObject.get('productNameErrorsLength'), 1, 'the foreign key should have updated'
     QUnit.start()

@@ -21,13 +21,13 @@ test "old values are tracked in the dirty keys hash", ->
 test "creating instances by passing attributes sets those attributes as dirty", ->
   product = new @Product foo: 'bar'
   equal(product.get('dirtyKeys').length, 1)
-  equal(product.state(), 'dirty')
+  equal(product.lifecycle.get('state'), 'dirty')
 
 asyncTest "saving clears dirty keys", ->
   product = new @Product foo: 'bar', id: 1
   product.save (err) ->
     throw err if err
     equal(product.dirtyKeys.length, 0)
-    notEqual(product.state(), 'dirty')
+    notEqual(product.lifecycle.get('state'), 'dirty')
     QUnit.start()
 

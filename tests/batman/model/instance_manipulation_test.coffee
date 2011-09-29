@@ -142,12 +142,14 @@ asyncTest "create method returns an instance of a model while saving it", ->
     QUnit.start()
   ok result instanceof @Product
 
-test "string ids are coerced into integers when possible", ->
+asyncTest "string ids are coerced into integers when possible", ->
   product = new @Product
-  product.save()
-  id = product.id
-  @Product.find ""+id, (err, foundProduct) ->
-    equal foundProduct, product
+  product.save (err) =>
+    throw err if err
+    id = product.get('id')
+    @Product.find ""+id, (err, foundProduct) ->
+      equal foundProduct, product
+      QUnit.start()
 
 QUnit.module "Batman.Model instance destruction"
   setup: ->

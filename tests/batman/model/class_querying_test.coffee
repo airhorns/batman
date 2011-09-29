@@ -141,12 +141,12 @@ asyncTest "Model.all will get all without storage adapters", ->
 asyncTest "classes fire their loading/loaded callbacks", ->
   callOrder = []
 
-  @Product.on 'loading', -> callOrder.push 1
-  @Product.on 'loaded', -> callOrder.push 2
+  @Product.get('lifecycle').onEnter 'loading', -> callOrder.push 1
+  @Product.get('lifecycle').onEnter 'loaded', -> callOrder.push 2
 
   @Product.load (err, products) =>
-    delay ->
-      deepEqual callOrder, [1,2]
+    deepEqual callOrder, [1,2]
+    QUnit.start()
 
 asyncTest "models will load all their records matching an options hash", ->
   @Product.load {name: 'One'}, (err, products) ->

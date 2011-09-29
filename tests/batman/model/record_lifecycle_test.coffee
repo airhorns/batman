@@ -10,23 +10,22 @@ asyncTest "new record lifecycle callbacks fire in order", ->
   callOrder = []
 
   product = new @Product()
-  product.on 'dirty', -> callOrder.push(0)
-  product.on 'validating', -> callOrder.push(1)
-  product.on 'validated', -> callOrder.push(2)
-  product.on 'saving', -> callOrder.push(3)
-  product.on 'creating', -> callOrder.push(4)
-  product.on 'created', -> callOrder.push(5)
-  product.on 'saved', -> callOrder.push(6)
-  product.on 'destroying', -> callOrder.push(8)
-  product.on 'destroyed', -> callOrder.push(9)
+  product.lifecycle.onEnter 'dirty', -> callOrder.push(0)
+  product.lifecycle.onEnter 'validating', -> callOrder.push(1)
+  product.lifecycle.onEnter 'validated', -> callOrder.push(2)
+  product.lifecycle.onEnter 'creating', -> callOrder.push(3)
+  product.lifecycle.onEnter 'created', -> callOrder.push(4)
+  product.lifecycle.onEnter 'loaded', -> callOrder.push(5)
+  product.lifecycle.onEnter 'destroying', -> callOrder.push(7)
+  product.lifecycle.onEnter 'destroyed', -> callOrder.push(8)
   product.set('foo', 'bar')
   Batman.developer.suppress()
   product.save (err) ->
     throw err if err
-    callOrder.push(7)
+    callOrder.push(6)
     product.destroy (err) ->
       throw err if err
-      deepEqual(callOrder, [0,1,2,0,3,4,5,6,7,8,9])
+      deepEqual(callOrder, [0,1,2,0,3,4,5,6,7,8])
       Batman.developer.unsuppress()
       QUnit.start()
 
@@ -35,12 +34,12 @@ asyncTest "existing record lifecycle callbacks fire in order", ->
 
   Batman.developer.suppress()
   @Product.find 10, (err, product) ->
-    product.on 'validating', -> callOrder.push(1)
-    product.on 'validated', -> callOrder.push(2)
-    product.on 'saving', -> callOrder.push(3)
-    product.on 'saved', -> callOrder.push(4)
-    product.on 'destroying', -> callOrder.push(6)
-    product.on 'destroyed', -> callOrder.push(7)
+    product.lifecycle.onEnter 'validating', -> callOrder.push(1)
+    product.lifecycle.onEnter 'validated', -> callOrder.push(2)
+    product.lifecycle.onEnter 'saving', -> callOrder.push(3)
+    product.lifecycle.onEnter 'saved', -> callOrder.push(4)
+    product.lifecycle.onEnter 'destroying', -> callOrder.push(6)
+    product.lifecycle.onEnter 'destroyed', -> callOrder.push(7)
     product.save (err) ->
       throw err if err
       callOrder.push(5)
