@@ -299,7 +299,7 @@ Batman.EventEmitter =
       result = wrappedFunction.apply(this, arguments)
       @event('change').fire(this, this)
       result
-    
+
 for k in ['prevent', 'allow', 'fire', 'isPrevented']
   do (k) ->
     Batman.EventEmitter[k] = (key, args...) ->
@@ -799,7 +799,7 @@ class Batman.Hash extends Batman.Object
     @meta.accessor 'isEmpty', -> self.isEmpty()
     @meta.accessor 'keys', -> self.keys()
     super
-  
+
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
 
@@ -2691,7 +2691,7 @@ class Binding extends Batman.Object
 class RenderContext
   @start: (contexts...) ->
     node = new @(window)
-    contexts.unshift Batman.currentApp if Batman.currentApp
+    contexts.push Batman.currentApp if Batman.currentApp
     while context = contexts.pop()
       node = node.descend(context)
     node
@@ -2715,11 +2715,9 @@ class RenderContext
     return [container.get(key), container]
 
   # Below are the two primitives that all the `Batman.DOM` helpers are composed of.
-  # `addKeyToScopeForNode` takes a `node`, `key`, and optionally a `localName`. It creates a `Binding` to
-  # the key (such that the key can contain filters and many keypaths in arguments), and then pushes the
-  # bound value onto the stack of contexts for the given `node`. If `localName` is given, the bound value
-  # is available using that identifier in child bindings. Otherwise, the value itself is pushed onto the
-  # context stack and member properties can be accessed directly in child bindings.
+  # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
+  # in the tree with either the object available on the stack or the object available at the `scopedKey`
+  # on the stack.
   descend: (object, scopedKey) ->
     if scopedKey
       oldObject = object
@@ -2727,9 +2725,14 @@ class RenderContext
       object[scopedKey] = oldObject
     return new @constructor(object, @)
 
+  # `descendWithKey` takes a `key` and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
+  # with the runtime value of the `key` available on the stack or under the `scopedKey` if given. This
+  # differs from a normal `descend` in that it looks up the `key` at runtime (in the parent `RenderContext`)
+  # and will correctly reflect changes if the value at the `key` changes. A normal `descend` takes a concrete
+  # reference to an object which never changes.
   descendWithKey: (key, scopedKey) ->
-   proxy = new ContextProxy(@, key, scopedKey)
-   return new @constructor(proxy, @)
+   proxy = new ContextProxy(@, key)
+   return @descend(proxy, scopedKey)
 
   # `bind` takes a `node`, a `key`, and observers for when the `dataChange`s and the `nodeChange`s. It
   # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
@@ -2746,6 +2749,7 @@ class RenderContext
       nodeChange: nodeChange
       only: only
 
+  # `chain` flattens a `RenderContext`'s path to the root.
   chain: ->
     x = []
     parent = this
@@ -2754,27 +2758,30 @@ class RenderContext
       parent = parent.parent
     x
 
-  # `BindingProxy` is a simple class which assists in allowing bound contexts to be popped to the top of
-  # the stack. This happens when a `data-context` is descended into, for each iteration in a `data-foreach`,
-  # and in other specific HTML bindings like `data-formfor`. `BindingProxy`s use accessors so that if the
-  # value of the binding they proxy changes, the changes will be propagated to any thing observing it.
-  # This is good because it allows `data-context` to take filtered keys and even filters which take
-  # keypath arguments, calculate the context to descend into when any of those keys change, and importantly
-  # expose a friendly `Batman.Object` interface for the rest of the `Binding` code to work with.
+  # `ContextProxy` is a simple class which assists in pushing dynamic contexts onto the `RenderContext` tree.
+  # This happens when a `data-context` is descended into, for each iteration in a `data-foreach`,
+  # and in other specific HTML bindings like `data-formfor`. `ContextProxy`s use accessors so that if the
+  # value of the object they proxy changes, the changes will be propagated to any thing observing the `ContextProxy`.
+  # This is good because it allows `data-context` to take keys which will change, filtered keys, and even filters
+  # which take keypath arguments. It will calculate the context to descend into when any of those keys change
+  # because it preserves the property of a binding, and importantly it exposes a friendly `Batman.Object`
+  # interface for the rest of the `Binding` code to work with.
   @ContextProxy = class ContextProxy extends Batman.Object
     isContextProxy: true
+
+    # Reveal the binding's final value.
     @accessor 'proxiedObject', -> @binding.get('filteredValue')
+    # Proxy all gets to the proxied object.
+    @accessor
+      get: (key) -> @get("proxiedObject.#{key}")
+      set: (key, value) -> @set("proxiedObject.#{key}", value)
+      unset: (key) -> @unset("proxiedObject.#{key}")
+
     constructor: (@renderContext, @keyPath, @localKey) ->
       @binding = new Binding
         renderContext: @renderContext
         keyPath: @keyPath
         only: 'neither'
-
-      if @localKey
-        @accessor @localKey, -> @get('proxiedObject')
-      else
-        @accessor (key) -> @get("proxiedObject.#{key}")
-
 
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
