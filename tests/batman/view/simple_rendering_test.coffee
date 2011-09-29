@@ -427,3 +427,55 @@ asyncTest 'should bind to the value of radio buttons', ->
     helpers.triggerChange(fixed)
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
+
+QUnit.module "Memory safety"
+
+test "addEventListener and removeEventListener store and remove callbacks using Batman.data", ->
+  div = document.createElement 'div'
+  f = ->
+
+  Batman.DOM.addEventListener div, 'click', f
+  listeners = Batman.data div, 'listeners'
+  ok listeners.click.has f
+
+  Batman.DOM.removeEventListener div, 'click', f
+  listeners = Batman.data div, 'listeners'
+  ok !listeners.click.has f
+
+asyncTest "bindings are kept in Batman.data and destroyed when the node is removed", ->
+  context = new Batman.Object foo: true
+  helpers.render '<div data-addclass-foo="foo"><div data-addclass-foo="foo"></div></div>', context, (node) ->
+    parent = node[0]
+    child = parent.childNodes[0]
+    for n in [child, parent]
+      bindings = Batman.data n, 'bindings'
+      ok bindings instanceof Batman.Set
+      ok !bindings.isEmpty()
+
+      Batman.DOM.removeNode n
+      deepEqual Batman.data(n), {}
+
+    QUnit.start()
+
+asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", ->
+  context = new Batman.Object foo: ->
+
+  helpers.render '<div data-event-click="foo"><div data-event-click="foo"></div></div>', context, (node) ->
+    parent = node[0]
+    child = parent.childNodes[0]
+    for n in [child, parent]
+      listeners = Batman.data n, 'listeners'
+      ok listeners and listeners.click
+      ok listeners.click instanceof Batman.Set
+      ok !listeners.click.isEmpty()
+
+      removeFn = if Batman.DOM.hasAddEventListener then 'removeEventListener' else 'detachEvent'
+      spy = spyOn n, removeFn
+
+      Batman.DOM.removeNode n
+
+      ok spy.called
+      deepEqual Batman.data(n), {}
+
+    QUnit.start()
+

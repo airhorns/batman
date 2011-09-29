@@ -808,22 +808,20 @@ class Batman.SimpleSet
 
   add: (items...) ->
     addedItems = []
-    for item in items
-      unless @_storage.hasKey(item)
-        @_storage.set item, true
-        addedItems.push item
-        @length++
+    for item in items when !@_storage.hasKey(item)
+      @_storage.set item, true
+      addedItems.push item
+      @length++
     if @fire and addedItems.length isnt 0
       @fire('change', this, this)
       @fire('itemsWereAdded', addedItems...)
     addedItems
   remove: (items...) ->
     removedItems = []
-    for item in items
-      if @_storage.hasKey(item)
-        @_storage.unset item
-        removedItems.push item
-        @length--
+    for item in items when @_storage.hasKey(item)
+      @_storage.unset item
+      removedItems.push item
+      @length--
     if @fire and removedItems.length isnt 0
       @fire('change', this, this)
       @fire('itemsWereRemoved', removedItems...)
@@ -2367,7 +2365,7 @@ class Batman.View extends Batman.Object
 
   @observeAll 'html', (html) ->
     node = @node || document.createElement 'div'
-    node.innerHTML = html
+    $setInnerHTML(node, html)
 
     @set('node', node) if @node isnt node
 
@@ -2387,7 +2385,7 @@ class Batman.View extends Batman.Object
           @contentFor = Batman.DOM._yields[yieldTo]
 
         if @contentFor and node
-          @contentFor.innerHTML = ''
+          $setInnerHTML @contentFor, ''
           @contentFor.appendChild(node)
         else if yieldTo
           if contents = Batman.DOM._yieldContents[yieldTo]
@@ -2574,6 +2572,13 @@ class Binding extends Batman.Object
 
     # Pull out the key and filter from the `@keyPath`.
     @parseFilter()
+
+    if @node
+      # Tie this binding to its node using Batman.data
+      if bindings = Batman.data @node, 'bindings'
+        bindings.add @
+      else
+        Batman.data @node, 'bindings', new Batman.Set @
 
     # Define the default observers.
     @nodeChange ||= (node, context) =>
@@ -2796,7 +2801,8 @@ Batman.DOM = {
           Batman.data(node, 'show')?.call(node)
           node.style.display = originalDisplay
         else
-          if typeof (hide = Batman.data(node, 'hide')) == 'function'
+          hide = Batman.data node, 'hide'
+          if typeof hide == 'function'
             hide.call node
           else
             node.style.display = 'none'
@@ -2937,8 +2943,7 @@ Batman.DOM = {
       sibling = node.nextSibling
 
       # Remove the original node once the parent has moved past it.
-      parentRenderer.on 'parsed', ->
-        parent.removeChild node
+      parentRenderer.on 'parsed', -> $removeNode node
 
       # Get a hash keyed by collection item with the nodes representing that item as values
       nodeMap = new Batman.SimpleHash
@@ -2954,7 +2959,7 @@ Batman.DOM = {
         # and only observe the new collection.
         if oldCollection
           return if collection == oldCollection
-          nodeMap.forEach (item, node) -> node.parentNode?.removeChild node
+          nodeMap.forEach (item, node) -> $removeNode node
           nodeMap.clear()
           if oldCollection.isEventEmitter
             oldCollection.event('itemsWereAdded').removeHandler(observers.add)
@@ -2978,7 +2983,8 @@ Batman.DOM = {
 
             childRenderer = new Batman.Renderer newNode, do (newNode) ->
               ->
-                if typeof (show = Batman.data(newNode, 'show')) == 'function'
+                show = Batman.data newNode, 'show'
+                if typeof show is 'function'
                   show.call newNode, before: sibling
                 else
                   fragment.appendChild newNode
@@ -3000,7 +3006,7 @@ Batman.DOM = {
             if oldNode? && typeof oldNode.hide is 'function'
               oldNode.hide yes
             else
-              oldNode?.parentNode?.removeChild oldNode
+              $removeNode oldNode
           true
 
         observers.reorder = ->
@@ -3153,6 +3159,7 @@ Batman.DOM = {
       node
 
     doubleclick: (node, callback) ->
+      # The actual DOM event is called `dblclick`
       Batman.DOM.events.click node, callback, 'dblclick'
 
     change: (node, callback) ->
@@ -3195,7 +3202,7 @@ Batman.DOM = {
 
     if contents = Batman.DOM._yieldContents[name]
       if _replaceContent
-        node.innerHTML = ''
+        $setInnerHTML node, ''
       for content in contents when !Batman.data(content, 'yielded')
         content = if $isChildOf(node, content) then content.cloneNode(true) else content
         node.appendChild(content)
@@ -3212,6 +3219,35 @@ Batman.DOM = {
   replace: (name, node) ->
     Batman.DOM.contentFor name, node, true
 
+  # Removes listeners and bindings tied to `node`, allowing it to be cleared
+  # or removed without leaking memory
+  unbindNode: $unbindNode = (node) ->
+    # remove all event listeners
+    if listeners = Batman.data node, 'listeners'
+      for eventName, eventListeners of listeners
+        eventListeners.forEach (listener) ->
+          $removeEventListener node, eventName, listener
+    
+    # remove all bindings and other data associated with this node
+    Batman.removeData node
+
+  # Unbinds the tree rooted at `node`.
+  # When set to `false`, `unbindRoot` skips the `node` before unbinding all of its children.
+  unbindTree: $unbindTree = (node, unbindRoot = true) ->
+    return unless node?.nodeType is 1
+    $unbindNode node if unbindRoot
+    $unbindTree(child) for child in node.childNodes
+
+  # Memory-safe setting of a node's innerHTML property
+  setInnerHTML: $setInnerHTML = (node, html) ->
+    $unbindTree node, false
+    node?.innerHTML = html
+
+  # Memory-safe removal of a node from the DOM
+  removeNode: $removeNode = (node) ->
+    $unbindTree node
+    node?.parentNode?.removeChild node
+
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
     switch node.nodeName.toUpperCase()
@@ -3225,22 +3261,40 @@ Batman.DOM = {
       when 'SELECT'
         node.value = value
       else
-        if isSetting then (node.innerHTML = value) else node.innerHTML
+        if isSetting 
+          $setInnerHTML node, value
+        else node.innerHTML
 
   nodeIsEditable: (node) ->
     node.nodeName.toUpperCase() in ['INPUT', 'TEXTAREA', 'SELECT']
 
   # `$addEventListener uses attachEvent when necessary
-  addEventListener: $addEventListener = if window?.addEventListener
-      ((node, eventName, callback) -> node.addEventListener eventName, callback, false)
+  addEventListener: $addEventListener = (node, eventName, callback) ->
+    # store the listener in Batman.data
+    unless listeners = Batman.data node, 'listeners'
+      listeners = Batman.data node, 'listeners', {}
+    unless listeners[eventName]
+      listeners[eventName] = new Batman.Set
+    listeners[eventName].add callback
+
+    if $hasAddEventListener
+      node.addEventListener eventName, callback, false
     else
-      ((node, eventName, callback) -> node.attachEvent "on#{eventName}", callback)
+      node.attachEvent "on#{eventName}", callback
 
   # `$removeEventListener` uses detachEvent when necessary
-  removeEventListener: $removeEventListener = if window?.removeEventListener
-      ((elem, eventType, handler) -> elem.removeEventListener eventType, handler, false)
+  removeEventListener: $removeEventListener = (node, eventName, callback) ->
+    # remove the listener from Batman.data
+    if listeners = Batman.data node, 'listeners' 
+      if eventListeners = listeners[eventName]
+        eventListeners.remove callback
+
+    if $hasAddEventListener
+      node.removeEventListener eventName, callback, false
     else
-      ((elem, eventType, handler) -> elem.detachEvent 'on'+eventType, handler)
+      node.detachEvent 'on'+eventName, callback
+
+  hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
 }
 
 # Filters
