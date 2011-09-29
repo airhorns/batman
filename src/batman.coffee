@@ -374,7 +374,7 @@ class Batman.Property
       @updateSourcesFromTracker()
     @value
 
-  refreshCacheAndSources: ->
+  refresh: ->
     @cached = no
     previousValue = @value
     value = @getValue()
@@ -386,17 +386,17 @@ class Batman.Property
     handler = => @_handleSourceChange()
 
   _markNeedsRefresh: -> @_needsRefresh = true
-  _handleSourceChange: @::refreshCacheAndSources
+  _handleSourceChange: @::refresh
 
   valueFromAccessor: -> @accessor()?.get?.call(@base, @key)
 
   setValue: (val) ->
     result = @accessor()?.set?.call(@base, @key, val)
-    @refreshCacheAndSources()
+    @refresh()
     result
   unsetValue: ->
     result = @accessor()?.unset?.call(@base, @key)
-    @refreshCacheAndSources()
+    @refresh()
     result
 
   forget: (handler) ->
@@ -422,10 +422,10 @@ class Batman.Property
   expose: ->
     if @_isolationCount is 1
       @_isolationCount--
-      @_handleSourceChange = @refreshCacheAndSources
+      @_handleSourceChange = @refresh
       if @_needsRefresh
         @value = @_preIsolationValue
-        @refreshCacheAndSources()
+        @refresh()
       else if @value isnt @_preIsolationValue
         @fire(@value, @_preIsolationValue)
       @_preIsolationValue = null

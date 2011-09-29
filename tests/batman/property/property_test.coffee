@@ -75,13 +75,13 @@ test "getValue() just returns the .value without hitting the accessor if .cached
   strictEqual property.getValue(), 'cached'
   ok not spy.called
 
-test "refreshCacheAndSources() should recursively refresh .value and set .sources to the properties accessed directly by the accessor's getter", ->
+test "refresh() should recursively refresh .value and set .sources to the properties accessed directly by the accessor's getter", ->
   foo = @baseWithNestedAccessors.property('foo')
   bar = @baseWithNestedAccessors.property('bar')
   baz = @baseWithNestedAccessors.property('baz')
   qux = @baseWithNestedAccessors.property('qux')
   fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
-  fromFooAndQux.refreshCacheAndSources()
+  fromFooAndQux.refresh()
 
   deepEqual foo.sources.toArray(), [bar]
   deepEqual bar.sources.toArray(), [baz]
@@ -91,7 +91,7 @@ test "refreshCacheAndSources() should recursively refresh .value and set .source
 
   fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
   qux = @baseWithNestedAccessors.property('qux')
-  fromFooAndQux.refreshCacheAndSources()
+  fromFooAndQux.refresh()
   deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
 
 test "if the value of a property fires its 'change' event at some point after the property has refreshed its sources, then the property will refresh its .value and .sources", ->
@@ -101,7 +101,7 @@ test "if the value of a property fires its 'change' event at some point after th
   qux = @baseWithNestedAccessors.property('qux')
   fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
 
-  fromFooAndQux.refreshCacheAndSources()
+  fromFooAndQux.refresh()
   deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
   deepEqual fromFooAndQux.value, ['Jim', 'quxVal']
 
@@ -206,9 +206,9 @@ test ".isolate() and .expose() use a count to determine if this property will fi
   deepEqual barObserver.lastCallArguments, ['baz4', 'baz2']
   deepEqual bazObserver.lastCallArguments, ['baz4', 'baz2']
 
-test ".expose() will only trigger a .refreshCacheAndSources() if updates have come in from sources while it was isolated", ->
+test ".expose() will only trigger a .refresh() if updates have come in from sources while it was isolated", ->
   bar = @baseWithNestedAccessors.property('bar')
-  refreshSpy = spyOn(bar, 'refreshCacheAndSources')
+  refreshSpy = spyOn(bar, 'refresh')
   bar.isolate()
   bar.expose()
   equal refreshSpy.called, false
