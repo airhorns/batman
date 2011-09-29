@@ -232,6 +232,9 @@ class Batman.Event
   isEvent: true
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
+  hashKey: ->
+    @hashKey = -> key
+    key = "<Batman.Event base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
 
   addHandler: (handler) ->
     @handlers.add(handler)
@@ -336,6 +339,9 @@ class Batman.Property
 
   isEqual: (other) ->
     @constructor is other.constructor and @base is other.base and @key is other.key
+  hashKey: ->
+    @hashKey = -> key
+    key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
 
   accessor: ->
     accessors = @base._batman?.get('keyAccessors')
@@ -637,6 +643,17 @@ class BatmanObject
   # Apply mixins to instances of this class.
   @mixin: -> @classMixin.apply @prototype, arguments
   mixin: @classMixin
+  
+  counter = 0
+  _objectID: ->
+    @_objectID = -> c
+    c = counter++
+  
+  hashKey: ->
+    return if typeof @isEqual is 'function'
+    @hashKey = -> key
+    key = "<Batman.Object #{@_objectID()}>"
+  
 
   # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
   # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
@@ -736,16 +753,16 @@ class Batman.SimpleHash
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
   hasKey: (key) ->
-    if pairs = @_storage[key]
+    if pairs = @_storage[@hashKeyFor(key)]
       for pair in pairs
         return true if @equality(pair[0], key)
     return false
   get: (key) ->
-    if pairs = @_storage[key]
+    if pairs = @_storage[@hashKeyFor(key)]
       for pair in pairs
         return pair[1] if @equality(pair[0], key)
   set: (key, val) ->
-    pairs = @_storage[key] ||= []
+    pairs = @_storage[@hashKeyFor(key)] ||= []
     for pair in pairs
       if @equality(pair[0], key)
         return pair[1] = val
@@ -753,13 +770,14 @@ class Batman.SimpleHash
     pairs.push([key, val])
     val
   unset: (key) ->
-    if pairs = @_storage[key]
+    if pairs = @_storage[@hashKeyFor(key)]
       for [obj,value], index in pairs
         if @equality(obj, key)
           pairs.splice(index,1)
           @length--
           return
   getOrSet: Batman.Observable.getOrSet
+  hashKeyFor: (obj) -> obj?.hashKey?() or obj
   equality: (lhs, rhs) ->
     return true if lhs is rhs
     return true if lhs isnt lhs and rhs isnt rhs # when both are NaN
@@ -810,6 +828,7 @@ class Batman.Hash extends Batman.Object
 
   clear: @mutation(Batman.SimpleHash::clear)
   equality: Batman.SimpleHash::equality
+  hashKeyFor: Batman.SimpleHash::hashKeyFor
 
   for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge']
     proto = @prototype
