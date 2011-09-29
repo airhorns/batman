@@ -154,6 +154,7 @@ developer =
     if console.warn.apply then console.warn(arguments...) else developer._ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) -> developer.error(message) unless result
+  do: (f) -> f
   addFilters: ->
     $mixin Batman.Filters,
       log: (value, key) ->
@@ -1227,24 +1228,21 @@ class Batman.App extends Batman.Object
   # The require class methods (`controller`, `model`, `view`) simply tells
   # your app where to look for coffeescript source files. This
   # implementation may change in the future.
-  @require: (path, names...) ->
-    base = @requirePath + path
-    for name in names
-      @prevent 'run'
+  developer.do ->
+    App.require = (path, names...) ->
+      base = @requirePath + path
+      for name in names
+        @prevent 'run'
 
-      path = base + '/' + name + '.coffee' # FIXME: don't hardcode this
-      new Batman.Request
-        url: path
-        type: 'html'
-        success: (response) =>
-          CoffeeScript.eval response
-          # FIXME: under no circumstances should we be compiling coffee in
-          # the browser. This can be fixed via a real deployment solution
-          # to compile coffeescripts, such as Sprockets.
-
-          @allow 'run'
-          @run() # FIXME: this should only happen if the client actually called run.
-    @
+        path = base + '/' + name + '.coffee'
+        new Batman.Request
+          url: path
+          type: 'html'
+          success: (response) =>
+            CoffeeScript.eval response
+            @allow 'run'
+            @run() if @hasRun
+      @
 
   @controller: (names...) ->
     names = names.map (n) -> n + '_controller'
@@ -1285,8 +1283,9 @@ class Batman.App extends Batman.Object
       @get('layout').on 'ready', => @fire 'ready'
 
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
-      @historyManager = Batman.historyManager = new Batman.HashHistory @
-      @historyManager.start()
+      @on 'run', =>
+        @historyManager = Batman.historyManager = new Batman.HashHistory @
+        @historyManager.start()
 
     @hasRun = yes
     @fire('run')
