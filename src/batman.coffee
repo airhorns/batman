@@ -154,7 +154,7 @@ developer =
     if console.warn.apply then console.warn(arguments...) else developer._ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) -> developer.error(message) unless result
-  do: (f) -> f
+  do: (f) -> f()
   addFilters: ->
     $mixin Batman.Filters,
       log: (value, key) ->
@@ -1241,7 +1241,7 @@ class Batman.App extends Batman.Object
           success: (response) =>
             CoffeeScript.eval response
             @allow 'run'
-            @run() if @hasRun
+            @fire 'run' if @hasRun
       @
 
   @controller: (names...) ->
