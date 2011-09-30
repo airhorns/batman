@@ -3101,7 +3101,7 @@ Batman.DOM = {
           else if collection.toArray is 'function' and array = collection.toArray()
             observers.add(array...)
           else
-            observers.add(k) for k, v of collection
+            observers.add(k) for own k, v of collection
         else
           developer.warn "Warning! data-foreach-#{iteratorName} called with an undefined binding. Key was: #{key}."
       , -> )
