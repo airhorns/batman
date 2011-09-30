@@ -3088,10 +3088,10 @@ Batman.DOM = {
           # Add all the already existing items. For hash-likes, add the key.
           if collection.forEach
             collection.forEach (item) -> observers.add(item)
-          else if collection.get && array = collection.get('toArray')
+          else if collection.toArray is 'function' and array = collection.toArray()
             observers.add(array...)
-          else for k, v of collection
-              observers.add(k)
+          else
+            observers.add(k) for k, v of collection
         else
           developer.warn "Warning! data-foreach-#{iteratorName} called with an undefined binding. Key was: #{key}."
       , -> )
