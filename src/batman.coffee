@@ -3200,6 +3200,7 @@ Batman.DOM = {
   yield: (name, node, _replaceContent = !Batman.data(node, 'yielded')) ->
     Batman.DOM._yields[name] = node
 
+    # render any content for this yield
     if contents = Batman.DOM._yieldContents[name]
       if _replaceContent
         $setInnerHTML node, ''
@@ -3207,6 +3208,8 @@ Batman.DOM = {
         content = if $isChildOf(node, content) then content.cloneNode(true) else content
         node.appendChild(content)
         Batman.data(content, 'yielded', true)
+      # delete references to the rendered content nodes and mark the node as yielded
+      delete Batman.DOM._yieldContents[name]
       Batman.data(node, 'yielded', true)
 
   contentFor: (name, node, _replaceContent) ->
