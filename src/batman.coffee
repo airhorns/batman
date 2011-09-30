@@ -2596,6 +2596,7 @@ class Binding extends Batman.Object
 
         # Apply the filter.
         args.unshift value
+        args = args.map (argument) -> if argument instanceof RenderContext.ContextProxy then argument.get('proxiedObject') else argument
         fn.apply(ctx, args)
       , unfilteredValue)
       developer.currentFilterContext = null
