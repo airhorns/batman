@@ -60,10 +60,8 @@ asyncTest 'it should add items in order', ->
   helpers.render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
     delay =>
-      delay =>
-        names = $('p', view.get('node')).map -> @innerHTML
-        names = names.toArray()
-        deepEqual names, ['zero', 'foo', 'bar']
+      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+      deepEqual names, ['zero', 'foo', 'bar']
 
 asyncTest 'the ready event should wait for all children to be rendered', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
@@ -211,7 +209,7 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
   x.accessor 'filtered',
     get: ->
       unless @filtered?
-        @filtered = new Batman.SortableSet()
+        @filtered = new Batman.Set()
         @filtered.add @get('all').toArray()...
       @filtered
     set: (k,v) ->

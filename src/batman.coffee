@@ -1091,56 +1091,6 @@ class Batman.UniqueSetIndex extends Batman.SetIndex
     else
       @_uniqueIndex.set(key, resultSet.toArray()[0])
 
-class Batman.SortableSet extends Batman.Set
-  constructor: ->
-    super
-    @_sortIndexes = {}
-    @observe 'activeIndex', =>
-      @setWasSorted()
-  setWasSorted: -> @fire('setWasSorted') unless @length is 0
-
-  for k in ['add', 'remove', 'clear']
-    do (k) =>
-      @::[k] = ->
-        results = Batman.Set::[k].apply(@, arguments)
-        @_reIndex()
-        results
-
-  isSortableSet: yes
-
-  addIndex: (index) ->
-    @_reIndex(index)
-  removeIndex: (index) ->
-    @_sortIndexes[index] = null
-    delete @_sortIndexes[index]
-    @unset('activeIndex') if @activeIndex is index
-    index
-  forEach: (iterator) ->
-    iterator(el) for el in @toArray()
-  sortBy: (index) ->
-    @addIndex(index) unless @_sortIndexes[index]
-    @set('activeIndex', index) unless @activeIndex is index
-    @
-  isSorted: ->
-    @_sortIndexes[@get('activeIndex')]?
-  toArray: ->
-    @_sortIndexes[@get('activeIndex')] || super
-
-  _reIndex: (index) ->
-    if index
-      [keypath, ordering] = index.split ' '
-      ary = Batman.Set.prototype.toArray.call @
-      @_sortIndexes[index] = ary.sort (a,b) ->
-        valueA = (Batman.Observable.property.call(a, keypath)).getValue()?.valueOf()
-        valueB = (Batman.Observable.property.call(b, keypath)).getValue()?.valueOf()
-        [valueA, valueB] = [valueB, valueA] if ordering?.toLowerCase() is 'desc'
-        if valueA < valueB then -1 else if valueA > valueB then 1 else 0
-      @setWasSorted() if @activeIndex is index
-    else
-      @_reIndex(index) for index of @_sortIndexes
-      @setWasSorted()
-    @
-
 # State Machines
 # --------------
 
@@ -1770,14 +1720,8 @@ class Batman.Model extends Batman.Object
     set: (k, v) -> @set('loaded', v)
 
   @classAccessor 'loaded',
-    get: ->
-      unless @all
-        @all = new Batman.SortableSet
-        @all.sortBy "id asc"
-
-      @all
-
-    set: (k, v) -> @all = v
+    get: -> @_loaded ||= new Batman.Set
+    set: (k, v) -> @_loaded = v
 
   @classAccessor 'first', -> @get('all').toArray()[0]
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
@@ -3088,7 +3032,6 @@ Batman.DOM = {
           if old.collection.isEventEmitter
             old.collection.event('itemsWereAdded').removeHandler(old.observers.add)
             old.collection.event('itemsWereRemoved').removeHandler(old.observers.remove)
-            old.collection.event('setWasSorted').removeHandler(old.observers.reorder)
 
         old.collection = collection
         observers = (old.observers = {})
@@ -3115,8 +3058,6 @@ Batman.DOM = {
                   fragment.appendChild newNode
                 if --numPendingChildren == 0
                   parent.insertBefore fragment, sibling
-                  if collection.isSorted?()
-                    observers.reorder()
                   fragment = document.createDocumentFragment()
             , context.descend(item, iteratorName)
 
@@ -3142,19 +3083,24 @@ Batman.DOM = {
               $removeNode oldNode
           true
 
-        observers.reorder = ->
+        observers.reorder = (items) ->
           items = collection.toArray()
+          trackingNodeMap = nodeMap.merge(new Batman.SimpleHash())
           for item in items
-            thisNode = nodeMap.get(item)
-            show = Batman.data thisNode, 'show'
-            if typeof show is 'function'
-              show.call thisNode, before: sibling
+            existingNode = nodeMap.get(item)
+            if existingNode
+              trackingNodeMap.set(item, true)
+              show = Batman.data existingNode, 'show'
+              if typeof show is 'function'
+                show.call existingNode, before: sibling
+              else
+                parent.insertBefore(existingNode, sibling)
             else
-              parent.insertBefore(thisNode, sibling)
+              trackingNodeMap.set(item, true)
+              observers.add(item)
 
-        observers.arrayChange = (array) ->
-          observers.remove(array...)
-          observers.add(array...)
+          nodeMap.forEach (item, node) ->
+            observers.remove(item) unless trackingNodeMap.hasKey(item)
 
         observers.hashChange = (hash) ->
           nodeMap.forEach (item, node) -> $removeNode node
@@ -3174,8 +3120,6 @@ Batman.DOM = {
                 collection.on 'setWasSorted', observers.reorder
               else if collection.isObservable
                 collection.observe 'toArray', observers.arrayChange
-
-
           # Add all the already existing items. For hash-likes, add the key.
           if collection.forEach
             collection.forEach (item) -> observers.add(item)
