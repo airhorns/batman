@@ -122,7 +122,6 @@ asyncTest 'it should not fail if the collection is cleared', ->
     delay =>
       equal $('.present', node).length, 0
 
-
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   oldObjects = new Batman.Set('foo', 'bar', 'baz')
@@ -212,3 +211,46 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
       delay ->
         names = $('p', view.get('node')).map(-> @innerHTML).toArray()
         deepEqual names, ['a', 'b', 'c', 'd', 'e']
+
+getVals = (node) ->
+  Array::slice.call(node.childNodes).map (n) -> parseInt(n.innerHTML)
+
+asyncTest 'it should stop previous ongoing renders if items are removed', ->
+  getSet = (seed) -> new Batman.Set(seed, seed+1, seed+2)
+  context = Batman
+    all: getSet(1)
+
+  source = '<p data-foreach-obj="all" data-bind="obj"></p>'
+  helpers.render source, false, context, (node, view) ->
+    deepEqual getVals(node), [1,2,3]
+    context.get('all').add(4)
+    context.get('all').remove(4)
+    delay ->
+      deepEqual getVals(node), [1,2,3]
+
+asyncTest 'it should stop previous ongoing renders if the collection is changed', ->
+  getSet = (seed) -> new Batman.Set(seed, seed+1, seed+2)
+  context = Batman
+    all: getSet(1)
+
+  source = '<p data-foreach-obj="all" data-bind="obj"></p>'
+  helpers.render source, false, context, (node, view) ->
+    deepEqual getVals(node), [1,2,3]
+    context.set('all', getSet(5))
+    context.set('all', getSet(10))
+    delay ->
+      deepEqual getVals(node), [10,11,12]
+
+asyncTest 'it should stop previous ongoing renders if collection changes, but intersects', ->
+  getSet = (seed) -> new Batman.Set(seed, seed+1, seed+2)
+  context = Batman
+    all: getSet(1)
+
+  source = '<p data-foreach-obj="all" data-bind="obj"></p>'
+  helpers.render source, false, context, (node, view) ->
+    deepEqual getVals(node), [1,2,3]
+    context.set('all', getSet(2))
+    context.set('all', getSet(3))
+    delay ->
+      deepEqual getVals(node), [3,4,5]
+

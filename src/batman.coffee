@@ -644,17 +644,17 @@ class BatmanObject
   # Apply mixins to instances of this class.
   @mixin: -> @classMixin.apply @prototype, arguments
   mixin: @classMixin
-  
+
   counter = 0
   _objectID: ->
     @_objectID = -> c
     c = counter++
-  
+
   hashKey: ->
     return if typeof @isEqual is 'function'
     @hashKey = -> key
     key = "<Batman.Object #{@_objectID()}>"
-  
+
 
   # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
   # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
@@ -2455,7 +2455,7 @@ class Batman.Renderer extends Batman.Object
     super()
     @on('parsed', callback) if callback?
     @context = if contexts instanceof RenderContext then contexts else RenderContext.start(contexts...)
-    setTimeout @start, 0
+    @timeout = setTimeout @start, 0
 
   start: =>
     @startTime = new Date
@@ -2470,10 +2470,14 @@ class Batman.Renderer extends Batman.Object
     @fire 'parsed'
     @fire 'rendered'
 
+  stop: ->
+    clearTimeout(@timeout)
+    @fire 'stopped'
+
   forgetAll: ->
 
-  @::event('parsed').oneShot = true
-  @::event('rendered').oneShot = true
+  for k in ['parsed', 'rendered', 'stopped']
+    @::event(k).oneShot = true
 
   bindingRegexp = /data\-(.*)/
   sortBindings = (a, b) ->
@@ -2495,7 +2499,7 @@ class Batman.Renderer extends Batman.Object
   parseNode: (node) ->
     if new Date - @startTime > 50
       @resumeNode = node
-      setTimeout @resume, 0
+      @timeout = setTimeout @resume, 0
       return
 
     if node.getAttribute and node.attributes
@@ -3015,26 +3019,27 @@ Batman.DOM = {
       # Get a hash keyed by collection item with the nodes representing that item as values
       nodeMap = new Batman.SimpleHash
 
-      fragment = document.createDocumentFragment()
-      numPendingChildren = 0
 
-      observers = {}
-      oldCollection = false
+      old = {collection: false, renderers: new Batman.SimpleHash, observers: {}}
 
       context.bind(node, key, (collection) ->
         # Track the old collection so that if it changes, we can remove the observers we attached,
         # and only observe the new collection.
-        if oldCollection
-          return if collection == oldCollection
+        if old.collection
+          return if collection == old.collection
           nodeMap.forEach (item, node) -> $removeNode node
           nodeMap.clear()
-          if oldCollection.isEventEmitter
-            oldCollection.event('itemsWereAdded').removeHandler(observers.add)
-            oldCollection.event('itemsWereRemoved').removeHandler(observers.remove)
-            oldCollection.event('setWasSorted').removeHandler(observers.reorder)
+          old.renderers.forEach (renderer) -> renderer.stop()
+          old.renderers.clear()
+          if old.collection.isEventEmitter
+            old.collection.event('itemsWereAdded').removeHandler(old.observers.add)
+            old.collection.event('itemsWereRemoved').removeHandler(old.observers.remove)
+            old.collection.event('setWasSorted').removeHandler(old.observers.reorder)
 
-        oldCollection = collection
-
+        old.collection = collection
+        observers = (old.observers = {})
+        fragment = document.createDocumentFragment()
+        numPendingChildren = 0
         observers.add = (items...) ->
           numPendingChildren += items.length
           for item in items
@@ -3043,8 +3048,12 @@ Batman.DOM = {
             newNode = prototype.cloneNode true
             nodeMap.set item, newNode
 
-            childRenderer = new Batman.Renderer newNode, do (newNode) ->
+            childRenderer = new Batman.Renderer newNode, do (newNode, item) ->
               ->
+                # Handle the case where the item has already been deleted before rendering completed
+                unless nodeMap.get(item) == newNode
+                  old.renderers.unset(childRenderer)
+                  return
                 show = Batman.data newNode, 'show'
                 if typeof show is 'function'
                   show.call newNode, before: sibling
@@ -3057,7 +3066,14 @@ Batman.DOM = {
                   fragment = document.createDocumentFragment()
             , context.descend(item, iteratorName)
 
-            childRenderer.on 'rendered', =>
+            old.renderers.set(childRenderer)
+
+            childRenderer.on 'rendered', ->
+              parentRenderer.allow 'rendered'
+              parentRenderer.fire 'rendered'
+
+            childRenderer.on 'stopped', ->
+              numPendingChildren--
               parentRenderer.allow 'rendered'
               parentRenderer.fire 'rendered'
 
