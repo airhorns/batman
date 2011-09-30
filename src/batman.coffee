@@ -1804,6 +1804,10 @@ class Batman.Model extends Batman.Object
       else
         @get(pk)
     set: (k, v) ->
+      # naively coerce string ids into integers
+      if typeof v is "string" and !isNaN(intId = parseInt(v, 10))
+        v = intId
+
       pk = @constructor.get('primaryKey')
       if pk == 'id'
         @id = v
