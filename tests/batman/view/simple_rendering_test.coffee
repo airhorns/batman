@@ -417,6 +417,16 @@ asyncTest 'it should allow contexts to be entered', 2, ->
     delay ->
       equal $("#test", node).html(), 'baz', 'if the context changes the bindings should update'
 
+asyncTest 'it should allow context names to be specified', 2, ->
+  context = Batman
+    namespace: 'foo'
+  source = '<div data-context-identifier="namespace"><span id="test" data-bind="identifier"></span></div>'
+  helpers.render source, context, (node) ->
+    equal $('#test', node).html(), 'foo'
+    context.set('namespace', 'bar')
+    delay ->
+      equal $("#test", node).html(), 'bar', 'if the context changes the bindings should update'
+
 asyncTest 'it should allow contexts to be specified using filters', 2, ->
   context = Batman
     namespace: Batman

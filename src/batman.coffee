@@ -2577,6 +2577,7 @@ class Binding extends Batman.Object
   get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
   get_rx = /(?!^\s*)\[(.*?)\]/g
 
+  deProxy = (object) -> if object instanceof RenderContext.ContextProxy then object.get('proxiedObject') else object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
     unfilteredValue = @get('unfilteredValue')
@@ -2596,14 +2597,14 @@ class Binding extends Batman.Object
 
         # Apply the filter.
         args.unshift value
-        args = args.map (argument) -> if argument instanceof RenderContext.ContextProxy then argument.get('proxiedObject') else argument
+        args = args.map deProxy
         fn.apply(ctx, args)
       , unfilteredValue)
       developer.currentFilterContext = null
       developer.currentFilterStack = null
       result
     else
-      unfilteredValue
+      deProxy(unfilteredValue)
 
   # The `unfilteredValue` is whats evaluated each time any dependents change.
   @accessor 'unfilteredValue', ->
@@ -2746,7 +2747,7 @@ class RenderContext
 
     return [container.get(key), container]
 
-  # Below are the two primitives that all the `Batman.DOM` helpers are composed of.
+  # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
   # in the tree with either the object available on the stack or the object available at the `scopedKey`
   # on the stack.
@@ -3312,7 +3313,7 @@ Batman.DOM = {
       for eventName, eventListeners of listeners
         eventListeners.forEach (listener) ->
           $removeEventListener node, eventName, listener
-    
+
     # remove all bindings and other data associated with this node
     Batman.removeData node
 
@@ -3346,7 +3347,7 @@ Batman.DOM = {
       when 'SELECT'
         node.value = value
       else
-        if isSetting 
+        if isSetting
           $setInnerHTML node, value
         else node.innerHTML
 
@@ -3370,7 +3371,7 @@ Batman.DOM = {
   # `$removeEventListener` uses detachEvent when necessary
   removeEventListener: $removeEventListener = (node, eventName, callback) ->
     # remove the listener from Batman.data
-    if listeners = Batman.data node, 'listeners' 
+    if listeners = Batman.data node, 'listeners'
       if eventListeners = listeners[eventName]
         eventListeners.remove callback
 
