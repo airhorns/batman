@@ -960,6 +960,7 @@ class Batman.Set extends Batman.Object
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
   @accessor 'isEmpty', -> @isEmpty()
+  @accessor 'toArray', -> @toArray()
   @accessor 'length', ->
     @registerAsMutableSource()
     @length
