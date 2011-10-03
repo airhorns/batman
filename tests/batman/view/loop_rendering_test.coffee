@@ -166,6 +166,26 @@ asyncTest 'it should loop over hashes', ->
       ok tracking[k], "Object #{k} should be in the source"
     QUnit.start()
 
+asyncTest 'it should update as items as a hash has items added and removed', ->
+  source = '<div><p data-foreach-player="playerScores" data-bind-id="player" data-bind="playerScores[player]"></p></div>'
+  context = new Batman.Object
+    playerScores: new Batman.Hash
+      mario: 5
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.childNodes[0].id, 'mario'
+    equal node.childNodes[0].innerHTML, '5'
+    context.playerScores.set 'link', 10
+    delay =>
+      equal node.childNodes[0].id, 'mario'
+      equal node.childNodes[0].innerHTML, '5'
+      equal node.childNodes[1].id, 'link'
+      equal node.childNodes[1].innerHTML, '10'
+      context.playerScores.unset 'mario'
+      delay =>
+        equal node.childNodes[0].id, 'link'
+        equal node.childNodes[0].innerHTML, '10'
+
 asyncTest 'it should loop over js objects', ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
   playerScores =

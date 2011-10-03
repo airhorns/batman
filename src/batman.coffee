@@ -790,7 +790,7 @@ class Batman.SimpleHash
   keys: ->
     result = []
     # Explicitly reference this foreach so that if it's overriden in subclasses the new implementation isn't used.
-    Batman.SimpleHash::forEach.call @, (obj) -> result.push obj
+    Batman.SimpleHash::forEach.call @, (key) -> result.push key
     result
   clear: ->
     @_storage = {}
@@ -3082,6 +3082,7 @@ Batman.DOM = {
         observers.remove = (items...) ->
           for item in items
             oldNode = nodeMap.get item
+            continue unless oldNode
             nodeMap.unset item
             if oldNode? && typeof oldNode.hide is 'function'
               oldNode.hide yes
@@ -3103,15 +3104,25 @@ Batman.DOM = {
           observers.remove(array...)
           observers.add(array...)
 
+        observers.hashChange = (hash) ->
+          nodeMap.forEach (item, node) -> $removeNode node
+          nodeMap.clear()
+          keys = hash.keys()
+          observers.add(keys...)
+
         # Observe the collection for events in the future
         if collection
           if collection.isEventEmitter
-            collection.on 'itemsWereAdded', observers.add
-            collection.on 'itemsWereRemoved', observers.remove
-            if collection.isSortableSet
-              collection.on 'setWasSorted', observers.reorder
-            else if collection.isObservable
-              collection.observe 'toArray', observers.arrayChange
+            if collection instanceof Batman.Hash
+              collection.on 'change', observers.hashChange
+            else
+              collection.on 'itemsWereAdded', observers.add
+              collection.on 'itemsWereRemoved', observers.remove
+              if collection.isSortableSet
+                collection.on 'setWasSorted', observers.reorder
+              else if collection.isObservable
+                collection.observe 'toArray', observers.arrayChange
+
 
           # Add all the already existing items. For hash-likes, add the key.
           if collection.forEach
