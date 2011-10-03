@@ -165,10 +165,6 @@ developer =
         console?.log? developer.currentFilterStack
         value
 
-      logContext: (value) ->
-        console?.log? developer.currentFilterContext
-        value
-
 Batman.developer = developer
 
 # Helpers
@@ -2581,10 +2577,8 @@ class Binding extends Batman.Object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
     unfilteredValue = @get('unfilteredValue')
-    ctx = @get('keyContext') if @get('key')
 
     if @filterFunctions.length > 0
-      developer.currentFilterContext = ctx
       developer.currentFilterStack = @renderContext
 
       result = @filterFunctions.reduce((value, fn, i) =>
@@ -2598,9 +2592,8 @@ class Binding extends Batman.Object
         # Apply the filter.
         args.unshift value
         args = args.map deProxy
-        fn.apply(ctx, args)
+        fn.apply(@renderContext, args)
       , unfilteredValue)
-      developer.currentFilterContext = null
       developer.currentFilterStack = null
       result
     else
