@@ -811,9 +811,9 @@ class Batman.SimpleHash
     if pairs = @_storage[@hashKeyFor(key)]
       for [obj,value], index in pairs
         if @equality(obj, key)
-          pairs.splice(index,1)
+          pair = pairs.splice(index,1)
           @length--
-          return
+          return pair[0][1]
   getOrSet: Batman.Observable.getOrSet
   hashKeyFor: (obj) -> obj?.hashKey?() or obj
   equality: (lhs, rhs) ->

@@ -59,9 +59,9 @@ test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
   equalHashLength @hash, 1
 
-test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
+test "unset(key) unsets a key and its value from the hash, returning the existing value", ->
   @hash.set 'foo', 'bar'
-  equal typeof(@hash.unset('foo')), 'undefined'
+  equal @hash.unset('foo'), 'bar'
   equal @hash.hasKey('foo'), false
 
 test "unset(key) doesn't touch any other keys", ->
