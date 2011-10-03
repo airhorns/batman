@@ -166,7 +166,7 @@ asyncTest 'it should loop over hashes', ->
       ok tracking[k], "Object #{k} should be in the source"
     QUnit.start()
 
-asyncTest 'it should update as items as a hash has items added and removed', ->
+asyncTest 'it should update as a hash has items added and removed', ->
   source = '<div><p data-foreach-player="playerScores" data-bind-id="player" data-bind="playerScores[player]"></p></div>'
   context = new Batman.Object
     playerScores: new Batman.Hash
