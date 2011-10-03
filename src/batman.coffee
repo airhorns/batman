@@ -3006,132 +3006,7 @@ Batman.DOM = {
     removeclass: (args...) -> Batman.DOM.attrReaders.addclass args..., yes
 
     foreach: (node, iteratorName, key, context, parentRenderer) ->
-      prototype = node.cloneNode true
-      prototype.removeAttribute "data-foreach-#{iteratorName}"
-
-      parent = node.parentNode
-      sibling = node.nextSibling
-
-      # Remove the original node once the parent has moved past it.
-      parentRenderer.on 'parsed', -> $removeNode node
-
-      # Get a hash keyed by collection item with the nodes representing that item as values
-      nodeMap = new Batman.SimpleHash
-
-
-      old = {collection: false, renderers: new Batman.SimpleHash, observers: {}}
-
-      context.bind(node, key, (collection) ->
-        # Track the old collection so that if it changes, we can remove the observers we attached,
-        # and only observe the new collection.
-        if old.collection
-          return if collection == old.collection
-          nodeMap.forEach (item, node) -> $removeNode node
-          nodeMap.clear()
-          old.renderers.forEach (renderer) -> renderer.stop()
-          old.renderers.clear()
-          if old.collection.isEventEmitter
-            old.collection.event('itemsWereAdded').removeHandler(old.observers.add)
-            old.collection.event('itemsWereRemoved').removeHandler(old.observers.remove)
-
-        old.collection = collection
-        observers = (old.observers = {})
-        fragment = document.createDocumentFragment()
-        numPendingChildren = 0
-        observers.add = (items...) ->
-          numPendingChildren += items.length
-          for item in items
-            parentRenderer.prevent 'rendered'
-
-            newNode = prototype.cloneNode true
-            nodeMap.set item, newNode
-
-            childRenderer = new Batman.Renderer newNode, do (newNode, item) ->
-              ->
-                # Handle the case where the item has already been deleted before rendering completed
-                unless nodeMap.get(item) == newNode
-                  old.renderers.unset(childRenderer)
-                  return
-                show = Batman.data newNode, 'show'
-                if typeof show is 'function'
-                  show.call newNode, before: sibling
-                else
-                  fragment.appendChild newNode
-                if --numPendingChildren == 0
-                  parent.insertBefore fragment, sibling
-                  fragment = document.createDocumentFragment()
-            , context.descend(item, iteratorName)
-
-            old.renderers.set(childRenderer)
-
-            childRenderer.on 'rendered', ->
-              parentRenderer.allow 'rendered'
-              parentRenderer.fire 'rendered'
-
-            childRenderer.on 'stopped', ->
-              numPendingChildren--
-              parentRenderer.allow 'rendered'
-              parentRenderer.fire 'rendered'
-
-        observers.remove = (items...) ->
-          for item in items
-            oldNode = nodeMap.get item
-            continue unless oldNode
-            nodeMap.unset item
-            if oldNode? && typeof oldNode.hide is 'function'
-              oldNode.hide yes
-            else
-              $removeNode oldNode
-          true
-
-        observers.reorder = (items) ->
-          items = collection.toArray()
-          trackingNodeMap = nodeMap.merge(new Batman.SimpleHash())
-          for item in items
-            existingNode = nodeMap.get(item)
-            if existingNode
-              trackingNodeMap.set(item, true)
-              show = Batman.data existingNode, 'show'
-              if typeof show is 'function'
-                show.call existingNode, before: sibling
-              else
-                parent.insertBefore(existingNode, sibling)
-            else
-              trackingNodeMap.set(item, true)
-              observers.add(item)
-
-          nodeMap.forEach (item, node) ->
-            observers.remove(item) unless trackingNodeMap.hasKey(item)
-
-        observers.hashChange = (hash) ->
-          nodeMap.forEach (item, node) -> $removeNode node
-          nodeMap.clear()
-          keys = hash.keys()
-          observers.add(keys...)
-
-        # Observe the collection for events in the future
-        if collection
-          if collection.isEventEmitter
-            if collection instanceof Batman.Hash
-              collection.on 'change', observers.hashChange
-            else
-              collection.on 'itemsWereAdded', observers.add
-              collection.on 'itemsWereRemoved', observers.remove
-              if collection.isSortableSet
-                collection.on 'setWasSorted', observers.reorder
-              else if collection.isObservable
-                collection.observe 'toArray', observers.arrayChange
-          # Add all the already existing items. For hash-likes, add the key.
-          if collection.forEach
-            collection.forEach (item) -> observers.add(item)
-          else if collection.toArray is 'function' and array = collection.toArray()
-            observers.add(array...)
-          else
-            observers.add(k) for own k, v of collection
-        else
-          developer.warn "Warning! data-foreach-#{iteratorName} called with an undefined binding. Key was: #{key}."
-      , -> )
-
+      new Batman.DOM.Iterator(arguments...)
       false # Return false so the Renderer doesn't descend into this node's children.
 
     formfor: (node, localName, key, context) ->
@@ -3389,7 +3264,137 @@ Batman.DOM = {
       node.detachEvent 'on'+eventName, callback
 
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
+
 }
+
+class Batman.DOM.Iterator
+    currentAddNumber: 0
+    queuedAddNumber: 0
+
+    constructor: (sourceNode, @iteratorName, @key, @context, @parentRenderer) ->
+      @nodeMap = new Batman.SimpleHash
+      @rendererMap = new Batman.SimpleHash
+      @prototypeNode = sourceNode.cloneNode(true)
+      @prototypeNode.removeAttribute "data-foreach-#{iteratorName}"
+
+      @parentNode = sourceNode.parentNode
+      @siblingNode = sourceNode.nextSibling
+
+      # Remove the original node once the parent has moved past it.
+      @parentRenderer.on 'parsed', -> $removeNode sourceNode
+
+      @addFunctions = []
+      @fragment = document.createDocumentFragment()
+      context.bind(sourceNode, key, @collectionChange, ->)
+
+    collectionChange: (newCollection) =>
+      # Deal with any nodes inserted by previous collections
+      if @collection
+        return if newCollection == @collection
+        @nodeMap.forEach (item, node) -> $removeNode node
+        @nodeMap.clear()
+        @rendererMap.forEach (item, renderer) -> renderer.stop()
+        @rendererMap.clear()
+
+        if @collection.isObservble
+          @collection.forget(@arrayChanged)
+        else if @collection.isEventEmitter
+          @collection.event('itemsWereAdded').removeHandler(@currentAddNumber)
+          @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
+
+      @collection = newCollection
+      if @collection
+        if @collection.isObservable
+          @collection.observe 'toArray', @arrayChanged
+        else if @collection.isEventEmitter
+          @collection.on 'itemsWereAdded', @currentAddedHandler = (items...) =>
+            @addItem(item, {fragment: true, addNumber: @currentAddFunction + i}) for item, i in items
+          @collection.on 'itemsWereRemoved', @currentRemovedHandler = (items...) =>
+            @removeItem(item) for item, i in items
+
+        if @collection.toArray
+          @arrayChanged()
+        else if @collection.forEach
+          @collection.forEach (item) => @addItem(item)
+        else
+          @addItem(key) for own key, value of @collection
+      else
+        developer.warn "Warning! data-foreach-#{@iteratorName} called with an undefined binding. Key was: #{@key}."
+
+    addItem: (item, options = {fragment: true}) ->
+      options.addNumber = @queuedAddNumber++
+      @parentRenderer.prevent 'rendered'
+      finish = =>
+        @parentRenderer.allow 'rendered'
+        @parentRenderer.fire 'rendered'
+
+      self = @
+      childRenderer = new Batman.Renderer @_nodeForItem(item),
+                                          (-> self.insertItem(item, @node, options)),
+                                          @context.descend(item, @iteratorName)
+
+      @rendererMap.set(item, childRenderer)
+
+      childRenderer.on 'rendered', finish
+      childRenderer.on 'stopped', =>
+        @addFunctions[options.addNumber] = ->
+        @_processAddQueue()
+        finish()
+
+    removeItem: (item) ->
+      oldNode = @nodeMap.unset(item)
+      if oldNode
+        if hideFunction = Batman.data oldNode, 'hide'
+          hideFunction.call(oldNode)
+        else
+          $removeNode(oldNode)
+
+    arrayChanged: =>
+      newItemsInOrder = @collection.toArray()
+      trackingNodeMap = new Batman.SimpleHash
+      for item in newItemsInOrder
+        existingNode = @nodeMap.get(item)
+        trackingNodeMap.set(item, true)
+        if existingNode
+          @insertItem(item, existingNode, {fragment: false, addNumber: @queuedAddNumber++, sync: true})
+        else
+          @addItem(item, {fragment: false})
+
+      @nodeMap.forEach (item, node) =>
+        @removeItem(item) unless trackingNodeMap.hasKey(item)
+
+    insertItem: (item, node, options = {}) ->
+      if @nodeMap.get(item) != node
+        # The render has rendered a node which is now out of date, do nothing.
+        @addFunctions[options.addNumber] = ->
+      else
+        @rendererMap.unset item
+        @addFunctions[options.addNumber] = ->
+          show = Batman.data node, 'show'
+          if typeof show is 'function'
+            show.call node, before: @siblingNode
+          else
+            if options.fragment
+              @fragment.appendChild node
+            else
+              @parentNode.insertBefore node, @siblingNode
+
+      @_processAddQueue()
+
+    _nodeForItem: (item) ->
+      newNode = @prototypeNode.cloneNode(true)
+      @nodeMap.set(item, newNode)
+      newNode
+
+    _processAddQueue: ->
+      while !!(f = @addFunctions[@currentAddNumber])
+        @addFunctions[@currentAddNumber] = undefined
+        f.call(@)
+        @currentAddNumber++
+      if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
+        @parentNode.insertBefore @fragment, @siblingNode
+        @fragment = document.createDocumentFragment()
+      return
 
 # Filters
 # -------

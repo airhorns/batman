@@ -28,7 +28,7 @@ asyncTest 'it should remove items from the DOM as they are removed from the set'
   objects = new Batman.Set('foo', 'bar')
 
   helpers.render source, {objects}, (node, view) ->
-    objects.remove('foo', 'baz', 'qux')
+    objects.remove('foo')
     delay =>
       names = $('p', view.get('node')).map -> @innerHTML
       names = names.toArray()
@@ -145,7 +145,7 @@ asyncTest 'it should order loops among their siblings properly', 5, ->
     equal 'span', div.childNodes[0].tagName.toLowerCase(), "Order of nodes is preserved"
     QUnit.start()
 
-asyncTest 'it should loop over hashes', ->
+asyncTest 'it should loop over hashes', 6, ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
   playerScores = new Batman.Hash(
     mario: 5
@@ -153,16 +153,10 @@ asyncTest 'it should loop over hashes', ->
     crono: 10
   )
 
-  helpers.render source, {playerScores}, (node, view) ->
-    tracking = {mario: false, link: false, crono: false}
-    nodes = $(view.get('node')).children()
-    for i in [0...nodes.length]
-      node = nodes[i]
-      id = node.id
-      tracking[id] = (parseInt(node.innerHTML, 10) == playerScores.get(id))
-      equal node.className,  'present'
-    for k in ['mario', 'link', 'crono']
-      ok tracking[k], "Object #{k} should be in the source"
+  helpers.render source, false, {playerScores}, (node, view) ->
+    for childNode in Array::slice.call(node.childNodes)
+      equal childNode.className,  'present'
+      equal parseInt(childNode.innerHTML, 10), playerScores.get(childNode.id)
     QUnit.start()
 
 asyncTest 'it should update as a hash has items added and removed', ->
@@ -170,6 +164,7 @@ asyncTest 'it should update as a hash has items added and removed', ->
   context = new Batman.Object
     playerScores: new Batman.Hash
       mario: 5
+
   helpers.render source, context, (node) ->
     node = node[0]
     equal node.childNodes[0].id, 'mario'
@@ -185,23 +180,17 @@ asyncTest 'it should update as a hash has items added and removed', ->
         equal node.childNodes[0].id, 'link'
         equal node.childNodes[0].innerHTML, '10'
 
-asyncTest 'it should loop over js objects', ->
+asyncTest 'it should loop over js objects', 6, ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
   playerScores =
     mario: 5
     link: 5
     crono: 10
 
-  helpers.render source, {playerScores}, (node, view) ->
-    tracking = {mario: false, link: false, crono: false}
-    nodes = $(view.get('node')).children()
-    for i in [0...nodes.length]
-      node = nodes[i]
-      id = node.id
-      tracking[id] = (parseInt(node.innerHTML, 10) == playerScores[id])
-      equal node.className,  'present'
-    for k in ['mario', 'link', 'crono']
-      ok tracking[k], "Object #{k} should be in the source"
+  helpers.render source, false, {playerScores}, (node, view) ->
+    for childNode in Array::slice.call(node.childNodes)
+      equal childNode.className,  'present'
+      equal parseInt(childNode.innerHTML, 10), playerScores[childNode.id]
     QUnit.start()
 
 asyncTest 'it shouldn\'t become desynchronized if the foreach collection observer fires with the same collection', ->
