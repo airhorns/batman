@@ -861,10 +861,21 @@ class Batman.Hash extends Batman.Object
 
   @accessor
     get: Batman.SimpleHash::get
-    set: @mutation(Batman.SimpleHash::set)
-    unset: @mutation(Batman.SimpleHash::unset)
+    set: @mutation (key, value) ->
+      old = @get(key)
+      result = Batman.SimpleHash::set.call(@, key, value)
+      @fire 'itemsWereAdded', key
+      result
+    unset: @mutation (key) ->
+      result = Batman.SimpleHash::unset.call(@, key)
+      @fire 'itemsWereRemoved', key if result?
+      result
 
-  clear: @mutation(Batman.SimpleHash::clear)
+  clear: @mutation ->
+    keys = @meta.get('keys')
+    result = Batman.SimpleHash::clear.call(@)
+    @fire 'itemsWereRemoved', keys...
+    result
   equality: Batman.SimpleHash::equality
   hashKeyFor: Batman.SimpleHash::hashKeyFor
 
@@ -3296,7 +3307,7 @@ class Batman.DOM.Iterator
         @rendererMap.forEach (item, renderer) -> renderer.stop()
         @rendererMap.clear()
 
-        if @collection.isObservble
+        if @collection.isObservble && @collection.toArray
           @collection.forget(@arrayChanged)
         else if @collection.isEventEmitter
           @collection.event('itemsWereAdded').removeHandler(@currentAddNumber)
@@ -3304,7 +3315,7 @@ class Batman.DOM.Iterator
 
       @collection = newCollection
       if @collection
-        if @collection.isObservable
+        if @collection.isObservable && @collection.toArray
           @collection.observe 'toArray', @arrayChanged
         else if @collection.isEventEmitter
           @collection.on 'itemsWereAdded', @currentAddedHandler = (items...) =>
