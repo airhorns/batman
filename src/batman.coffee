@@ -339,11 +339,12 @@ class Batman.Property
   hashKey: ->
     @hashKey = -> key
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
-
+  
   accessor: ->
-    accessors = @base._batman?.get('keyAccessors')
-    if accessors && (val = accessors.get(@key))
-      return val
+    @accessor = -> accessor
+    keyAccessors = @base._batman?.get('keyAccessors')
+    accessor = if keyAccessors && (val = keyAccessors.get(@key))
+      val
     else
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
   eachObserver: (iterator) ->
@@ -391,14 +392,14 @@ class Batman.Property
   _markNeedsRefresh: -> @_needsRefresh = true
   _handleSourceChange: @::refresh
 
-  valueFromAccessor: -> @accessor()?.get?.call(@base, @key)
+  valueFromAccessor: -> @accessor().get?.call(@base, @key)
 
   setValue: (val) ->
-    result = @accessor()?.set?.call(@base, @key, val)
+    result = @accessor().set?.call(@base, @key, val)
     @refresh()
     result
   unsetValue: ->
-    result = @accessor()?.unset?.call(@base, @key)
+    result = @accessor().unset?.call(@base, @key)
     @refresh()
     result
 
