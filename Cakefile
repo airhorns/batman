@@ -23,7 +23,8 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     map:
       'src/batman\.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/batman.js', options)
       'src/batman\.(.+)\.coffee' : (matches) -> muffin.compileScript(matches[0], "lib/batman.#{matches[1]}.js", options)
-      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({bare: true}, options, {mode: 0755}))
+      'src/extras/(.+)\.coffee'  : (matches) -> muffin.compileScript(matches[0], "lib/extras/#{matches[1]}.js", options)
+      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({}, options, {mode: 0755, bare: true}))
       'src/tools/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "tools/#{matches[1]}.js", options)
 
   if options.dist
@@ -31,30 +32,26 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
     tmpdir = temp.mkdirSync()
     distDir = "lib/dist"
     developmentTransform = require('./tools/build/remove_development_transform').removeDevelopment
+
     # Compile the scripts to the distribution folder by:
     # 1. Finding each platform specific batman file of the form `batman.platform.coffee`
-    # 2. Concatenating each platform specific file with the main Batman source, and storing that in a temp file.
+    # 2. Concatenating each platform specific file with the main Batman source, and storing that in memory
     # 3. Compiling each complete platform specific batman distribution into JavaScript in `./lib/dist`
     # 4. Minify each complete platform specific distribution in to a .min.js file in `./lib/dist`
     compileDist = (platformName) ->
-      return if platformName in ['node', 'rails']
+      return if platformName in ['node']
       joinedCoffeePath = "#{tmpdir}/batman.#{platformName}.coffee"
-      #transform = require 'src/tools/build'
       # Read the platform specific code
       platform = muffin.readFile "src/batman.#{platformName}.coffee", options
       standard = muffin.readFile 'src/batman.coffee', options
-      q.join platform, standard, (platformSource, standardSource) ->
-        # Write the joined coffeescript to a temp dir
-        write = muffin.writeFile(joinedCoffeePath, standardSource + "\n" + platformSource, options)
-        q.when write, (result) ->
-          # Compile the temp coffeescript to the build dir
-          fs.mkdirSync(distDir, 0777) unless path.existsSync(distDir)
-          destination = "#{distDir}/batman#{if platformName is 'solo' then '' else '.' + platformName}.js"
-          compile = muffin.compileScript(joinedCoffeePath, destination, options)
-          compile.then( ->
-            options.transform = developmentTransform
-            muffin.minifyScript destination, options
-          ).then( ->
+      q.wait(platform, standard).then (platformSource, standardSource) ->
+        # Compile the joined coffeescript to JS
+        js = muffin.compileString(standardSource + "\n" + platformSource, options)
+        destination = "#{distDir}/batman#{if platformName is 'solo' then '' else '.' + platformName}.js"
+        # Write the unminified javascript.
+        muffin.writeFile(destination, js, options).then ->
+          options.transform = developmentTransform
+          muffin.minifyScript(destination, options).then( ->
             muffin.notify(destination, "File #{destination} minified.")
           )
 
@@ -66,6 +63,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       map:
         'src/batman\.(.+)\.coffee': (matches) -> compileDist(matches[1])
         'src/batman.coffee'       : (matches) ->
+          done = false
           if first
             first = false
             return
@@ -73,7 +71,9 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           platformFiles = glob.globSync('./src/batman.*.coffee')
           for file in platformFiles
             matches = /src\/batman.(.+).coffee/.exec(file)
-            compileDist(matches[1])
+            done = q.wait(done, compileDist(matches[1]))
+          console.warn done
+          done
 
 task 'doc', 'build the Docco documentation', (options) ->
   muffin.run
@@ -94,18 +94,14 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     map:
       'src/batman.coffee'                        : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
       'src/batman.solo.coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend({notify: !first}, options))
-      'src/batman.rails.coffee'                  : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.rails.js", muffin.extend({notify: !first}, options))
-      'tests/batman/(.+)_(test|helper).coffee'   : (matches) ->
-        destination = "#{tmpdir}/#{matches[1]}_#{matches[2]}.js"
-        destinationDir = path.dirname(destination)
-        fs.mkdirSync(destinationDir, 0755) unless path.existsSync(destinationDir)
-        muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
+      'src/extras/(.+).coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/extras/#{matches[1]}.js", muffin.extend({notify: !first}, options))
+      'tests/batman/(.+)_(test|helper).coffee'    : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/tests/batman/#{matches[1]}_#{matches[2]}.js", muffin.extend({notify: !first}, options))
     after: ->
       first = false
       runner.run
         code:  {namespace: "Batman", path: "#{tmpdir}/batman.js"}
-        deps: ["jsdom", "#{tmpdir}/test_helper.js", "./tests/lib/jquery.js"]
-        tests: glob.globSync("#{tmpdir}/**/*_test.js")
+        deps: ["jsdom", "#{tmpdir}/tests/batman/test_helper.js", "./tests/lib/jquery.js"]
+        tests: glob.globSync("#{tmpdir}/tests/**/*_test.js")
         coverage: options.coverage || false
       , (report) ->
         unless options.watch

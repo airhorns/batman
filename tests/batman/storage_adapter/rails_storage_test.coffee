@@ -1,6 +1,6 @@
 if typeof require isnt 'undefined'
   {restStorageTestSuite} = require('./rest_storage_helper')
-  require '../batman.rails'
+  require '../../../extras/batman.rails'
 else
   {restStorageTestSuite} = window
 
