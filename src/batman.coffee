@@ -221,7 +221,14 @@ helpers = Batman.helpers = {
 
   trim: (string) -> if string then string.trim() else ""
 
-  interpolate: (string, keys) ->
+  interpolate: (stringOrObject, keys) ->
+    if typeof stringOrObject is 'object'
+      string = stringOrObject[keys.count]
+      unless string
+        string = stringOrObject['other']
+    else
+      string = stringOrObject
+
     for key, value of keys
       string = string.replace(new RegExp("%\\{#{key}\\}", "g"), value)
     string
@@ -2494,7 +2501,7 @@ class Batman.Renderer extends Batman.Object
   constructor: (@node, callback, contexts = []) ->
     super()
     @on('parsed', callback) if callback?
-    @context = if contexts instanceof RenderContext then contexts else RenderContext.start(contexts...)
+    @context = if contexts instanceof Batman.RenderContext then contexts else Batman.RenderContext.start(contexts...)
     @timeout = setTimeout @start, 0
 
   start: =>
@@ -2561,7 +2568,7 @@ class Batman.Renderer extends Batman.Object
         if result is false
           skipChildren = true
           break
-        else if result instanceof RenderContext
+        else if result instanceof Batman.RenderContext
           @context = result
 
     if (nextNode = @nextNode(node, skipChildren)) then @parseNode(nextNode) else @finish()
@@ -2617,7 +2624,7 @@ class Binding extends Batman.Object
   get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
   get_rx = /(?!^\s*)\[(.*?)\]/g
 
-  deProxy = (object) -> if object instanceof RenderContext.ContextProxy then object.get('proxiedObject') else object
+  deProxy = (object) -> if object instanceof Batman.RenderContext.ContextProxy then object.get('proxiedObject') else object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue', ->
     unfilteredValue = @get('unfilteredValue')
@@ -2758,7 +2765,7 @@ class Binding extends Batman.Object
 # Every, and I really mean every method which uses filters has to be defined in terms of a new
 # binding, or by using the RenderContext.bind method. This is so that the proper order of objects
 # is traversed and any observers are properly attached.
-class RenderContext
+class Batman.RenderContext
   @start: (contexts...) ->
     node = new @(window)
     contexts.push Batman.currentApp if Batman.currentApp
@@ -3260,7 +3267,7 @@ Batman.DOM = {
       context.bind(node, key, ->
         developer.warn "Can't write to file inputs! Tried to on key #{key}."
       , (node, subContext) ->
-        if subContext instanceof RenderContext.ContextProxy
+        if subContext instanceof Batman.RenderContext.ContextProxy
           actualObject = subContext.get('proxiedObject')
         else
           actualObject = subContext
