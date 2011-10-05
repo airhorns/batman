@@ -275,3 +275,23 @@ test "filter(f) returns a filtered hash", ->
   equal @filtered.length, 2
   ok @filtered.get key1
   ok @filtered.get 'foo'
+
+test "toJSON returns the correct object representation for native types", ->
+  obj =
+    number: 1
+    string: "abc"
+    object: 
+      a: 1
+      b: 2
+      c: 3
+  @hash = new Batman.Hash obj
+  deepEqual @hash.toJSON(), obj
+
+test "toJSON returns the correct object representation for Batman.Object types", ->
+  obj = new Batman.Object
+    set: new Batman.Set 1, 2, 3
+
+  @hash = new Batman.Hash obj: obj
+  deepEqual @hash.toJSON(), obj:
+    set: [1, 2, 3]
+

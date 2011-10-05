@@ -651,6 +651,12 @@ class BatmanObject
     @hashKey = -> key
     key = "<Batman.Object #{@_objectID()}>"
 
+  toJSON: ->
+    obj = {}
+    for own key, value of @ when key isnt "_batman"
+      obj[key] = if value.toJSON then value.toJSON() else value
+    obj
+
 
   # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
   # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
@@ -826,6 +832,13 @@ class Batman.Hash extends Batman.Object
   clear: @mutation(Batman.SimpleHash::clear)
   equality: Batman.SimpleHash::equality
   hashKeyFor: Batman.SimpleHash::hashKeyFor
+
+  toJSON: ->
+    obj = {}
+    @keys().forEach (key) =>
+      value = @get key
+      obj[key] = if value.toJSON then value.toJSON() else value
+    obj
 
   for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge']
     proto = @prototype
