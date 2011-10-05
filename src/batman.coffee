@@ -133,6 +133,12 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
     node = node.parentNode
   false
 
+# `translate` is hook for the i18n extra to override and implemnent. All strings which might
+# be shown to the user pass through this method. `translate` is aliased to `t` internally.
+Batman.translate = (x, values = {}) -> helpers.interpolate($get(Batman.translate.messages, x), values)
+Batman.translate.messages = {}
+t = -> Batman.translate(arguments...)
+
 # Developer Tooling
 # -----------------
 
@@ -214,8 +220,12 @@ helpers = Batman.helpers = {
   capitalize: (string) -> string.replace capitalize_rx, (m,p1,p2) -> p1+p2.toUpperCase()
 
   trim: (string) -> if string then string.trim() else ""
-}
 
+  interpolate: (string, keys) ->
+    for key, value of keys
+      string = string.replace(new RegExp("%\\{#{key}\\}", "g"), value)
+    string
+}
 
 class Batman.Event
   @forBaseAndKey: (base, key) ->
@@ -524,11 +534,11 @@ Batman.Observable =
     @property(key).observeAndFire(args...)
     @
 
-$get = Batman.get = (object, key) ->
-  if object.get
-    object.get(key)
+$get = Batman.get = (base, key) ->
+  if base.get? && typeof base.get is 'function'
+    base.get(key)
   else
-    Batman.Observable.get.call(object, key)
+    Batman.Property.forBaseAndKey(base, key).getValue()
 
 # Objects
 # -------
@@ -2043,6 +2053,7 @@ class Batman.Validator extends Batman.Object
     super mixins...
 
   validate: (record) -> developer.error "You must override validate in Batman.Validator subclasses."
+  format: (key, messageKey, interpolations) -> t('errors.format', {attribute: key, message: t("errors.messages.#{messageKey}", interpolations)})
 
   @options: (options...) ->
     Batman.initializeObject @
@@ -2060,6 +2071,7 @@ class Batman.Validator extends Batman.Object
 Validators = Batman.Validators = [
   class Batman.LengthValidator extends Batman.Validator
     @options 'minLength', 'maxLength', 'length', 'lengthWithin', 'lengthIn'
+
     constructor: (options) ->
       if range = (options.lengthIn or options.lengthWithin)
         options.minLength = range[0]
@@ -2073,11 +2085,11 @@ Validators = Batman.Validators = [
       options = @options
       value = record.get(key)
       if options.minLength and value.length < options.minLength
-        errors.add key, "#{key} must be at least #{options.minLength} characters"
+        errors.add key, @format(key, 'too_short', {count: options.minLength})
       if options.maxLength and value.length > options.maxLength
-        errors.add key, "#{key} must be less than #{options.maxLength} characters"
+        errors.add key, @format(key, 'too_long', {count: options.maxLength})
       if options.length and value.length isnt options.length
-        errors.add key, "#{key} must be #{options.length} characters"
+        errors.add key, @format(key, 'wrong_length', {count: options.length})
       callback()
 
   class Batman.PresenceValidator extends Batman.Validator
@@ -2085,9 +2097,18 @@ Validators = Batman.Validators = [
     validateEach: (errors, record, key, callback) ->
       value = record.get(key)
       if @options.presence and !value?
-        errors.add key, "#{key} must be present"
+        errors.add key, @format(key, 'blank')
       callback()
 ]
+
+$mixin Batman.translate.messages,
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      too_short: "must be at least %{count} characters"
+      too_long: "must be less than %{count} characters"
+      wrong_length: "must be %{count} characters"
+      blank: "can't be blank"
 
 class Batman.StorageAdapter extends Batman.Object
   constructor: (model) ->
