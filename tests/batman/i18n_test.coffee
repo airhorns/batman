@@ -80,7 +80,8 @@ QUnit.module "Batman.I18N: translate filter"
           1: "1 pamplemouse"
           other: "%{count} pamplemouses"
 
-    I18N.set 'locale', 'fr'
+    Batman.developer.suppress ->
+      I18N.set 'locale', 'fr'
   teardown: reset
 
 asyncTest "it should look up keys in the translations under t", ->
@@ -104,7 +105,9 @@ asyncTest "it should interpolate translations with simple values", ->
     QUnit.start()
 
 asyncTest "it should interpolate translations with undefined values", ->
+  Batman.developer.suppress()
   viewHelpers.render '<div data-bind="t.kind_of_grapefruit | translate {\'kind\': \'kind\'}"></div>', false, {kind: undefined}, (node) ->
+    Batman.developer.unsuppress()
     equal node.childNodes[0].innerHTML, "pamplemouse "
     QUnit.start()
 

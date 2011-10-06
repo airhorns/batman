@@ -98,7 +98,7 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   context = new Batman.Object
     objects: new Batman.Set('foo', 'bar', 'baz')
-
+  Batman.developer.suppress()
   helpers.render source, false, context, (node, view) ->
     equal $('.present', node).length, 3
     context.set('objects', new Batman.Set('qux', 'corge'))
@@ -110,6 +110,7 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
         context.set('objects', new Batman.Set('mario'))
         delay =>
           equal $('.present', node).length, 1
+          Batman.developer.unsuppress()
 
 asyncTest 'it should not fail if the collection is cleared', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
