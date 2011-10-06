@@ -59,9 +59,14 @@ test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
   equalHashLength @hash, 1
 
-test "unset(key) unsets a key and its value from the hash, returning the existing key", ->
+test "set(key, value) fires an itemsWereAdded event", ->
+  @hash.on 'itemsWereAdded', spy = createSpy()
   @hash.set 'foo', 'bar'
-  equal typeof(@hash.unset('foo')), 'undefined'
+  deepEqual spy.lastCallArguments, ['foo']
+
+test "unset(key) unsets a key and its value from the hash, returning the existing value", ->
+  @hash.set 'foo', 'bar'
+  equal @hash.unset('foo'), 'bar'
   equal @hash.hasKey('foo'), false
 
 test "unset(key) doesn't touch any other keys", ->
@@ -80,6 +85,12 @@ test "unset(undefined) doesn't touch any other keys", ->
   @hash.set {}, 'bar'
   @hash.unset undefined
   equalHashLength @hash, 2
+
+test "unset(key) fires an itemsWereRemoved event", ->
+  @hash.set 'foo', 'bar'
+  @hash.on 'itemsWereRemoved', spy = createSpy()
+  @hash.unset 'foo'
+  deepEqual spy.lastCallArguments, ['foo']
 
 test "length is maintained over get, set, and unset", ->
   equalHashLength @hash, 0
@@ -237,6 +248,19 @@ test "keys containing dots (.) are treated as simple keys, not keypaths", ->
 
   @hash.unset(key)
   equal @hash.hasKey(key), false
+
+test "clear() removes all keys from the hash", ->
+  key1 = {}
+  key2 = {}
+  @hash.set key1, 1
+  @hash.set key2, 2
+  @hash.set 'foo', 'baz'
+  @hash.set 'bar', 'buzz'
+
+  @hash.on 'itemsWereRemoved', spy = createSpy()
+  @hash.clear()
+  equalHashLength @hash, 0
+  deepEqual spy.lastCallArguments.sort(), [key1, key2, 'foo', 'bar'].sort()
 
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}
