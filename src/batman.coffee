@@ -341,15 +341,17 @@ class Batman.Property
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
   
   changeEvent: ->
-    @changeEvent = -> event
     event = @event('change')
+    @changeEvent = -> event
+    event
   accessor: ->
-    @accessor = -> accessor
     keyAccessors = @base._batman?.get('keyAccessors')
     accessor = if keyAccessors && (val = keyAccessors.get(@key))
       val
     else
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
+    @accessor = -> accessor
+    accessor
   eachObserver: (iterator) ->
     key = @key
     @changeEvent().handlers.forEach(iterator)
@@ -389,8 +391,9 @@ class Batman.Property
       @fire(value, previousValue)
 
   sourceChangeHandler: ->
-    @sourceChangeHandler = -> handler
     handler = => @_handleSourceChange()
+    @sourceChangeHandler = -> handler
+    handler
   
   _handleSourceChange: ->
     if @isIsolated()
