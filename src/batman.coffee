@@ -1248,7 +1248,7 @@ class Batman.App extends Batman.Object
           success: (response) =>
             CoffeeScript.eval response
             @allow 'run'
-            @fire 'run' if @hasRun
+            @run() if @wantsToRun
       @
 
   @controller: (names...) ->
@@ -1277,6 +1277,13 @@ class Batman.App extends Batman.Object
       Batman.currentApp.stop()
 
     return false if @hasRun
+
+    if @isPrevented 'run'
+      @wantsToRun = true
+      return false
+    else
+      delete @wantsToRun
+
     Batman.currentApp = @
 
     if typeof @dispatcher is 'undefined'
