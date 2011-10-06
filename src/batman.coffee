@@ -319,13 +319,16 @@ Batman.EventEmitter =
       result = wrappedFunction.apply(this, arguments)
       @event('change').fire(this, this)
       result
-
-for k in ['prevent', 'allow', 'fire', 'isPrevented']
-  do (k) ->
-    Batman.EventEmitter[k] = (key, args...) ->
-      @event(key)[k](args...)
-      @
-
+  prevent: (key) ->
+    @event(key).prevent()
+    @
+  allow: (key) ->
+    @event(key).allow()
+    @
+  isPrevented: (key) ->
+    @event(key).isPrevented()
+  fire: (key, args...) ->
+    @event(key).fire(args...)
 
 class Batman.PropertyEvent extends Batman.Event
   eachHandler: (iterator) -> @base.eachObserver(iterator)
@@ -364,7 +367,7 @@ class Batman.Property
   hashKey: ->
     @hashKey = -> key
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
-  
+
   changeEvent: ->
     event = @event('change')
     @changeEvent = -> event
@@ -419,7 +422,7 @@ class Batman.Property
     handler = => @_handleSourceChange()
     @sourceChangeHandler = -> handler
     handler
-  
+
   _handleSourceChange: ->
     if @isIsolated()
       @_needsRefresh = yes
