@@ -272,11 +272,6 @@ class Batman.Event
       @_oneShotArgs = arguments
     @eachHandler (handler) -> handler.apply(context, args)
 
-
-class Batman.PropertyEvent extends Batman.Event
-  eachHandler: (iterator) -> @base.eachObserver(iterator)
-  handlerContext: -> @base.base
-
 Batman.EventEmitter =
   isEventEmitter: true
   event: (key) ->
@@ -305,6 +300,11 @@ for k in ['prevent', 'allow', 'fire', 'isPrevented']
     Batman.EventEmitter[k] = (key, args...) ->
       @event(key)[k](args...)
       @
+
+
+class Batman.PropertyEvent extends Batman.Event
+  eachHandler: (iterator) -> @base.eachObserver(iterator)
+  handlerContext: -> @base.base
 
 class Batman.Property
   $mixin @prototype, Batman.EventEmitter
@@ -340,6 +340,9 @@ class Batman.Property
     @hashKey = -> key
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
   
+  changeEvent: ->
+    @changeEvent = -> event
+    event = @event('change')
   accessor: ->
     @accessor = -> accessor
     keyAccessors = @base._batman?.get('keyAccessors')
@@ -349,7 +352,7 @@ class Batman.Property
       @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
   eachObserver: (iterator) ->
     key = @key
-    @event('change').handlers.forEach(iterator)
+    @changeEvent().handlers.forEach(iterator)
     if @base.isObservable
       @base._batman.ancestors (ancestor) ->
         if ancestor.isObservable
@@ -382,15 +385,20 @@ class Batman.Property
     @cached = no
     previousValue = @value
     value = @getValue()
-    unless value is previousValue or @isIsolated()
+    if value isnt previousValue and not @isIsolated()
       @fire(value, previousValue)
 
   sourceChangeHandler: ->
     @sourceChangeHandler = -> handler
     handler = => @_handleSourceChange()
-
-  _markNeedsRefresh: -> @_needsRefresh = true
-  _handleSourceChange: @::refresh
+  
+  _handleSourceChange: ->
+    if @isIsolated()
+      @_needsRefresh = yes
+    else if @changeEvent().handlers.isEmpty()
+      @cached = no
+    else
+      @refresh()
 
   valueFromAccessor: -> @accessor().get?.call(@base, @key)
 
@@ -405,28 +413,26 @@ class Batman.Property
 
   forget: (handler) ->
     if handler?
-      @event('change').removeHandler(handler)
+      @changeEvent().removeHandler(handler)
     else
-      @event('change').handlers.clear()
+      @changeEvent().handlers.clear()
   observeAndFire: (handler) ->
     @observe(handler)
     handler.call(@base, @value, @value)
   observe: (handler) ->
-    @event('change').addHandler(handler)
+    @changeEvent().addHandler(handler)
     @getValue()
     this
 
-  fire: -> @event('change').fire(arguments...)
+  fire: -> @changeEvent().fire(arguments...)
 
   isolate: ->
     if @_isolationCount is 0
       @_preIsolationValue = @getValue()
-      @_handleSourceChange = @_markNeedsRefresh
     @_isolationCount++
   expose: ->
     if @_isolationCount is 1
       @_isolationCount--
-      @_handleSourceChange = @refresh
       if @_needsRefresh
         @value = @_preIsolationValue
         @refresh()

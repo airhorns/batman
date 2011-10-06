@@ -94,12 +94,13 @@ test "refresh() should recursively refresh .value and set .sources to the proper
   fromFooAndQux.refresh()
   deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
 
-test "if the value of a property fires its 'change' event at some point after the property has refreshed its sources, then the property will refresh its .value and .sources", ->
+test "if the value of a property with observers fires its 'change' event at some point after the property has refreshed its sources, then the property will refresh its .value and .sources", ->
   foo = @baseWithNestedAccessors.property('foo')
   bar = @baseWithNestedAccessors.property('bar')
   baz = @baseWithNestedAccessors.property('baz')
   qux = @baseWithNestedAccessors.property('qux')
   fromFooAndQux = @baseWithNestedAccessors.property('fromFooAndQux')
+  fromFooAndQux.observe ->
 
   fromFooAndQux.refresh()
   deepEqual fromFooAndQux.sources.toArray(), [foo, @mutableSomething, qux]
@@ -119,6 +120,21 @@ test "if the value of a property fires its 'change' event at some point after th
   strictEqual baz.value, @mutableSomething
   strictEqual qux.value, 'quxVal'
   deepEqual fromFooAndQux.value, ['Wanda', 'quxVal']
+
+test "when a property has no observers and one of its sources changes, the property should merely invalidate its cache instead of refreshing", ->
+  base = @baseWithNestedAccessors
+  bar = base.property('bar')
+  baz = base.property('baz')
+  equal bar.getValue(), @mutableSomething
+  equal bar.value, @mutableSomething
+  equal bar.cached, yes
+  baz.setValue('newValue')
+  equal bar.value, @mutableSomething
+  equal bar.cached, no
+  equal bar.getValue(), 'newValue'
+  equal bar.value, 'newValue'
+  equal bar.cached, yes
+  
 
 ###
 # isolation
