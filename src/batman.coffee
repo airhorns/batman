@@ -1489,6 +1489,7 @@ class Batman.Dispatcher extends Batman.Object
       $redirect('/404')
 
     @app.set 'currentURL', url
+    @app.set 'currentRoute', route
 
 # History Manager
 # ---------------
