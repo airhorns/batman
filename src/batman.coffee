@@ -1021,8 +1021,42 @@ class Batman.SetObserver extends Batman.Object
     @_setObservers.forEach (key, observer) =>
       @base.event(key)[method](observer)
 
-class Batman.SetSort extends Batman.Object
+class Batman.SetProxy extends Batman.Object
+  constructor: () ->
+    super()
+    @length = 0
+
+  $extendsEnumerable(@::)
+
+  filter: (f) ->
+    r = new Batman.Set()
+    @reduce(((r, e) -> r.add(e) if f(e); r), r)
+
+  for k in ['add', 'remove', 'clear']
+    do (k) =>
+      @::[k] = ->
+        results = @base[k](arguments...)
+        @length = @set('length', @base.get 'length')
+        results
+
+  for k in ['has', 'merge', 'toArray', 'isEmpty']
+    do (k) =>
+      @::[k] = -> @base[k](arguments...)
+
+  for k in ['isEmpty', 'toArray']
+    do (k) =>
+      @accessor k, -> @base.get(k)
+
+  @accessor 'length'
+    get: ->
+      @registerAsMutableSource()
+      @length
+    set: (k, v) ->
+      @length = v
+
+class Batman.SetSort extends Batman.SetProxy
   constructor: (@base, @key, order="asc") ->
+    super()
     @descending = order.toLowerCase() is "desc"
     if @base.isObservable
       @_setObserver = new Batman.SetObserver(@base)
@@ -1065,6 +1099,7 @@ class Batman.SetSort extends Batman.Object
 
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
+    super()
     @_storage = new Batman.Hash
     if @base.isEventEmitter
       @_setObserver = new Batman.SetObserver(@base)
