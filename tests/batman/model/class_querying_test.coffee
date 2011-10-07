@@ -50,6 +50,29 @@ asyncTest "find on models will return the same instance if called twice", ->
         equal returnedFirstProduct, callbackFirstProduct, 'find returns the same product'
         equal returnedSecondProduct, callbackSecondProduct, 'find returns the same product'
 
+asyncTest "models will find instances even if the constructor is overridden", ->
+  class LiskovsEnemy extends Batman.Model
+    @encode 'name', 'cost'
+    constructor: (name, cost) ->
+      super()
+      @set 'name', name
+      @set 'cost', cost
+
+  @adapter = new TestStorageAdapter(LiskovsEnemy)
+  @adapter.storage =
+    'liskovs_enemies1': {name: "One", cost: 10, id:1}
+    'liskovs_enemies2': {name: "Two", cost: 5, id:2}
+
+  LiskovsEnemy.persist @adapter
+
+  LiskovsEnemy.find 1, (err, firstProduct) =>
+    throw err if err
+    LiskovsEnemy.find 1, (err, secondProduct) =>
+      throw err if err
+      equal firstProduct, secondProduct
+      equal LiskovsEnemy.get('loaded').length, 1
+      QUnit.start()
+
 QUnit.module "Batman.Model class findOrCreating"
   setup: ->
     class @Product extends Batman.Model

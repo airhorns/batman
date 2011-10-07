@@ -1750,7 +1750,8 @@ class Batman.Model extends Batman.Object
 
   @find: (id, callback) ->
     developer.assert callback, "Must call find with a callback!"
-    record = new @(id)
+    record = new @()
+    record.set 'id', id
     newRecord = @_mapIdentity(record)
     newRecord.load callback
     return newRecord
