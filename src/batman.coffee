@@ -2325,9 +2325,9 @@ class Batman.RestStorage extends Batman.StorageAdapter
 
   optionsForRecord: (record, idRequired, callback) ->
     if record.url
-      url = if typeof record.url is 'function' then record.url() else record.url
+      url = record.url?(record) || record.url
     else
-      url = "/#{@modelKey}"
+      url = @model.url?() || @model.url || "/#{@modelKey}"
       if idRequired || !record.isNew()
         id = record.get('id')
         if !id?
