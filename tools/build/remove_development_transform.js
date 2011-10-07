@@ -48,17 +48,16 @@
         return ['assign', _, removalWalker.walk(lvalue), removalWalker.walk(rvalue)];
       },
       "var": function(defs) {
-        var keepVar;
-        keepVar = function(_arg) {
+        defs = defs.filter(function(_arg) {
           var name, val, _ref;
           name = _arg[0], val = _arg[1];
           if (name === DEVELOPER_NAMESPACE || (val && val[0] === 'name' && val[1] === DEVELOPER_NAMESPACE) || (val && ((_ref = val[0]) === 'dot' || _ref === 'sub') && val[1].length && val[1][1] === DEVELOPER_NAMESPACE)) {
-            return MAP.skip;
+            return false;
           } else {
-            return arguments[0];
+            return true;
           }
-        };
-        return ["var", MAP(defs, keepVar)];
+        });
+        return ["var", defs];
       }
     }, function() {
       return removalWalker.walk(ast);

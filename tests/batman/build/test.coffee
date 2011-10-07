@@ -17,6 +17,10 @@ pro = require("uglify-js").uglify
 #orig_code = fs.readFileSync(path.resolve(__dirname, '../../../lib/batman.js')).toString()
 orig_code = fs.readFileSync(path.resolve(__dirname, './test_file.js')).toString()
 
+MAP = pro.MAP
+
+#console.warn MAP(['a', 'b', 'c'], (x) -> if x is 'a' then MAP.skip else x)
+
 ast = jsp.parse(orig_code)
 logAST ast
 ast = transform(ast)

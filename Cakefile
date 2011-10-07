@@ -44,7 +44,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       # Read the platform specific code
       platform = muffin.readFile "src/batman.#{platformName}.coffee", options
       standard = muffin.readFile 'src/batman.coffee', options
-      q.wait(platform, standard).then (platformSource, standardSource) ->
+      q.join platform, standard, (platformSource, standardSource) ->
         # Compile the joined coffeescript to JS
         js = muffin.compileString(standardSource + "\n" + platformSource, options)
         destination = "#{distDir}/batman#{if platformName is 'solo' then '' else '.' + platformName}.js"

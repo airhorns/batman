@@ -37,7 +37,7 @@ exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
 
     # Remove all var developer declarations, or assignments of developer to another variable.
     var: (defs) ->
-      keepVar = ([name, val]) ->
+      defs = defs.filter ([name, val]) ->
         # `var developer = ` style
         if name is DEVELOPER_NAMESPACE ||
         # `var x = developer;` style
@@ -45,12 +45,12 @@ exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
         # `var x = developer...` style
         (val && val[0] in ['dot', 'sub'] && val[1].length && val[1][1] is DEVELOPER_NAMESPACE)
           # Don't allow this statement
-          MAP.skip
+          false
         else
           # Otherwise just pass it through
-          arguments[0]
+          true
 
-      ["var", MAP(defs, keepVar)]
+      ["var", defs]
   , ->
     removalWalker.walk ast
 
