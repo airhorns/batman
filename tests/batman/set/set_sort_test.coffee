@@ -20,6 +20,13 @@ QUnit.module 'Batman.SetSort',
 test "new Batman.SetSort(set, key) constructs a sort on the set for that keypath", ->
   equal @authorNameSort.base, @base
   equal @authorNameSort.key, 'author.name'
+  equal @authorNameSort.descending, no
+
+test "new Batman.SetSort(set, key, 'desc') constructs a reversed sort", ->
+  reversedSort = new Batman.SetSort(@base, 'author.name', 'desc')
+  equal reversedSort.base, @base
+  equal reversedSort.key, 'author.name'
+  equal reversedSort.descending, yes
 
 test "items with null or undefined values for the sorted key come last and in that order. values of different types are grouped. NaN comes immediately after other numbers.", ->
   noName = Batman()
@@ -54,6 +61,43 @@ test "items with null or undefined values for the sorted key come last and in th
 
   expected = [falseName, trueName, numberedName, anotherNumberedName, naNName, @byFred, @byMary, @byZeke, nullName, noName, anotherNoName]
   deepEqual @authorNameSort.toArray(), expected
+
+test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
+  noName = Batman()
+  anotherNoName = Batman()
+  nullName = Batman
+    author: Batman
+      name: null
+  naNName = Batman
+    author: Batman
+      name: NaN
+  numberedName = Batman
+    author: Batman
+      name: 9
+  anotherNumberedName = Batman
+    author: Batman
+      name: 80
+  trueName = Batman
+    author: Batman
+      name: true
+  falseName = Batman
+    author: Batman
+      name: false
+  @base.add noName
+  @base.add nullName
+  @base.add anotherNoName
+  @base.add anotherNumberedName
+  @base.add naNName
+  @base.add numberedName
+  @base.add trueName
+  @base.add falseName
+  @base.remove @anotherByFred
+
+  descendingAuthorNameSort = new Batman.SetSort(@base, 'author.name', 'desc')
+  expected = [anotherNoName, noName, nullName, @byZeke, @byMary, @byFred, naNName, anotherNumberedName, numberedName, trueName, falseName]
+  deepEqual descendingAuthorNameSort.toArray(), expected
+  descendingAuthorNameSort.forEach (item, i) ->
+    ok item is expected[i]
 
 test "forEach(iterator) loops in the correct order", ->
   expect 4

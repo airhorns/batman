@@ -950,8 +950,10 @@ class Batman.SimpleSet
     merged
   indexedBy: (key) ->
     @_indexes.get(key) or @_indexes.set(key, new Batman.SetIndex(@, key))
-  sortedBy: (key) ->
-    @_sorts.get(key) or @_sorts.set(key, new Batman.SetSort(@, key))
+  sortedBy: (key, order="asc") ->
+    order = if order.toLowerCase() is "desc" then "desc" else "asc"
+    sortsForKey = @_sorts.get(key) or @_sorts.set(key, new Batman.Object)
+    sortsForKey.get(order) or sortsForKey.set(order, new Batman.SetSort(@, key, order))
 
 class Batman.Set extends Batman.Object
   constructor: ->
@@ -973,6 +975,7 @@ class Batman.Set extends Batman.Object
 
   @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
   @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
+  @accessor 'sortedByDescending', -> new Batman.Accessible (key) => @sortedBy(key, 'desc')
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'toArray', -> @toArray()
   @accessor 'length', ->
@@ -1019,7 +1022,8 @@ class Batman.SetObserver extends Batman.Object
       @base.event(key)[method](observer)
 
 class Batman.SetSort extends Batman.Object
-  constructor: (@base, @key) ->
+  constructor: (@base, @key, order="asc") ->
+    @descending = order.toLowerCase() is "desc"
     if @base.isObservable
       @_setObserver = new Batman.SetObserver(@base)
       @_setObserver.observedItemKeys = [@key]
@@ -1054,7 +1058,8 @@ class Batman.SetSort extends Batman.Object
       valueA = valueA.valueOf() if valueA?
       valueB = Batman.Observable.property.call(b, @key).getValue()
       valueB = valueB.valueOf() if valueB?
-      @compare.call(@, valueA, valueB)
+      multiple = if @descending then -1 else 1
+      @compare.call(@, valueA, valueB) * multiple
     @_setObserver?.startObservingItems(newOrder...)
     @set('_storage', newOrder)
 

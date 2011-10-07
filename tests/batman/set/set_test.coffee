@@ -170,3 +170,24 @@ test "using .toJSON() returns an array representation of the set", ->
   set.add new Batman.Object foo: 'bar'
   set.add new Batman.Object bar: 'baz'
   deepEqual set.toJSON(), set.toArray()
+
+test "sortedBy(property, order) returns a cached SetSort", ->
+  ascendingFoo = @set.sortedBy('foo')
+  strictEqual @set.sortedBy('foo'), ascendingFoo
+  descendingFoo = @set.sortedBy('foo', 'desc')
+  strictEqual @set.sortedBy('foo', 'desc'), descendingFoo
+  
+  notEqual ascendingFoo, descendingFoo
+  equal ascendingFoo.base, @set
+  equal ascendingFoo.key, 'foo'
+  equal ascendingFoo.descending, no
+  equal descendingFoo.base, @set
+  equal descendingFoo.key, 'foo'
+  equal descendingFoo.descending, yes
+
+test "get('sortedBy.name') returns .sortedBy('name')", ->
+  strictEqual @set.get('sortedBy.name'), @set.sortedBy('name')
+
+test "get('sortedByDescending.name') returns .sortedBy('name', 'desc')", ->
+  strictEqual @set.get('sortedByDescending.name'), @set.sortedBy('name', 'desc')
+  
