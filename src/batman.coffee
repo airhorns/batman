@@ -1288,6 +1288,9 @@ class Batman.App extends Batman.Object
           success: (response) =>
             CoffeeScript.eval response
             @allow 'run'
+            if not @isPrevented 'run'
+              @fire 'loaded'
+
             @run() if @wantsToRun
       @
 
