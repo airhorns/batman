@@ -2541,7 +2541,7 @@ class Batman.Renderer extends Batman.Object
   for k in ['parsed', 'rendered', 'stopped']
     @::event(k).oneShot = true
 
-  bindingRegexp = /data\-(.*)/
+  bindingRegexp = /^data\-(.*)/
   sortBindings = (a, b) ->
     if a[0] == 'foreach'
       -1
