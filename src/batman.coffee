@@ -758,6 +758,8 @@ Batman.Object = BatmanObject
 class Batman.Accessible extends Batman.Object
   constructor: -> @accessor.apply(@, arguments)
 
+class Batman.TerminalAccessible extends Batman.Accessible
+  propertyClass: Batman.Property
 
 # Collections
 
@@ -973,9 +975,9 @@ class Batman.Set extends Batman.Object
 
   toJSON: @::toArray
 
-  @accessor 'indexedBy', -> new Batman.Accessible (key) => @indexedBy(key)
-  @accessor 'sortedBy', -> new Batman.Accessible (key) => @sortedBy(key)
-  @accessor 'sortedByDescending', -> new Batman.Accessible (key) => @sortedBy(key, 'desc')
+  @accessor 'indexedBy', -> new Batman.TerminalAccessible (key) => @indexedBy(key)
+  @accessor 'sortedBy',  -> new Batman.TerminalAccessible (key) => @sortedBy(key)
+  @accessor 'sortedByDescending', -> new Batman.TerminalAccessible (key) => @sortedBy(key, 'desc')
   @accessor 'isEmpty', -> @isEmpty()
   @accessor 'toArray', -> @toArray()
   @accessor 'length', ->
@@ -1088,9 +1090,9 @@ class Batman.SetSort extends Batman.SetProxy
     return 0
   _reIndex: ->
     newOrder = @base.toArray().sort (a,b) =>
-      valueA = Batman.Observable.property.call(a, @key).getValue()
+      valueA = $get(a, @key)
       valueA = valueA.valueOf() if valueA?
-      valueB = Batman.Observable.property.call(b, @key).getValue()
+      valueB = $get(b, @key)
       valueB = valueB.valueOf() if valueB?
       multiple = if @descending then -1 else 1
       @compare.call(@, valueA, valueB) * multiple
