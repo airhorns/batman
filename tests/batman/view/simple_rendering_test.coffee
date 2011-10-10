@@ -39,6 +39,13 @@ asyncTest 'it should allow bindings to be defined later', 2, ->
     delay ->
       equals node.html(), "baz"
 
+asyncTest 'it should allow commenting of bindings', 1, ->
+  helpers.render '<div x-data-bind="foo"></div>',
+    foo: 'bar'
+  , (node) =>
+    equals node.html(), ""
+    QUnit.start()
+
 asyncTest 'bindings in lower down scopes should shadow higher ones', 3, ->
   context = Batman
     namespace: Batman
