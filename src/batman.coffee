@@ -487,18 +487,16 @@ class Batman.Keypath extends Batman.Property
       @segments = [key]
       @depth = 1
     super
-  slice: (begin, end=@depth) ->
-    base = @base
-    for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Property.forBaseAndKey(base, segment).getValue()
-    Batman.Property.forBaseAndKey base, @segments.slice(begin, end).join('.')
-  terminalProperty: -> @slice -1
+  next: () ->
+    nextValue = Batman.Property.forBaseAndKey(@base, @segments[0]).getValue()
+    if nextValue?
+      Batman.Property.forBaseAndKey(nextValue, @segments.slice(1).join('.'))
+    else
+      undefined
   valueFromAccessor: ->
-    if @depth is 1 then super else @terminalProperty()?.getValue()
-  setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
-  unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
-
-
+    if @depth is 1 then super else @next()?.getValue()
+  setValue: (val) -> if @depth is 1 then super else @next()?.setValue(val)
+  unsetValue: -> if @depth is 1 then super else @next()?.unsetValue()
 
 # Observable
 # ----------

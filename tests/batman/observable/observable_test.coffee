@@ -51,29 +51,29 @@ test "get(key) with a deep keypath uses the last property's accessor with the la
   equal @obj.get('foo.someProperty'), 'resolvedValue'
   deepEqual @fooPropertyAccessor.get.lastCallArguments, ['someProperty']
   ok @fooPropertyAccessor.get.lastCallContext is @obj.foo
- 
+
 test "get(key) is cached until one of its sources changes", ->
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 1
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 1
-   
+
   @obj.set('foo.someProperty', yes)
-   
+
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 2
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 2
- 
+
 test "get(key) works with cacheable properties with more than one level of accessor indirection", ->
   @obj.accessor 'indirectProperty', -> @get('foo.someProperty')
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 1
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 1
-   
+
   @obj.set('foo.someProperty', yes)
-   
+
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 2
   @obj.get('indirectProperty')
@@ -366,7 +366,7 @@ test "forget(key) for a deep keypath does not remove any sources when there are 
   equal @obj.foo.property('bar').event('change').handlers.length, 1
   equal @obj.foo.bar.property('baz').event('change').handlers.length, 1
 
-  equal @obj.property('foo.bar.baz').sources.length, 3
+  equal @obj.property('foo.bar.baz').sources.length, 2, "has sources 'foo' and 'bar.baz'"
 
   @obj.foo.bar.set 'baz', 'newBaz'
   equal callback1.callCount, 1
