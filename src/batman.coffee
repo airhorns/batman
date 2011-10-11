@@ -1325,7 +1325,7 @@ class Batman.Request extends Batman.Object
   # your request after a short period. If this behavior is
   # not desired, use @cancel() after setting the URL.
   @observeAll 'url', ->
-    @_autosendTimeout = setTimeout (=> @send()), 0
+    @_autosendTimeout = $setImmediate => @send()
 
   # `send` is implmented in the platform layer files. One of those must be required for
   # `Batman.Request` to be useful.
@@ -1587,7 +1587,7 @@ class Batman.HashHistory extends Batman.HistoryManager
 
     @first = true
     Batman.currentApp.prevent 'ready'
-    setTimeout @parseHash, 0
+    $setImmediate @parseHash
 
   stop: =>
     if @interval
@@ -2528,7 +2528,7 @@ class Batman.View extends Batman.Object
 
   # Whenever the source changes we load it up asynchronously
   @observeAll 'source', ->
-    setTimeout (=> @reloadSource()), 0
+    $setImmediate => @reloadSource()
 
   reloadSource: ->
     source = @get 'source'
@@ -2591,7 +2591,7 @@ class Batman.Renderer extends Batman.Object
     super()
     @on('parsed', callback) if callback?
     @context = if contexts instanceof Batman.RenderContext then contexts else Batman.RenderContext.start(contexts...)
-    @timeout = setTimeout @start, 0
+    @timeout = $setImmediate @start
 
   start: =>
     @startTime = new Date
@@ -2635,7 +2635,7 @@ class Batman.Renderer extends Batman.Object
   parseNode: (node) ->
     if new Date - @startTime > 50
       @resumeNode = node
-      @timeout = setTimeout @resume, 0
+      @timeout = $setImmediate @resume
       return
 
     if node.getAttribute and node.attributes
@@ -3052,13 +3052,13 @@ Batman.DOM = {
       true
 
     yield: (node, key) ->
-      setTimeout (-> Batman.DOM.yield key, node), 0
+      $setImmediate -> Batman.DOM.yield key, node
       true
     contentfor: (node, key) ->
-      setTimeout (-> Batman.DOM.contentFor key, node), 0
+      $setImmediate -> Batman.DOM.contentFor key, node
       true
     replace: (node, key) ->
-      setTimeout (-> Batman.DOM.replace key, node), 0
+      $setImmediate -> Batman.DOM.replace key, node
       true
   }
   _yieldContents: {}  # name/content pairs of content to be yielded
