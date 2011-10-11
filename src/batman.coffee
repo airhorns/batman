@@ -133,6 +133,72 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
     node = node.parentNode
   false
 
+
+_implementImmediates = ->
+  canUsePostMessage = ->
+    return false unless container.postMessage
+    async = true
+    oldMessage = container.onmessage
+    container.onmessage = -> async = false
+    container.postMessage("","*")
+    container.onmessage = oldMessage
+    async
+
+  tasks = new Batman.SimpleHash
+  count = 0
+  getHandle = -> "go#{count++}"
+
+  if container.setImmediate
+    $setImmediate = container.setImmediate
+    $clearImmediate = container.clearImmediate
+  else if container.msSetImmediate
+    $setImmediate = msSetImmediate
+    $clearImmediate = msClearImmediate
+  else if canUsePostMessage()
+    prefix = 'com.batman.'
+    functions = new Batman.SimpleHash
+    handler = (e) ->
+      return unless ~e.data.search(prefix)
+      handle = e.data.substring(prefix.length)
+      tasks.unset(handle)?()
+
+    if container.addEventListener
+      container.addEventListener('message', handler, false)
+    else
+      container.attachEvent('onmessage', handler)
+
+    $setImmediate = (f) ->
+      tasks.set(handle = getHandle(), f)
+      container.postMessage(prefix+handle, "*")
+      handle
+    $clearImmediate = (handle) -> tasks.unset(handle)
+  else if typeof document isnt 'undefined' && "onreadystatechange" in document.createElement("script")
+    $setImmediate = (f) ->
+      handle = getHandle()
+      script = document.createElement("script")
+      script.onreadystatechange = ->
+        tasks.get(handle)?()
+        script.onreadystatechange = null
+        script.parentNode.removeChild(script)
+        script = null
+      document.documentElement.appendChild(script)
+      handle
+    $clearImmediate = (handle) -> tasks.unset(handle)
+  else
+    $setImmediate = (f) -> setTimeout(f, 0)
+    $clearImmediate = (handle) -> clearTimeout(handle)
+
+  Batman.setImmediate = $setImmediate
+  Batman.clearImmediate = $clearImmediate
+
+Batman.setImmediate = $setImmediate = ->
+  _implementImmediates()
+  Batman.setImmediate.apply(@, arguments)
+
+Batman.clearImmediate = $clearImmediate = ->
+  _implementImmediates()
+  Batman.clearImmediate.apply(@, arguments)
+
 # `translate` is hook for the i18n extra to override and implemnent. All strings which might
 # be shown to the user pass through this method. `translate` is aliased to `t` internally.
 Batman.translate = (x, values = {}) -> helpers.interpolate($get(Batman.translate.messages, x), values)
@@ -3788,7 +3854,7 @@ $mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
-  for k in ['mixin', 'unmixin', 'route', 'redirect', 'typeOf', 'redirect']
+  for k in ['mixin', 'unmixin', 'route', 'redirect', 'typeOf', 'redirect', 'setImmediate']
     onto["$#{k}"] = Batman[k]
   onto
 
