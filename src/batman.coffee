@@ -2302,6 +2302,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
 
   recordJsonNamespace: false
   collectionJsonNamespace: false
+  serializeAsForm: true
 
   constructor: ->
     super
@@ -2316,6 +2317,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
       x
     else
       json
+    record = JSON.stringify(record) unless @serializeAsForm
     [record, options]
 
   @::after 'create', 'read', 'update', $passError ([record, data, options]) ->

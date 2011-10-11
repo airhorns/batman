@@ -8,6 +8,54 @@ productJSON =
     name: 'test'
     id: 10
 
+class MockRequest extends MockClass
+  @expects = {}
+  @reset: ->
+    MockClass.reset.call(@)
+    @expects = {}
+
+  @expect: (request, response) ->
+    responses = @expects[request.url] ||= []
+    responses.push {request, response}
+
+  @chainedCallback 'success'
+  @chainedCallback 'error'
+
+  @getExpectedForUrl: (url) ->
+    @expects[url] || []
+
+  constructor: (requestOptions) ->
+    super()
+    @success(requestOptions.success) if requestOptions.success?
+    @error(requestOptions.error) if requestOptions.error?
+    allExpected = @constructor.getExpectedForUrl(requestOptions.url)
+    expected = allExpected.shift()
+    if ! expected?
+      @fireError {message: "Unrecognized mocked request!", request: @}
+    else
+      setTimeout =>
+        {request, response} = expected
+        if request.method != requestOptions.method
+          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
+        if request.data
+          throw "Wrong request data" unless requestOptions.data == request.data
+        if response.error
+          if typeof response.error is 'string'
+            @fireError {message: response.error, request: @}
+          else
+            response.error.request = @
+            @status = response.error.status
+            @response = response.error.response
+            @fireError response.error
+        else
+          @response = response
+          @fireSuccess response
+      , 1
+
+  get: (k) ->
+    throw "Can't get anything other than 'response' and 'status' on the Requests" unless k in ['response', 'status']
+    @[k]
+
 restStorageTestSuite = ->
   asyncTest 'response metadata should be available in the after read callbacks', 3, ->
     MockRequest.expect
@@ -30,6 +78,21 @@ restStorageTestSuite = ->
     @adapter.readAll undefined, {}, (err, readProducts) ->
       ok !err
       ok readProducts
+      QUnit.start()
+
+  asyncTest 'it should POST JSON instead of serialized parameters when configured to do so', ->
+    @adapter.serializeAsForm = false
+
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+      data: '{"product":{"name":"test"}}'
+    , productJSON
+
+    product = new @Product(name: "test")
+    @adapter.create product, {}, (err, record) =>
+      throw err if err
+      ok record
       QUnit.start()
 
   sharedStorageTestSuite(restStorageTestSuite.sharedSuiteHooks)
@@ -194,52 +257,6 @@ restStorageTestSuite.sharedSuiteHooks =
     , error: 'specified product couldn\'t be found!'
 
   'destroying in storage: should callback with an error if the record hasn\'t been created': ->
-
-class MockRequest extends MockClass
-  @expects = {}
-  @reset: ->
-    MockClass.reset.call(@)
-    @expects = {}
-
-  @expect: (request, response) ->
-    responses = @expects[request.url] ||= []
-    responses.push {request, response}
-
-  @chainedCallback 'success'
-  @chainedCallback 'error'
-
-  @getExpectedForUrl: (url) ->
-    @expects[url] || []
-
-  constructor: (requestOptions) ->
-    super()
-    @success(requestOptions.success) if requestOptions.success?
-    @error(requestOptions.error) if requestOptions.error?
-    allExpected = @constructor.getExpectedForUrl(requestOptions.url)
-    expected = allExpected.shift()
-    if ! expected?
-      @fireError {message: "Unrecognized mocked request!", request: @}
-    else
-      setTimeout =>
-        {request, response} = expected
-        if request.method != requestOptions.method
-          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
-        if response.error
-          if typeof response.error is 'string'
-            @fireError {message: response.error, request: @}
-          else
-            response.error.request = @
-            @status = response.error.status
-            @response = response.error.response
-            @fireError response.error
-        else
-          @response = response
-          @fireSuccess response
-      , 1
-
-  get: (k) ->
-    throw "Can't get anything other than 'response' and 'status' on the Requests" unless k in ['response', 'status']
-    @[k]
 
 restStorageTestSuite.MockRequest = MockRequest
 
