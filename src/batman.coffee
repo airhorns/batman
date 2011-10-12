@@ -2945,13 +2945,16 @@ Batman.DOM = {
       if key.substr(0, 1) is '/'
         url = key
       else
-        [key, action] = key.split '/'
+        isHash = key.indexOf('#') > 1
+        [key, action] = if isHash then key.split('#') else key.split('/')
         [dispatcher, app] = context.findKey 'dispatcher'
-        [model, container] = context.findKey key
+        [model, container] = context.findKey key if not isHash
 
         dispatcher ||= Batman.currentApp.dispatcher
 
-        if dispatcher and model instanceof Batman.Model
+        if isHash
+          url = dispatcher.findUrl controller: key, action: action
+        else if model instanceof Batman.Model
           action ||= 'show'
           name = helpers.underscore(helpers.pluralize($functionName(model.constructor)))
           url = dispatcher.findUrl({resource: name, id: model.get('id'), action: action})
