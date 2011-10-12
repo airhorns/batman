@@ -30,8 +30,8 @@ class Shopify.ProductsController extends Batman.Controller
     @redirect action: 'show', id: 1
 
   show: (params) ->
-    Shopify.Product.find params.id, (err, product) =>
-      @product = product
+    Shopify.Product.find parseInt(params.id), (err, product) =>
+      @set('product', product)
 ```
 
 #### views/products/index.html
@@ -42,7 +42,7 @@ class Shopify.ProductsController extends Batman.Controller
     <a data-route="product" data-bind="product.name">name will go here</a>
   </li>
 
-  <li><span data-bind="products.length"></span> <span data-bind="'products' | pluralize products.length"></span></li>
+  <li><span data-bind="products.length"></span> <span data-bind="'product' | pluralize products.length"></span></li>
 </ul>
 ```
 
@@ -76,30 +76,29 @@ Most of the classes you work with in your app code will descend from `Batman.Obj
 
 ### Events
 
-If you want to define observable events on your objects, just wrap a function with the `@event` macro in a class definition:
+Events in batman.js are pretty simple. Handling an event is like subscribing to a named channel on a particular object, and firing an event is like publishing an argument list (which might be empty) to all subscribers of that channel.
 
 ```coffeescript
 class BatBelt.Gadget extends Batman.Object
-  constructor: -> @usesLeft = 5
-  use: @event (times) ->
-    return false unless (@usesLeft - times) >= 0
-    @usesLeft -= times
+  constructor: -> @usesRemaining = 5
+  use: (howManyTimes) ->
+    if howManyTimes <= @usesRemaining
+      @usesRemaining -= howManyTimes
+      @fire('use', howManyTimes)
 ```
 
-You can observe the event with some callback, and fire it by just calling the event function directly. The observer callback gets whichever arguments were passed into the event function. But if the event function returns `false`, then the observers won't fire:
+You can use the `on` method to register handler functions which then get called whenever `fire` is called for the specified event name. The handlers get whichever extra arguments were passed to `fire` after the event name itself:
 
 ```coffeescript
-gadget.observe 'use', (times) ->
-  console.log "gadget was used #{times} times!"
+gadget.on 'use', (howManyTimes) ->
+  console.log "gadget was used #{howManyTimes} times!"
 gadget.use(2)
 # console output: "gadget was used 2 times!"
-gadget.use(6)
-# nothing happened!
 ```
 
-### Observable Properties
+### Properties
 
-The `observe` function is also used to observe changes to properties. This forms the basis of the binding system. Here's a simple example:
+The `observe` function is used to observe changes to properties. This forms the basis of the binding system. Here's a simple example:
 
 ```coffeescript
 gadget.observe 'name', (newVal, oldVal) ->
@@ -108,7 +107,9 @@ gadget.set 'name', 'Batarang'
 # console output: "name changed from undefined to Batarang!"
 ```
 
-You can also `get` properties to return their values, and if you want to remove them completely then you can `unset` them:
+When you `observe` a property, you are really just handling its "change" event, which happens to get fired with the new and old values.
+
+Of course you can also `get` properties to return their values, and if you want to remove them completely then you can `unset` them:
 
 ```coffeescript
 gadget.get 'name'
@@ -117,14 +118,12 @@ gadget.unset 'name'
 # console output: "name changed from Batarang to undefined!"
 ```
 
-By default, these properties are stored like plain old JavaScript properties: that is, `gadget.name` would return "Batarang" just like you'd expect. But if you set the gadget's name with `gadget.name = 'Shark Spray'`, then the observer function you set on `gadget` will not fire. So when you're working with batman.js properties, use `get`/`set`/`unset` to read/write/delete properties.
-
-Note: the `property` property is used internally and is therefore reserved.
+By default, these properties are stored like plain old JavaScript properties: that is, `gadget.name` would return "Batarang" just like you'd expect. But if you set the gadget's name with `gadget.name = 'Shark Spray'`, then the observer function you set on `gadget` will not fire. So when you're working with batman.js properties, use `get`/`set`/`unset` to read/write/delete them.
 
 
 ### Custom Accessors
 
-What's the point of using `gadget.get 'name'` instead of just `gadget.name`? Well, a Batman properties doesn't need to correspond with a vanilla JS property. Let's write a `Box` class with a custom getter for its volume:
+What's the point of using `gadget.get 'name'` instead of just `gadget.name`? Well, batman.js properties don't always correspond with vanilla JS properties. Let's write a `Box` class with a custom getter for its volume:
 
 ```coffeescript
 class Box extends Batman.Object
@@ -199,7 +198,7 @@ The MVC architecture of batman.js fits together like this:
 
 * Controllers are persistent objects which render the views and give them mediated access to the model layer.
 * Views are written in pure HTML, and use `data-*` attributes to create bindings with model data and event handlers exposed by the controllers.
-* Models have validations, lifecycle events, a built-in identity map, and can use arbitrary storage backends (`Batman.LocalStorage` and `Batman.RestStorage` are included).
+* Models have validations, lifecycle events, a built-in identity map, and can use arbitrary storage backends (`Batman.LocalStorage`, `Batman.RestStorage`, and `Batman.RailsStorage` are included).
 
 A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app is handled via [hash-bang fragment identifers](http://www.w3.org/QA/2011/05/hash_uris.html), with [pushState](https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries) support forthcoming.
 
@@ -212,8 +211,6 @@ Here's a simple app class:
 
 ```coffeescript
 class BatBelt extends Batman.App
-  @global yes
-
   @controller 'app', 'gadgets'
   @model 'gadget'
 
@@ -221,8 +218,6 @@ class BatBelt extends Batman.App
   @route 'faq/:questionID', 'app#faq'
   @resources 'gadgets'
 ```
-
-The `@global yes` declaration just makes the class global on the browser's `window` object.
 
 The calls to `@controller` and `@model` load external app classes with XHRs. For the controllers, this ends up fetching `/controllers/app_controller.coffee` and `/controllers/gadgets_controller.coffee`. The gadget model gets loaded from `/models/gadget.coffee`.
 
@@ -240,6 +235,7 @@ The `@resources` macro takes a resource name which should ideally be the undersc
 
 ```coffeescript
 @route 'gadgets', 'gadgets#index'
+@route 'gadgets/new', 'gadgets#new'
 @route 'gadgets/:id', 'gadgets#show'
 @route 'gadgets/:id/edit', 'gadgets#edit'
 ```
@@ -262,7 +258,7 @@ batman.js controllers are singleton classes with one or more instance methods th
 class BatBelt.AppController extends Batman.Controller
   index: ->
   faq: (params) ->
-    @question = @questions.get(params.questionID)
+    @set('question', @get('questions').get(params.questionID)
 ```
 
 Now when you navigate to `/#!/faq/what-is-art`, the dispatcher runs this `faq` action with `{questionID: "what-is-art"}`. It also makes an implicit call to `@render`, which by default will look for a view at `/views/app/faq.html`. The view is rendered within the main content container of the page, which is designated by setting `data-yield="main"` on some tag in the layout's HTML. You can prevent this implicit rendering by calling `@render false` in your action.
@@ -306,7 +302,7 @@ batman.js uses a bunch of these data attributes for different things:
 
 * `data-bind-foo="bar.baz"`: defines a one-way binding from the given property `bar.baz` to any attribute `foo` on the node.
 
-* `data-foreach-bar="foo.bars"`: used to render a collection of zero or more items. If the collection descends from `Batman.Set`, then the DOM will be updated when items are added, removed. If it's a descendent of `Batman.SortableSet`, then its current sort.
+* `data-foreach-bar="foo.bars"`: used to render a collection of zero or more items. If the collection descends from `Batman.Set`, then the DOM will be updated when items are added or removed.
 
 #### Handling DOM events
 
@@ -324,7 +320,7 @@ batman.js uses a bunch of these data attributes for different things:
 
 * `data-yield="identifier"`: used in your layout to specify the locations that other views get rendered into when they are rendered. By default, a controller action renders each whole view into whichever node is set up to yield `"main"`. If you want some content in a view to be rendered into a different `data-yield` node, you can use `data-contentfor`.
 
-* `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area.
+* `data-contentfor="identifier"`: when the view is rendered into your layout, the contents of this node will be rendered into whichever node has `data-yield="identifier"`. For example, if your layout has `"main"` and `"sidebar"` yields, then you may put a `data-contentfor="sidebar"` node in a view and it will be rendered in the sidebar instead of the main content area. If multiple `data-contentfor` nodes with the same identifier are present in a view, their contents will be concatenated in the corresponding `data-yield` node.
 
 * `data-partial="shared/sidebar"`: renders the view at the path `/views/shared/sidebar.html` within this node. Note that `/views/` is prepended.
 
@@ -347,9 +343,7 @@ A model object may have arbitrary properties set on it, just like any JS object.
 ```coffeescript
   class Article extends Batman.Model
     @encode 'body_html', 'title', 'author', 'summary_html', 'blog_id', 'id', 'user_id'
-    @encode 'created_at', 'updated_at', 'published_at',
-      encode: (time) -> time.toISOString()
-      decode: (timeString) -> Date.parse(timeString)
+    @encode 'created_at', 'updated_at', 'published_at', Batman.Encoders.railsDate
     @encode 'tags',
       encode: (tagSet) -> tagSet.toArray().join(', ')
       decode: (tagString) -> new Batman.Set(tagString.split(', ')...)
@@ -357,12 +351,12 @@ A model object may have arbitrary properties set on it, just like any JS object.
 
 Given one or more strings as arguments, `@encode` will register these properties as persisted attributes of the model, to be serialized in the model's `toJSON()` output and extracted in its `fromJSON()`. Properties that aren't specified with `@encode` will be ignored for both serialization and deserialization. If an optional coder object is provided as the last argument, its `encode` and `decode` functions will be used by the model for serialization and deserialization, respectively.
 
-By default, a model's primary key (the unchanging property which uniquely indexes its instances) is its `id` property. If you want your model to have a different primary key, specify it with the `@id` macro:
+By default, a model's primary key (the unchanging property which uniquely indexes its instances) is its `id` property. If you want your model to have a different primary key, specify the name of the key on the `primaryKey` class property:
 
 ```coffeescript
 class User extends Batman.Model
+  @primaryKey: 'handle'
   @encode 'handle', 'email'
-  @id 'handle'
 ```
 
 #### States
