@@ -499,6 +499,21 @@ asyncTest 'data-bind-style should bind to a string', 4, ->
       equal node[0].style['background-color'], 'green'
       equal node[0].style['color'], ''
 
+asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
+  source = '<div data-bind-style="object"></div>'
+  context = Batman
+    object: 
+      'background-color': 'blue'
+      color: 'green'
+
+  helpers.render source, context, (node) ->
+    equal node[0].style['background-color'], 'blue'
+    equal node[0].style['color'], 'green'
+    context.set 'object', {color: 'red'}
+    delay =>
+      equal node[0].style['background-color'], 'blue'
+      equal node[0].style['color'], 'red'
+
 asyncTest 'data-bind-style should bind to a Batman object', 8, ->
   source = '<div data-bind-style="object"></div>'
   context = Batman

@@ -3364,6 +3364,9 @@ class Batman.DOM.StyleHandler
 
       # set styles
       value.keys().forEach (key) => @onItemsAdded(key)
+    else if value instanceof Object
+      for own cssKey, cssValue of value
+        @node.style[cssKey] = cssValue
 
   nodeChange: (@node, subContext) =>
     subContext.set @key, @node.style.cssText
