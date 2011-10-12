@@ -486,6 +486,42 @@ asyncTest 'should bind to the value of radio buttons', ->
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
 
+asyncTest 'data-bind-style should bind to a string', 4, ->
+  source = '<div data-bind-style="string"></div>'
+  context = Batman
+    string: 'background-color:blue; color:green;'
+
+  helpers.render source, context, (node) ->
+    equal node[0].style['background-color'], 'blue'
+    equal node[0].style['color'], 'green'
+    context.set 'string', 'background-color:green'
+    delay =>
+      equal node[0].style['background-color'], 'green'
+      equal node[0].style['color'], ''
+
+asyncTest 'data-bind-style should bind to a Batman object', 8, ->
+  source = '<div data-bind-style="object"></div>'
+  context = Batman
+    object: new Batman.Hash
+      'background-color': 'blue'
+      color: 'green'
+
+  helpers.render source, context, (node) ->
+    equal node[0].style['background-color'], 'blue'
+    equal node[0].style['color'], 'green'
+    context.set 'object.color', 'blue'
+    delay =>
+      equal node[0].style['color'], 'blue'
+      equal node[0].style['background-color'], 'blue'
+      context.unset 'object.color'
+      delay =>
+        equal node[0].style['color'], ''
+        equal node[0].style['background-color'], 'blue'
+        context.set 'object', new Batman.Hash color: 'yellow'
+        delay =>
+          equal node[0].style['color'], 'yellow'
+          equal node[0].style['background-color'], 'blue'
+
 QUnit.module "Memory safety"
 
 test "addEventListener and removeEventListener store and remove callbacks using Batman.data", ->

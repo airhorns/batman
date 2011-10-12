@@ -434,6 +434,7 @@ class Batman.Property
   valueFromAccessor: -> @accessor().get?.call(@base, @key)
 
   setValue: (val) ->
+    @cached = no
     result = @accessor().set?.call(@base, @key, val)
     @refresh()
     result
@@ -867,7 +868,6 @@ class Batman.Hash extends Batman.Object
   @accessor
     get: Batman.SimpleHash::get
     set: @mutation (key, value) ->
-      old = @get(key)
       result = Batman.SimpleHash::set.call(@, key, value)
       @fire 'itemsWereAdded', key
       result
@@ -3023,12 +3023,14 @@ Batman.DOM = {
             context: context
             key: key
 
-        when 'value', 'style', 'href', 'src', 'size'
+        when 'value', 'href', 'src', 'size'
           dataChange = (value) -> node[attr] = value
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
         when 'class'
           dataChange = (value) -> node.className = value
           nodeChange = (node, subContext) -> subContext.set key, node.className
+        when 'style'
+          return Batman.DOM.binders.style node, attr, key, context, renderer, only
         else
           dataChange = (value) -> node.setAttribute(attr, value)
           nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
@@ -3144,6 +3146,35 @@ Batman.DOM = {
 
         # Create the binding
         context.bind node, key, dataChange, nodeChange, only
+      true
+
+    style: (node, attr, key, context, renderer, only) ->
+      dataChange = (value) ->
+        return node.setAttribute('style', '') unless value
+        return node.setAttribute('style', value) if typeof value is 'string'
+
+        if value instanceof Batman.Hash
+          onItemsAdded = (newKey) ->
+            node.style[newKey] = value.get(newKey)
+          onItemsRemoved = (oldKey) ->
+            node.style[oldKey] = ''
+
+          # remove listeners from a previously bound hash
+          if oldHash
+            oldHash.forget 'itemsWereAdded', onItemsAdded
+            oldHash.forget 'itemsWereRemoved', onItemsRemoved
+          oldHash = value
+
+          # attach listeners
+          value.on 'itemsWereAdded', onItemsAdded
+          value.on 'itemsWereRemoved', onItemsRemoved
+
+          # initialize styles
+          value.keys().forEach onItemsAdded
+
+      nodeChange = (node, subContext) -> subContext.set(key, node.style.cssText)
+
+      context.bind(node, key, dataChange, nodeChange, only)
       true
 
     radio: (node, key, context, renderer, only) ->
