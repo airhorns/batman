@@ -56,6 +56,7 @@ asyncTest 'should allow you to use controller#action routes, if they are defined
     node: node
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
+    urls[i] = url || '' for url, i in urls
     deepEqual urls, ['#!/foo/bar', '']
     QUnit.start()
   view.get 'node'
