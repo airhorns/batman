@@ -522,6 +522,26 @@ asyncTest 'data-bind-style should bind to a Batman object', 8, ->
           equal node[0].style['color'], 'yellow'
           equal node[0].style['background-color'], 'blue'
 
+asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
+  source = '<div data-bind-style="hash"></div>'
+  hash = new Batman.Hash
+    'background-color': 'blue'
+    color: 'green'
+  context = Batman hash: hash
+  helpers.render source, context, (node) ->
+    equal node[0].style['background-color'], 'blue'
+    equal node[0].style['color'], 'green'
+
+    context.set 'hash', new Batman.Hash color: 'red'
+    delay =>
+      equal node[0].style['background-color'], 'blue'
+      equal node[0].style['color'], 'red'
+
+      hash.set 'color', 'green'
+      delay =>
+        equal node[0].style['background-color'], 'blue'
+        equal node[0].style['color'], 'red'
+
 QUnit.module "Memory safety"
 
 test "addEventListener and removeEventListener store and remove callbacks using Batman.data", ->

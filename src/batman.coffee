@@ -3149,32 +3149,7 @@ Batman.DOM = {
       true
 
     style: (node, attr, key, context, renderer, only) ->
-      dataChange = (value) ->
-        return node.setAttribute('style', '') unless value
-        return node.setAttribute('style', value) if typeof value is 'string'
-
-        if value instanceof Batman.Hash
-          onItemsAdded = (newKey) ->
-            node.style[newKey] = value.get(newKey)
-          onItemsRemoved = (oldKey) ->
-            node.style[oldKey] = ''
-
-          # remove listeners from a previously bound hash
-          if oldHash
-            oldHash.forget 'itemsWereAdded', onItemsAdded
-            oldHash.forget 'itemsWereRemoved', onItemsRemoved
-          oldHash = value
-
-          # attach listeners
-          value.on 'itemsWereAdded', onItemsAdded
-          value.on 'itemsWereRemoved', onItemsRemoved
-
-          # initialize styles
-          value.keys().forEach onItemsAdded
-
-      nodeChange = (node, subContext) -> subContext.set(key, node.style.cssText)
-
-      context.bind(node, key, dataChange, nodeChange, only)
+      new Batman.DOM.StyleHandler node, key, context, only
       true
 
     radio: (node, key, context, renderer, only) ->
@@ -3367,6 +3342,37 @@ Batman.DOM = {
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
 
 }
+
+class Batman.DOM.StyleHandler
+  constructor: (@node, @key, context, only) ->
+    context.bind @node, @key, @dataChange, @nodeChange, only
+
+  dataChange: (value) =>
+    return @node.setAttribute('style', '') unless value
+    return @node.setAttribute('style', value) if typeof value is 'string'
+
+    if value instanceof Batman.Hash
+      # remove listeners from a previously bound hash
+      if @styleHash
+        @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
+        @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
+      @styleHash = value
+
+      # attach listeners to the the new hash
+      value.on 'itemsWereAdded', @onItemsAdded
+      value.on 'itemsWereRemoved', @onItemsRemoved
+
+      # set styles
+      value.keys().forEach (key) => @onItemsAdded(key)
+
+  nodeChange: (@node, subContext) =>
+    subContext.set @key, @node.style.cssText
+
+  onItemsAdded: (newKey) =>
+    @node.style[newKey] = @styleHash.get(newKey)
+
+  onItemsRemoved: (oldKey) =>
+    @node.style[oldKey] = ''
 
 class Batman.DOM.Iterator
     currentAddNumber: 0
