@@ -27,7 +27,6 @@ class Shopify.Product extends Batman.Model
 
 class Shopify.ProductsController extends Batman.Controller
   index: ->
-    @redirect action: 'show', id: 1
 
   show: (params) ->
     Shopify.Product.find params.id, (err, product) =>
