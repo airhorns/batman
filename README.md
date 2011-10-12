@@ -48,7 +48,7 @@ class Shopify.ProductsController extends Batman.Controller
 
 ## Installation
 
-If you haven't already, you'll need to install [node.js](http://nodejs.org) and [npm](http://npmjs.org/). Then:
+If you haven't already, you'll need to install [node.js](http://nodejs.org) (0.4.x for now, 0.5.x support forthcoming) and [npm](http://npmjs.org/). Then:
 
 ```bash
 npm install -g batman
