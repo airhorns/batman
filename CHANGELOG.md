@@ -1,3 +1,29 @@
+## 0.7.0 (October 12, 2011)
+
+Major Maintenance Release
+
+  - added extras folder
+  - start of i18n features
+  - overhauled event system, which properties are now clients of (requires code changes)
+  - `Property::isolate` and `Property::expose` will prevent a property from firing dependent observers
+  - `data-contentFor` will now append its content to its `data-yield`
+  - `data-replace` will replace the content of its `data-yield`
+  - descending SetSorts
+  - `Batman.App` fires a `loaded` event when all dependencies are loaded
+  - `Batman.App.currentRoute` property for observing
+  - allow `controller#action` syntax in `data-route`
+
+Bugfixes:
+
+  - use persistent tree structure for RenderContext
+  - keep track of bindings and listeners with Batman.data
+  - correctly free bindings and listeners
+  - coerce string IDs into integers when possible in models
+  - accessors are memoized
+  - suppress developer warnings in tests
+  - don't match non `data-*` attributes
+  - fix `data-bind-style`
+
 ## 0.6.1 (September 27, 2011)
 
 Maintenance Release
