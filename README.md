@@ -30,7 +30,7 @@ class Shopify.ProductsController extends Batman.Controller
     @redirect action: 'show', id: 1
 
   show: (params) ->
-    Shopify.Product.find parseInt(params.id), (err, product) =>
+    Shopify.Product.find params.id, (err, product) =>
       @set('product', product)
 ```
 
