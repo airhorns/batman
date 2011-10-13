@@ -1,4 +1,11 @@
-# batman.js
+---
+key: documentation
+layout: default
+---
+
+{% capture documentation %}
+
+## Introduction
 
 [batman.js](http://batmanjs.org/) is a framework for building rich single-page browser applications. It is written in [CoffeeScript](http://jashkenas.github.com/coffee-script/) and its API is developed with CoffeeScript in mind, but of course you can use plain old JavaScript too.
 
@@ -449,3 +456,7 @@ If it's good code that fits with the goals of the project, we'll merge it in!
 # License
 
 batman.js is copyright 2011 by [Shopify](http://www.shopify.com), released under the MIT License (see LICENSE for details).
+
+{% endcapture %}
+
+{% include documentation_helper.markdown %}
