@@ -3348,13 +3348,20 @@ Batman.DOM = {
 
 class Batman.DOM.Style
   constructor: (@node, @key, @context) ->
-    context.bind node, key, @dataChange, @nodeChange
+    @oldStyles = {}
+    context.bind node, key, @dataChange, ->
 
   dataChange: (value) =>
-    return @node.setAttribute('style', '') unless value
+    unless value
+      @reapplyOldStyles()
+      return
 
     if typeof value is 'string' and @boundValueType = 'string'
-      return @node.setAttribute('style', value)
+      @reapplyOldStyles()
+      for style in value.split(';')
+        [cssName, cssValue] = style.split(':')
+        @setStyle cssName, cssValue
+      return
 
     if value instanceof Batman.Hash and @boundValueType = 'batman.hash'
       # remove listeners from a previously bound hash
@@ -3370,42 +3377,30 @@ class Batman.DOM.Style
       # set styles
       value.keys().forEach (key) => @onItemsAdded(key)
     else if value instanceof Object and @boundValueType = 'object'
+      @reapplyOldStyles()
       for own key, keyValue of value
         # Check whether the value is an existing keypath, and if so bind this attribute to it
         [keypathValue, keypathContext] = @context.findKey(keyValue)
-        @node.style[key] = if keypathValue
-          @bindSingleAttribute(key, keyValue)
-          keypathValue
+        if keypathValue
+          @bindSingleAttribute key, keyValue
+          @setStyle key, keypathValue
         else
-          keyValue
+          @setStyle key, keyValue
 
-  nodeChange: (node, subContext) =>
-    switch @boundValueType
-      when 'string'
-        subContext.set @key, @node.style.cssText
-      when 'batman.hash'
-        hash = subContext.get @key
-        hash.keys().forEach (key) =>
-          hash.set key, @node.style[key]
-      when 'object'
-        object = subContext.get @key
-        for own key, value of object
-          keypathValue = subContext.get(value)
-          if keypathValue
-            subContext.set value, @node.style[key]
-          else
-            object[key] = @node.style[key]
-
-  onItemsAdded: (newKey) =>
-    @node.style[newKey] = @styleHash.get(newKey)
-
-  onItemsRemoved: (oldKey) =>
-    @node.style[oldKey] = ''
+  onItemsAdded: (newKey) => @setStyle newKey, @styleHash.get(newKey)
+  onItemsRemoved: (oldKey) => @setStyle oldKey, ''
 
   bindSingleAttribute: (attr, keypath) =>
-    dataChange = (value) -> @node.style[attr] = value
-    nodeChange = (node, subContext) -> subContext.set keypath, node.style[attr]
-    @context.bind @node, keypath, dataChange, nodeChange
+    dataChange = (value) => @setStyle attr, value
+    @context.bind @node, keypath, dataChange, ->
+
+  setStyle: (key, value) =>
+    if key = key.trim()
+      @oldStyles[key] = @node.style[key]
+      @node.style[key] = value.trim()
+
+  reapplyOldStyles: =>
+    @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
 
 class Batman.DOM.Iterator
     currentAddNumber: 0

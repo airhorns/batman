@@ -486,7 +486,7 @@ asyncTest 'should bind to the value of radio buttons', ->
     delay =>
       equal context.get('ad.sale_type'), 'fixed'
 
-asyncTest 'data-bind-style should bind to a string', 5, ->
+asyncTest 'data-bind-style should bind to a string', 4, ->
   source = '<input type="text" data-bind-style="string"></input>'
   context = Batman
     string: 'background-color:blue; color:green;'
@@ -496,17 +496,12 @@ asyncTest 'data-bind-style should bind to a string', 5, ->
     equal node.style['background-color'], 'blue'
     equal node.style['color'], 'green'
 
-    node.style.color = 'red'
-    helpers.triggerChange node
+    context.set 'string', 'color: green'
     delay =>
-      equal context.get('string').trim(), 'background-color: blue; color: red;'
+      equal node.style['background-color'], ''
+      equal node.style['color'], 'green'
 
-      context.set 'string', 'color: green'
-      delay =>
-        equal node.style['background-color'], ''
-        equal node.style['color'], 'green'
-
-asyncTest 'data-bind-style should bind to a vanilla object', 5, ->
+asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
   source = '<input type="text" data-bind-style="object"></input>'
   context = Batman
     object: 
@@ -519,15 +514,10 @@ asyncTest 'data-bind-style should bind to a vanilla object', 5, ->
     equal node.style['color'], 'green'
     context.set 'object', {color: 'red'}
     delay =>
-      equal node.style['background-color'], 'blue'
+      equal node.style['background-color'], ''
       equal node.style['color'], 'red'
 
-      node.style.color = 'green'
-      helpers.triggerChange node
-      delay =>
-        equal context.get('object.color'), 'green'
-
-asyncTest 'data-bind-style should bind to a Batman object', 9, ->
+asyncTest 'data-bind-style should bind to a Batman object', 8, ->
   source = '<input type="text" data-bind-style="object"></input>'
   context = Batman
     object: new Batman.Hash
@@ -551,11 +541,6 @@ asyncTest 'data-bind-style should bind to a Batman object', 9, ->
           equal node.style['color'], 'yellow'
           equal node.style['background-color'], 'blue'
 
-          node.style.color = 'green'
-          helpers.triggerChange node
-          delay =>
-            equal context.get('object.color'), 'green'
-
 asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
   source = '<div data-bind-style="hash"></div>'
   hash = new Batman.Hash
@@ -577,7 +562,7 @@ asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
         equal node.style['background-color'], 'blue'
         equal node.style['color'], 'red'
 
-asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs', 5, ->
+asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs', 4, ->
   source = '<input type="text" data-bind-style="styles"></input>'
   context = Batman
     color: 'blue'
@@ -594,11 +579,6 @@ asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs
     delay =>
       equal node.style.color, 'green'
       equal node.style['background-color'], 'green'
-
-      node.style.color = 'red'
-      helpers.triggerChange node
-      delay =>
-        equal context.get('color'), 'red'
 
 QUnit.module "Memory safety"
 
