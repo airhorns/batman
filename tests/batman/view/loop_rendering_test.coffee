@@ -154,7 +154,7 @@ asyncTest 'it should loop over hashes', 6, ->
   )
 
   helpers.render source, false, {playerScores}, (node, view) ->
-    for childNode in Array::slice.call(node.childNodes)
+    for childNode in node.childNodes
       equal childNode.className,  'present'
       equal parseInt(childNode.innerHTML, 10), playerScores.get(childNode.id)
     QUnit.start()
@@ -188,7 +188,7 @@ asyncTest 'it should loop over js objects', 6, ->
     crono: 10
 
   helpers.render source, false, {playerScores}, (node, view) ->
-    for childNode in Array::slice.call(node.childNodes)
+    for childNode in node.childNodes
       equal childNode.className,  'present'
       equal parseInt(childNode.innerHTML, 10), playerScores[childNode.id]
     QUnit.start()
@@ -221,7 +221,7 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
         deepEqual names, ['a', 'b', 'c', 'd', 'e']
 
 getVals = (node) ->
-  Array::slice.call(node.childNodes).map (n) -> parseInt(n.innerHTML)
+  parseInt(child.innerHTML, 10) for child in node.childNodes
 
 asyncTest 'it should stop previous ongoing renders if items are removed', ->
   getSet = (seed) -> new Batman.Set(seed, seed+1, seed+2)
