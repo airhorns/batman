@@ -3395,9 +3395,10 @@ class Batman.DOM.Style
     @context.bind @node, keypath, dataChange, ->
 
   setStyle: (key, value) =>
-    if key = key.trim()
-      @oldStyles[key] = @node.style[key]
-      @node.style[key] = value.trim()
+    return unless key
+    key = key.trim()
+    @oldStyles[key] = @node.style[key]
+    @node.style[key] = if value then value.trim() else ""
 
   reapplyOldStyles: =>
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
