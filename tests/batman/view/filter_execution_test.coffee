@@ -297,7 +297,7 @@ asyncTest 'should render a user defined filter', 3, ->
     bar: 'baz'
   helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>', ctx, (node) ->
     equals node.html(), "testValue"
-    equal spy.lastCallContext.constructor.name, 'RenderContext'
+    equal Batman._functionName(spy.lastCallContext.constructor), 'RenderContext'
     deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
     delete Batman.Filters.test
     QUnit.start()
