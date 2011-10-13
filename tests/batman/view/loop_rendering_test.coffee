@@ -193,7 +193,55 @@ asyncTest 'it should loop over js objects', 6, ->
       equal parseInt(childNode.innerHTML, 10), playerScores[childNode.id]
     QUnit.start()
 
+getPs = (view) -> $('p', view.get('node')).map(-> @innerHTML).toArray()
+
+
 asyncTest 'it shouldn\'t become desynchronized if the foreach collection observer fires with the same collection', ->
+  x = new Batman.Set("a", "b", "c", "d", "e")
+  context = Batman({x})
+  source = '<p data-foreach-obj="x" data-bind="obj"></p>'
+  helpers.render source, context, (node, view) ->
+    deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+    context.observe 'x', spy = createSpy()
+    context.property('x').changeEvent().fire(x,x)
+    delay ->
+      ok spy.called
+      deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+
+asyncTest 'it shouldn\'t become desynchronized if the collection removes successively', ->
+  x =  new Batman.Set("a", "b", "c", "d", "e")
+  source = '<p data-foreach-obj="x" data-bind="obj"></p>'
+  helpers.render source, {x}, (node, view) ->
+    deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+    for y in ['b', 'c', 'd', 'e']
+      x.remove y
+    delay ->
+      deepEqual getPs(view), ['a']
+
+asyncTest 'it shouldn\'t become desynchronized if the collection adds successively', ->
+  x =  new Batman.Set("a")
+  source = '<p data-foreach-obj="x" data-bind="obj"></p>'
+  helpers.render source, {x}, (node, view) ->
+    deepEqual getPs(view), ['a']
+    for y in ['b', 'c']
+      x.add y
+    delay ->
+      deepEqual getPs(view), ['a', 'b', 'c']
+
+asyncTest 'it shouldn\'t become desynchronized if the collection adds and removes successively', ->
+  x =  new Batman.Set("a", "b", "c", "d", "e")
+  source = '<p data-foreach-obj="x" data-bind="obj"></p>'
+  helpers.render source, {x}, (node, view) ->
+    deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+    x.add 'f'
+    x.remove 'c'
+    x.remove 'f'
+    x.add 'c'
+    delay ->
+      deepEqual getPs(view), ['a', 'b', 'd', 'e', 'c']
+      deepEqual getPs(view), x.get('toArray')
+
+asyncTest 'it shouldn\'t become desynchronized with a fancy filtered style set', ->
   x = Batman(all: new Batman.Set("a", "b", "c", "d", "e"))
   x.accessor 'filtered',
     get: ->
@@ -209,16 +257,13 @@ asyncTest 'it shouldn\'t become desynchronized if the foreach collection observe
 
   source = '<p data-foreach-obj="x.filtered" data-bind="obj"></p>'
   helpers.render source, {x}, (node, view) ->
-    names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-    deepEqual names, ['a', 'b', 'c', 'd', 'e']
+    deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
     x.set 'filtered', 'a'
     delay ->
-      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-      deepEqual names, ['a']
+      deepEqual getPs(view), ['a']
       x.set 'filtered', ''
       delay ->
-        names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-        deepEqual names, ['a', 'b', 'c', 'd', 'e']
+        deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
 
 getVals = (node) ->
   parseInt(child.innerHTML, 10) for child in node.childNodes
