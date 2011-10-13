@@ -64,7 +64,6 @@ test "items with null or undefined values for the sorted key come last and in th
 
 test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
   noName = Batman()
-  anotherNoName = Batman()
   nullName = Batman
     author: Batman
       name: null
@@ -85,7 +84,6 @@ test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
       name: false
   @base.add noName
   @base.add nullName
-  @base.add anotherNoName
   @base.add anotherNumberedName
   @base.add naNName
   @base.add numberedName
@@ -94,7 +92,7 @@ test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
   @base.remove @anotherByFred
 
   descendingAuthorNameSort = new Batman.SetSort(@base, 'author.name', 'desc')
-  expected = [anotherNoName, noName, nullName, @byZeke, @byMary, @byFred, naNName, anotherNumberedName, numberedName, trueName, falseName]
+  expected = [noName, nullName, @byZeke, @byMary, @byFred, naNName, anotherNumberedName, numberedName, trueName, falseName]
   deepEqual descendingAuthorNameSort.toArray(), expected
   descendingAuthorNameSort.forEach (item, i) ->
     ok item is expected[i]
