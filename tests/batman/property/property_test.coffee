@@ -286,3 +286,16 @@ test "property() works on non Batman objects", ->
   property.observe spy = createSpy()
   property.fire()
   ok spy.called
+
+# #177 (http://jsfiddle.net/zbQMZ/)
+test "setValue or unsetValue within a getter should not register the updated property as a source of the accessor's property", ->
+  obj = new Batman.Object
+  obj.accessor 'foo', ->
+    @set('bar', 'baz')
+  obj.accessor 'bar', ->
+    @unset('baz')
+  obj.get('foo')
+  obj.get('bar')
+  deepEqual obj.property('foo').sources.toArray(), []
+  deepEqual obj.property('bar').sources.toArray(), []
+
