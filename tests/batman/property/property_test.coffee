@@ -46,6 +46,67 @@ test "calling mutators from inside an accessor does not add a new source", ->
   deepEqual @object.property('foo').sources.toArray(), []
 
 
+QUnit.module 'Batman.Property laziness'
+  setup: ->
+    @class = class extends Batman.Object
+    @object = new @class
+
+test "accessing a property with a cached value should not call the accessor", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').cached = yes
+  @object.property('foo').value = 12345
+
+  equal @object.get('foo'), 12345
+  equal spy.callCount, 0
+
+test "observing a property should call the accessor to populate its sources", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 1
+
+test "observing a property should not call the accessor if it has sources", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').sources = yes
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 0
+
+test "observed properties should not call the accessor when cached", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').cached = yes
+  @object.property('foo').value = 'yup'
+  @object.property('foo').sources = new Batman.SimpleSet()
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 0
+  @object.property('foo').fire()
+  equal spy.callCount, 0
+
+test "observed properties should call the accessor when changed", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').sources = new Batman.SimpleSet()
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 0
+  @object.set 'foo', 12345
+  equal spy.callCount, 1
+
+test "setting a source property should not call the dependent accessor", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').sources = new Batman.SimpleSet(@object.property('bar'))
+
+  @object.set('bar', 12345)
+  equal spy.callCount, 0
+
+test "unsetting a source property should not call the dependent accessor", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').sources = new Batman.SimpleSet(@object.property('bar'))
+
+  @object.unset('bar', 12345)
+  equal spy.callCount, 0
+
+
 QUnit.module 'Batman.Property',
   setup: ->
     @customKeyAccessor =
