@@ -13,6 +13,39 @@
 #   constructor: (obj) ->
 #     @[key] = val for own key, val of obj if obj
 
+QUnit.module 'Batman.Property basics'
+  setup: ->
+    @class = class extends Batman.Object
+    @object = new @class
+
+test "calling an accessor from inside an accessor adds a new source", ->
+  @class.accessor 'foo', -> @get('bar')
+  @object.get('foo')
+
+  deepEqual @object.property('foo').sources.toArray(), [@object.property('bar')]
+
+test "calling accessors with sources adds appropriate sources", ->
+  @class.accessor 'foo', -> @get('bar')
+  @class.accessor 'bar', -> @get('baz')
+  @object.get('foo')
+
+  deepEqual @object.property('foo').sources.toArray(), [@object.property('bar')]
+  deepEqual @object.property('bar').sources.toArray(), [@object.property('baz')]
+
+test "calling multiple accessors adds all properties as sources", ->
+  @class.accessor 'foo', -> @get('bar'); @get('baz')
+  @object.get('foo')
+
+  expected = [@object.property('bar'), @object.property('baz')]
+  deepEqual @object.property('foo').sources.toArray(), expected
+
+test "calling mutators from inside an accessor does not add a new source", ->
+  @class.accessor 'foo', -> @set('bar', 1234); @unset('baz')
+  @object.get('foo')
+
+  deepEqual @object.property('foo').sources.toArray(), []
+
+
 QUnit.module 'Batman.Property',
   setup: ->
     @customKeyAccessor =
