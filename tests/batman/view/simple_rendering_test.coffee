@@ -621,8 +621,13 @@ asyncTest "listeners are kept in Batman.data and destroyed when the node is remo
       ok listeners.click instanceof Batman.Set
       ok !listeners.click.isEmpty()
 
-      removeFn = if Batman.DOM.hasAddEventListener then 'removeEventListener' else 'detachEvent'
-      spy = spyOn n, removeFn
+      if Batman.DOM.hasAddEventListener
+        spy = spyOn n, 'removeEventListener'
+      else
+        # Spoof detachEvent because typeof detachEvent is 'object' in IE8, and
+        # spies break because detachEvent.call blows up
+        n.detachEvent = ->
+        spy = spyOn n, 'detachEvent'
 
       Batman.DOM.removeNode n
 
