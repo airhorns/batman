@@ -314,7 +314,7 @@ test "toJSON returns the correct object representation for native types", ->
 test "toJSON returns the correct object representation for Batman.Object types", ->
   obj = new Batman.Object
     set: new Batman.Set 1, 2, 3
-
+  obj.hashKey()
   @hash = new Batman.Hash obj: obj
   deepEqual @hash.toJSON(), obj:
     set: [1, 2, 3]

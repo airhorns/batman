@@ -692,7 +692,7 @@ class BatmanObject
 
   toJSON: ->
     obj = {}
-    for own key, value of @ when key isnt "_batman"
+    for own key, value of @ when key not in ["_batman", "hashKey", "_objectID"]
       obj[key] = if value.toJSON then value.toJSON() else value
     obj
 
