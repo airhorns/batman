@@ -19,7 +19,7 @@ asyncTest "preloaded/already rendered partials should render", ->
   source = '<div data-partial="test/one"></div>'
   node = helpers.render source, {}, (node) ->
     delay =>
-      equals node.children(0).html(), "<div>Hello from a partial</div>"
+      equals node.children(0).children(0).html(), "Hello from a partial"
 
 asyncTest "unloaded partials should load then render", 2, ->
   source = '<div data-partial="test/one"></div>'
@@ -27,7 +27,7 @@ asyncTest "unloaded partials should load then render", 2, ->
 
   # Callback below doesn't fire until view's ready event, which waits for the partial to be fetched and rendered.
   node = helpers.render source, {}, (node) ->
-    equal node.children(0).html(), "<div>Hello from a partial</div>"
+    equal node.children(0).children(0).html(), "Hello from a partial"
     QUnit.start()
 
   setTimeout ->
