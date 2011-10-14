@@ -1576,10 +1576,19 @@ class Batman.StateMachine extends Batman.Object
   @InvalidTransitionError:: = Error::
 
   @transitions: (table) ->
+    # Allow a shorthand for specifying a whole bunch of `from` states to go to one `to` state
+    for k, v of table when (v.from && v.to)
+      object = {}
+      if v.from.forEach
+        v.from.forEach (fromKey) -> object[fromKey] = v.to
+      else
+        object[v.from] = v.to
+      table[k] = object
+
     @::transitionTable = $mixin {}, @::transitionTable, table
-    for k, transitions of @::transitionTable
+    for k, transitions of @::transitionTable when !@::[k]
       do (k) =>
-        @::[k] ||= (suggestedNextState) -> @do(k, suggestedNextState)
+        @::[k] = -> @do(k)
     @
 
   constructor: (startState) ->
@@ -1594,7 +1603,7 @@ class Batman.StateMachine extends Batman.Object
   onEnter: (into, callback) -> @on("enter:#{into}", callback)
   onExit: (from, callback) -> @on("exit:#{from}", callback)
 
-  do: (event, suggestedNextState) ->
+  do: (event) ->
     if @isTransitioning
       @nextEvents.push event
       return
@@ -1605,14 +1614,10 @@ class Batman.StateMachine extends Batman.Object
     if !nextState
       return false
 
-    if nextState.unshift # quick test for an array
-      developer.assert ~nextState.indexOf(suggestedNextState), "Warning, invalid transition for the multiple destination event #{event}!"
-      nextState = suggestedNextState
-
     @isTransitioning = true
-
     @fire "exit:#{previousState}"
     @fire "#{previousState}->#{nextState}"
+    @fire event
     @set('_state', nextState)
     @fire "enter:#{nextState}"
     @isTransitioning = false

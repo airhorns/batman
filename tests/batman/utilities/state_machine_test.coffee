@@ -44,6 +44,12 @@ test "should allow observing state exit", 2, ->
     equal @sm.get('state'), 'on', 'State should not have changed when callback fires'
   @sm.switch()
 
+test "should allow observing events", 2, ->
+  @sm.on 'switch', =>
+    ok true, 'callback is called'
+    equal @sm.get('state'), 'on', 'State should not have changed when callback fires'
+  @sm.switch()
+
 test "should allow observing state transition", 2, ->
   @sm.onTransition 'on', 'off', =>
     ok true, 'callback is called'
@@ -85,19 +91,21 @@ test "should allow changing the state in callbacks", 5, ->
   ok transitionToOnSpy.called
   ok enterOnSpy.called
 
-test "should allow array transition destinations", 3, ->
+test "should recognize the shorthand for many incoming states converging to one", 3, ->
   class ArrayTest extends Batman.StateMachine
     @transitions
-      fade: {on: ['none', 'half', 'full']}
-      flick: {none: 'on'}
+      fade:
+        from: ['on', 'half']
+        to: 'off'
+      flick: {off: 'half'}
 
   @sm = new ArrayTest('on')
-  @sm.fade('none')
-  equal @sm.get('state'), 'none'
+  @sm.fade()
+  equal @sm.get('state'), 'off'
   @sm.flick()
-  equal @sm.get('state'), 'on'
-  @sm.fade('half')
   equal @sm.get('state'), 'half'
+  @sm.fade()
+  equal @sm.get('state'), 'off'
 
 test "subclasses should inherit transitions", 2, ->
   class TwoWaySwitch extends @SwitchStateMachine
