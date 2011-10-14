@@ -522,6 +522,11 @@ class Batman.Property
     @getValue()
     this
 
+  removeSourceHandlers: ->
+    handler = @sourceChangeHandler()
+    @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
+    @forget()
+
   fire: -> @changeEvent().fire(arguments...)
 
   isolate: ->
@@ -2787,6 +2792,11 @@ class Binding extends Batman.Object
           @dataChange(value, @node, @)
     @
 
+  destroy: ->
+    @forget()
+    @_batman.properties.forEach (key, property) -> property.removeSourceHandlers()
+    delete @[k] for own k of @
+
   parseFilter: ->
     # Store the function which does the filtering and the arguments (all except the actual value to apply the
     # filter to) in these arrays.
@@ -3336,6 +3346,10 @@ Batman.DOM = {
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
   # or removed without leaking memory
   unbindNode: $unbindNode = (node) ->
+    # break down all bindings
+    if bindings = Batman.data node, 'bindings'
+      bindings.forEach (binding) -> binding.destroy()
+
     # remove all event listeners
     if listeners = Batman.data node, 'listeners'
       for eventName, eventListeners of listeners
@@ -3483,7 +3497,12 @@ class Batman.DOM.Iterator
       @siblingNode = sourceNode.nextSibling
 
       # Remove the original node once the parent has moved past it.
-      @parentRenderer.on 'parsed', -> $removeNode sourceNode
+      @parentRenderer.on 'parsed', =>
+        # Move any Batman.data from the sourceNode to the prototype; we need to
+        # retain the bindings, and we want to dispose of the node.
+        @prototypeNode[Batman.expando] = sourceNode[Batman.expando]
+        delete sourceNode[Batman.expando]
+        $removeNode sourceNode
 
       @addFunctions = []
       @fragment = document.createDocumentFragment()

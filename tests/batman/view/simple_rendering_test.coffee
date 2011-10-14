@@ -594,9 +594,12 @@ test "addEventListener and removeEventListener store and remove callbacks using 
   listeners = Batman.data div, 'listeners'
   ok !listeners.click.has f
 
-asyncTest "bindings are kept in Batman.data and destroyed when the node is removed", ->
-  context = new Batman.Object foo: true
+asyncTest "bindings are kept in Batman.data and destroyed when the node is removed", 8, ->
+  context = new Batman.Object bar: true
+  context.accessor 'foo', (spy = createSpy -> @get('bar'))
   helpers.render '<div data-addclass-foo="foo"><div data-addclass-foo="foo"></div></div>', context, (node) ->
+    equal spy.callCount, 1  # Cached, so only called once
+
     parent = node[0]
     child = parent.childNodes[0]
     for n in [child, parent]
@@ -607,9 +610,11 @@ asyncTest "bindings are kept in Batman.data and destroyed when the node is remov
       Batman.DOM.removeNode n
       deepEqual Batman.data(n), {}
 
+    context.set('bar', false)
+    equal spy.callCount, 1
     QUnit.start()
 
-asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", ->
+asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 10, ->
   context = new Batman.Object foo: ->
 
   helpers.render '<div data-event-click="foo"><div data-event-click="foo"></div></div>', context, (node) ->
