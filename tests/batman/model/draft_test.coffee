@@ -30,6 +30,15 @@ asyncTest "drafts should be creatable from existing drafts", ->
     ok draft.isDraft
     QUnit.start()
 
+asyncTest "drafts should be discardable", ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    draft = product.draft()
+    equal product.get('drafts.length'), 1
+    ok draft.discard()
+    equal product.get('drafts.length'), 0
+    QUnit.start()
+
 test "drafts should be able to retrieve the record they are a draft of", ->
   product = new @Product()
   draft = product.draft()
@@ -124,6 +133,7 @@ asyncTest "saving a draft should update the record", ->
       equal savedProduct.get('cost'), 30
       equal draft.get('lifecycle.state'), 'clean', "Draft has the proper state"
       equal product.get('lifecycle.state'), 'clean', "Record has the proper state"
+      equal product.get('drafts.length'), 0, "Draft has discarded itself after save"
       QUnit.start()
 
 asyncTest "saving a deep draft should update the record as well as any parents", ->
@@ -138,6 +148,7 @@ asyncTest "saving a deep draft should update the record as well as any parents",
       ok parentSpy.called
       equal parentDraft.get('cost'), 30
       equal parentDraft.get('lifecycle.state'), 'clean'
+      equal product.get('drafts.length'), 0, "Each draft has discarded itself after save"
       QUnit.start()
 
 asyncTest "loading a draft should update the record", ->
@@ -170,6 +181,7 @@ asyncTest "destroying a draft should destroy the record", ->
       throw err if err
       equal draft.get('lifecycle.state'), 'destroyed'
       equal product.get('lifecycle.state'), 'destroyed'
+      equal product.get('drafts.length'), 0, "Draft has discarded itself after destroy"
       QUnit.start()
 
 asyncTest "destroying a record should destroy all the drafts", ->
@@ -183,4 +195,5 @@ asyncTest "destroying a record should destroy all the drafts", ->
       equal draft.get('lifecycle.state'), 'destroyed'
       equal otherDraft.get('lifecycle.state'), 'destroyed'
       equal product.get('lifecycle.state'), 'destroyed'
+      equal product.get('drafts.length'), 0, "Every draft has discarded itself after destroy"
       QUnit.start()

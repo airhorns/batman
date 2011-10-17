@@ -1869,7 +1869,18 @@ class Batman.Controller extends Batman.Object
         view.ready?(@params)
     view
 
+# Models
+# ------
+
+# `ModelDraft` is a transaction on top of a record instance. These are useful for creating and modifying
+# deltas on a model state, but not applying them until, say the server has committed the changes, or never
+# applying them if say the user cancels form editing. `ModelDrafts` do this by proxying all `get`s done
+# to the underlying record they are a draft of and then "latching" all sets done to them on their own
+# `attributes` hash. When the changes are commited by calling `draft.save()`, the underlying record's
+# attributes are updated with the drafts.
 class Batman.ModelDraft extends Batman.Object
+
+  # All `Model`s and `ModelDraft`s move in and out of these states.
   class ModelDraft.LifecycleStateMachine extends Batman.StateMachine
     @transitions
       load:
@@ -1895,11 +1906,16 @@ class Batman.ModelDraft extends Batman.Object
         from: ['saving', 'creating', 'loading', 'destroying']
         to: 'error'
 
-  constructor: (@parent) ->
-    super()
+  constructor: (@parent) -> super()
 
+  # All models store their state in the state machine under the `lifecycle` key.
   @accessor 'lifecycle', -> @lifecycle ||= new Batman.ModelDraft.LifecycleStateMachine(@parent.get('lifecycle.state'))
+  # All models store their server attributes in an attributes hash. If you want to bind to a key which
+  # the model API has already defined, say `errors` or `lifecycle`, bind to `attributes.errors`
+  # or `attributes.lifecycle`
   @accessor 'attributes', -> @attributes ||= new Batman.Hash
+  # Models and ModelDrafts track which keys have been set on them since they were loaded from
+  # the server.
   @accessor 'dirtyKeys', -> @dirtyKeys ||= new Batman.Hash
   @accessor 'errors', -> @errors ||= new Batman.ErrorsSet
 
@@ -1933,6 +1949,20 @@ class Batman.ModelDraft extends Batman.Object
   updateAttributes: (attrs) ->
     @mixin(attrs)
     @
+
+  isNew: -> typeof @get('id') is 'undefined'
+
+  hasStorage: -> (@record()._batman.get('storage') || []).length > 0
+
+  toString: ->
+    "#{$functionName(@record().constructor)}: #{@get('id')}"
+
+  record: ->
+    record = @parent
+    while !(record instanceof Batman.Model)
+      record = record.parent
+    @record = -> record
+    record
 
   toJSON: ->
     obj = {}
@@ -2053,19 +2083,6 @@ class Batman.ModelDraft extends Batman.Object
   destroy: (callback) ->
     @parent.destroy callback
 
-  isNew: -> typeof @get('id') is 'undefined'
-
-  hasStorage: -> (@record()._batman.get('storage') || []).length > 0
-
-  toString: ->
-    "#{$functionName(@record().constructor)}: #{@get('id')}"
-
-  record: ->
-    record = @parent
-    while !(record instanceof Batman.Model)
-      record = record.parent
-    record
-
   _willSet: (key) ->
     return true if @_pauseDirtyTracking
     if @get('lifecycle').do 'set'
@@ -2084,9 +2101,6 @@ class Batman.ModelDraft extends Batman.Object
 
     true
 
-
-# Models
-# ------
 
 class Batman.Model extends Batman.ModelDraft
 
@@ -2320,6 +2334,7 @@ class Batman.Model extends Batman.ModelDraft
       Batman.Object.call(@)
       @set('id', idOrAttributes)
 
+  # Override the draft implementations to make a record the root of the draft tree.
   record: -> @
   discard: -> false
 
