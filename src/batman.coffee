@@ -3531,24 +3531,36 @@ class Batman.DOM.Iterator
         delete sourceNode[Batman.expando]
         $removeNode sourceNode
 
+      # Tie this binding to a node using Batman.data
+      if bindings = Batman.data @parentNode, 'bindings'
+        bindings.add this
+      else
+        Batman.data @parentNode, 'bindings', new Batman.Set(this)
+
       @addFunctions = []
       @fragment = document.createDocumentFragment()
       context.bind(sourceNode, key, @collectionChange, ->)
 
-    collectionChange: (newCollection) =>
-      # Deal with any nodes inserted by previous collections
+    destroy: ->
+      $unbindNode(@prototypeNode)
+      @unbindCollection()
+      delete @[k] for own k of this
+
+    unbindCollection: ->
       if @collection
-        return if newCollection == @collection
         @nodeMap.forEach (item, node) -> $removeNode node
         @nodeMap.clear()
         @rendererMap.forEach (item, renderer) -> renderer.stop()
         @rendererMap.clear()
-
-        if @collection.isObservble && @collection.toArray
-          @collection.forget(@arrayChanged)
+        if @collection.isObservable && @collection.toArray
+          @collection.forget('toArray', @arrayChanged)
         else if @collection.isEventEmitter
           @collection.event('itemsWereAdded').removeHandler(@currentAddedHandler)
           @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
+
+    collectionChange: (newCollection) =>
+      # Deal with any nodes inserted by previous collections
+      @unbindCollection() unless newCollection == @collection
 
       @collection = newCollection
       if @collection

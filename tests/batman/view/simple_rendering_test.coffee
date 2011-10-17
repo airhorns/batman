@@ -614,6 +614,27 @@ asyncTest "bindings are kept in Batman.data and destroyed when the node is remov
     equal spy.callCount, 1
     QUnit.start()
 
+asyncTest "iterators are kept in Batman.data and destroyed when the parent node is removed", 5, ->
+  context = new Batman.Object bar: true
+  set = null
+  context.accessor 'foo', (setSpy = createSpy -> set = new Batman.Set @get('bar'), @get('bar'))
+  helpers.render '<div id="parent"><div data-foreach-x="foo"></div></div>', context, (node) ->
+    equal setSpy.callCount, 1  # Cached, so only called once
+
+    parent = node[0]
+    toArraySpy = spyOn(set, 'toArray')
+
+    Batman.DOM.removeNode(parent)
+    deepEqual Batman.data(parent), {}
+
+    context.set('bar', false)
+    equal setSpy.callCount, 1
+
+    equal toArraySpy.callCount, 0
+    set.fire('change')
+    equal toArraySpy.callCount, 0
+    QUnit.start()
+
 asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 10, ->
   context = new Batman.Object foo: ->
 
