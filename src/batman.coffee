@@ -36,14 +36,21 @@ Batman.mixin = $mixin = (to, mixins...) ->
   for mixin in mixins
     continue if $typeOf(mixin) isnt 'Object'
 
-    for own key, value of mixin
-      continue if key in  ['initialize', 'uninitialize', 'prototype']
-      if hasSet
-        to.set(key, value)
-      else if to.nodeName?
-        Batman.data to, key, value
-      else
-        to[key] = value
+    set = if hasSet
+      (key, value) -> to.set(key, value)
+    else if to.nodeName?
+      (key, value) -> Batman.data to, key, value
+    else
+      (key, value) -> to[key] = value
+
+    iterator = (key, value) ->
+      return if key in ['initialize', 'uninitialize', 'prototype']
+      set(key, value)
+
+    if Batman.SimpleHash && (mixin instanceof Batman.SimpleHash || mixin instanceof Batman.Hash)
+      mixin.forEach(iterator)
+    else
+      iterator(key, value) for own key, value of mixin
 
     if typeof mixin.initialize is 'function'
       mixin.initialize.call to
@@ -1862,10 +1869,230 @@ class Batman.Controller extends Batman.Object
         view.ready?(@params)
     view
 
+class Batman.ModelDraft extends Batman.Object
+  class ModelDraft.LifecycleStateMachine extends Batman.StateMachine
+    @transitions
+      load:
+        from: ['dirty', 'clean']
+        to: 'loading'
+      create:
+        from: ['dirty', 'clean']
+        to: 'creating'
+      save:
+        from: ['dirty', 'clean']
+        to: 'saving'
+      destroy:
+        from: ['dirty', 'clean']
+        to: 'destroying'
+      loaded: {loading: 'clean'}
+      created: {creating: 'clean'}
+      saved: {saving: 'clean'}
+      destroyed: {destroying: 'destroyed'}
+      set:
+        from: ['dirty', 'clean']
+        to: 'dirty'
+      error:
+        from: ['saving', 'creating', 'loading', 'destroying']
+        to: 'error'
+
+  constructor: (@parent) ->
+    super()
+
+  @accessor 'lifecycle', -> @lifecycle ||= new Batman.ModelDraft.LifecycleStateMachine(@parent.get('lifecycle.state'))
+  @accessor 'attributes', -> @attributes ||= new Batman.Hash
+  @accessor 'dirtyKeys', -> @dirtyKeys ||= new Batman.Hash
+  @accessor 'errors', -> @errors ||= new Batman.ErrorsSet
+
+  # Default accessor implementing the latching draft behaviour
+  @accessor
+    get: (k) ->
+      if (local = @get("attributes.#{k}"))?
+        local
+      else
+        @parent.get(k)
+    set: (k, v) ->
+      @_willSet(k)
+      @set("attributes.#{k}", v)
+    unset: (k) ->
+      if @get("attributes.#{k}")?
+        @unset("attributes.#{k}")
+      else
+        @parent.unset(k)
+
+  isDraft: true
+  draft: ->
+    draft = new Batman.ModelDraft(@)
+    @record().get('drafts').add(draft)
+    draft
+
+  discard: ->
+    @record().get('drafts').remove(@)
+
+  updateAttributes: (attrs) ->
+    @mixin(attrs)
+    @
+
+  toJSON: ->
+    obj = {}
+    # Encode each key into a new object
+    encoders = @record()._batman.get('encoders')
+    unless !encoders or encoders.isEmpty()
+      encoders.forEach (key, encoder) =>
+        val = @get key
+        if typeof val isnt 'undefined'
+          encodedVal = encoder(@get key)
+          if typeof encodedVal isnt 'undefined'
+            obj[key] = encodedVal
+
+    obj
+
+  fromJSON: (data) ->
+    obj = {}
+    decoders = @record()._batman.get('decoders')
+    # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
+    # each key and just setting the values.
+    if !decoders or decoders.isEmpty()
+      for key, value of data
+        obj[key] = value
+    else
+      # If we do have decoders, use them to get the data.
+      decoders.forEach (key, decoder) ->
+        obj[key] = decoder(data[key]) if data[key]
+
+    developer.do ->
+      if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
+        developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
+
+    # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
+    @mixin obj
+
+
+  validate: (callback) ->
+    validators = @record()._batman.get('validators')
+    errors = @get('errors')
+    if ! validators || validators.length is 0
+      callback?(undefined, errors)
+      return true
+
+    count = validators.length
+    finishedValidation = ->
+      if --count == 0
+        callback?(undefined, errors)
+
+    for validator in validators
+      for key in validator.keys
+        args = [errors, @, key, finishedValidation]
+        try
+          if validator.validator
+            validator.validator.validateEach.apply(validator.validator, args)
+          else
+            validator.callback.apply(validator, args)
+        catch e
+          callback?(e, errors)
+          return false
+
+  save: (callback) ->
+    isNew = @isNew()
+    parent = this
+    parents = (parent while parent = parent.parent)
+    parents.unshift this
+    action = if isNew then 'create' else 'save'
+    @validate (error, errors) =>
+      if error || errors.length
+        callback?(error || errors)
+        return
+
+      if @get('lifecycle').do(action)
+        draft.get('lifecycle').do(action) for draft in parents
+
+        if associations = Batman.Association.Collection.getModelAssociations(@)
+          {belongsTo, hasOne, hasMany} = associations
+          # Save belongsTo models immediately since we don't need this model's id
+          belongsTo?.forEach (association) => association.apply(@)
+
+        @_doStorageOperation (if isNew then 'create' else 'update'), {}, (err, draft) =>
+          if err
+            draft.get('lifecycle').error() for draft in parents
+          else
+            @get('dirtyKeys').clear()
+            hasOne?.forEach (association) -> association.apply(err, record)
+            hasMany?.forEach (association) -> association.apply(err, record)
+            draft.discard() for draft in parents
+
+            record = @record().constructor._mapIdentity(@)
+            parents.push record unless ~parents.indexOf(record)
+
+            for draft in parents
+              draft._pauseDirtyTracking = true
+              draft.updateAttributes(@get 'attributes')
+              draft._pauseDirtyTracking = false
+              draft.get('lifecycle').do(if isNew then 'created' else 'saved')
+
+          callback?(err, record)
+      else
+        callback?(new Batman.StateMachine.InvalidTransitionError("Can't save while in state #{@get('lifecycle.state')}"))
+
+  load: (callback) ->
+    if @get('lifecycle.state') in ['destroying', 'destroyed']
+      callback?(new Error("Can't load a destroyed record!"))
+      return
+
+    if @get('lifecycle').load()
+      @record()._doStorageOperation 'read', {}, (err, record) =>
+        unless err
+          @get('lifecycle').loaded()
+          record = @record().constructor._mapIdentity(@)
+        else
+          @get('lifecycle').error()
+        callback?(err, record)
+    else
+      callback?(new Batman.StateMachine.InvalidTransitionError("Can't load while in state #{@get('lifecycle.state')}"))
+    return
+
+  destroy: (callback) ->
+    @parent.destroy (err) =>
+      unless err
+        @get('lifecycle').destroyed()
+      else
+        @get('lifecycle').error()
+      callback?(err)
+
+  isNew: -> typeof @get('id') is 'undefined'
+
+  hasStorage: -> (@record()._batman.get('storage') || []).length > 0
+
+  toString: ->
+    "#{$functionName(@record().constructor)}: #{@get('id')}"
+
+  record: ->
+    record = @parent
+    while !(record instanceof Batman.Model)
+      record = record.parent
+    record
+
+  _willSet: (key) ->
+    return if @_pauseDirtyTracking
+    if @get('lifecycle').do 'set'
+      @set "dirtyKeys.#{key}", true
+    else
+      throw new Batman.StateMachine.InvalidTransitionError("Can't set while in state #{@get('lifecycle.state')}")
+
+  _doStorageOperation: (operation, options, callback) ->
+    developer.assert @hasStorage(), "Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!"
+    mechanisms = @record()._batman.get('storage')
+    for mechanism in mechanisms
+      @_pauseDirtyTracking = true
+      mechanism[operation] @, options, =>
+        @_pauseDirtyTracking = false
+        callback(arguments...)
+
+    true
+
+
 # Models
 # ------
 
-class Batman.Model extends Batman.Object
+class Batman.Model extends Batman.ModelDraft
 
   # ## Model API
   # Override this property if your model is indexed by a key other than `id`
@@ -1979,8 +2206,10 @@ class Batman.Model extends Batman.Object
   @find: (id, callback) ->
     developer.assert callback, "Must call find with a callback!"
     record = new @()
+    record._pauseDirtyTracking = true
     record.set 'id', id
     newRecord = @_mapIdentity(record)
+    record._pauseDirtyTracking = false
     newRecord.load callback
     return newRecord
 
@@ -2030,7 +2259,9 @@ class Batman.Model extends Batman.Object
     else
       existing = @get("loaded.indexedBy.id").get(id)?.toArray()[0]
       if existing
-        existing.updateAttributes(record._batman.attributes || {})
+        existing._pauseDirtyTracking = true
+        existing.updateAttributes(record.get('attributes') || {})
+        existing._pauseDirtyTracking = false
         return existing
       else
         @get('loaded').add(record)
@@ -2059,245 +2290,57 @@ class Batman.Model extends Batman.Object
 
       pk = @constructor.primaryKey
       if pk == 'id'
-        @_markDirtyAttribute(k, @id)
+        @_willSet(k, @id)
         @id = v
       else
         @set(pk, v)
 
-  # Add normal accessors for the dirty keys and errors attributes of a record, so these accesses don't fall to the
-  # default accessor.
-  @accessor 'dirtyKeys', 'errors', Batman.Property.defaultAccessor
+  @accessor 'lifecycle', -> @lifecycle ||= new Batman.ModelDraft.LifecycleStateMachine('clean')
+  @accessor 'drafts', -> @drafts ||= new Batman.Set
 
-  @accessor 'batmanState', -> @lifecycle.get('state')
-
-  # Add a default accessor to make models store their attributes under a namespace by default.
+  # Default accessor implementing the base case attributes behaviour
   @accessor Model.defaultAccessor =
-    get: (k) -> (@_batman.attributes ||= {})[k] || @[k]
-    set: (key, value) ->
-      oldValue = @get(key)
-      result = (@_batman.attributes ||= {})[key] = value
-      @_markDirtyAttribute(key, oldValue)
-      result
-
-    unset: (key) ->
-      oldValue = (@_batman.attributes ||={})[key]
-      delete @_batman.attributes[key]
-      @_markDirtyAttribute(key, oldValue)
-      oldValue
-
-  # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
-  # operations on the model are asynchronous, these states are used to indicate exactly what point the
-  # record is at in it's lifetime, which can often be during a save or load operation.
-
-  # Define the various states for the model to use.
-  class Model.InstanceLifecycleStateMachine extends Batman.StateMachine
-    @transitions
-      # Event          from : 'into'  state pairs
-      load:           {empty: 'loading', dirty: 'loading', loaded: 'loading', loading: 'loading'}
-      loaded:         {loading: 'loaded'}
-      keySet:         {empty: 'dirty', loaded: 'dirty', dirty: 'dirty', validated: 'dirty'}
-      clean:          {dirty: 'loaded', loaded: 'loaded'}
-      validate:       {dirty: 'validating', loaded: 'validating', empty: 'validating', validated: 'validating'}
-      validated:      {validating: 'validated'}
-      invalidate:     {validating: ['dirty', 'loaded', 'empty']}
-      doneValidation: {validated: ['dirty', 'loaded', 'empty']}
-      save:           {validated: 'saving', empty: 'saving', loaded: 'saving', dirty: 'saving'}
-      saved:          {saving: 'saved'}
-      create:         {validated: 'creating', empty: 'creating', loaded: 'creating', dirty: 'creating'}
-      created:        {creating: 'created'}
-      doneStore:      {created: 'loaded', saved: 'loaded'}
-      destroy:        {loaded: 'destroying', dirty: 'destroying'}
-      destroyed:      {destroying: 'destroyed'}
-      error:          {loading: 'error', validating: 'error', destroying: 'error', saving: 'error', creating: 'error'}
+    get: (k) ->
+      attribute = @get("attributes.#{k}")
+      if attribute?
+        attribute
+      else
+        @[k]
+    set: (k, v) ->
+      @_willSet(k)
+      @set("attributes.#{k}", v)
+    unset: (k) ->
+      @unset("attributes.#{k}")
 
   # New records can be constructed by passing either an ID or a hash of attributes (potentially
   # containing an ID) to the Model constructor. By not passing an ID, the model is marked as new.
   constructor: (idOrAttributes = {}) ->
     developer.assert  @ instanceof Batman.Object, "constructors must be called with new"
 
-    # We have to do this ahead of super, because mixins will call set which calls things on dirtyKeys.
-    @dirtyKeys = new Batman.Hash
-    @errors = new Batman.ErrorsSet
-    @lifecycle = new Batman.Model.InstanceLifecycleStateMachine('empty')
-
     # Find the ID from either the first argument or the attributes.
     if $typeOf(idOrAttributes) is 'Object'
-      super(idOrAttributes)
+      Batman.Object.call(@, idOrAttributes)
     else
-      super()
+      Batman.Object.call(@)
       @set('id', idOrAttributes)
 
-  updateAttributes: (attrs) ->
-    @mixin(attrs)
-    @
-
-  toString: ->
-    "#{$functionName(@constructor)}: #{@get('id')}"
-
-  # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
-  toJSON: ->
-    obj = {}
-
-    # Encode associations into properties
-    Batman.Association.Collection.encodeModelIntoObject(@, obj)
-
-    # Encode each key into a new object
-    encoders = @_batman.get('encoders')
-    unless !encoders or encoders.isEmpty()
-      encoders.forEach (key, encoder) =>
-        val = @get key
-        if typeof val isnt 'undefined'
-          encodedVal = encoder(val)
-          if typeof encodedVal isnt 'undefined'
-            obj[key] = encodedVal
-    obj
-
-  # `fromJSON` uses the various decoders for each key to generate a record instance from the JSON
-  # stored in whichever storage mechanism.
-  fromJSON: (data) ->
-    obj = {}
-
-    # Decode associations into attributes
-    Batman.Association.Collection.decodeObjectIntoModel(@, obj, data)
-
-    decoders = @_batman.get('decoders')
-    # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
-    # each key and just setting the values.
-    if !decoders or decoders.isEmpty()
-      for key, value of data
-        obj[key] = value
-    else
-      # If we do have decoders, use them to get the data.
-      decoders.forEach (key, decoder) ->
-        obj[key] = decoder(data[key]) if data[key]
-    developer.do ->
-      if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
-        developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
-
-    # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
-    @mixin obj
-
-  _doStorageOperation: (operation, options, callback) ->
-    developer.assert @hasStorage(), "Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!"
-    mechanisms = @_batman.get('storage')
-    for mechanism in mechanisms
-      mechanism[operation] @, options, callback
-    true
-
-  hasStorage: -> (@_batman.get('storage') || []).length > 0
-
-  # `load` fetches the record from all sources possible
-  load: (callback) =>
-    if @lifecycle.get('state') in ['destroying', 'destroyed']
-      callback?(new Error("Can't load a destroyed record!"))
-      return
-
-    if @lifecycle.load()
-      @_doStorageOperation 'read', {}, (err, record) =>
-        unless err
-          @lifecycle.loaded()
-          record = @constructor._mapIdentity(record)
-        else
-          @lifecycle.error()
-        callback?(err, record)
-    else
-      callback?(new Batman.StateMachine.InvalidTransitionError("Can't load while in state #{@lifecycle.get('state')}"))
-
-  # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
-  # a model if it is valid.
-  save: (callback) =>
-    if @lifecycle.get('state') in ['destroying', 'destroyed']
-      callback?(new Error("Can't save a destroyed record!"))
-      return
-
-    @validate (error, errors) =>
-      if error || errors.length
-        callback?(error || errors)
-        return
-      creating = @isNew()
-
-      if @lifecycle.do(if creating then 'create' else 'save')
-
-        if associations = Batman.Association.Collection.getModelAssociations(@)
-          {belongsTo, hasOne, hasMany} = associations
-          # Save belongsTo models immediately since we don't need this model's id
-          belongsTo?.forEach (association) => association.apply(@)
-
-        @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
-          unless err
-            @lifecycle.do(if creating then 'created' else 'saved')
-            @dirtyKeys.clear()
-            hasOne?.forEach (association) -> association.apply(err, record)
-            hasMany?.forEach (association) -> association.apply(err, record)
-            record = @constructor._mapIdentity(record)
-          else
-            @lifecycle.error()
-          @lifecycle.doneStore()
-          callback?(err, record)
-      else
-        callback?(new Batman.StateMachine.InvalidTransitionError("Can't save while in state #{@lifecycle.get('state')}"))
+  record: -> @
+  discard: -> false
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
-    if @lifecycle.destroy()
+    @get('drafts').forEach (draft) -> draft.get('lifecycle').destroy()
+    if @get('lifecycle').destroy()
       @_doStorageOperation 'destroy', {}, (err, record) =>
         unless err
           @constructor.get('all').remove(@)
-          @lifecycle.destroyed()
+          @get('lifecycle').destroyed()
+          @get('drafts').forEach (draft) -> draft.get('lifecycle').destroyed()
         else
-          @lifecycle.error()
+          @get('lifecycle').error()
         callback?(err)
     else
-      callback?(new Batman.StateMachine.InvalidTransitionError("Can't destroy while in state #{@lifecycle.get('state')}"))
-
-  # `validate` performs the record level validations determining the record's validity. These may be asynchronous,
-  # in which case `validate` has no useful return value. Results from asynchronous validations can be received by
-  # listening to the `afterValidation` lifecycle callback.
-  validate: (callback) ->
-    oldState = @lifecycle.get 'state'
-
-    @errors.clear()
-    if @lifecycle.validate()
-
-      finish = () =>
-        if @errors.get('length') == 0
-          @lifecycle.validated()
-          @lifecycle.doneValidation(oldState)
-          callback?(undefined, @errors)
-        else
-          @lifecycle.invalidate(oldState)
-          callback?(undefined, @errors)
-
-      validators = @_batman.get('validators') || []
-      unless validators.length > 0
-        finish()
-      else
-        count = validators.length
-        validationCallback = =>
-          if --count == 0
-            finish()
-        for validator in validators
-          v = validator.validator
-
-          # Run the validator `v` or the custom callback on each key it validates by instantiating a new promise
-          # and passing it to the appropriate function along with the key and the value to be validated.
-          for key in validator.keys
-            if v
-              v.validateEach @errors, @, key, validationCallback
-            else
-              validator.callback @errors, @, key, validationCallback
-    else
-      callback?(new Batman.StateMachine.InvalidTransitionError("Can't validate while in state #{@lifecycle.get('state')}"))
-    return
-
-  isNew: -> typeof @get('id') is 'undefined'
-
-  _markDirtyAttribute: (key, oldValue) ->
-    unless @lifecycle.get('state') in ['loading', 'creating', 'saving', 'saved']
-      if @lifecycle.keySet()
-        @dirtyKeys.set(key, oldValue)
-      else
-        throw new Batman.StateMachine.InvalidTransitionError("Can't set while in state #{@lifecycle.get('state')}")
+      callback?(new Batman.StateMachine.InvalidTransitionError("Can't destroy while in state #{@get('lifecycle.state')}"))
 
 class Batman.Association
   constructor: (@model, @label, @options = {}) ->

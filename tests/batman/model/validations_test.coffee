@@ -4,9 +4,9 @@ validationsTestSuite = ->
       @validate 'name', presence: yes
 
     p = new Product
-    oldState = p.lifecycle.get('state')
+    oldState = p.get('lifecycle.state')
     p.validate (error, errors) ->
-      equal p.lifecycle.get('state'), oldState
+      equal p.get('lifecycle.state'), oldState
       QUnit.start()
 
 
@@ -61,7 +61,6 @@ validationsTestSuite = ->
         throw error if error
         equal errors.length, 1
         QUnit.start()
-
 
 QUnit.module "Batman.Model: validations"
 

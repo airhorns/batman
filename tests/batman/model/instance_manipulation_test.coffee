@@ -27,12 +27,15 @@ asyncTest "instantiated instances can load their values", ->
 
 asyncTest "loading instances should add them to the all set", ->
   product = new @Product(1)
+  equal @Product.get('all').length, 0
   product.load (err, product) =>
+    throw err if err
     equal @Product.get('all').length, 1
     QUnit.start()
 
 asyncTest "loading instances should add them to the all set if no callbacks are given", ->
   product = new @Product(1)
+  equal @Product.get('all').length, 0
   product.load()
   delay =>
     equal @Product.get('all').length, 1
@@ -45,18 +48,20 @@ QUnit.module "Batman.Model instance saving"
     @adapter = new TestStorageAdapter(@Product)
     @Product.persist @adapter
 
-test "model instances should save", ->
+asyncTest "model instances should save", ->
   product = new @Product()
   product.save (err, product) =>
     throw err if err?
     ok product.get('id') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
+    QUnit.start()
 
-test "new instances should be added to the identity map", ->
+asyncTest "new instances should be added to the identity map", ->
   product = new @Product()
   equal @Product.get('loaded.length'), 0
   product.save (err, product) =>
     throw err if err?
     equal @Product.get('loaded').length, 1
+    QUnit.start()
 
 asyncTest "new instances should be added to the identity map even if no callback is given", ->
   product = new @Product()
@@ -66,7 +71,7 @@ asyncTest "new instances should be added to the identity map even if no callback
     throw err if err?
     equal @Product.get('loaded').length, 1
 
-test "existing instances shouldn't be re added to the identity map", ->
+asyncTest "existing instances shouldn't be re added to the identity map", ->
   product = new @Product(10)
   product.load (err, product) =>
     throw err if err
@@ -74,39 +79,43 @@ test "existing instances shouldn't be re added to the identity map", ->
     product.save (err, product) =>
       throw err if err?
       equal @Product.get('all').length, 1
+      QUnit.start()
 
-test "existing instances should be updated with incoming attributes", ->
+asyncTest "existing instances should be updated with incoming attributes", ->
   @adapter.storage = {"products10": {name: "override"}}
   product = new @Product(id: 10, name: "underneath")
   product.load (err, product) =>
     throw err if err
     equal product.get('name'), 'override'
+    QUnit.start()
 
-
-test "model instances should throw if they can't be saved", ->
+asyncTest "model instances should throw if they can't be saved", ->
   product = new @Product()
   @adapter.create = (record, options, callback) -> callback(new Error("couldn't save for some reason"))
   product.save (err, product) =>
     ok err
+    QUnit.start()
 
-test "model instances shouldn't save if they don't validate", ->
+asyncTest "model instances shouldn't save if they don't validate", ->
   @Product.validate 'name', presence: yes
   product = new @Product()
   product.save (err, product) ->
     equal err.length, 1
+    QUnit.start()
 
-test "model instances shouldn't save if they have been destroyed", ->
+asyncTest "model instances shouldn't save if they have been destroyed", ->
   p = new @Product(10)
   p.destroy (err) =>
     throw err if err
     p.save (err) ->
       ok err
-    p.load (err) ->
-      ok err
+      p.load (err) ->
+        ok err
+      QUnit.start()
 
 asyncTest "create method returns an instance of a model while saving it", ->
   result = @Product.create (err, product) =>
-    ok !err
+    throw err if err
     ok product instanceof @Product
     QUnit.start()
   ok result instanceof @Product
@@ -117,6 +126,7 @@ asyncTest "string ids are coerced into integers when possible", ->
     throw err if err
     id = product.get('id')
     @Product.find ""+id, (err, foundProduct) ->
+      throw err if err
       equal foundProduct, product
       QUnit.start()
 

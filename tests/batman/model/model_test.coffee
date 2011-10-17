@@ -38,16 +38,6 @@ test "primary key can be changed by setting primary key on the model class", ->
   product = new @Product(uuid: "abc123")
   equal product.get('id'), 'abc123'
 
-test 'the \'batmanState\' key should be bindable', ->
-  p = new @Product(state: "silly")
-  equal p.lifecycle.get('state'), "dirty"
-  equal p.get('batmanState'), "dirty"
-
-  p.observe 'batmanState', spy = createSpy()
-  p.lifecycle.validate()
-
-  ok spy.called
-
 test 'the instantiated storage adapter should be returned when persisting', ->
   returned = false
   class TestStorageAdapter extends Batman.StorageAdapter
