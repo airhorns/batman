@@ -1911,8 +1911,10 @@ class Batman.ModelDraft extends Batman.Object
       else
         @parent.get(k)
     set: (k, v) ->
-      @_willSet(k)
-      @set("attributes.#{k}", v)
+      if @_willSet(k)
+        @set("attributes.#{k}", v)
+      else
+        v
     unset: (k) ->
       if @get("attributes.#{k}")?
         @unset("attributes.#{k}")
@@ -2071,20 +2073,20 @@ class Batman.ModelDraft extends Batman.Object
     record
 
   _willSet: (key) ->
-    return if @_pauseDirtyTracking
+    return true if @_pauseDirtyTracking
     if @get('lifecycle').do 'set'
       @set "dirtyKeys.#{key}", true
+      true
     else
-      throw new Batman.StateMachine.InvalidTransitionError("Can't set while in state #{@get('lifecycle.state')}")
+      false
 
   _doStorageOperation: (operation, options, callback) ->
     developer.assert @hasStorage(), "Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!"
-    mechanisms = @record()._batman.get('storage')
-    for mechanism in mechanisms
-      @_pauseDirtyTracking = true
-      mechanism[operation] @, options, =>
-        @_pauseDirtyTracking = false
-        callback(arguments...)
+    @_pauseDirtyTracking = true
+    mechanism = @record()._batman.get('storage')[0]
+    mechanism[operation] @, options, =>
+      callback(arguments...)
+      @_pauseDirtyTracking = false
 
     true
 
