@@ -1968,7 +1968,6 @@ class Batman.ModelDraft extends Batman.Object
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
 
-
   validate: (callback) ->
     validators = @record()._batman.get('validators')
     errors = @get('errors')
@@ -2052,12 +2051,7 @@ class Batman.ModelDraft extends Batman.Object
     return
 
   destroy: (callback) ->
-    @parent.destroy (err) =>
-      unless err
-        @get('lifecycle').destroyed()
-      else
-        @get('lifecycle').error()
-      callback?(err)
+    @parent.destroy callback
 
   isNew: -> typeof @get('id') is 'undefined'
 
@@ -2266,7 +2260,7 @@ class Batman.Model extends Batman.ModelDraft
         existing._pauseDirtyTracking = false
         return existing
       else
-        @get('loaded').add(record)
+        @get('loaded').add(record.record())
         return record
 
   # ### Associations API
@@ -2330,16 +2324,17 @@ class Batman.Model extends Batman.ModelDraft
   discard: -> false
 
   # `destroy` destroys a record in all the stores.
-  destroy: (callback) =>
-    @get('drafts').forEach (draft) -> draft.get('lifecycle').destroy()
+  destroy: (callback) ->
     if @get('lifecycle').destroy()
+      @get('drafts').forEach (draft) -> draft.get('lifecycle').destroy()
       @_doStorageOperation 'destroy', {}, (err, record) =>
         unless err
-          @constructor.get('all').remove(@)
+          @constructor.get('loaded').remove(@)
           @get('lifecycle').destroyed()
-          @get('drafts').forEach (draft) -> draft.get('lifecycle').destroyed()
+          @get('drafts').forEach (draft) -> draft.get('lifecycle').destroyed(); draft.discard()
         else
           @get('lifecycle').error()
+          @get('drafts').forEach (draft) -> draft.get('lifecycle').error()
         callback?(err)
     else
       callback?(new Batman.StateMachine.InvalidTransitionError("Can't destroy while in state #{@get('lifecycle.state')}"))
