@@ -3520,7 +3520,7 @@ class Batman.DOM.Iterator
         if @collection.isObservble && @collection.toArray
           @collection.forget(@arrayChanged)
         else if @collection.isEventEmitter
-          @collection.event('itemsWereAdded').removeHandler(@currentAddNumber)
+          @collection.event('itemsWereAdded').removeHandler(@currentAddedHandler)
           @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
 
       @collection = newCollection
