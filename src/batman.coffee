@@ -3456,12 +3456,25 @@ Batman.DOM = {
 class Batman.DOM.Style
   constructor: (@node, @key, @context) ->
     @oldStyles = {}
+
+    if bindings = Batman.data @node, 'bindings'
+      bindings.add this
+    else
+      Batman.data @node, 'bindings', new Batman.Set(this)
+
     context.bind node, key, @dataChange, ->
+
+  destroy: =>
+    @unbindCurrentHash()
+    delete @[k] for own k of this
 
   dataChange: (value) =>
     unless value
       @reapplyOldStyles()
       return
+
+    # remove listeners from a previously bound hash
+    @unbindCurrentHash()
 
     if typeof value is 'string' and @boundValueType = 'string'
       @reapplyOldStyles()
@@ -3471,10 +3484,6 @@ class Batman.DOM.Style
       return
 
     if value instanceof Batman.Hash and @boundValueType = 'batman.hash'
-      # remove listeners from a previously bound hash
-      if @styleHash
-        @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
-        @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
       @styleHash = value
 
       # attach listeners to the the new hash
@@ -3509,6 +3518,11 @@ class Batman.DOM.Style
 
   reapplyOldStyles: =>
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
+
+  unbindCurrentHash: =>
+    if @styleHash
+      @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
+      @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
 
 class Batman.DOM.Iterator
     currentAddNumber: 0

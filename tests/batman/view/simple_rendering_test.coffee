@@ -635,6 +635,29 @@ asyncTest "iterators are kept in Batman.data and destroyed when the parent node 
     equal toArraySpy.callCount, 0
     QUnit.start()
 
+asyncTest "Batman.DOM.Style objects are kept in Batman.data and destroyed when their node is removed", ->
+  context = Batman
+    styles: new Batman.Hash(color: 'green')
+
+  styles = null
+  context.accessor 'css', (setSpy = createSpy -> styles = @styles)
+  helpers.render '<div data-bind-style="css"></div>', context, (node) ->
+    equal setSpy.callCount, 1  # Cached, so only called once
+
+    node = node[0]
+    itemsAddedSpy = spyOn(set, 'itemsWereAdded')
+
+    Batman.DOM.removeNode(node)
+    deepEqual Batman.data(node), {}
+
+    context.set('styles', false)
+    equal setSpy.callCount, 1
+
+    equal itemsAddedSpy.callCount, 0
+    styles.fire('itemsWereAdded')
+    equal itemsAddedSpy.callCount, 0
+    QUnit.start()
+
 asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 10, ->
   context = new Batman.Object foo: ->
 
