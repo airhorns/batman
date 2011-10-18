@@ -74,11 +74,20 @@ asyncTest 'splat matching', ->
   $redirect url = '/x/y/fixed/10/foo/bar'
 
 asyncTest 'query params', ->
+  hasCalledRoute = no
   @App.root (params) ->
     equal params.url, '/'
     equal params.foo, 'bar'
     equal params.x, 'true'
-    QUnit.start()
+
+    if hasCalledRoute
+      equal params.bar, 'baz'
+      QUnit.start()
+    else
+      hasCalledRoute = yes
+      params.bar = 'baz'
+      $redirect params
+
   @App.run()
 
   $redirect '/?foo=bar&x=true'

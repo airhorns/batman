@@ -1546,17 +1546,31 @@ class Batman.Dispatcher extends Batman.Object
           options.action is params.action
       else
         action = route.get 'action'
-        continue if typeof action is 'function'
-
-        {controller, action} = action
-        if controller is params.controller and action is (params.action || 'index')
+        if typeof action is 'function'
           matches = yes
+        else
+          {controller, action} = action
+          if controller is params.controller and action is (params.action || 'index')
+            matches = yes
 
       continue if not matches
-      for key, value of params
-        url = url.replace new RegExp('[:|\*]' + key), value
+      $mixin paramsCopy = {}, params
+      $unmixin paramsCopy, {controller:null, action:null, resource:null, url:null, signature:null, target:null}
 
-      return url
+      for key, value of params
+        regex = new RegExp('[:|\*]' + key)
+        continue if not regex.test url
+
+        url = url.replace regex, value
+        paramsCopy[key] = null
+        delete paramsCopy[key]
+
+      queryString = ''
+      for key, value of paramsCopy
+        queryString += if not queryString then '?' else '&'
+        queryString += key + '=' + value
+
+      return url + queryString
 
   dispatch: (url) ->
     route = @findRoute(url)
