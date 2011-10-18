@@ -91,7 +91,17 @@ asyncTest 'route match with default params', 2, ->
   $redirect '/show'
 
 asyncTest 'resources', ->
+  class @App.ImagesController extends Batman.Controller
+    index: (params) ->
+      equal params.productId, 1, 'index correct'
+      @redirect 'products/1/images/2'
+    show: (params) ->
+      equal params.productId, 1, 'show product correct'
+      equal params.id, 2, 'show image correct'
+      @redirect 'products/1'
+
   @App.resources 'products', ->
+    @resources 'images'
     @collection ->
       @route 'testCollection'
     @member ->
@@ -108,7 +118,7 @@ asyncTest 'resources', ->
   equal @App.test('products/testCollection'), @App.ProductsController::testCollection
   equal @App.test('products/1/test'), @App.ProductsController::testMember
 
-  $redirect 'products/1'
+  $redirect 'products/1/images'
 
 asyncTest 'hash manager', ->
   @App.route 'test', ->

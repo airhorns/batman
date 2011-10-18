@@ -1656,6 +1656,7 @@ Batman.App.classMixin
     (callback = options; options = {}) if typeof options is 'function'
     resource = helpers.pluralize(resource)
     controller = options.controller || resource
+    resource = "#{options.parentResource}/:#{helpers.singularize(options.parentResource)}Id/#{resource}" if options.parentResource
 
     @route(resource, "#{controller}#index", resource: controller, action: 'index') unless options.index is false
     @route("#{resource}/new", "#{controller}#new", resource: controller, action: 'new') unless options.new is false
@@ -1669,6 +1670,10 @@ Batman.App.classMixin
           collectionCallback?.call route: (url, methodName) -> app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
         member: (memberCallback) ->
           memberCallback?.call route: (url, methodName) -> app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
+        resources: (childResource, options={}, callback) =>
+          (callback = options; options = {}) if typeof options is 'function'
+          options.parentResource = resource
+          @resources childResource, options, callback
 
       callback.call ops
 
