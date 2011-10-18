@@ -98,24 +98,3 @@ asyncTest "it should accept translations from other keypaths", ->
   viewHelpers.render '<div data-bind="foo.bar | translate"></div>', false, {foo: {bar: "baz"}}, (node) ->
     equal node.childNodes[0].innerHTML, "baz"
     QUnit.start()
-
-asyncTest "it should interpolate translations with simple values", ->
-  viewHelpers.render '<div data-bind="t.kind_of_grapefruit | translate {\'kind\': \'kind\'}"></div>', false, {kind: 'vert'}, (node) ->
-    equal node.childNodes[0].innerHTML, "pamplemouse vert"
-    QUnit.start()
-
-asyncTest "it should interpolate translations with undefined values", ->
-  Batman.developer.suppress()
-  viewHelpers.render '<div data-bind="t.kind_of_grapefruit | translate {\'kind\': \'kind\'}"></div>', false, {kind: undefined}, (node) ->
-    Batman.developer.unsuppress()
-    equal node.childNodes[0].innerHTML, "pamplemouse "
-    QUnit.start()
-
-asyncTest "it should interpolate translations with counts", ->
-  source = '<div data-bind="t.how_many_grapefruits | translate {\'count\': \'number\'}"></div>'
-  viewHelpers.render source, false, {number: 1}, (node) ->
-    equal node.childNodes[0].innerHTML, "1 pamplemouse"
-
-    viewHelpers.render source, false, {number: 3}, (node) ->
-      equal node.childNodes[0].innerHTML, "3 pamplemouses"
-      QUnit.start()

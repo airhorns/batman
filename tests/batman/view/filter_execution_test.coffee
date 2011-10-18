@@ -221,6 +221,46 @@ asyncTest 'meta binding to a hash', 2, ->
     delay =>
       equals node.html(), "2"
 
+QUnit.module "Batman.Filters: interpolate filter"
+
+asyncTest "it should accept string literals", ->
+  helpers.render '<div data-bind="\'this kind of defeats the purpose\' | interpolate"></div>', false, {}, (node) ->
+    equal node.childNodes[0].innerHTML, "this kind of defeats the purpose"
+    QUnit.start()
+
+asyncTest "it should accept interpolation strings from other keypaths", ->
+  helpers.render '<div data-bind="foo.bar | interpolate"></div>', false, {foo: {bar: "baz"}}, (node) ->
+    equal node.childNodes[0].innerHTML, "baz"
+    QUnit.start()
+
+asyncTest "it should interpolate strings with simple values", ->
+  source = '<div data-bind="\'pamplemouse %{kind}\' | interpolate {\'kind\': \'kind\'}"></div>'
+  helpers.render source, false, {kind: 'vert'}, (node) ->
+    equal node.childNodes[0].innerHTML, "pamplemouse vert"
+    QUnit.start()
+
+asyncTest "it should interpolate strings with undefined values", ->
+  Batman.developer.suppress()
+  source = '<div data-bind="\'pamplemouse %{kind}\' | interpolate {\'kind\': \'kind\'}"></div>'
+  helpers.render source, false, {kind: undefined}, (node) ->
+    Batman.developer.unsuppress()
+    equal node.childNodes[0].innerHTML, "pamplemouse "
+    QUnit.start()
+
+asyncTest "it should interpolate strings with counts", ->
+  context = Batman
+    number: 1
+    how_many_grapefruits:
+      1: "1 pamplemouse"
+      other: "%{count} pamplemouses"
+
+  source = '<div data-bind="how_many_grapefruits | interpolate {\'count\': \'number\'}"></div>'
+  helpers.render source, false, context, (node) ->
+    equal node.childNodes[0].innerHTML, "1 pamplemouse"
+    context.set 'number', 3
+    helpers.render source, false, context, (node) ->
+      equal node.childNodes[0].innerHTML, "3 pamplemouses"
+      QUnit.start()
 
 QUnit.module "Batman.View filter value and parameter parsing"
   setup: ->

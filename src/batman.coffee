@@ -3733,6 +3733,17 @@ filters = Batman.Filters =
     developer.assert value.meta, "Error, value doesn't have a meta to filter on!"
     value.meta.get(keypath)
 
+  interpolate: (string, interpolationKeypaths) ->
+    return undefined unless string?
+    values = {}
+    for k, v of interpolationKeypaths
+      values[k] = @findKey(v)[0]
+      if !values[k]?
+        Batman.developer.warn "Warning! Undefined interpolation key #{k} for interpolation", string
+        values[k] = ''
+
+    Batman.helpers.interpolate(string, values)
+
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
 

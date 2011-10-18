@@ -49,17 +49,7 @@ class Batman.I18N.LocalesStorage extends Batman.Object
 
 Batman.I18N.set 'locales', new Batman.I18N.LocalesStorage
 
-Batman.Filters.t = Batman.Filters.translate = (translation, interpolationKeypaths) ->
-  return undefined unless translation?
-  values = {}
-  for k, v of interpolationKeypaths
-    values[k] = @findKey(v)[0]
-    if !values[k]?
-      Batman.developer.warn "Warning! Undefined interpolation key #{k} for interpolation", translation
-      values[k] = ''
-
-  Batman.helpers.interpolate(translation, values)
-
+Batman.Filters.t = Batman.Filters.translate = Batman.Filters.interpolate
 oldStart = Batman.RenderContext.start
 translationsAlias = Batman()
 translationsAlias.accessor 't', -> Batman.I18N.get('translations')
