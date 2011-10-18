@@ -53,7 +53,8 @@ test "models without any decoders should decode all keys", ->
   oldDecoders = Batman.Model::_batman.decoders
   Batman.Model::_batman.decoders = new Batman.SimpleHash
   p = new TestProduct
-  p.fromJSON {name: "Cool Snowboard", cost: 12.99, rails_is_silly: "yup"}
+  Batman.developer.suppress ->
+    p.fromJSON {name: "Cool Snowboard", cost: 12.99, rails_is_silly: "yup"}
 
   equal p.get('name'), "Cool Snowboard"
   equal p.get('cost'), 12.99
