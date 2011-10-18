@@ -337,7 +337,7 @@ class Batman.Event
     if @base?.isEventEmitter
       key = @key
       @base._batman.ancestors (ancestor) ->
-        if ancestor.isEventEmitter
+        if ancestor.isEventEmitter and ancestor.hasEvent(key)
           handlers = ancestor.event(key).handlers
           handlers.forEach(iterator)
 
@@ -365,12 +365,14 @@ class Batman.Event
 
 Batman.EventEmitter =
   isEventEmitter: true
+  hasEvent: (key) ->
+    @_batman?.get?('events')?.hasKey(key)
   event: (key) ->
     Batman.initializeObject @
     eventClass = @eventClass or Batman.Event
     events = @_batman.events ||= new Batman.SimpleHash
-    if existingEvent = events.get(key)
-      existingEvent
+    if events.hasKey(key)
+      existingEvent = events.get(key)
     else
       existingEvents = @_batman.get('events')
       newEvent = events.set(key, new eventClass(this, key))
@@ -451,7 +453,7 @@ class Batman.Property
     @changeEvent().handlers.forEach(iterator)
     if @base.isObservable
       @base._batman.ancestors (ancestor) ->
-        if ancestor.isObservable
+        if ancestor.isObservable and ancestor.hasProperty(key)
           property = ancestor.property(key)
           handlers = property.event('change').handlers
           handlers.forEach(iterator)
@@ -579,6 +581,8 @@ class Batman.Keypath extends Batman.Property
 # It is applied by default to every instance of `Batman.Object` and subclasses.
 Batman.Observable =
   isObservable: true
+  hasProperty: (key) ->
+    @_batman?.properties?.hasKey?(key)
   property: (key) ->
     Batman.initializeObject @
     propertyClass = @propertyClass or Batman.Keypath
