@@ -247,6 +247,7 @@ developer =
 
 Batman.developer = developer
 
+developer.assert (->).bind, "Error! Batman needs Function.bind to work! Please shim it using something like es5-shim or augmentjs!"
 # Helpers
 # -------
 
