@@ -1061,8 +1061,8 @@ class Batman.Set extends Batman.Object
 
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
-    @_itemObservers = new Batman.Hash
-    @_setObservers = new Batman.Hash
+    @_itemObservers = new Batman.SimpleHash
+    @_setObservers = new Batman.SimpleHash
     @_setObservers.set "itemsWereAdded", => @fire('itemsWereAdded', arguments...)
     @_setObservers.set "itemsWereRemoved", => @fire('itemsWereRemoved', arguments...)
     @on 'itemsWereAdded', @startObservingItems.bind(@)
