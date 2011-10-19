@@ -2617,7 +2617,7 @@ class Batman.View extends Batman.Object
 
         if @contentFor and node
           $setInnerHTML @contentFor, ''
-          @contentFor.appendChild(node)
+          $appendChild @contentFor, node
         else if yieldTo
           if contents = Batman.DOM._yieldContents[yieldTo]
             contents.push node
@@ -3367,10 +3367,10 @@ Batman.DOM = {
     # render any content for this yield
     if contents = Batman.DOM._yieldContents[name]
       if _replaceContent
-        $setInnerHTML node, ''
+        $setInnerHTML node, '', true
       for content in contents when !Batman.data(content, 'yielded')
-        content = if $isChildOf(node, content) then content.cloneNode(true) else content
-        node.appendChild(content)
+        content = content.cloneNode(true) if $isChildOf(node, content)
+        $appendChild node, content, true
         Batman.data(content, 'yielded', true)
       # delete references to the rendered content nodes and mark the node as yielded
       delete Batman.DOM._yieldContents[name]
@@ -3410,7 +3410,8 @@ Batman.DOM = {
     $unbindTree(child) for child in node.childNodes
 
   # Memory-safe setting of a node's innerHTML property
-  setInnerHTML: $setInnerHTML = (node, html) ->
+  setInnerHTML: $setInnerHTML = (node, html, args...) ->
+    hide.apply(child, args) for child in node.childNodes when hide = Batman.data(child, 'hide')
     $unbindTree node, false
     node?.innerHTML = html
 
@@ -3418,6 +3419,10 @@ Batman.DOM = {
   removeNode: $removeNode = (node) ->
     $unbindTree node
     node?.parentNode?.removeChild node
+
+  appendChild: $appendChild = (parent, child, args...) ->
+    Batman.data(child, 'show')?.apply(child, args)
+    parent.appendChild(child)
 
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
