@@ -1773,12 +1773,13 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
+      options.contexts ||= []
+      options.contexts.push @
       options.source ||= helpers.underscore($functionName(@constructor).replace('Controller', '')) + '/' + @_currentAction + '.html'
       options.view = new Batman.View(options)
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
-      view.contexts.push @
       view.on 'ready', ->
         Batman.DOM.replace 'main', view.get('node')
         Batman.currentApp?.allow 'ready'
