@@ -2527,6 +2527,26 @@ class Batman.RestStorage extends Batman.StorageAdapter
 # Views
 # -----------
 
+class Batman.ViewSourceCache extends Batman.Object
+  constructor: ->
+    super
+    @sources = {}
+    @requests = {}
+
+  propertyClass: Batman.Property
+
+  @accessor
+    get: (k) ->
+      return @sources[k] if @sources[k]?
+      unless @requests[k]?
+        @requests = new Batman.Request
+          url: url = "#{Batman.View::prefix}/#{k}"
+          type: 'html'
+          success: (response) => @set(k, response)
+          error: (response) -> throw new Error("Could not load view from #{url}")
+      return undefined
+    set: (k,v) -> @sources[k] = v
+
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
@@ -2539,7 +2559,13 @@ class Batman.View extends Batman.Object
       @contexts.push context
       @unset('context')
 
-  @viewSources: {}
+    # Start the rendering by asking for the node
+    if node = @get('node')
+      @render node
+    else
+      @observe 'node', (node) => @render(node)
+
+  @sourceCache: new Batman.ViewSourceCache()
 
   # Set the source attribute to an html file to have that file loaded.
   source: ''
@@ -2558,34 +2584,24 @@ class Batman.View extends Batman.Object
   # Where to look for views on the server
   prefix: 'views'
 
-  # Whenever the source changes we load it up asynchronously
-  @observeAll 'source', ->
-    $setImmediate => @reloadSource()
+  @accessor 'html', ->
+      return @html if @html && @html.length > 0
+      source = @get 'source'
+      return if not source
+      @html = @constructor.sourceCache.get(source)
 
-  reloadSource: ->
-    source = @get 'source'
-    return if not source
+  @accessor 'node'
+    get: ->
+      unless @node
+        html = @get('html')
+        return unless html && html.length > 0
+        @node = document.createElement 'div'
+        $setInnerHTML(@node, html)
+      return @node
+    set: (_, node) -> @node = node
 
-    if Batman.View.viewSources[source]
-      @set('html', Batman.View.viewSources[source])
-    else
-      new Batman.Request
-        url: url = "#{@prefix}/#{@source}"
-        type: 'html'
-        success: (response) =>
-          Batman.View.viewSources[source] = response
-          @set('html', response)
-        error: (response) ->
-          throw new Error("Could not load view from #{url}")
 
-  @observeAll 'html', (html) ->
-    node = @node || document.createElement 'div'
-    $setInnerHTML(node, html)
-
-    @set('node', node) if @node isnt node
-
-  @observeAll 'node', (node) ->
-    return unless node
+  render: (node) ->
     @event('ready').resetOneShot()
 
     if @_renderer

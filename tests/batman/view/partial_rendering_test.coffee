@@ -10,11 +10,14 @@ QUnit.module 'Batman.View partial rendering'
     Batman.Request = MockRequest
 
   teardown: ->
-    Batman.View.viewSources = {}
+    Batman.View.sourceCache = new Batman.ViewSourceCache
     Batman.Request = oldRequest
 
 asyncTest "preloaded/already rendered partials should render", ->
-  Batman.View.viewSources['test/one.html'] = "<div>Hello from a partial</div>"
+  Batman.View.sourceCache =
+    get: (k) ->
+      equal k, 'test/one.html'
+      "<div>Hello from a partial</div>"
 
   source = '<div data-partial="test/one"></div>'
   node = helpers.render source, {}, (node) ->
@@ -24,7 +27,6 @@ asyncTest "preloaded/already rendered partials should render", ->
 asyncTest "unloaded partials should load then render", 2, ->
   source = '<div data-partial="test/one"></div>'
 
-
   # Callback below doesn't fire until view's ready event, which waits for the partial to be fetched and rendered.
   node = helpers.render source, {}, (node) ->
     equal node.children(0).children(0).html(), "Hello from a partial"
@@ -33,4 +35,22 @@ asyncTest "unloaded partials should load then render", 2, ->
   setTimeout ->
     deepEqual MockRequest.lastInstance.constructorArguments[0].url, "views/test/one.html"
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
-  , 25
+  , ASYNC_TEST_DELAY
+
+asyncTest "unloaded partials should only load once", ->
+  source = '<div data-foreach-object="objects">
+              <div data-partial="test/one"></div>
+            </div>'
+
+  context = Batman
+    objects: new Batman.Set(1,2,3,4)
+
+  node = helpers.render source, context, (node) ->
+    equal node.children(0).children(0).children(0).html(), "Hello from a partial"
+    QUnit.start()
+
+  setTimeout ->
+    equal MockRequest.instanceCount, 1
+    MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
+  , ASYNC_TEST_DELAY
+
