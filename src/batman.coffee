@@ -1074,7 +1074,7 @@ class Batman.SetObserver extends Batman.Object
 
   _getOrSetObserverForItemAndKey: (item, key) ->
     @_itemObservers.getOrSet item, =>
-      observersByKey = new Batman.Hash
+      observersByKey = new Batman.SimpleHash
       observersByKey.getOrSet key, =>
         @observerForItemAndKey(item, key)
   startObserving: ->
@@ -1178,7 +1178,7 @@ class Batman.SetSort extends Batman.SetProxy
 class Batman.SetIndex extends Batman.Object
   constructor: (@base, @key) ->
     super()
-    @_storage = new Batman.Hash
+    @_storage = new Batman.SimpleHash
     if @base.isEventEmitter
       @_setObserver = new Batman.SetObserver(@base)
       @_setObserver.observedItemKeys = [@key]
@@ -1201,7 +1201,9 @@ class Batman.SetIndex extends Batman.Object
     @_resultSetForKey(key).add item
   _removeItem: (item) -> @_removeItemFromKey(item, @_keyForItem(item))
   _removeItemFromKey: (item, key) ->
-    @_resultSetForKey(key).remove item
+    results = @_resultSetForKey(key)
+    results.remove item
+    @_storage.unset(key) if results.isEmpty()
   _resultSetForKey: (key) ->
     @_storage.getOrSet(key, -> new Batman.Set)
   _keyForItem: (item) ->
@@ -1218,8 +1220,8 @@ class Batman.UniqueSetIndex extends Batman.SetIndex
       @_uniqueIndex.set(key, item)
   _removeItemFromKey: (item, key) ->
     resultSet = @_resultSetForKey(key)
-    resultSet.remove item
-    if resultSet.length is 0
+    super
+    if resultSet.isEmpty()
       @_uniqueIndex.unset(key)
     else
       @_uniqueIndex.set(key, resultSet.toArray()[0])
