@@ -2266,29 +2266,37 @@ class Batman.Model extends Batman.Object
 
   isNew: -> typeof @get('id') is 'undefined'
 
-Batman.Association = {}
 # TODO clenaup association objects
-
-class Batman.Association.belongsTo
+class Batman.Association
   constructor: (@model, @label, @relatedModel) ->
-    # TODO abstract into Batman.Association
+    type = $functionName(@constructor)
     model.associations ||= {}
-    model.associations.belongsTo ||= new Batman.Set
-    model.associations.belongsTo.add @
+    model.associations[type] ||= new Batman.Hash
+    model.associations[type].set @, label # reverse hash for label lookup
+
     # TODO call @encode for "relatedModel_id"
 
+    # curry association info into the getAccessor, which is called with this set to the model
+    self = @
+    getAccessor = -> return self.getAccessor.call(@, model, label, relatedModel)
+
     model.accessor label,
-      get: ->
-        if relatedRecord = @_batman.attributes?[label]
-          return relatedRecord
-        else if id = @get(label + "_id")
-          relatedRecord = new relatedModel(id: id)
-          relatedRecord.load (error, loadedRecord) =>
-            throw error if error
-            relatedRecord = loadedRecord
-          return relatedRecord
+      get: getAccessor
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
+
+  getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
+
+class Batman.Association.belongsTo extends Batman.Association
+  getAccessor: (model, label, relatedModel) ->
+    if relatedRecord = @_batman.attributes?[label]
+      return relatedRecord
+    else if id = @get(label + "_id")
+      relatedRecord = new relatedModel(id: id)
+      relatedRecord.load (error, loadedRecord) =>
+        throw error if error
+        relatedRecord = loadedRecord
+      return relatedRecord
 
   save: (base) ->
     # This event will be allowed but not fired, because base's storage op still needs to happen
@@ -2303,41 +2311,30 @@ class Batman.Association.belongsTo
       base.set "#{@label}_id", model.id if model
       saveEvent.allow()
 
-class Batman.Association.hasOne
-  constructor: (@model, @label, @relatedModel) ->
-    # TODO abstract into Batman.Association
-    model.associations ||= {}
-    model.associations.hasOne ||= new Batman.Set
-    model.associations.hasOne.add @
-    # TODO call @encode for "relatedModel_id"
+class Batman.Association.hasOne extends Batman.Association
+  getAccessor: (model, label, relatedModel) ->
+    # FIXME need to short-circuit the get/set accessor loop
+    return if @amSetting
+    existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
+    return existingRelation if existingRelation?
+    return unless @id # FIXME use accessor for id
 
-    model.accessor label,
-      get: ->
-        # FIXME need to short-circuit the get/set accessor loop
-        return if @amSetting
-        existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
-        return existingRelation if existingRelation?
-        return unless @id # FIXME use accessor for id
-
-        modelName = $functionName(model).toLowerCase()
-        relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
-        unless relatedRecords.isEmpty()
-          return relatedRecords.toArray()[0]
-        else
-          loadOptions = {}
-          loadOptions[modelName + '_id'] = @id
-          loadedRecord = new relatedModel
-          @amSetting = true
-          @set label, loadedRecord
-          relatedModel.load loadOptions, (error, loadedRecords) =>
-            throw error if error
-            return unless loadedRecords or loadedRecords.isEmpty()
-            loadedRecord.fromJSON(loadedRecords[0].toJSON())
-            @amSetting = false
-          loadedRecord
-
-      set: Batman.Model.defaultAccessor.set
-      unset: Batman.Model.defaultAccessor.unset
+    modelName = $functionName(model).toLowerCase()
+    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
+    unless relatedRecords.isEmpty()
+      return relatedRecords.toArray()[0]
+    else
+      loadOptions = {}
+      loadOptions[modelName + '_id'] = @id
+      loadedRecord = new relatedModel
+      @amSetting = true
+      @set label, loadedRecord
+      relatedModel.load loadOptions, (error, loadedRecords) =>
+        throw error if error
+        return unless loadedRecords or loadedRecords.isEmpty()
+        loadedRecord.fromJSON(loadedRecords[0].toJSON())
+        @amSetting = false
+      loadedRecord
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
@@ -2356,42 +2353,31 @@ class Batman.Association.hasOne
     else
       saveEvent.allowAndFire baseSaveError, base
 
-class Batman.Association.hasMany
-  constructor: (@model, @label, @relatedModel) ->
-    # TODO abstract into Batman.Association
-    model.associations ||= {}
-    model.associations.hasMany ||= new Batman.Set
-    model.associations.hasMany.add @
-    # TODO call @encode for "relatedModel_id"
+class Batman.Association.hasMany extends Batman.Association
+  getAccessor: (model, label, relatedModel) ->
+    # FIXME need to short-circuit the get/set accessor loop
+    return if @amSetting
+    existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
+    return existingRelation if existingRelation?
+    return unless @id # FIXME use accessor for id
 
-    model.accessor label,
-      get: ->
-        # FIXME need to short-circuit the get/set accessor loop
-        return if @amSetting
-        existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
-        return existingRelation if existingRelation?
-        return unless @id # FIXME use accessor for id
-
-        modelName = $functionName(model).toLowerCase()
-        relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
-        unless relatedRecords.isEmpty()
-          return relatedRecords.toArray()
-        else
-          loadOptions = {}
-          loadOptions[modelName + '_id'] = @id
-          # FIXME need to create a set to return immediately
-          loadedRecords = new Batman.Set
-          @amSetting = true
-          @set label, loadedRecords
-          relatedModel.load loadOptions, (error, records) =>
-            throw error if error
-            return unless records or records.isEmpty()
-            loadedRecords.add(record) for record in records
-            @amSetting = false
-          loadedRecords
-
-      set: Batman.Model.defaultAccessor.set
-      unset: Batman.Model.defaultAccessor.unset
+    modelName = $functionName(model).toLowerCase()
+    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
+    unless relatedRecords.isEmpty()
+      return relatedRecords.toArray()
+    else
+      loadOptions = {}
+      loadOptions[modelName + '_id'] = @id
+      # FIXME need to create a set to return immediately
+      loadedRecords = new Batman.Set
+      @amSetting = true
+      @set label, loadedRecords
+      relatedModel.load loadOptions, (error, records) =>
+        throw error if error
+        return unless records or records.isEmpty()
+        loadedRecords.add(record) for record in records
+        @amSetting = false
+      loadedRecords
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
