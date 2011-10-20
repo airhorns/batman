@@ -58,7 +58,16 @@ class TestStorageAdapter extends Batman.StorageAdapter
     else
       callback(new Error("Can't delete record without an primary key!"), record)
 
+class AsyncTestStorageAdapter extends TestStorageAdapter
+  for k in ['update', 'create', 'read', 'readAll', 'destroy']
+    do (k) =>
+      AsyncTestStorageAdapter[k] = ->
+        setTimeout (=> TestStorageAdapter[k].apply(@, arguments)), ASYNC_TEST_DELAY
+
 if typeof exports is 'undefined'
   window.TestStorageAdapter = TestStorageAdapter
+  window.AsyncTestStorageAdapter = AsyncTestStorageAdapter
 else
   exports.TestStorageAdapter = TestStorageAdapter
+  exports.AsyncTestStorageAdapter = AsyncTestStorageAdapter
+
