@@ -367,6 +367,9 @@ class Batman.Event
       @_oneShotFired = true
       @_oneShotArgs = arguments
     @eachHandler (handler) -> handler.apply(context, args)
+  allowAndFire: ->
+    @allow()
+    @fire(arguments...)
 
 Batman.EventEmitter =
   isEventEmitter: true
@@ -402,6 +405,8 @@ Batman.EventEmitter =
     @event(key).isPrevented()
   fire: (key, args...) ->
     @event(key).fire(args...)
+  allowAndFire: (key, args...) ->
+    @event(key).allowAndFire(args...)
 
 class Batman.PropertyEvent extends Batman.Event
   eachHandler: (iterator) -> @base.eachObserver(iterator)
@@ -1628,8 +1633,7 @@ class Batman.Navigator
     Batman.currentApp.prevent 'ready'
     $setImmediate =>
       @handleCurrentLocation()
-      Batman.currentApp.allow 'ready'
-      Batman.currentApp.fire 'ready'
+      Batman.currentApp.allowAndFire 'ready'
   stop: ->
     @stopWatching()
     @started = no
@@ -1852,8 +1856,7 @@ class Batman.Controller extends Batman.Object
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', ->
         Batman.DOM.replace (options.into || 'main'), view.get('node')
-        Batman.currentApp?.allow 'ready'
-        Batman.currentApp?.fire 'ready'
+        Batman.currentApp?.allowAndFire 'ready'
     view
 
 # Models
@@ -3105,8 +3108,7 @@ Batman.DOM = {
         contexts: context.chain()
 
       view.on 'ready', ->
-        renderer.allow 'rendered'
-        renderer.fire 'rendered'
+        renderer.allowAndFire 'rendered'
 
       true
 
@@ -3902,8 +3904,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
     finish = =>
       return if @destroyed
-      @parentRenderer.allow 'rendered'
-      @parentRenderer.fire 'rendered'
+      @parentRenderer.allowAndFire 'rendered'
 
     childRenderer.on 'rendered', finish
     childRenderer.on 'stopped', =>
@@ -3973,8 +3974,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber
-          @parentRenderer.allow 'rendered'
-          @parentRenderer.fire 'rendered'
+          @parentRenderer.allowAndFire 'rendered'
 
   nextSibling: ->
     if @lastNode
