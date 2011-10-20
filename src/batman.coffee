@@ -3997,6 +3997,25 @@ class Batman.Paginator extends Batman.Object
       value
   @accessor 'pageCount', @::pageCount
 
+class Batman.ModelPaginator extends Batman.Paginator
+  cachePadding: 0
+  paddedOffset: (offset) ->
+    offset -= @cachePadding
+    if offset < 0 then 0 else offset
+  paddedLimit: (limit) ->
+    limit + @cachePadding * 2
+
+  loadItemsForOffsetAndLimit: (offset, limit) ->
+    params = @paramsForOffsetAndLimit(offset, limit)
+    params[k] = v for k,v of @params
+    @model.load params, (err, records) =>
+      @updateCache(@offsetFromParams(params), @limitFromParams(params), records)
+
+  # override these to fetch records however you like:
+  paramsForOffsetAndLimit: (offset, limit) ->
+    offset: @paddedOffset(offset), limit: @paddedLimit(limit)
+  offsetFromParams: (params) -> params.offset
+  limitFromParams: (params) -> params.limit
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
