@@ -2194,8 +2194,34 @@ class Batman.Model extends Batman.Object
 
       do @saving
       do @creating if creating
-      @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
-        unless err
+
+      modelSaved = @event('modelSaved')
+      modelSaved.prevent() # for the storage operation
+      modelSaved.addHandler (err, savedRecord) ->
+        callback?(err, savedRecord)
+
+      if associations = @constructor.associations
+        {belongsTo, hasOne, hasMany} = associations
+
+        # Prevent modelSaved for each association
+        for k in [belongsTo, hasOne, hasMany]
+          k?.forEach (key) => modelSaved.prevent()
+
+        # save belongTo models
+        # TODO port into event hook
+        belongsTo?.forEach (key) =>
+          if (model = @get(key)) and model.state() is "dirty"
+            model.save (err, record) =>
+              throw err if err
+              @set "#{key}_id", record.id
+              # Don't fire here; storage op still needs to happen
+              modelSaved.allow()
+          else
+            @set "#{key}_id", model.id if model
+            modelSaved.allow()
+
+      @_doStorageOperation (if creating then 'create' else 'update'), {}, (mainErr, record) =>
+        unless mainErr
           if creating
             do @created
           do @saved
@@ -2203,30 +2229,37 @@ class Batman.Model extends Batman.Object
           record = @constructor._mapIdentity(record)
 
           # save hasOne models
-          # TODO port into event hook
-          if associations 
-            if hasOne = associations.hasOne
-              hasOne.forEach (key) =>
-                # FIXME use `model = record.get(key)`
-                if model = record._batman.attributes?[key]
-                  foreignKey = $functionName(@constructor).toLowerCase() + "_id"
-                  model.set foreignKey, @id
+          # TODO port into event hook?
+          hasOne?.forEach (key) =>
+            # FIXME use `model = record.get(key)`
+            if model = record._batman.attributes?[key]
+              foreignKey = $functionName(@constructor).toLowerCase() + "_id"
+              model.set foreignKey, @id
 
-                  unless model.state() is "saved"
-                    model.save (err, record) => throw err if err
+              if model.state() is "dirty"
+                model.save (err, hasOneRecord) => 
+                  throw err if err
+                  modelSaved.allowAndFire(mainErr, record)
+              else
+                modelSaved.allowAndFire(mainErr, record)
+            else
+              modelSaved.allowAndFire(mainErr, record)
 
-            if hasMany = associations.hasMany
-              hasMany.forEach (key) =>
-                # FIXME use `model = record.get(key)`
-                if hasManySet = record._batman.attributes?[key]
-                  hasManySet.forEach (model) =>
-                    foreignKey = $functionName(@constructor).toLowerCase() + "_id"
-                    model.set foreignKey, @id
-                    unless model.state() is "saved"
-                      model.save (err, record) => throw err if err
+          hasMany?.forEach (key) =>
+            # FIXME use `model = record.get(key)`
+            if hasManySet = record._batman.attributes?[key]
+              hasManySet.forEach (model) =>
+                foreignKey = $functionName(@constructor).toLowerCase() + "_id"
+                model.set foreignKey, @id
+                if model.state() is "dirty"
+                  model.save (err, hasManyRecord) =>
+                    throw err if err
+                    modelSaved.allowAndFire(mainErr, record)
+                else
+                  modelSaved.allowAndFire(mainErr, record)
 
-        # TODO don't fire overall callback until all associations have saved
-        callback?(err, record)
+        # Done storage operation; if there are no pending associations the event will fire
+        modelSaved.allowAndFire(mainErr, record)
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
@@ -2319,7 +2352,6 @@ class Batman.Association.hasOne
         else
           loadOptions = {}
           loadOptions[modelName + '_id'] = @id
-          # FIXME need to create an instance of the model we want to return immediately
           loadedRecord = new relatedModel
           @amSetting = true
           @set label, loadedRecord
