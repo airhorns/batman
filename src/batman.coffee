@@ -4009,7 +4009,8 @@ class Batman.ModelPaginator extends Batman.Paginator
     params = @paramsForOffsetAndLimit(offset, limit)
     params[k] = v for k,v of @params
     @model.load params, (err, records) =>
-      @updateCache(@offsetFromParams(params), @limitFromParams(params), records)
+      unless err?
+        @updateCache(@offsetFromParams(params), @limitFromParams(params), records)
 
   # override these to fetch records however you like:
   paramsForOffsetAndLimit: (offset, limit) ->
