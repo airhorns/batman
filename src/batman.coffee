@@ -3947,6 +3947,57 @@ Batman.Encoders =
         developer.error "Unrecognized rails date #{value}!"
 
 
+class Batman.Paginator extends Batman.Object
+  class @Cache
+    constructor: (@offset, @limit, @items) ->
+      @length = items.length
+      @reach = offset + limit
+    containsItemsForOffsetAndLimit: (offset, limit) ->
+      offset >= @offset and (offset + limit) <= @reach
+    itemsForOffsetAndLimit: (offset, limit) ->
+      return unless @containsItemsForOffsetAndLimit(offset, limit)
+      begin = offset-@offset
+      end = begin + limit
+      @items.slice(begin, end)
+  
+  offset: 0
+  limit: 10
+  totalCount: 0
+  
+  offsetFromPageAndLimit: (page, limit) -> Math.round((+page - 1) * limit)
+  pageFromOffsetAndLimit: (offset, limit) -> offset / limit + 1
+  
+  toArray: ->
+    cache = @get('cache')
+    offset = @get('offset')
+    limit = @get('limit')
+    items = cache?.itemsForOffsetAndLimit(offset, limit)
+    @loadItemsForOffsetAndLimit(offset, limit) unless items
+    items or []
+  page: ->
+    @pageFromOffsetAndLimit(@get('offset'), @get('limit'))
+  pageCount: ->
+    Math.ceil(@get('totalCount') / @get('limit'))
+  
+  previousPage: -> @set('page', @get('page')-1)
+  nextPage: -> @set('page', @get('page')+1)
+  
+  loadItemsForOffsetAndLimit: (offset, limit) -> # override on subclasses or instances
+  updateCache: (offset, limit, items) ->
+    @set('cache', new Batman.Paginator.Cache(offset, limit, items))
+  @accessor 'toArray', @::toArray
+  @accessor 'offset', 'limit', 'totalCount'
+    get: Batman.Property.defaultAccessor.get
+    set: (key, value) -> Batman.Property.defaultAccessor.set.call(this, key, +value)
+  @accessor 'page',
+    get: @::page
+    set: (_,value) ->
+      value = +value
+      @set('offset', @offsetFromPageAndLimit(value, @get('limit')))
+      value
+  @accessor 'pageCount', @::pageCount
+
+
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
 container = if exports?
