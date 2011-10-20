@@ -2202,64 +2202,25 @@ class Batman.Model extends Batman.Object
 
       if associations = @constructor.associations
         {belongsTo, hasOne, hasMany} = associations
-
         # Prevent modelSaved for each association
         for k in [belongsTo, hasOne, hasMany]
           k?.forEach (key) => modelSaved.prevent()
+        # Save belongsTo models immediately since we don't need this model to have an id
+        belongsTo?.forEach (association) => association.save(@)
 
-        # save belongTo models
-        # TODO port into event hook
-        belongsTo?.forEach (key) =>
-          if (model = @get(key)) and model.state() is "dirty"
-            model.save (err, record) =>
-              throw err if err
-              @set "#{key}_id", record.id
-              # Don't fire here; storage op still needs to happen
-              modelSaved.allow()
-          else
-            @set "#{key}_id", model.id if model
-            modelSaved.allow()
-
-      @_doStorageOperation (if creating then 'create' else 'update'), {}, (mainErr, record) =>
-        unless mainErr
+      @_doStorageOperation (if creating then 'create' else 'update'), {}, (storageOpError, record) =>
+        unless storageOpError
           if creating
             do @created
           do @saved
           @dirtyKeys.clear()
           record = @constructor._mapIdentity(record)
 
-          # save hasOne models
-          # TODO port into event hook?
-          hasOne?.forEach (key) =>
-            # FIXME use `model = record.get(key)`
-            if model = record._batman.attributes?[key]
-              foreignKey = $functionName(@constructor).toLowerCase() + "_id"
-              model.set foreignKey, @id
-
-              if model.state() is "dirty"
-                model.save (err, hasOneRecord) => 
-                  throw err if err
-                  modelSaved.allowAndFire(mainErr, record)
-              else
-                modelSaved.allowAndFire(mainErr, record)
-            else
-              modelSaved.allowAndFire(mainErr, record)
-
-          hasMany?.forEach (key) =>
-            # FIXME use `model = record.get(key)`
-            if hasManySet = record._batman.attributes?[key]
-              hasManySet.forEach (model) =>
-                foreignKey = $functionName(@constructor).toLowerCase() + "_id"
-                model.set foreignKey, @id
-                if model.state() is "dirty"
-                  model.save (err, hasManyRecord) =>
-                    throw err if err
-                    modelSaved.allowAndFire(mainErr, record)
-                else
-                  modelSaved.allowAndFire(mainErr, record)
+          for k in [hasOne, hasMany]
+            k?.forEach (association) -> association.save(storageOpError, record)
 
         # Done storage operation; if there are no pending associations the event will fire
-        modelSaved.allowAndFire(mainErr, record)
+        modelSaved.allowAndFire(storageOpError, record)
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
@@ -2309,11 +2270,11 @@ Batman.Association = {}
 # TODO clenaup association objects
 
 class Batman.Association.belongsTo
-  constructor: (model, label, relatedModel) ->
+  constructor: (@model, @label, @relatedModel) ->
     # TODO abstract into Batman.Association
     model.associations ||= {}
-    model.associations.belongsTo ||= new Batman.Hash
-    model.associations.belongsTo.set label, model
+    model.associations.belongsTo ||= new Batman.Set
+    model.associations.belongsTo.add @
     # TODO call @encode for "relatedModel_id"
 
     model.accessor label,
@@ -2329,12 +2290,25 @@ class Batman.Association.belongsTo
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
+  save: (base) ->
+    # This event will be allowed but not fired, because base's storage op still needs to happen
+    saveEvent = base.event('modelSaved')
+
+    if (model = base.get(@label)) and model.state() is "dirty"
+      model.save (err, record) =>
+        throw err if err
+        base.set "#{@label}_id", record.id
+        saveEvent.allow()
+    else
+      base.set "#{@label}_id", model.id if model
+      saveEvent.allow()
+
 class Batman.Association.hasOne
-  constructor: (model, label, relatedModel) ->
+  constructor: (@model, @label, @relatedModel) ->
     # TODO abstract into Batman.Association
     model.associations ||= {}
-    model.associations.hasOne ||= new Batman.Hash
-    model.associations.hasOne.set label, model
+    model.associations.hasOne ||= new Batman.Set
+    model.associations.hasOne.add @
     # TODO call @encode for "relatedModel_id"
 
     model.accessor label,
@@ -2365,12 +2339,29 @@ class Batman.Association.hasOne
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
+  save: (baseSaveError, base) ->
+    saveEvent = base.event('modelSaved')
+
+    # FIXME use `base.get(key)`
+    if model = base._batman.attributes?[@label]
+      foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
+      model.set foreignKey, base.id
+
+      if model.state() is "dirty"
+        model.save (err, relatedRecord) => 
+          throw err if err
+          saveEvent.allowAndFire baseSaveError, base
+      else
+        saveEvent.allowAndFire baseSaveError, base
+    else
+      saveEvent.allowAndFire baseSaveError, base
+
 class Batman.Association.hasMany
-  constructor: (model, label, relatedModel) ->
+  constructor: (@model, @label, @relatedModel) ->
     # TODO abstract into Batman.Association
     model.associations ||= {}
-    model.associations.hasMany ||= new Batman.Hash
-    model.associations.hasMany.set label, model
+    model.associations.hasMany ||= new Batman.Set
+    model.associations.hasMany.add @
     # TODO call @encode for "relatedModel_id"
 
     model.accessor label,
@@ -2401,6 +2392,21 @@ class Batman.Association.hasMany
 
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
+
+  save: (baseSaveError, base) ->
+    saveEvent = base.event('modelSaved')
+    # FIXME use `model = record.get(key)`
+    if relatedModels = base._batman.attributes?[@label]
+      relatedModels.forEach (model) =>
+        foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
+        model.set foreignKey, base.id
+
+        if model.state() is "dirty"
+          model.save (err, relatedRecord) =>
+            throw err if err
+            saveEvent.allowAndFire baseSaveError, base
+        else
+          saveEvent.allowAndFire baseSaveError, base
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})
