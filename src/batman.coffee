@@ -2266,7 +2266,6 @@ class Batman.Model extends Batman.Object
 
   isNew: -> typeof @get('id') is 'undefined'
 
-# TODO clenaup association objects
 class Batman.Association
   constructor: (@model, @label, @relatedModel) ->
     type = $functionName(@constructor)
@@ -2291,18 +2290,18 @@ class Batman.Association.belongsTo extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
     if relatedRecord = @_batman.attributes?[label]
       return relatedRecord
-    else if id = @get(label + "_id")
-      relatedRecord = new relatedModel(id: id)
+    else if relatedID = @get(label + "_id")
+      relatedRecord = new relatedModel(id: relatedID)
       relatedRecord.load (error, loadedRecord) =>
         throw error if error
         relatedRecord = loadedRecord
       return relatedRecord
 
   save: (base) ->
-    # This event will be allowed but not fired, because base's storage op still needs to happen
+    # saveEvent is allowed but not fired, because base's storage op still needs to happen
     saveEvent = base.event('modelSaved')
-
-    if (model = base.get(@label)) and model.state() is "dirty"
+    model = base.get(@label)
+    if model?.state() is "dirty"
       model.save (err, record) =>
         throw err if err
         base.set "#{@label}_id", record.id
@@ -2313,39 +2312,44 @@ class Batman.Association.belongsTo extends Batman.Association
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
-    # FIXME need to short-circuit the get/set accessor loop
     return if @amSetting
-    existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
-    return existingRelation if existingRelation?
-    return unless @id # FIXME use accessor for id
 
+    # Check whether the relatedModel has already been set on this model
+    existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
+    return existingInstance if existingInstance?
+
+    # Make sure we have an id to match on
+    return unless id = @get('id')
+
+    # Check whether the relatedModel has already loaded the instance we want
     modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
+    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
-      loadOptions = {}
-      loadOptions[modelName + '_id'] = @id
+      # Create a relatedModel instance to return immediately and populate when it loads
       loadedRecord = new relatedModel
-      @amSetting = true
+      @amSetting = true # FIXME shouldn't need to short-circuit the get/set accessor loop
       @set label, loadedRecord
+
+      loadOptions = {}
+      loadOptions[modelName + '_id'] = id
       relatedModel.load loadOptions, (error, loadedRecords) =>
         throw error if error
         return unless loadedRecords or loadedRecords.isEmpty()
-        loadedRecord.fromJSON(loadedRecords[0].toJSON())
+        # FIXME hacky way to update the loadedRecord without overwriting the returned reference
+        loadedRecord.fromJSON loadedRecords[0].toJSON()
         @amSetting = false
       loadedRecord
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
-
-    # FIXME use `base.get(key)`
-    if model = base._batman.attributes?[@label]
+    if relatedModel = base._batman.attributes?[@label]
       foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
-      model.set foreignKey, base.id
+      relatedModel.set foreignKey, base.id
 
-      if model.state() is "dirty"
-        model.save (err, relatedRecord) => 
+      if relatedModel.state() is "dirty"
+        relatedModel.save (err, relatedRecord) => 
           throw err if err
           saveEvent.allowAndFire baseSaveError, base
       else
@@ -2355,23 +2359,24 @@ class Batman.Association.hasOne extends Batman.Association
 
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
-    # FIXME need to short-circuit the get/set accessor loop
     return if @amSetting
-    existingRelation = Batman.Model.defaultAccessor.get.call(@, label)
-    return existingRelation if existingRelation?
-    return unless @id # FIXME use accessor for id
+
+    existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
+    return existingInstance if existingInstance?
+
+    return unless id = @get('id')
 
     modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(@id)
+    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()
     else
-      loadOptions = {}
-      loadOptions[modelName + '_id'] = @id
-      # FIXME need to create a set to return immediately
       loadedRecords = new Batman.Set
       @amSetting = true
       @set label, loadedRecords
+
+      loadOptions = {}
+      loadOptions[modelName + '_id'] = id
       relatedModel.load loadOptions, (error, records) =>
         throw error if error
         return unless records or records.isEmpty()
@@ -2381,7 +2386,6 @@ class Batman.Association.hasMany extends Batman.Association
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
-    # FIXME use `model = record.get(key)`
     if relatedModels = base._batman.attributes?[@label]
       relatedModels.forEach (model) =>
         foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
