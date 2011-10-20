@@ -1,0 +1,4 @@
+{
+  "db": "mysql://root:donthack@localhost/watson",
+  "path": "reports"
+}
