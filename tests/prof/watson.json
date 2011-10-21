@@ -1,4 +1,5 @@
 {
   "db": "mysql://root:donthack@localhost/watson",
-  "path": "reports"
+  "path": "./reports",
+  "tests": "./tests"
 }

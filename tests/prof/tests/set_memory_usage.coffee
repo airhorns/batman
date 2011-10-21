@@ -1,10 +1,10 @@
 Batman = require './../../../lib/batman'
 Watson = require 'watson'
+Clunk  = require './lib/clunk'
 
 set = new Batman.Set
 
-Watson.trackMemory 'hash memory usage', 3000, (i) ->
-  Set.add new Batman.Object
-  if i == 2000
+Watson.trackMemory 'set memory usage', 10000, (i) ->
+  set.add new Clunk
+  if i % 2000 == 0
     set.clear()
-
