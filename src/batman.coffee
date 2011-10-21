@@ -890,10 +890,12 @@ class Batman.SimpleHash
     pairs.push([key, val])
     val
   unset: (key) ->
-    if pairs = @_storage[@hashKeyFor(key)]
+    hashKey = @hashKeyFor(key)
+    if pairs = @_storage[hashKey]
       for [obj,value], index in pairs
         if @equality(obj, key)
           pair = pairs.splice(index,1)
+          delete @_storage[hashKey] unless pairs.length
           @length--
           return pair[0][1]
   getOrSet: Batman.Observable.getOrSet
