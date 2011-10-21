@@ -3219,62 +3219,7 @@ Batman.DOM = {
   # These are called via `Batman.DOM.readers` or `Batman.DOM.attrReaders`
   binders: {
     select: (node, key, context, renderer, only) ->
-      [boundValue, container] = context.findKey key
-
-      updateSelectBinding = =>
-        # Gather the selected options and update the binding
-        selections = if node.multiple then (c.value for c in node.children when c.selected) else node.value
-        selections = selections[0] if selections.length == 1
-        container.set key, selections
-
-      updateOptionBindings = =>
-        # Go through the option nodes and update their bindings using the
-        # context and key attached to the node via Batman.data
-        for child in node.children
-          if data = Batman.data(child, 'selected')
-            if (subContext = data.context) and (subKey = data.key)
-              [subBoundValue, subContainer] = subContext.findKey subKey
-              unless child.selected == subBoundValue
-                subContainer.set subKey, child.selected
-
-      # wait for the select to render before binding to it
-      renderer.on 'rendered', ->
-        # Update the select box with the binding's new value.
-        dataChange = (newValue) ->
-          # For multi-select boxes, the `value` property only holds the first
-          # selection, so we need to go through the child options and update
-          # as necessary.
-          if newValue instanceof Array
-            # Use a hash to map values to their nodes to avoid O(n^2).
-            valueToChild = {}
-            for child in node.children
-              # Clear all options.
-              child.selected = false
-              # Avoid collisions among options with same values.
-              matches = valueToChild[child.value]
-              if matches then matches.push child else matches = [child]
-              valueToChild[child.value] = matches
-            # Select options corresponding to the new values
-            for value in newValue
-              for match in valueToChild[value]
-                match.selected = yes
-          # For a regular select box, we just update the value.
-          else
-            node.value = newValue
-
-          # Finally, we need to update the options' `selected` bindings
-          updateOptionBindings()
-
-        # Update the bindings with the node's new value
-        nodeChange = ->
-          updateSelectBinding()
-          updateOptionBindings()
-
-        # Expose the updateSelectBinding helper for the child options
-        Batman.data node, 'updateBinding', updateSelectBinding
-
-        # Create the binding
-        context.bind node, key, dataChange, nodeChange, only
+      new Batman.DOM.Select node, key, context, renderer, only
       true
 
     style: (node, attr, key, context, renderer, only) ->
@@ -3485,6 +3430,64 @@ Batman.DOM = {
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
 
 }
+
+class Batman.DOM.Select
+  constructor: (@node, @key, @context, @renderer, @only) ->
+    @container = context.findKey(key)[1]
+
+    if bindings = Batman.data @node, 'bindings'
+      bindings.add this
+    else
+      Batman.data @node, 'bindings', new Batman.Set(this)
+
+    # wait for the select to render before binding to it
+    renderer.on 'rendered', =>
+      Batman.data node, 'updateBinding', @updateSelectBinding
+      context.bind node, key, @dataChange, @nodeChange, only
+
+  dataChange: (newValue) =>
+    # For multi-select boxes, the `value` property only holds the first
+    # selection, so go through the child options and update as necessary.
+    if newValue instanceof Array
+      # Use a hash to map values to their nodes to avoid O(n^2).
+      valueToChild = {}
+      for child in @node.children
+        # Clear all options.
+        child.selected = false
+        # Avoid collisions among options with same values.
+        matches = valueToChild[child.value]
+        if matches then matches.push child else matches = [child]
+        valueToChild[child.value] = matches
+      # Select options corresponding to the new values
+      for value in newValue
+        for match in valueToChild[value]
+          match.selected = yes
+    # For a regular select box, update the value.
+    else
+      @node.value = newValue
+
+    # Finally, update the options' `selected` bindings
+    @updateOptionBindings()
+
+  nodeChange: =>
+    @updateSelectBinding()
+    @updateOptionBindings()
+
+  updateSelectBinding: =>
+    # Gather the selected options and update the binding
+    selections = if @node.multiple then (c.value for c in @node.children when c.selected) else @node.value
+    selections = selections[0] if selections.length == 1
+    @container.set @key, selections
+
+  updateOptionBindings: =>
+    # Go through the option nodes and update their bindings using the
+    # context and key attached to the node via Batman.data
+    for child in @node.children
+      if data = Batman.data(child, 'selected')
+        if (subContext = data.context) and (subKey = data.key)
+          [subBoundValue, subContainer] = subContext.findKey subKey
+          unless child.selected == subBoundValue
+            subContainer.set subKey, child.selected
 
 class Batman.DOM.Style
   constructor: (@node, @key, @context) ->
