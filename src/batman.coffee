@@ -3207,7 +3207,7 @@ class Batman.Renderer extends Batman.Object
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 class Batman.RenderContext
   @start: (contexts...) ->
-    node = new @(window)
+    node = new @(container)
     contexts.push Batman.currentApp if Batman.currentApp
     while context = contexts.pop()
       node = node.descend(context)

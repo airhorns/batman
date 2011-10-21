@@ -1,4 +1,4 @@
-header "Hash Memory Usage"
+header "Model Memory Usage"
 
 qs = (length) ->
   x = ['?']
@@ -6,23 +6,16 @@ qs = (length) ->
   result = result.concat x for i in [0...length]
   result.join(', ')
 
-keys = ["hash memory usage", "simple hash memory usage", "set memory usage", "simple set memory usage"]
-hashClass = Resultset.build 'name', 'value', ->
-  @push ["Hash", "hash memory usage"]
-  @push ["SimpleHash", "simple hash memory usage"]
-  @push ["Set", "set memory usage"]
-  @push ["SimpleSet", "simple set memory usage"]
+keys = ['model memory usage']
+shas = query("SELECT DISTINCT (CONCAT(sha, ' ', human)) AS 'readable_sha', sha FROM Reports WHERE Reports.key IN (#{qs(keys.length)})", keys...)
 
-shas = query "SELECT DISTINCT (CONCAT(sha, ' ', human)) AS 'readable_sha', sha FROM Reports WHERE Reports.key IN (#{qs(keys.length)})", keys...
-
-param "key", select(hashClass), label: "Hash class:", updateOnChange: true
 param "sha_a", select(shas), label: "SHA A:", updateOnChange: true
 param "sha_b", select(shas), label: "SHA B:", updateOnChange: true
 param "sha_c", select(shas), label: "SHA C:", updateOnChange: true
 param "sha_d", select(shas), label: "SHA D:", updateOnChange: true
 
 shas = [params.sha_a, params.sha_b, params.sha_c, params.sha_d]
-points = new Summarizer(query "SELECT Points.x, Points.y, Reports.sha FROM Points LEFT JOIN Reports ON (Points.ReportId = Reports.id) WHERE Reports.key = ? AND Reports.sha IN (?, ?, ?, ?)", params.key, shas...)
+points = new Summarizer(query "SELECT Points.x, Points.y, Reports.sha FROM Points LEFT JOIN Reports ON (Points.ReportId = Reports.id) WHERE Reports.key = ? AND Reports.sha IN (?, ?, ?, ?)", keys[0], shas...)
 
 points.categorize 'x'
 aggregator = aggregator = points.aggregate 'memoryvalues'
