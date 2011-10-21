@@ -2273,7 +2273,7 @@ class Batman.Association
     model.associations[type] ||= new Batman.Hash
     model.associations[type].set @, label # reverse hash for label lookup
 
-    # TODO call @encode for "relatedModel_id"
+    @addEncoder()
 
     # curry association info into the getAccessor, which is called with this set to the model
     self = @
@@ -2285,6 +2285,7 @@ class Batman.Association
       unset: Batman.Model.defaultAccessor.unset
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
+  addEncoder: -> developer.error "You must override addEncoder in Batman.Association subclasses."
 
 class Batman.Association.belongsTo extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
@@ -2309,6 +2310,9 @@ class Batman.Association.belongsTo extends Batman.Association
     else
       base.set "#{@label}_id", model.id if model
       saveEvent.allow()
+
+  addEncoder: ->
+    @model.encode(@label + '_id')
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
@@ -2357,6 +2361,9 @@ class Batman.Association.hasOne extends Batman.Association
     else
       saveEvent.allowAndFire baseSaveError, base
 
+  addEncoder: ->
+    @relatedModel.encode(@label + '_id')
+
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
     return if @amSetting
@@ -2397,6 +2404,9 @@ class Batman.Association.hasMany extends Batman.Association
             saveEvent.allowAndFire baseSaveError, base
         else
           saveEvent.allowAndFire baseSaveError, base
+
+  addEncoder: ->
+    @relatedModel.encode(@label + '_id')
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})

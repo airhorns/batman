@@ -11,7 +11,7 @@ QUnit.module "Batman.Model One-To-One Associations"
     @Store.persist storeAdapter
 
     class @Product extends Batman.Model
-      @encode 'id', 'name', 'store_id'
+      @encode 'id', 'name'
 
     productAdapter = new AsyncTestStorageAdapter @Product
     productAdapter.storage =
