@@ -2201,7 +2201,7 @@ class Batman.Model extends Batman.Object
         callback?(err, savedRecord)
 
       if associations = @constructor.associations
-        {belongsTo, hasOne, hasMany} = associations
+        {belongsTo, hasOne, hasMany} = associations.getObject()
         # Prevent modelSaved for each association
         for k in [belongsTo, hasOne, hasMany]
           k?.forEach (key) => modelSaved.prevent()
@@ -2268,10 +2268,8 @@ class Batman.Model extends Batman.Object
 
 class Batman.Association
   constructor: (@model, @label, @relatedModel) ->
-    type = $functionName(@constructor)
-    model.associations ||= {}
-    model.associations[type] ||= new Batman.Hash
-    model.associations[type].set @, label # reverse hash for label lookup
+    model.associations ||= new Batman.Association.Collection
+    model.associations.add @
 
     @addEncoder()
 
@@ -2286,6 +2284,22 @@ class Batman.Association
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   addEncoder: -> developer.error "You must override addEncoder in Batman.Association subclasses."
+
+class Batman.Association.Collection
+  constructor: ->
+    @storage = new Batman.Hash
+
+  add: (association) ->
+    type = $functionName(association.constructor)
+    unless hash = @storage.get(type)
+      hash = new Batman.Hash
+      @storage.set type, hash
+    hash.set association, association.label
+
+  getObject: ->
+    belongsTo: @storage.get 'belongsTo'
+    hasOne: @storage.get 'hasOne'
+    hasMany: @storage.get 'hasMany'
 
 class Batman.Association.belongsTo extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
