@@ -299,6 +299,39 @@ asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
         delay =>
           f('foo')
 
+unless IN_NODE # jsdom doesn't seem to like input type="file"
+
+  getMockModel = ->
+    context = Batman
+      storageKey: 'one'
+      hasStorage: -> true
+      fileAttributes: ''
+
+    adapter = new Batman.RestStorage(context)
+    context._batman.storage = [adapter]
+
+    [context, adapter]
+
+  asyncTest 'it should bind the value of file type inputs', 2, ->
+    [context, adapter] = getMockModel()
+    ok !adapter.defaultOptions.formData
+
+    helpers.render '<input type="file" data-bind="fileAttributes"></input>', false, context, (node) ->
+      helpers.triggerChange(node.childNodes[0])
+      delay ->
+        ok adapter.defaultOptions.formData
+
+  asyncTest 'it should bind the value of file type inputs when they are proxied', 2, ->
+    [context, adapter] = getMockModel()
+    ok !adapter.defaultOptions.formData
+
+    source = '<form data-formfor-foo="proxied"><input type="file" data-bind="foo.fileAttributes"></input></form>'
+
+    helpers.render source, false, {proxied: context}, (node) ->
+      helpers.triggerChange(node.childNodes[0].childNodes[0])
+      delay ->
+        ok adapter.defaultOptions.formData
+
 asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 1, ->
   context = Batman
     foo: Batman
@@ -504,7 +537,7 @@ asyncTest 'data-bind-style should bind to a string', 4, ->
 asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
   source = '<input type="text" data-bind-style="object"></input>'
   context = Batman
-    object: 
+    object:
       'background-color': 'blue'
       color: 'green'
 

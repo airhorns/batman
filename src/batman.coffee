@@ -2410,6 +2410,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
 
   constructor: ->
     super
+    @defaultOptions = $mixin {}, @defaultOptions
     @recordJsonNamespace = helpers.singularize(@modelKey)
     @collectionJsonNamespace = helpers.pluralize(@modelKey)
 
@@ -3296,13 +3297,18 @@ Batman.DOM = {
       true
 
     file: (node, key, context, renderer, only) ->
-      context.bind(node, key, ->
-        developer.warn "Can't write to file inputs! Tried to on key #{key}."
-      , (node, subContext) ->
-        if subContext instanceof Batman.RenderContext.ContextProxy
-          actualObject = subContext.get('proxiedObject')
+      context.bind(node, key, (->), (node, subContext) ->
+        segments = key.split('.')
+        if segments.length > 1
+          keyContext = subContext.get(segments.slice(0, -1).join('.'))
         else
-          actualObject = subContext
+          keyContext = subContext
+
+        if keyContext instanceof Batman.RenderContext.ContextProxy
+          actualObject = keyContext.get('proxiedObject')
+        else
+          actualObject = keyContext
+
         if actualObject.hasStorage && actualObject.hasStorage()
           for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
             adapter.defaultOptions.formData = true

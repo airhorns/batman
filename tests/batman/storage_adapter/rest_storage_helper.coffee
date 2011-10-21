@@ -57,6 +57,10 @@ class MockRequest extends MockClass
     @[k]
 
 restStorageTestSuite = ->
+  test 'default options should be independent', ->
+    otherAdapter = new @adapter.constructor(@Product)
+    notEqual otherAdapter.defaultOptions, @adapter.defaultOptions
+
   asyncTest 'response metadata should be available in the after read callbacks', 3, ->
     MockRequest.expect
         url: '/products'
