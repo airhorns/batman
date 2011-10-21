@@ -52,6 +52,14 @@ asyncTest "hasOne associations are saved", 1, ->
     equal product.get('store_id'), record.id
     QUnit.start()
 
+asyncTest "hasOne associations can be destroyed safely", 2, ->
+  @Store.find 1, (err, store) =>
+    @Product.find 1, (err, product) =>
+      store.destroy()
+      equal product.get('store_id'), undefined
+      equal product._batman.attributes['store'], undefined
+      QUnit.start()
+
 QUnit.module "Batman.Model One-To-Many Associations"
   setup: ->
     class @Store extends Batman.Model
@@ -95,5 +103,14 @@ asyncTest "hasMany associations are saved", ->
   store.save (err, record) ->
     equal product1.get('store_id'), record.id
     equal product2.get('store_id'), record.id
+    QUnit.start()
+
+asyncTest "hasMany associations can be destroyed safely", 4, ->
+  store = @Store.find 1, (err, store) =>
+    products = @Product.get('all')
+    store.destroy()
+    products.forEach (product) =>
+      equal product.get('store_id'), undefined
+      equal product._batman.attributes['store'], undefined
     QUnit.start()
 

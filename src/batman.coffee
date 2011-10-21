@@ -2226,6 +2226,7 @@ class Batman.Model extends Batman.Object
   destroy: (callback) =>
     do @destroying
     @_doStorageOperation 'destroy', {}, (err, record) =>
+      record.constructor.associations?.clearRelations(@)
       unless err
         @constructor.get('all').remove(@)
         do @destroyed
@@ -2284,6 +2285,7 @@ class Batman.Association
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   addEncoder: -> developer.error "You must override addEncoder in Batman.Association subclasses."
+  clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
 
 class Batman.Association.Collection
   constructor: ->
@@ -2295,6 +2297,11 @@ class Batman.Association.Collection
       hash = new Batman.Hash
       @storage.set type, hash
     hash.set association, association.label
+
+  clearRelations: (base) ->
+    @storage.forEach (type, hash) ->
+      hash.forEach (association, label) ->
+        association.clearRelation(base)
 
   getObject: ->
     belongsTo: @storage.get 'belongsTo'
@@ -2321,6 +2328,8 @@ class Batman.Association.belongsTo extends Batman.Association
     else
       base.set "#{@label}_id", model.id if model
       saveEvent.allow()
+
+  clearRelation: (base) -> # do nothing
 
   addEncoder: ->
     @model.encode(@label + '_id')
@@ -2372,6 +2381,13 @@ class Batman.Association.hasOne extends Batman.Association
     else
       saveEvent.allowAndFire baseSaveError, base
 
+  clearRelation: (base) ->
+    # Unset the property on related models now pointing to a destroyed record
+    baseName = $functionName(base.constructor).toLowerCase()
+    @relatedModel.get('loaded').indexedBy(baseName + "_id").get(base.id).forEach (relatedInstance) ->
+      relatedInstance.unset(baseName + "_id")
+      relatedInstance.unset(baseName)
+
   addEncoder: ->
     @relatedModel.encode(@label + '_id')
 
@@ -2415,6 +2431,8 @@ class Batman.Association.hasMany extends Batman.Association
             saveEvent.allowAndFire baseSaveError, base
         else
           saveEvent.allowAndFire baseSaveError, base
+
+  clearRelation: Batman.Association.hasOne::clearRelation
 
   addEncoder: ->
     @relatedModel.encode(@label + '_id')
