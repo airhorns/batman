@@ -1953,7 +1953,7 @@ class Batman.Model extends Batman.Object
   # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
   @accessor 'id',
     get: ->
-      pk = @constructor.get('primaryKey')
+      pk = @constructor.primaryKey
       if pk == 'id'
         @id
       else
@@ -1963,7 +1963,7 @@ class Batman.Model extends Batman.Object
       if typeof v is "string" and !isNaN(intId = parseInt(v, 10))
         v = intId
 
-      pk = @constructor.get('primaryKey')
+      pk = @constructor.primaryKey
       if pk == 'id'
         @id = v
       else
