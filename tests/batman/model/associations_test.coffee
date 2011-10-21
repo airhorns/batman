@@ -54,10 +54,19 @@ asyncTest "hasOne associations are saved", 1, ->
 
 asyncTest "hasOne associations can be destroyed safely", 2, ->
   @Store.find 1, (err, store) =>
-    @Product.find 1, (err, product) =>
+    @Product.find 1, (err, product) ->
       store.destroy()
       equal product.get('store_id'), undefined
       equal product._batman.attributes['store'], undefined
+      QUnit.start()
+
+asyncTest "Models can save while related records are loading", 1, ->
+  @Store.find 1, (err, store) ->
+    debugger
+    product = store.get 'product'
+    product._batman.state = 'loading'
+    store.save (err, savedStore) ->
+      ok !err
       QUnit.start()
 
 QUnit.module "Batman.Model One-To-Many Associations"
