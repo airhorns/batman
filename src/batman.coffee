@@ -1357,7 +1357,7 @@ class Batman.App extends Batman.Object
   # The require class methods (`controller`, `model`, `view`) simply tells
   # your app where to look for coffeescript source files. This
   # implementation may change in the future.
-  developer.do ->
+  developer.do =>
     App.require = (path, names...) ->
       base = @requirePath + path
       for name in names
@@ -1376,14 +1376,14 @@ class Batman.App extends Batman.Object
             @run() if @wantsToRun
       @
 
-    @controller: (names...) ->
+    @controller = (names...) ->
       names = names.map (n) -> n + '_controller'
       @require 'controllers', names...
 
-    @model: ->
+    @model = ->
       @require 'models', arguments...
 
-    @view: ->
+    @view = ->
       @require 'views', arguments...
 
   # Layout is the base view that other views can be yielded into. The
