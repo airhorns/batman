@@ -1787,7 +1787,7 @@ class Batman.Controller extends Batman.Object
     if view = options.view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', ->
-        Batman.DOM.replace 'main', view.get('node')
+        Batman.DOM.replace (options.into || 'main'), view.get('node')
         Batman.currentApp?.allow 'ready'
         Batman.currentApp?.fire 'ready'
     view
