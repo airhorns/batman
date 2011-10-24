@@ -22,6 +22,23 @@ asyncTest 'it should allow loops over empty collections', 1, ->
     deepEqual names, []
     QUnit.start()
 
+asyncTest 'it should allow loops over undefined values', 3, ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  context = Batman()
+  #Batman.developer.suppress()
+  helpers.render source, context, (node, view) ->
+    names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+    deepEqual names, []
+    context.set 'objects', new Batman.Set('foo', 'bar', 'baz')
+    delay ->
+      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+      deepEqual names, ['foo', 'bar', 'baz']
+      context.unset 'objects'
+      delay ->
+        names = $('p', view.get('node')).map(-> @innerHTML).toArray()
+        deepEqual names, []
+        Batman.developer.unsuppress()
+
 asyncTest 'it should render new items as they are added', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
   objects = new Batman.Set('foo', 'bar')

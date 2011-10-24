@@ -3645,6 +3645,8 @@ class Batman.DOM.Iterator
     else
       developer.warn "Warning! data-foreach-#{@iteratorName} called with an undefined binding. Key was: #{@key}."
 
+    @processActionQueue()
+
   arrayChanged: =>
     newItemsInOrder = @collection.toArray()
     trackingNodeMap = new Batman.SimpleHash
@@ -3658,8 +3660,6 @@ class Batman.DOM.Iterator
 
     @nodeMap.forEach (item, node) =>
       @removeItem(item) unless trackingNodeMap.hasKey(item)
-
-    @processActionQueue()
 
   addItem: (item, options = {fragment: true}) ->
     @parentRenderer.prevent 'rendered'
