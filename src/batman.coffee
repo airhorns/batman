@@ -1414,12 +1414,13 @@ class Batman.App extends Batman.Object
     if typeof @dispatcher is 'undefined'
       @dispatcher ||= new Batman.Dispatcher @
 
+    @observe 'layout', (layout) =>
+      layout?.on 'ready', => @fire 'ready'
+
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View
         contexts: [@]
         node: document
-
-      @get('layout').on 'ready', => @fire 'ready'
 
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @on 'run', =>
