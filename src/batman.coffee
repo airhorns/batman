@@ -460,8 +460,10 @@ class Batman.Property
           handlers.forEach(iterator)
 
   pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
+  pushDummySourceTracker: -> Batman.Property._sourceTrackerStack.push(null)
+  popSourceTracker: -> Batman.Property._sourceTrackerStack.pop()
   updateSourcesFromTracker: ->
-    newSources = Batman.Property._sourceTrackerStack.pop()
+    newSources = @popSourceTracker()
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
     @sources = newSources
@@ -503,13 +505,17 @@ class Batman.Property
   valueFromAccessor: -> @accessor().get?.call(@base, @key)
 
   setValue: (val) ->
+    @pushDummySourceTracker()
     @cached = no
     result = @accessor().set?.call(@base, @key, val)
     @refresh()
+    @popSourceTracker()
     result
   unsetValue: ->
+    @pushDummySourceTracker()
     result = @accessor().unset?.call(@base, @key)
     @refresh()
+    @popSourceTracker()
     result
 
   forget: (handler) ->
