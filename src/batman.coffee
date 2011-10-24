@@ -2202,9 +2202,7 @@ class Batman.Model extends Batman.Object
 
       if associations = @constructor.associations
         {belongsTo, hasOne, hasMany} = associations.getObject()
-        # Prevent modelSaved for each association
-        for k in [belongsTo, hasOne, hasMany]
-          k?.forEach (key) => modelSaved.prevent()
+
         # Save belongsTo models immediately since we don't need this model to have an id
         belongsTo?.forEach (association) => association.save(@)
 
@@ -2319,6 +2317,8 @@ class Batman.Association.belongsTo extends Batman.Association
   save: (base) ->
     # saveEvent is allowed but not fired, because base's storage op still needs to happen
     saveEvent = base.event('modelSaved')
+    saveEvent.prevent()
+
     model = base.get(@label)
     if model?.state() is "dirty"
       model.save (err, record) =>
@@ -2368,6 +2368,8 @@ class Batman.Association.hasOne extends Batman.Association
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
+    saveEvent.prevent()
+
     if relatedModel = base._batman.attributes?[@label]
       foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
       relatedModel.set foreignKey, base.id
@@ -2422,6 +2424,8 @@ class Batman.Association.hasMany extends Batman.Association
     saveEvent = base.event('modelSaved')
     if relatedModels = base._batman.attributes?[@label]
       relatedModels.forEach (model) =>
+        saveEvent.prevent()
+
         foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
         model.set foreignKey, base.id
 
