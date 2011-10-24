@@ -3593,6 +3593,10 @@ class Batman.DOM.Iterator
       delete sourceNode[Batman.expando]
       $removeNode sourceNode
 
+    # Don't let the parent emit its rendered event until all the children have.
+    # This `prevent`'s matching allow is run once the queue is empty in `processActionQueue`.
+    @parentRenderer.prevent 'rendered'
+
     # Tie this binding to a node using Batman.data
     if bindings = Batman.data @parentNode, 'bindings'
       bindings.add this
@@ -3726,16 +3730,16 @@ class Batman.DOM.Iterator
   processActionQueue: ->
     unless @actionQueueTimeout
       # Prevent the parent which will then be allowed when the timeout actually runs
-      @parentRenderer.prevent 'rendered'
       @actionQueueTimeout = $setImmediate =>
         delete @actionQueueTimeout
         startTime = new Date
+
         while !!(f = @actions[@currentActionNumber])
           @actions[@currentActionNumber] = true
           f.call(@)
           @currentActionNumber++
 
-          if @deferEvery && (startTime - new Date) > @deferEvery
+          if @deferEvery && (new Date - startTime) > @deferEvery
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
