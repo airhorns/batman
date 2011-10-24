@@ -8,6 +8,13 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
+if exports.history?.pushState?
+  originalLocation = window.location.href
+  originalReset = QUnit.reset
+  QUnit.reset = ->
+    window.history.pushState({},'',originalLocation)
+    originalReset.apply(this, arguments)
+
 if exports.IN_NODE
   do ->
     hash = ''
