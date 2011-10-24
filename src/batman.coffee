@@ -2648,6 +2648,7 @@ class Batman.View extends Batman.Object
 # It is a continuation style parser, designed not to block for longer than 50ms at a time if the document
 # fragment is particularly long.
 class Batman.Renderer extends Batman.Object
+  deferEvery: 50
 
   constructor: (@node, callback, contexts = []) ->
     super()
@@ -2695,7 +2696,7 @@ class Batman.Renderer extends Batman.Object
       0
 
   parseNode: (node) ->
-    if new Date - @startTime > 50
+    if @deferEvery && (new Date - @startTime) > @deferEvery
       @resumeNode = node
       @timeout = $setImmediate @resume
       return
@@ -3734,7 +3735,7 @@ class Batman.DOM.Iterator
           f.call(@)
           @currentActionNumber++
 
-          if startTime - new Date > @deferEvery
+          if @deferEvery && (startTime - new Date) > @deferEvery
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
