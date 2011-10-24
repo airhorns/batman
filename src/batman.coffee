@@ -3659,6 +3659,8 @@ class Batman.DOM.Iterator
     @nodeMap.forEach (item, node) =>
       @removeItem(item) unless trackingNodeMap.hasKey(item)
 
+    @processActionQueue()
+
   addItem: (item, options = {fragment: true}) ->
     @parentRenderer.prevent 'rendered'
 
