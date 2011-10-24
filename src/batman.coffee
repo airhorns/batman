@@ -1376,15 +1376,15 @@ class Batman.App extends Batman.Object
             @run() if @wantsToRun
       @
 
-  @controller: (names...) ->
-    names = names.map (n) -> n + '_controller'
-    @require 'controllers', names...
+    @controller: (names...) ->
+      names = names.map (n) -> n + '_controller'
+      @require 'controllers', names...
 
-  @model: ->
-    @require 'models', arguments...
+    @model: ->
+      @require 'models', arguments...
 
-  @view: ->
-    @require 'views', arguments...
+    @view: ->
+      @require 'views', arguments...
 
   # Layout is the base view that other views can be yielded into. The
   # default behavior is that when `app.run()` is called, a new view will
@@ -4003,14 +4003,14 @@ class Batman.Paginator extends Batman.Object
       begin = offset-@offset
       end = begin + limit
       @items.slice(begin, end)
-  
+
   offset: 0
   limit: 10
   totalCount: 0
-  
+
   offsetFromPageAndLimit: (page, limit) -> Math.round((+page - 1) * limit)
   pageFromOffsetAndLimit: (offset, limit) -> offset / limit + 1
-  
+
   toArray: ->
     cache = @get('cache')
     offset = @get('offset')
@@ -4022,10 +4022,10 @@ class Batman.Paginator extends Batman.Object
     @pageFromOffsetAndLimit(@get('offset'), @get('limit'))
   pageCount: ->
     Math.ceil(@get('totalCount') / @get('limit'))
-  
+
   previousPage: -> @set('page', @get('page')-1)
   nextPage: -> @set('page', @get('page')+1)
-  
+
   loadItemsForOffsetAndLimit: (offset, limit) -> # override on subclasses or instances
   updateCache: (offset, limit, items) ->
     @set('cache', new Batman.Paginator.Cache(offset, limit, items))
