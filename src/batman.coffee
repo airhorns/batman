@@ -1400,7 +1400,7 @@ class Batman.App extends Batman.Object
 
   # Call `MyApp.run()` to start up an app. Batman level initializers will
   # be run to bootstrap the application.
-
+  @event('ready').oneShot = true
   @event('run').oneShot = true
   @run: ->
     if Batman.currentApp
