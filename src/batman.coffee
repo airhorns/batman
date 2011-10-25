@@ -2200,13 +2200,12 @@ class Batman.Model extends Batman.Object
 
       modelSaved = @event('modelSaved')
       modelSaved.prevent() # for the storage operation
-      modelSaved.addHandler (err, savedRecord) ->
-        callback?(err, savedRecord)
+      modelSaved.addHandler(callback) if callback
 
       if associations = @constructor.associations
         {belongsTo, hasOne, hasMany} = associations.getObject()
 
-        # Save belongsTo models immediately since we don't need this model to have an id
+        # Save belongsTo models immediately since we don't need this model's id
         belongsTo?.forEach (association) => association.save(@)
 
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (storageOpError, record) =>
@@ -2275,7 +2274,7 @@ class Batman.Association
 
     @addEncoder()
 
-    # curry association info into the getAccessor, which is called with this set to the model
+    # curry association info into the getAccessor, which has the model applied as the context
     self = @
     getAccessor = -> return self.getAccessor.call(@, model, label, relatedModel)
 
@@ -2284,13 +2283,14 @@ class Batman.Association
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
-  # TODO refactor these strings
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   addEncoder: -> developer.error "You must override addEncoder in Batman.Association subclasses."
   clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
 
 class Batman.Association.Collection
   constructor: ->
+    # Contains Batman.Association objects mapped by type and then label
+    # ie. @storage = {"belongsTo": {<Association>: "store"}}
     @storage = new Batman.Hash
 
   add: (association) ->
@@ -2321,13 +2321,13 @@ class Batman.Association.Collection
 class Batman.Association.belongsTo extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
     if relatedRecord = @_batman.attributes?[label]
-      relatedRecord
+      return relatedRecord
     else if relatedID = @get("#{label}_id")
       loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
       unless loadedRecord.isEmpty()
         return loadedRecord.toArray()[0]
       else
-        relatedModel.find relatedID, (error, loadedRecord) ->
+        return relatedModel.find relatedID, (error, loadedRecord) ->
           throw error if error
 
   save: (base) ->
@@ -2373,28 +2373,29 @@ class Batman.Association.hasOne extends Batman.Association
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
+      # FIXME shouldn't need to short-circuit the get/set accessor loop
+      @amSetting = true
+
       # Create a relatedModel instance to return immediately and populate when it loads
       loadedRecord = new relatedModel
-      @amSetting = true # FIXME shouldn't need to short-circuit the get/set accessor loop
       @set label, loadedRecord
 
       loadOptions = {}
-      loadOptions[modelName + '_id'] = id
+      loadOptions["#{modelName}_id"] = id
       relatedModel.load loadOptions, (error, loadedRecords) =>
         throw error if error
         return if !loadedRecords or loadedRecords.length <= 0
         # FIXME hacky way to update the loadedRecord without overwriting the returned reference
-
         loadedRecord.fromJSON loadedRecords[0].toJSON()
         @amSetting = false
-      loadedRecord
+      return loadedRecord
 
   save: (baseSaveError, base) ->
     saveEvent = base.event('modelSaved')
     saveEvent.prevent()
 
     if relatedModel = base._batman.attributes?[@label]
-      foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
+      foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
       relatedModel.set foreignKey, base.id
 
       if relatedModel.state() is "dirty"
@@ -2409,8 +2410,8 @@ class Batman.Association.hasOne extends Batman.Association
   clearRelation: (base) ->
     # Unset the property on related models now pointing to a destroyed record
     baseName = $functionName(base.constructor).toLowerCase()
-    @relatedModel.get('loaded').indexedBy(baseName + "_id").get(base.id).forEach (relatedInstance) ->
-      relatedInstance.unset(baseName + "_id")
+    @relatedModel.get('loaded').indexedBy("#{baseName}_id").get(base.id).forEach (relatedInstance) ->
+      relatedInstance.unset("#{baseName}_id")
       relatedInstance.unset(baseName)
 
   addEncoder: ->
@@ -2432,12 +2433,13 @@ class Batman.Association.hasMany extends Batman.Association
     return unless id = @get('id')
 
     modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(id)
+    relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords
     else if recordInAttributes = @_batman.attributes?[label]
       return recordInAttributes
     else if model._readingFromJSON
+      # FIXME Remove this; needed to break out of get accessor loop
       delete model._readingFromJSON
       return undefined
     else
@@ -2446,7 +2448,7 @@ class Batman.Association.hasMany extends Batman.Association
       @set label, loadedRecords
 
       loadOptions = {}
-      loadOptions[modelName + '_id'] = id
+      loadOptions["#{modelName}_id"] = id
       relatedModel.load loadOptions, (error, records) =>
         throw error if error
         return unless records or records.isEmpty()
@@ -2460,7 +2462,7 @@ class Batman.Association.hasMany extends Batman.Association
       relatedModels.forEach (model) =>
         saveEvent.prevent()
 
-        foreignKey = $functionName(base.constructor).toLowerCase() + "_id"
+        foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
         model.set foreignKey, base.id
 
         if model.state() is "dirty"
@@ -2477,21 +2479,17 @@ class Batman.Association.hasMany extends Batman.Association
     @model.encode @label,
       decode: (data) =>
         if typeof data is "string"
-          # FIXME remove this; it's needed to break out of the get accessor loop
+          # FIXME remove this; needed to break out of get accessor loop
           @model._readingFromJSON = true
-          jsonCollection = JSON.parse(data)
+
+          # Parse the JSON into a set of models
           relations = new Batman.Set
-          relatedModelName = $functionName(@relatedModel).toLowerCase() + "s"
-          idRegex = new RegExp("^#{relatedModelName}(\\d+)$")
-
-          for own storageKey, obj of jsonCollection
+          idRegex = new RegExp("^#{$functionName(@relatedModel).toLowerCase()}s(\\d+)$")
+          for own storageKey, obj of JSON.parse(data)
             [_, id] = storageKey.match(idRegex)
-
-            # TODO use fromJSON
             model = new @relatedModel(obj)
             model.set 'id', id
             relations.add model
-
           return relations
         else
           data
