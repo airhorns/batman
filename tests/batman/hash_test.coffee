@@ -262,6 +262,13 @@ test "clear() removes all keys from the hash", ->
   equalHashLength @hash, 0
   deepEqual spy.lastCallArguments.sort(), [key1, key2, 'foo', 'bar'].sort()
 
+test "clear() fires key observers", ->
+  key1 = {}
+  @hash.set key1, 1
+  @hash.observe key1, spy = createSpy()
+  @hash.clear()
+  ok spy.called
+
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}
   key2 = {}
