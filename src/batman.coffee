@@ -2115,9 +2115,12 @@ class Batman.Model extends Batman.Object
     encoders = @_batman.get('encoders')
     unless !encoders or encoders.isEmpty()
       encoders.forEach (key, encoder) =>
+        # Don't encode associations
+        return if @constructor.associations?.has(key)
+
         val = @get key
         if typeof val isnt 'undefined'
-          encodedVal = encoder(@get key)
+          encodedVal = encoder(val)
           if typeof encodedVal isnt 'undefined'
             obj[key] = encodedVal
 
@@ -2295,6 +2298,14 @@ class Batman.Association.Collection
       hash = new Batman.Hash
       @storage.set type, hash
     hash.set association, association.label
+
+  has: (name) ->
+    ret = false
+    @storage.forEach (type, hash) ->
+      hash.forEach (association, label) ->
+        if label is name
+          ret = true
+    ret
 
   clearRelations: (base) ->
     @storage.forEach (type, hash) ->
