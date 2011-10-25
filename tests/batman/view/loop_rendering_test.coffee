@@ -25,7 +25,7 @@ asyncTest 'it should allow loops over empty collections', 1, ->
 asyncTest 'it should allow loops over undefined values', 3, ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   context = Batman()
-  #Batman.developer.suppress()
+  Batman.developer.suppress()
   helpers.render source, context, (node, view) ->
     names = $('p', view.get('node')).map(-> @innerHTML).toArray()
     deepEqual names, []
