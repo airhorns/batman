@@ -1,4 +1,5 @@
 {TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
+helpers = if typeof require is 'undefined' then window.viewHelpers else require '../view/view_helper'
 
 QUnit.module "Batman.Model One-To-One Associations"
   setup: ->
@@ -7,14 +8,14 @@ QUnit.module "Batman.Model One-To-One Associations"
 
     @storeAdapter = new AsyncTestStorageAdapter @Store
     @storeAdapter.storage =
-      'stores1': {name: "One", id: 1}
+      'stores1': {name: "Store One", id: 1}
     @Store.persist @storeAdapter
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
 
     @productAdapter = new AsyncTestStorageAdapter @Product
-    @productAdapter.storage = 'products1': {name: "One", id: 1, store_id: 1}
+    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
     @Product.persist @productAdapter
 
     @Product.belongsTo 'store', @Store
@@ -98,6 +99,22 @@ asyncTest "belongsTo association can be loaded from JSON", ->
     equal store.get('name'), "JSON store"
     QUnit.start()
 
+asyncTest "belongsTo associations render", 1, ->
+  @Product.find 1, (err, product) ->
+    source = '<span data-bind="product.store.name"></span>'
+    context = Batman(product: product)
+    helpers.render source, context, (node) =>
+      equal node[0].innerHTML, 'Store One'
+      QUnit.start()
+
+asyncTest "hasOne associations render", 1, ->
+  @Store.find 1, (err, store) ->
+    source = '<span data-bind="store.product.name"></span>'
+    context = Batman(store: store)
+    helpers.render source, context, (node) ->
+      equal node[0].innerHTML, 'Product One'
+      QUnit.start()
+
 QUnit.module "Batman.Model One-To-Many Associations"
   setup: ->
     class @Store extends Batman.Model
@@ -105,7 +122,7 @@ QUnit.module "Batman.Model One-To-Many Associations"
 
     @storeAdapter = new AsyncTestStorageAdapter @Store
     @storeAdapter.storage =
-      'stores1': {name: "One", id: 1}
+      'stores1': {name: "Store One", id: 1}
     @Store.persist @storeAdapter
 
     class @Product extends Batman.Model
@@ -113,8 +130,8 @@ QUnit.module "Batman.Model One-To-Many Associations"
 
     @productAdapter = new AsyncTestStorageAdapter @Product
     @productAdapter.storage =
-      'products1': {name: "One", id: 1, store_id: 1}
-      'products2': {name: "Two", id: 2, store_id: 1}
+      'products1': {name: "Product One", id: 1, store_id: 1}
+      'products2': {name: "Product Two", id: 2, store_id: 1}
     @Product.persist @productAdapter
 
     @Store.hasMany 'products', @Product
@@ -197,3 +214,13 @@ asyncTest "hasMany association can be loaded from JSON data", 12, ->
     equal variant6.get('product'), product
 
     QUnit.start()
+
+asyncTest "hasMany associations render", ->
+  @Store.find 1, (err, store) ->
+    source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
+    context = Batman(store: store)
+    helpers.render source, context, (node) ->
+      equal node.children().first().html(), 'Product One'
+      equal node.children().last().html(), 'Product Two'
+      QUnit.start()
+
