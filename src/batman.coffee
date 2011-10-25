@@ -2321,9 +2321,13 @@ class Batman.Association.belongsTo extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
     if relatedRecord = @_batman.attributes?[label]
       relatedRecord
-    else if relatedID = @get(label + "_id")
-      relatedModel.find relatedID, (error, loadedRecord) ->
-        throw error if error
+    else if relatedID = @get("#{label}_id")
+      loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
+      unless loadedRecord.isEmpty()
+        return loadedRecord.toArray()[0]
+      else
+        relatedModel.find relatedID, (error, loadedRecord) ->
+          throw error if error
 
   save: (base) ->
     # saveEvent is allowed but not fired, because base's storage op still needs to happen
