@@ -3351,6 +3351,15 @@ Batman.DOM = {
   replace: (name, node) ->
     Batman.DOM.contentFor name, node, true
 
+  # Adds a binding or binding-like object to the `bindings` set in a node's
+  # data, so that upon node removal we can unset the binding and any other objects
+  # it retains.
+  trackBinding: $trackBinding = (binding, node) ->
+    if bindings = Batman.data node, 'bindings'
+      bindings.add binding
+    else
+      Batman.data node, 'bindings', new Batman.SimpleSet(binding)
+
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
   # or removed without leaking memory
   unbindNode: $unbindNode = (node) ->
@@ -3439,14 +3448,14 @@ Batman.DOM = {
 
 }
 
-class Batman.DOM.Select
-  constructor: (@node, @key, @context, @renderer, @only) ->
-    @container = context.findKey(key)[1]
+class Batman.DOM.AbstractBinding
+  constructor: (node) ->
+    Batman.DOM.trackBinding @, node
 
-    if bindings = Batman.data @node, 'bindings'
-      bindings.add this
-    else
-      Batman.data @node, 'bindings', new Batman.Set(this)
+class Batman.DOM.Select extends Batman.DOM.AbstractBinding
+  constructor: (@node, @key, @context, @renderer, @only) ->
+    super
+    @container = context.findKey(key)[1]
 
     # wait for the select to render before binding to it
     renderer.on 'rendered', =>
@@ -3497,14 +3506,10 @@ class Batman.DOM.Select
           unless child.selected == subBoundValue
             subContainer.set subKey, child.selected
 
-class Batman.DOM.Style
+class Batman.DOM.Style extends Batman.DOM.AbstractBinding
   constructor: (@node, @key, @context) ->
+    super
     @oldStyles = {}
-
-    if bindings = Batman.data @node, 'bindings'
-      bindings.add this
-    else
-      Batman.data @node, 'bindings', new Batman.Set(this)
 
     context.bind node, key, @dataChange, ->
 
@@ -3568,7 +3573,7 @@ class Batman.DOM.Style
       @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
       @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
 
-class Batman.DOM.Iterator
+class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
   deferEvery: 50
   currentActionNumber: 0
   queuedActionNumber: 0
@@ -3598,10 +3603,8 @@ class Batman.DOM.Iterator
     @parentRenderer.prevent 'rendered'
 
     # Tie this binding to a node using Batman.data
-    if bindings = Batman.data @parentNode, 'bindings'
-      bindings.add this
-    else
-      Batman.data @parentNode, 'bindings', new Batman.Set(this)
+    super(@parentNode)
+
     @fragment = document.createDocumentFragment()
     context.bind(sourceNode, key, @collectionChange, ->)
 
