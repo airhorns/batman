@@ -29,11 +29,14 @@ asyncTest "belongsTo associations are loaded", 2, ->
       ok store instanceof @Store
       equal store.id, 1
 
-asyncTest "belongsTo associations are saved", 1, ->
+asyncTest "belongsTo associations are saved", 2, ->
   store = new @Store name: 'Zellers'
   product = new @Product name: 'Gizmo'
   product.set 'store', store
+
+  productSaveSpy = spyOn product, 'save'
   product.save (err, record) ->
+    equal productSaveSpy.callCount, 1
     equal record.get('store_id'), store.id
     QUnit.start()
 
@@ -44,11 +47,14 @@ asyncTest "hasOne associations are loaded", 2, ->
       ok product instanceof @Product
       equal product.id, 1
 
-asyncTest "hasOne associations are saved", 1, ->
+asyncTest "hasOne associations are saved", 2, ->
   store = new @Store name: 'Zellers'
   product = new @Product name: 'Gizmo'
   store.set 'product', product
+
+  storeSaveSpy = spyOn store, 'save'
   store.save (err, record) ->
+    equal storeSaveSpy.callCount, 1
     equal product.get('store_id'), record.id
     QUnit.start()
 
