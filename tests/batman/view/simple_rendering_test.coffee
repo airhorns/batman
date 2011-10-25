@@ -195,7 +195,7 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
       equal context.get('one'), false
 
 asyncTest 'it should bind the value of a select box and update when the value changes', 2, ->
-  window.currentContext = context = new Batman.Object
+  context = new Batman.Object
     heros: new Batman.Set('mario', 'crono', 'link')
     selected: new Batman.Object(name: 'crono')
   helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
@@ -254,6 +254,13 @@ asyncTest 'it binds the value of a multi-select box and updates the value when t
         deepEqual context.get('selected'), ['mario', 'crono'], 'mario and crono are selected in binding'
         for opt in node[0].children
           ok opt.selected, "#{opt.value} option is selected"
+
+asyncTest 'should be able to remove bound select nodes', 1, ->
+  context = new Batman.Object selected: "foo"
+  helpers.render '<select data-bind="selected"><option value="foo">foo</option></select>', context, (node) ->
+    Batman.DOM.removeNode(node[0])
+    deepEqual Batman.data(node[0]), {}
+    QUnit.start()
 
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object

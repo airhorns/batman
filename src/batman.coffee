@@ -3451,6 +3451,7 @@ Batman.DOM = {
 class Batman.DOM.AbstractBinding
   constructor: (node) ->
     Batman.DOM.trackBinding @, node
+  destroy: -> # called by $removeNode
 
 class Batman.DOM.Select extends Batman.DOM.AbstractBinding
   constructor: (@node, @key, @context, @renderer, @only) ->
