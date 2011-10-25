@@ -1,3 +1,28 @@
+## 0.7.5 (October 25, 2011)
+
+Major Maintenance Release
+
+  - pagination through `Batman.Paginator` and `Batman.ModelPaginator`
+  - nested resources routes
+  - unknown params passed to `urlFor` will be appended to the query string
+  - `App.layout` accepts a class name which will automatically instantiate that class upon load
+  - `Controller::render` accepts an `into` option, which lets you render into a yield other than `main`
+  - `yield/contentFor/replace` are now animatable through `show/hide`
+  - `interpolate` filter
+  - pleasant reminders if you seem to have forgotten some encoders
+  - removing nodes will destroy all their bindings
+  - `Batman.setImmediate` for fast stack popping
+
+Bugfixes:
+
+  - `App.ready` is now a oneShot event
+  - `App.controller/model/view` are now only available in development
+  - `data-foreach` (through Iterator) is now entirely deferred
+  - better support for `input type='file'`
+  - sets within gets don't register sources
+  - fixes several memory leaks
+  - better view html caching
+
 ## 0.7.0 (October 12, 2011)
 
 Major Maintenance Release
