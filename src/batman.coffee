@@ -2284,6 +2284,7 @@ class Batman.Association
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
+  # TODO refactor these strings
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   addEncoder: -> developer.error "You must override addEncoder in Batman.Association subclasses."
   clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
@@ -2347,7 +2348,13 @@ class Batman.Association.belongsTo extends Batman.Association
   clearRelation: (base) -> # do nothing
 
   addEncoder: ->
-    @model.encode(@label + '_id')
+    @model.encode "#{@label}_id"
+    @model.encode "#{@label}",
+      decode: (data) =>
+        if typeof data is "string"
+          new @relatedModel(JSON.parse(data))
+        else
+          data
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
@@ -2362,7 +2369,7 @@ class Batman.Association.hasOne extends Batman.Association
 
     # Check whether the relatedModel has already loaded the instance we want
     modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(id)
+    relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
@@ -2375,8 +2382,9 @@ class Batman.Association.hasOne extends Batman.Association
       loadOptions[modelName + '_id'] = id
       relatedModel.load loadOptions, (error, loadedRecords) =>
         throw error if error
-        return unless loadedRecords or loadedRecords.isEmpty()
+        return if !loadedRecords or loadedRecords.length <= 0
         # FIXME hacky way to update the loadedRecord without overwriting the returned reference
+
         loadedRecord.fromJSON loadedRecords[0].toJSON()
         @amSetting = false
       loadedRecord
@@ -2406,7 +2414,13 @@ class Batman.Association.hasOne extends Batman.Association
       relatedInstance.unset(baseName)
 
   addEncoder: ->
-    @relatedModel.encode(@label + '_id')
+    @relatedModel.encode "#{@label}_id"
+    @model.encode @label,
+      decode: (data) =>
+        if typeof data is "string"
+          new @relatedModel(JSON.parse(data))
+        else
+          data
 
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (model, label, relatedModel) ->
@@ -2420,7 +2434,12 @@ class Batman.Association.hasMany extends Batman.Association
     modelName = $functionName(model).toLowerCase()
     relatedRecords = relatedModel.get('loaded').indexedBy(modelName + '_id').get(id)
     unless relatedRecords.isEmpty()
-      return relatedRecords.toArray()
+      return relatedRecords
+    else if recordInAttributes = @_batman.attributes?[label]
+      return recordInAttributes
+    else if model._readingFromJSON
+      delete model._readingFromJSON
+      return undefined
     else
       loadedRecords = new Batman.Set
       @amSetting = true
@@ -2454,7 +2473,28 @@ class Batman.Association.hasMany extends Batman.Association
   clearRelation: Batman.Association.hasOne::clearRelation
 
   addEncoder: ->
-    @relatedModel.encode(@label + '_id')
+    @relatedModel.encode "#{@label}_id"
+    @model.encode @label,
+      decode: (data) =>
+        if typeof data is "string"
+          # FIXME remove this; it's needed to break out of the get accessor loop
+          @model._readingFromJSON = true
+          jsonCollection = JSON.parse(data)
+          relations = new Batman.Set
+          relatedModelName = $functionName(@relatedModel).toLowerCase() + "s"
+          idRegex = new RegExp("^#{relatedModelName}(\\d+)$")
+
+          for own storageKey, obj of jsonCollection
+            [_, id] = storageKey.match(idRegex)
+
+            # TODO use fromJSON
+            model = new @relatedModel(obj)
+            model.set 'id', id
+            relations.add model
+
+          return relations
+        else
+          data
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})
