@@ -8,12 +8,18 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
-if exports.history?.pushState?
-  originalLocation = window.location.href
-  originalReset = QUnit.reset
-  QUnit.reset = ->
-    window.history.pushState({},'',originalLocation)
-    originalReset.apply(this, arguments)
+
+originalLocation = window.location.href
+originalReset = QUnit.reset
+QUnit.reset = ->
+  if Batman.currentApp?
+    Batman.currentApp.stop()
+    Batman.currentApp = null
+  window.location.hash = ""
+  if window.history?.pushState? and window.location.href isnt originalLocation
+    window.history.pushState(null, '', originalLocation)
+  originalReset.apply(this, arguments)
+
 
 if exports.IN_NODE
   do ->
