@@ -148,6 +148,29 @@ asyncTest 'it should not fail if the collection is cleared', ->
     delay =>
       equal $('.present', node).length, 0
 
+asyncTest 'it should not fail if the iterator is destroyed', 1, ->
+  source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
+  context = new Batman.Object
+    objects: new Batman.Set([0...100]...)
+
+  oldIterator = Batman.DOM.Iterator
+  instance = false
+  class Batman.DOM.Iterator extends oldIterator
+    constructor: ->
+      instance = @
+      super
+
+  # Render the source
+  helpers.render source, false, context, (node, view) ->
+
+  # Wait till the first stack pop which will happen after the iterator is instantiated, but its children haven't finished
+  Batman.setImmediate ->
+    ok instance
+    instance.destroy()
+
+  delay ->
+    QUnit.start()
+
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   oldObjects = new Batman.Set('foo', 'bar', 'baz')

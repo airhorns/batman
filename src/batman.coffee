@@ -3612,6 +3612,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     $unbindNode(@prototypeNode)
     @unbindCollection()
     delete @[k] for own k of this
+    @destroyed = true
 
   unbindCollection: ->
     if @collection
@@ -3676,17 +3677,20 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     @rendererMap.set(item, childRenderer)
 
     finish = =>
+      return if @destroyed
       @parentRenderer.allow 'rendered'
       @parentRenderer.fire 'rendered'
 
     childRenderer.on 'rendered', finish
     childRenderer.on 'stopped', =>
+      return if @destroyed
       @actions[options.actionNumber] = ->
       finish()
       @processActionQueue()
     item
 
   removeItem: (item) ->
+    return if @destroyed
     @_removeOldAction(item)
     oldNode = @nodeMap.unset(item)
     if oldNode
@@ -3696,6 +3700,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
         $removeNode(oldNode)
 
   insertItem: (item, node, options = {}) ->
+    return if @destroyed
     futureActionNumber = @actionMap.get(item)
     if futureActionNumber? && futureActionNumber > options.actionNumber
       # This same action is scheduled for the future, do it then to preserve ordering instead of now.
@@ -3733,9 +3738,11 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
       @actions[oldActionNumber] = ->
 
   processActionQueue: ->
+    return if @destroyed
     unless @actionQueueTimeout
       # Prevent the parent which will then be allowed when the timeout actually runs
       @actionQueueTimeout = $setImmediate =>
+        return if @destroyed
         delete @actionQueueTimeout
         startTime = new Date
 
