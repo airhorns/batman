@@ -168,8 +168,9 @@ asyncTest 'it should not fail if the iterator is destroyed', 1, ->
     ok instance
     instance.destroy()
 
-  delay ->
+  setTimeout ->
     QUnit.start()
+  , ASYNC_TEST_DELAY
 
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
