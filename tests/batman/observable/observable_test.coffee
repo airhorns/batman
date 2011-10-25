@@ -51,29 +51,29 @@ test "get(key) with a deep keypath uses the last property's accessor with the la
   equal @obj.get('foo.someProperty'), 'resolvedValue'
   deepEqual @fooPropertyAccessor.get.lastCallArguments, ['someProperty']
   ok @fooPropertyAccessor.get.lastCallContext is @obj.foo
- 
+
 test "get(key) is cached until one of its sources changes", ->
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 1
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 1
-   
+
   @obj.set('foo.someProperty', yes)
-   
+
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 2
   @obj.get('foo.someProperty')
   equal @fooPropertyAccessor.get.callCount, 2
- 
+
 test "get(key) works with cacheable properties with more than one level of accessor indirection", ->
   @obj.accessor 'indirectProperty', -> @get('foo.someProperty')
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 1
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 1
-   
+
   @obj.set('foo.someProperty', yes)
-   
+
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 2
   @obj.get('indirectProperty')
@@ -145,6 +145,16 @@ test "unset(key) with a deep keypath should use the existing value's remove() me
   equal @fooPropertyAccessor.unset.called, true
   ok @fooPropertyAccessor.unset.lastCallContext is @obj.foo
 
+test "unset(key) should remove the property instance if it has no observers", ->
+  property = @obj.property('foo')
+  @obj.unset 'foo'
+  notEqual @obj.property('foo'), property
+
+test "unset(key) should not remove the property instance if it has observers", ->
+  property = @obj.property('foo')
+  @obj.observe 'foo', ->
+  @obj.unset 'foo'
+  equal @obj.property('foo'), property
 
 ###
 # getOrSet(key, valueFunction)

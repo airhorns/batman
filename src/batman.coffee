@@ -516,6 +516,8 @@ class Batman.Property
     result = @accessor().unset?.call(@base, @key)
     @refresh()
     @popSourceTracker()
+    if (!@sources? || @sources.length == 0) && @changeEvent().handlers?.length == 0
+      @base._batman?.properties?.unset(@key)
     result
 
   forget: (handler) ->
