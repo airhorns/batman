@@ -2748,178 +2748,6 @@ class Batman.Renderer extends Batman.Object
 
     return
 
-# Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
-# Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy
-# the automatic trigger and dependency system that Batman.Objects use.
-class Binding extends Batman.Object
-  # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
-  # It makes the following matches:
-  #
-  # + `foo` and `baz.qux` in `foo, "bar", baz.qux`
-  # + `foo.bar.baz` in `true, false, "true", "false", foo.bar.baz`
-  # + `true.bar` in `2, true.bar`
-  # + `truesay` in truesay
-  # + no matches in `"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"`
-  keypath_rx = ///
-    (^|,)             # Match either the start of an arguments list or the start of a space inbetween commas.
-    \s*               # Be insensitive to whitespace between the comma and the actual arguments.
-    (?!               # Use a lookahead to ensure we aren't matching true or false:
-      (?:true|false)  # Match either true or false ...
-      \s*             # and make sure that there's nothing else that comes after the true or false ...
-      (?:$|,)         # before the end of this argument in the list.
-    )
-    ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
-    \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
-    ($|,)             # Match either the next comma or the end of the filter arguments list.
-    ///g
-
-  # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
-  # dotted names that follow them.
-  get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
-  get_rx = /(?!^\s*)\[(.*?)\]/g
-
-  deProxy = (object) -> if object instanceof Batman.RenderContext.ContextProxy then object.get('proxiedObject') else object
-  # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
-  @accessor 'filteredValue', ->
-    unfilteredValue = @get('unfilteredValue')
-
-    if @filterFunctions.length > 0
-      developer.currentFilterStack = @renderContext
-
-      result = @filterFunctions.reduce((value, fn, i) =>
-        # Get any argument keypaths from the context stored at parse time.
-        args = @filterArguments[i].map (argument) ->
-          if argument._keypath
-            argument.context.get(argument._keypath)
-          else
-            argument
-
-        # Apply the filter.
-        args.unshift value
-        args = args.map deProxy
-        fn.apply(@renderContext, args)
-      , unfilteredValue)
-      developer.currentFilterStack = null
-      result
-    else
-      deProxy(unfilteredValue)
-
-  # The `unfilteredValue` is whats evaluated each time any dependents change.
-  @accessor 'unfilteredValue', ->
-    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
-    # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
-    if k = @get('key')
-      @get("keyContext.#{k}")
-    else
-      @get('value')
-
-  # The `keyContext` accessor is
-  @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
-
-  constructor: ->
-    super
-
-    # Pull out the key and filter from the `@keyPath`.
-    @parseFilter()
-
-    if @node
-      # Tie this binding to its node using Batman.data
-      if bindings = Batman.data @node, 'bindings'
-        bindings.add @
-      else
-        Batman.data @node, 'bindings', new Batman.Set @
-
-    # Define the default observers.
-    @nodeChange ||= (node, context) =>
-      if @key && @filterFunctions.length == 0
-        @get('keyContext').set @key, @node.value
-    @dataChange ||= (value, node) ->
-      Batman.DOM.valueForNode @node, value
-
-    shouldSet = yes
-
-    # And attach them.
-    if @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
-      Batman.DOM.events.change @node, =>
-        shouldSet = no
-        @nodeChange(@node, @get('keyContext') || @value, @)
-        shouldSet = yes
-
-    # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
-    if @only in [false, 'dataChange']
-      @observeAndFire 'filteredValue', (value) =>
-        if shouldSet
-          @dataChange(value, @node, @)
-    @
-
-  destroy: ->
-    @forget()
-    @_batman.properties.forEach (key, property) -> property.removeSourceHandlers()
-    delete @[k] for own k of @
-
-  parseFilter: ->
-    # Store the function which does the filtering and the arguments (all except the actual value to apply the
-    # filter to) in these arrays.
-    @filterFunctions = []
-    @filterArguments = []
-
-    # Rewrite [] style gets, replace quotes to be JSON friendly, and split the string by pipes to see if there are any filters.
-    keyPath = @keyPath
-    keyPath = keyPath.replace(get_dot_rx, "]['$1']") while get_dot_rx.test(keyPath)  # Stupid lack of lookbehind assertions...
-    filters = keyPath.replace(get_rx, " | get $1 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
-
-    # The key will is always the first token before the pipe.
-    try
-      key = @parseSegment(orig = filters.shift())[0]
-    catch e
-      developer.warn e
-      developer.error "Error! Couldn't parse keypath in \"#{orig}\". Parsing error above."
-    if key and key._keypath
-      @key = key._keypath
-    else
-      @value = key
-
-    if filters.length
-      while filterString = filters.shift()
-        # For each filter, get the name and the arguments by splitting on the first space.
-        split = filterString.indexOf(' ')
-        if ~split
-          filterName = filterString.substr(0, split)
-          args = filterString.substr(split)
-        else
-          filterName = filterString
-
-        # If the filter exists, grab it.
-        if filter = Batman.Filters[filterName]
-          @filterFunctions.push filter
-
-          # Get the arguments for the filter by parsing the args as JSON, or
-          # just pushing an placeholder array
-          if args
-            try
-              @filterArguments.push @parseSegment(args)
-            catch e
-              developer.error "Bad filter arguments \"#{args}\"!"
-          else
-            @filterArguments.push []
-        else
-          developer.error "Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!"
-
-      # Map over each array of arguments to grab the context for any keypaths.
-      @filterArguments = @filterArguments.map (argumentList) =>
-        argumentList.map (argument) =>
-          if argument._keypath
-            # Discard the value (for the time being) and store the context for the keypath in `context`.
-            [_, argument.context] = @renderContext.findKey argument._keypath
-          argument
-
-  # Turn a piece of a `data` keypath into a usable javascript object.
-  #  + replacing keypaths using the above regular expression
-  #  + wrapping the `,` delimited list in square brackets
-  #  + and `JSON.parse`ing them as an array.
-  parseSegment: (segment) ->
-    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}$3") + "]" )
-
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 # Every, and I really mean every method which uses filters has to be defined in terms of a new
 # binding, or by using the RenderContext.bind method. This is so that the proper order of objects
@@ -2977,7 +2805,7 @@ class Batman.RenderContext
   # The optional `only` parameter can be used to create data-to-node-only or node-to-data-only bindings. If left unset,
   # both data-to-node (source) and node-to-data (target) events are observed.
   bind: (node, key, dataChange, nodeChange, only = false) ->
-    return new Binding
+    return new Batman.DOM.Binding
       renderContext: @
       keyPath: key
       node: node
@@ -3014,7 +2842,7 @@ class Batman.RenderContext
       unset: (key) -> @unset("proxiedObject.#{key}")
 
     constructor: (@renderContext, @keyPath, @localKey) ->
-      @binding = new Binding
+      @binding = new Batman.DOM.Binding
         renderContext: @renderContext
         keyPath: @keyPath
         only: 'neither'
@@ -3450,10 +3278,179 @@ Batman.DOM = {
 
 }
 
-class Batman.DOM.AbstractBinding
+class Batman.DOM.AbstractBinding extends Batman.Object
   constructor: (node) ->
-    Batman.DOM.trackBinding @, node
+    super()
+    Batman.DOM.trackBinding(@, node) if node?
+
   destroy: -> # called by $removeNode
+
+# Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
+# Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy
+# the automatic trigger and dependency system that Batman.Objects use.
+class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
+  # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
+  # It makes the following matches:
+  #
+  # + `foo` and `baz.qux` in `foo, "bar", baz.qux`
+  # + `foo.bar.baz` in `true, false, "true", "false", foo.bar.baz`
+  # + `true.bar` in `2, true.bar`
+  # + `truesay` in truesay
+  # + no matches in `"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"`
+  keypath_rx = ///
+    (^|,)             # Match either the start of an arguments list or the start of a space inbetween commas.
+    \s*               # Be insensitive to whitespace between the comma and the actual arguments.
+    (?!               # Use a lookahead to ensure we aren't matching true or false:
+      (?:true|false)  # Match either true or false ...
+      \s*             # and make sure that there's nothing else that comes after the true or false ...
+      (?:$|,)         # before the end of this argument in the list.
+    )
+    ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
+    \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
+    ($|,)             # Match either the next comma or the end of the filter arguments list.
+    ///g
+
+  # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
+  # dotted names that follow them.
+  get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
+  get_rx = /(?!^\s*)\[(.*?)\]/g
+
+  deProxy = (object) -> if object instanceof Batman.RenderContext.ContextProxy then object.get('proxiedObject') else object
+  # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
+  @accessor 'filteredValue', ->
+    unfilteredValue = @get('unfilteredValue')
+
+    if @filterFunctions.length > 0
+      developer.currentFilterStack = @renderContext
+
+      result = @filterFunctions.reduce((value, fn, i) =>
+        # Get any argument keypaths from the context stored at parse time.
+        args = @filterArguments[i].map (argument) ->
+          if argument._keypath
+            argument.context.get(argument._keypath)
+          else
+            argument
+
+        # Apply the filter.
+        args.unshift value
+        args = args.map deProxy
+        fn.apply(@renderContext, args)
+      , unfilteredValue)
+      developer.currentFilterStack = null
+      result
+    else
+      deProxy(unfilteredValue)
+
+  # The `unfilteredValue` is whats evaluated each time any dependents change.
+  @accessor 'unfilteredValue', ->
+    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
+    # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
+    if k = @get('key')
+      @get("keyContext.#{k}")
+    else
+      @get('value')
+
+  # The `keyContext` accessor is
+  @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
+
+  constructor: (options)->
+    super(options.node)
+    @mixin options
+
+    # Pull out the key and filter from the `@keyPath`.
+    @parseFilter()
+
+    # Define the default observers.
+    @nodeChange ||= (node, context) =>
+      if @key && @filterFunctions.length == 0
+        @get('keyContext').set @key, @node.value
+    @dataChange ||= (value, node) ->
+      Batman.DOM.valueForNode @node, value
+
+    shouldSet = yes
+
+    # And attach them.
+    if @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
+      Batman.DOM.events.change @node, =>
+        shouldSet = no
+        @nodeChange(@node, @get('keyContext') || @value, @)
+        shouldSet = yes
+
+    # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
+    if @only in [false, 'dataChange']
+      @observeAndFire 'filteredValue', (value) =>
+        if shouldSet
+          @dataChange(value, @node, @)
+    @
+
+  destroy: ->
+    @forget()
+    @_batman.properties.forEach (key, property) -> property.removeSourceHandlers()
+    delete @[k] for own k of @
+
+  parseFilter: ->
+    # Store the function which does the filtering and the arguments (all except the actual value to apply the
+    # filter to) in these arrays.
+    @filterFunctions = []
+    @filterArguments = []
+
+    # Rewrite [] style gets, replace quotes to be JSON friendly, and split the string by pipes to see if there are any filters.
+    keyPath = @keyPath
+    keyPath = keyPath.replace(get_dot_rx, "]['$1']") while get_dot_rx.test(keyPath)  # Stupid lack of lookbehind assertions...
+    filters = keyPath.replace(get_rx, " | get $1 ").replace(/'/g, '"').split(/(?!")\s+\|\s+(?!")/)
+
+    # The key will is always the first token before the pipe.
+    try
+      key = @parseSegment(orig = filters.shift())[0]
+    catch e
+      developer.warn e
+      developer.error "Error! Couldn't parse keypath in \"#{orig}\". Parsing error above."
+    if key and key._keypath
+      @key = key._keypath
+    else
+      @value = key
+
+    if filters.length
+      while filterString = filters.shift()
+        # For each filter, get the name and the arguments by splitting on the first space.
+        split = filterString.indexOf(' ')
+        if ~split
+          filterName = filterString.substr(0, split)
+          args = filterString.substr(split)
+        else
+          filterName = filterString
+
+        # If the filter exists, grab it.
+        if filter = Batman.Filters[filterName]
+          @filterFunctions.push filter
+
+          # Get the arguments for the filter by parsing the args as JSON, or
+          # just pushing an placeholder array
+          if args
+            try
+              @filterArguments.push @parseSegment(args)
+            catch e
+              developer.error "Bad filter arguments \"#{args}\"!"
+          else
+            @filterArguments.push []
+        else
+          developer.error "Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!"
+
+      # Map over each array of arguments to grab the context for any keypaths.
+      @filterArguments = @filterArguments.map (argumentList) =>
+        argumentList.map (argument) =>
+          if argument._keypath
+            # Discard the value (for the time being) and store the context for the keypath in `context`.
+            [_, argument.context] = @renderContext.findKey argument._keypath
+          argument
+
+  # Turn a piece of a `data` keypath into a usable javascript object.
+  #  + replacing keypaths using the above regular expression
+  #  + wrapping the `,` delimited list in square brackets
+  #  + and `JSON.parse`ing them as an array.
+  parseSegment: (segment) ->
+    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}$3") + "]" )
+
 
 class Batman.DOM.Select extends Batman.DOM.AbstractBinding
   constructor: (@node, @key, @context, @renderer, @only) ->
