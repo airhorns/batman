@@ -1427,6 +1427,8 @@ class Batman.App extends Batman.Object
       @set 'layout', new Batman.View
         contexts: [@]
         node: document
+    else if typeof @layout is 'string'
+      @set 'layout', new @[helpers.camelize(@layout) + 'View']
 
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @on 'run', =>
