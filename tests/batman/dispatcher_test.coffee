@@ -1,6 +1,6 @@
 QUnit.module 'Batman.Dispatcher defining routes',
   setup: ->
-    window.location.hash = ''
+    @defaultHistoryManagerClass = Batman.HistoryManager.defaultClass
     Batman.START = new Date()
     class @App extends Batman.App
       @layout: null
@@ -22,8 +22,8 @@ QUnit.module 'Batman.Dispatcher defining routes',
         @render false
       edit: -> @render false
   teardown: ->
+    Batman.HistoryManager.defaultClass = @defaultHistoryManagerClass
     @App.stop()
-    window.location.hash = ''
 
 test 'controller aliases', ->
   @App.dispatcher = new Batman.Dispatcher @App
@@ -73,9 +73,10 @@ asyncTest 'splat matching', ->
 
   $redirect url = '/x/y/fixed/10/foo/bar'
 
-asyncTest 'query params', ->
+asyncTest 'query params', 7, ->
   hasCalledRoute = no
   @App.root (params) ->
+    
     equal params.url, '/'
     equal params.foo, 'bar'
     equal params.x, 'true'
@@ -129,7 +130,8 @@ asyncTest 'resources', ->
 
   $redirect 'products/1/images'
 
-asyncTest 'hash manager', ->
+asyncTest 'hash history', 1, ->
+  Batman.HistoryManager.defaultClass = Batman.HashHistory
   @App.route 'test', ->
     window.location.hash = '#!/test2'
   @App.route 'test2', ->
@@ -138,6 +140,17 @@ asyncTest 'hash manager', ->
   @App.run()
 
   window.location.hash = '#!/test'
+
+if Batman.StateHistory.isSupported()
+  asyncTest 'state history', 1, ->
+    @App.route 'test', ->
+      Batman.redirect "/test2"
+    @App.route 'test2', ->
+      ok true, 'routes called'
+      QUnit.start()
+    @App.run()
+    
+    Batman.redirect '/test'
 
 asyncTest '404', 1, ->
   @App.route '404', ->

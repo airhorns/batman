@@ -8,18 +8,29 @@ else
   global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
   exports.IN_NODE = true
 
+originalPathname = window.location.pathname
 
-originalLocation = window.location.href
-originalReset = QUnit.reset
+# set Batman.pathPrefix:
+QUnit.__start = QUnit.start
+QUnit.start = ->
+  Batman.pathPrefix = originalPathname
+  QUnit.__start.apply(this, arguments)
+
+# return clean links (e.g. "Rerun" links):
+QUnit.__url = QUnit.url
+QUnit.url = (params) -> QUnit.__url(params).replace(/^[^\?]*\?/, "#{originalPathname}?")
+
+# clean up location bar after tests:
+originalHref = window.location.href
+QUnit.__reset = QUnit.reset
 QUnit.reset = ->
   if Batman.currentApp?
     Batman.currentApp.stop()
     Batman.currentApp = null
   window.location.hash = ""
-  if window.history?.pushState? and window.location.href isnt originalLocation
-    window.history.pushState(null, '', originalLocation)
-  originalReset.apply(this, arguments)
-
+  if window.history?.pushState? and window.location.href isnt originalHref
+    window.history.pushState(null, '', originalHref)
+  QUnit.__reset()
 
 if exports.IN_NODE
   do ->
