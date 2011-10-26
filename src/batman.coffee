@@ -3310,7 +3310,7 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
     )
     ([a-zA-Z][\w\.]*) # Now that true and false can't be matched, match a dot delimited list of keys.
     \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
-    ($|,)             # Match either the next comma or the end of the filter arguments list.
+    (?=$|,)             # Match either the next comma or the end of the filter arguments list.
     ///g
 
   # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
@@ -3452,7 +3452,7 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   #  + wrapping the `,` delimited list in square brackets
   #  + and `JSON.parse`ing them as an array.
   parseSegment: (segment) ->
-    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}$3") + "]" )
+    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}") + "]" )
 
 
 class Batman.DOM.Select extends Batman.DOM.AbstractBinding
