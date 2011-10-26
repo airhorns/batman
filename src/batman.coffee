@@ -1619,7 +1619,7 @@ class Batman.HistoryManager
     segments.join('')
 
 class Batman.StateHistory extends Batman.HistoryManager
-  @isSupported: -> window.history?.pushState?
+  @isSupported: -> window?.history?.pushState?
   start: =>
     return if typeof window is 'undefined'
     return if @started
