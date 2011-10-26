@@ -1603,6 +1603,23 @@ class Batman.Dispatcher extends Batman.Object
 class Batman.HistoryManager
   @forApp: (app) -> app.historyManager or new @defaultClass(app)
   constructor: (@app) ->
+  start: ->
+    return if typeof window is 'undefined'
+    return if @started
+    @started = yes
+    @startWatching()
+    Batman.currentApp.prevent 'ready'
+    $setImmediate =>
+      @handleCurrentURL()
+      Batman.currentApp.allow 'ready'
+      Batman.currentApp.fire 'ready'
+  stop: ->
+    @stopWatching()
+    @started = no
+  handleCurrentURL: =>
+    url = @getCurrentURL()
+    return if url is @cachedURL
+    @dispatch(@cachedURL = url)
   dispatch: (url) ->
     url = @joinPath('/', url)
     @app.dispatcher.dispatch url
@@ -1610,7 +1627,7 @@ class Batman.HistoryManager
   redirect: (url) ->
     if $typeOf(url) isnt 'String'
       url = @app.dispatcher.findUrl(url)
-    @dispatch url
+    @cachedURL = @dispatch(url)
   joinPath: (segments...) ->
     segments = for seg, i in segments
       seg = "/#{seg}" unless i is 0 or seg.charAt(0) is '/'
@@ -1620,21 +1637,10 @@ class Batman.HistoryManager
 
 class Batman.StateHistory extends Batman.HistoryManager
   @isSupported: -> window?.history?.pushState?
-  start: =>
-    return if typeof window is 'undefined'
-    return if @started
-    @started = yes
+  startWatching: ->
     $addEventListener window, 'popstate', @handleCurrentURL
-    Batman.currentApp.prevent 'ready'
-    $setImmediate =>
-      @handleCurrentURL()
-      Batman.currentApp.allow 'ready'
-      Batman.currentApp.fire 'ready'
-
-  stop: =>
+  stopWatching: ->
     $removeEventListener window, 'popstate', @handleCurrentURL
-    @started = no
-  
   urlFor: (url) ->
     result = @joinPath('/', Batman.pathPrefix, url)
     result
@@ -1643,51 +1649,27 @@ class Batman.StateHistory extends Batman.HistoryManager
     prefixPattern = new RegExp("^#{@joinPath('/', Batman.pathPrefix)}")
     result = fullPath.replace(prefixPattern, '')
     result
-  handleCurrentURL: =>
-    url = @getCurrentURL()
-    return if url is @cachedURL
-    @dispatch(@cachedURL = url)
-  
   redirect: (params) ->
     url = super
-    @cachedURL = url
     window.history.pushState(null,'',@urlFor(url))
 
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
-  start: =>
-    return if typeof window is 'undefined'
-    return if @started
-    @started = yes
-    if 'onhashchange' of window
+  if 'onhashchange' of window
+    @::startWatching = ->
       $addEventListener window, 'hashchange', @handleCurrentURL
-    else
-      @interval = setInterval @handleCurrentURL, 100
-    Batman.currentApp.prevent 'ready'
-    $setImmediate =>
-      @handleCurrentURL()
-      Batman.currentApp.allow 'ready'
-      Batman.currentApp.fire 'ready'
-
-  stop: =>
-    if @interval
-      @interval = clearInterval @interval
-    else
+    @::stopWatching = ->
       $removeEventListener window, 'hashchange', @handleCurrentURL
-    @started = no
+  else
+    @::startWatching = ->
+      @interval = setInterval @handleCurrentURL, 100
+    @::stopWatching = ->
+      @interval = clearInterval @interval
 
   urlFor: (url) -> @HASH_PREFIX + url
-  
   getCurrentURL: -> window.location.hash.replace(@HASH_PREFIX, '')
-  
-  handleCurrentURL: =>
-    hash = @getCurrentURL()
-    return if hash is @cachedHash
-    @dispatch(@cachedHash = hash)
-
   redirect: (params) ->
     url = super
-    @cachedHash = url
     window.location.hash = @urlFor(url)
 
 Batman.HistoryManager.defaultClass = if Batman.StateHistory.isSupported()
