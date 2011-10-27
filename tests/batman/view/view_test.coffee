@@ -18,19 +18,24 @@ QUnit.module 'Batman.View'
   teardown: ->
     Batman.Request = oldRequest
 
-asyncTest 'should pull in the source for a view from a path, appending the prefix', 1, ->
-  delay =>
-    equal MockRequest.lastInstance.constructorArguments[0].url, "/some_other_prefix/#{@options.source}"
+test 'should pull in the source for a view from a path, appending the prefix', 1, ->
+  equal MockRequest.lastConstructorArguments[0].url, "/some_other_prefix/#{@options.source}"
 
-asyncTest 'should update its node with the contents of its view', 1, ->
-  delay =>
-    MockRequest.lastInstance.fireSuccess('view contents')
-    equal @view.get('node').innerHTML, 'view contents'
+test 'should update its node with the contents of its view', 1, ->
+  MockRequest.lastInstance.fireSuccess('view contents')
+  equal @view.get('node').innerHTML, 'view contents'
 
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.on 'ready', observer = createSpy()
 
+  MockRequest.lastInstance.fireSuccess('view contents')
   delay =>
-    MockRequest.lastInstance.fireSuccess('view contents')
-    delay =>
-      ok observer.called
+    ok observer.called
+
+asyncTest 'should allow prefetching of view sources', 2, ->
+  Batman.View.sourceCache.prefetch('a/prefetched/view.html')
+  equal MockRequest.lastConstructorArguments[0].url, "/a/prefetched/view.html"
+  delay =>
+    MockRequest.lastInstance.fireSuccess('prefetched contents')
+    view = new Batman.View({source: 'view.html', prefix: 'a/prefetched'})
+    equal view.get('html'), 'prefetched contents'

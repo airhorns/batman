@@ -2590,6 +2590,10 @@ class Batman.ViewSourceCache extends Batman.Object
       return undefined
     set: (k,v) -> @sources[k] = v
 
+  prefetch: (path) ->
+    @get(path)
+    true
+
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
