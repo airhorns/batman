@@ -1658,7 +1658,7 @@ class Batman.StateHistory extends Batman.HistoryManager
 
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
-  if 'onhashchange' of window
+  if window? and 'onhashchange' of window
     @::startWatching = ->
       $addEventListener window, 'hashchange', @handleCurrentURL
     @::stopWatching = ->
