@@ -1,4 +1,5 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
+getPs = (view) -> $('p', view.get('node')).map(-> @innerHTML).toArray()
 
 QUnit.module "Batman.View loop rendering"
 
@@ -7,9 +8,7 @@ asyncTest 'it should allow simple loops', 1, ->
   objects = new Batman.Set('foo', 'bar', 'baz')
 
   helpers.render source, {objects}, (node, view) ->
-    names = $('p', view.get('node')).map -> @innerHTML
-    names = names.toArray()
-    deepEqual names, ['foo', 'bar', 'baz']
+    deepEqual getPs(view), ['foo', 'bar', 'baz']
     QUnit.start()
 
 asyncTest 'it should allow loops over empty collections', 1, ->
@@ -17,9 +16,7 @@ asyncTest 'it should allow loops over empty collections', 1, ->
   objects = new Batman.Set()
 
   helpers.render source, {objects}, (node, view) ->
-    names = $('p', view.get('node')).map -> @innerHTML
-    names = names.toArray()
-    deepEqual names, []
+    deepEqual getPs(view), []
     QUnit.start()
 
 asyncTest 'it should allow loops over undefined values', 3, ->
@@ -27,16 +24,13 @@ asyncTest 'it should allow loops over undefined values', 3, ->
   context = Batman()
   Batman.developer.suppress()
   helpers.render source, context, (node, view) ->
-    names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-    deepEqual names, []
+    deepEqual getPs(view), []
     context.set 'objects', new Batman.Set('foo', 'bar', 'baz')
     delay ->
-      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-      deepEqual names, ['foo', 'bar', 'baz']
+      deepEqual getPs(view), ['foo', 'bar', 'baz']
       context.unset 'objects'
       delay ->
-        names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-        deepEqual names, []
+        deepEqual getPs(view), []
         Batman.developer.unsuppress()
 
 asyncTest 'it should render new items as they are added', ->
@@ -46,9 +40,7 @@ asyncTest 'it should render new items as they are added', ->
   helpers.render source, {objects}, (node, view) ->
     objects.add('foo', 'baz', 'qux')
     delay =>
-      names = $('p', view.get('node')).map -> @innerHTML
-      names = names.toArray()
-      deepEqual names, ['foo', 'bar', 'baz', 'qux']
+      deepEqual getPs(view), ['foo', 'bar', 'baz', 'qux']
 
 asyncTest 'it should remove items from the DOM as they are removed from the set', ->
   source = '<div><p data-foreach-object="objects" class="present" data-bind="object"></p></div>'
@@ -57,9 +49,7 @@ asyncTest 'it should remove items from the DOM as they are removed from the set'
   helpers.render source, {objects}, (node, view) ->
     objects.remove('foo')
     delay =>
-      names = $('p', view.get('node')).map -> @innerHTML
-      names = names.toArray()
-      deepEqual names, ['bar']
+      deepEqual getPs(view), ['bar']
 
 asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
   source = '<div><p data-foreach-object="objects.sortedBy[currentSort]" class="present" data-bind="object.name"></p></div>'
@@ -67,19 +57,15 @@ asyncTest 'it should atomically reorder DOM nodes when the set is reordered', ->
   context = Batman({objects, currentSort: 'id'})
 
   helpers.render source, context, (node, view) ->
-    names = ($('p', view.get('node')).map -> @innerHTML).toArray()
-    deepEqual names, ['foo', 'bar']
+    deepEqual getPs(view), ['foo', 'bar']
     # multiple reordering all at once should not end up with duplicate DOM nodes
     context.set 'currentSort', 'name'
     delay =>
-      ($('p', view.get('node')).map -> @innerHTML)
       context.set 'currentSort', 'id'
       delay =>
-        ($('p', view.get('node')).map -> @innerHTML)
         context.set 'currentSort', 'name'
         delay =>
-          names = ($('p', view.get('node')).map -> @innerHTML).toArray()
-          deepEqual names, ['bar', 'foo']
+          deepEqual getPs(view), ['bar', 'foo']
 
 asyncTest 'it should add items in order', ->
   source = '<p data-foreach-object="objects.sortedBy.id" class="present" data-bind="object.name"></p>'
@@ -87,8 +73,7 @@ asyncTest 'it should add items in order', ->
   helpers.render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
     delay =>
-      names = $('p', view.get('node')).map(-> @innerHTML).toArray()
-      deepEqual names, ['zero', 'foo', 'bar']
+      deepEqual getPs(view), ['zero', 'foo', 'bar']
 
 asyncTest 'the ready event should wait for all children to be rendered', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
@@ -124,23 +109,22 @@ asyncTest 'it should render consecutive loops', 1, ->
   objects1 = new Batman.Set('foo', 'bar', 'baz')
   objects2 = new Batman.Set('a', 'b', 'c')
 
-  helpers.render source, false, {objects1, objects2}, (node) ->
-    names = $('p', node).map(-> @innerHTML).toArray()
-    deepEqual names, ['foo', 'bar', 'baz', 'a', 'b', 'c']
+  helpers.render source, false, {objects1, objects2}, (node, view) ->
+    deepEqual getPs(view), ['foo', 'bar', 'baz', 'a', 'b', 'c']
     QUnit.start()
 
 asyncTest 'it should render consecutive loops bound to the same collection', 4, ->
   source = '<p data-foreach-object="objects" data-bind="object"></p><p data-foreach-object="objects" data-bind="object"></p>'
   objects = new Batman.Set('foo', 'bar', 'baz')
 
-  helpers.render source, false, {objects}, (node) ->
-    equal $('p', node).length, 6
+  helpers.render source, false, {objects}, (node, view) ->
+    deepEqual getPs(view), ['foo', 'bar', 'baz', 'foo', 'bar', 'baz']
     objects.remove 'foo'
     delay ->
-      equal $('p', node).length, 4
+      deepEqual getPs(view), ['bar', 'baz', 'bar', 'baz']
       objects.remove 'bar'
       delay ->
-        equal $('p', node).length, 2
+        deepEqual getPs(view), ['baz', 'baz']
         objects.remove 'baz'
         delay ->
           equal $('p', node).length, 0
@@ -149,16 +133,14 @@ asyncTest 'it should render consecutive loops bound to the same collection when 
   source = '<p data-foreach-object="objects" data-bind="object"></p><p data-foreach-object="objects" data-bind="object"></p>'
   objects = new Batman.Set()
 
-  helpers.render source, false, {objects}, (node) ->
+  helpers.render source, false, {objects}, (node, view) ->
     equal $('p', node).length, 0
     objects.add 'foo', 'bar', 'baz'
     delay ->
-      names = $('p', node).map(-> @innerHTML).toArray()
-      deepEqual names, ['foo', 'bar', 'baz', 'foo', 'bar', 'baz']
+      deepEqual getPs(view), ['foo', 'bar', 'baz', 'foo', 'bar', 'baz']
       objects.remove 'bar'
       delay ->
-        names = $('p', node).map(-> @innerHTML).toArray()
-        deepEqual names, ['foo', 'baz', 'foo', 'baz']
+        deepEqual getPs(view), ['foo', 'baz', 'foo', 'baz']
 
 asyncTest 'it should update the whole set of nodes if the collection changes', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
@@ -285,7 +267,6 @@ asyncTest 'it should loop over js objects', 6, ->
       equal parseInt(childNode.innerHTML, 10), playerScores[childNode.id]
     QUnit.start()
 
-getPs = (view) -> $('p', view.get('node')).map(-> @innerHTML).toArray()
 
 asyncTest 'it should prevent parent renders even if it has to defer (note: this test can take a while)', ->
   oldDeferEvery = Batman.DOM.Iterator::deferEvery
