@@ -2191,29 +2191,23 @@ class Batman.Model extends Batman.Object
       do @saving
       do @creating if creating
 
-      modelSaved = @event('modelSaved')
-      modelSaved.prevent() # for the storage operation
-      modelSaved.addHandler(callback) if callback
-
       if associations = Batman.Association.Collection.getModelAssociations(@)
         {belongsTo, hasOne, hasMany} = associations
-
         # Save belongsTo models immediately since we don't need this model's id
         belongsTo?.forEach (association) => association.save(@)
 
-      @_doStorageOperation (if creating then 'create' else 'update'), {}, (storageOpError, record) =>
-        unless storageOpError
+      @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
+        unless err
           if creating
             do @created
           do @saved
           @dirtyKeys.clear()
-          record = @constructor._mapIdentity(record)
 
           for k in [hasOne, hasMany]
-            k?.forEach (association) -> association.save(storageOpError, record)
+            k?.forEach (association) -> association.save(err, record)
 
-        # Done storage operation; if there are no pending associations the event will fire
-        modelSaved.allowAndFire(storageOpError, record)
+          record = @constructor._mapIdentity(record)
+        callback?(err, record)
 
   # `destroy` destroys a record in all the stores.
   destroy: (callback) =>
@@ -2343,19 +2337,8 @@ class Batman.Association.belongsTo extends Batman.Association
           throw error if error
 
   save: (base) ->
-    # saveEvent is allowed but not fired, because base's storage op still needs to happen
-    saveEvent = base.event('modelSaved')
-    saveEvent.prevent()
-
-    model = base.get(@label)
-    if model?.state() is "dirty"
-      model.save (err, record) =>
-        throw err if err
-        base.set "#{@label}_id", record.id
-        saveEvent.allow()
-    else
-      base.set "#{@label}_id", model.id if model
-      saveEvent.allow()
+    if model = base.get(@label)
+      base.set "#{@label}_id", model.id
 
   clearRelation: (base) -> # do nothing
 
@@ -2408,21 +2391,9 @@ class Batman.Association.hasOne extends Batman.Association
       return loadedRecord
 
   save: (baseSaveError, base) ->
-    saveEvent = base.event('modelSaved')
-    saveEvent.prevent()
-
     if relatedModel = base._batman.attributes?[@label]
       foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
       relatedModel.set foreignKey, base.id
-
-      if relatedModel.state() is "dirty"
-        relatedModel.save (err, relatedRecord) => 
-          throw err if err
-          saveEvent.allowAndFire baseSaveError, base
-      else
-        saveEvent.allowAndFire baseSaveError, base
-    else
-      saveEvent.allowAndFire baseSaveError, base
 
   clearRelation: (base) ->
     # Unset the property on related models now pointing to a destroyed record
@@ -2478,20 +2449,10 @@ class Batman.Association.hasMany extends Batman.Association
       loadedRecords
 
   save: (baseSaveError, base) ->
-    saveEvent = base.event('modelSaved')
     if relatedModels = base._batman.attributes?[@label]
+      foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
       relatedModels.forEach (model) =>
-        saveEvent.prevent()
-
-        foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
         model.set foreignKey, base.id
-
-        if model.state() is "dirty"
-          model.save (err, relatedRecord) =>
-            throw err if err
-            saveEvent.allowAndFire baseSaveError, base
-        else
-          saveEvent.allowAndFire baseSaveError, base
 
   clearRelation: Batman.Association.hasOne::clearRelation
 
