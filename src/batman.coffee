@@ -3618,7 +3618,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     @prototypeNode.removeAttribute "data-foreach-#{iteratorName}"
 
     @parentNode = sourceNode.parentNode
-    @siblingNode = sourceNode.nextSibling
+    @initialSiblingNode = sourceNode.nextSibling
 
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
@@ -3658,26 +3658,26 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
         @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
 
   collectionChange: (newCollection) =>
-    # Deal with any nodes inserted by previous collections
-    @unbindCollection() unless newCollection == @collection
+    unless newCollection == @collection
+      @unbindCollection()
+      @collection = newCollection
+      if @collection
+        if @collection.isObservable && @collection.toArray
+          @collection.observe 'toArray', @arrayChanged
+        else if @collection.isEventEmitter
+          @collection.on 'itemsWereAdded', @currentAddedHandler = (items...) =>
+            @addItem(item, {fragment: true}) for item, i in items
+          @collection.on 'itemsWereRemoved', @currentRemovedHandler = (items...) =>
+            @removeItem(item) for item, i in items
 
-    @collection = newCollection
-    if @collection
-      if @collection.isObservable && @collection.toArray
-        @collection.observe 'toArray', @arrayChanged
-      else if @collection.isEventEmitter
-        @collection.on 'itemsWereAdded', @currentAddedHandler = (items...) =>
-          @addItem(item, {fragment: true}) for item, i in items
-        @collection.on 'itemsWereRemoved', @currentRemovedHandler = (items...) =>
-          @removeItem(item) for item, i in items
+        if @collection.toArray
+          @arrayChanged()
+        else if @collection.forEach
+          @collection.forEach (item) => @addItem(item)
+        else
+          @addItem(key) for own key, value of @collection
 
-      if @collection.toArray
-        @arrayChanged()
-      else if @collection.forEach
-        @collection.forEach (item) => @addItem(item)
-      else
-        @addItem(key) for own key, value of @collection
-    else
+    unless @collection
       developer.warn "Warning! data-foreach-#{@iteratorName} called with an undefined binding. Key was: #{@key}."
 
     @processActionQueue()
@@ -3747,26 +3747,17 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
         @actions[options.actionNumber] ||= ->
           show = Batman.data node, 'show'
           if typeof show is 'function'
-            show.call node, before: @siblingNode
+            show.call node, before: @nextSibling()
           else
             if options.fragment
               @fragment.appendChild node
             else
-              @parentNode.insertBefore node, @siblingNode
+              @parentNode.insertBefore node, @nextSibling()
+          @lastNode = node
 
     @actions[options.actionNumber].item = item
     @processActionQueue()
 
-  _nodeForItem: (item) ->
-    newNode = @prototypeNode.cloneNode(true)
-    @nodeMap.set(item, newNode)
-    newNode
-
-  _removeOldAction: (item) ->
-    oldActionNumber = @actionMap.get(item)
-    if oldActionNumber? && oldActionNumber > @currentActionNumber
-      @actionMap.unset(item)
-      @actions[oldActionNumber] = ->
 
   processActionQueue: ->
     return if @destroyed
@@ -3786,12 +3777,33 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
-          @parentNode.insertBefore @fragment, @siblingNode
+          @parentNode.insertBefore @fragment, @nextSibling()
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber
           @parentRenderer.allow 'rendered'
           @parentRenderer.fire 'rendered'
+
+  nextSibling: ->
+    if @lastNode
+      @lastNode.nextSibling
+    else
+      if @initialSiblingNode && @initialSiblingNode.parentNode
+        @initialSiblingNode
+      else
+        undefined
+
+  _nodeForItem: (item) ->
+    newNode = @prototypeNode.cloneNode(true)
+    @nodeMap.set(item, newNode)
+    newNode
+
+  _removeOldAction: (item) ->
+    oldActionNumber = @actionMap.get(item)
+    if oldActionNumber? && oldActionNumber > @currentActionNumber
+      @actionMap.unset(item)
+      @actions[oldActionNumber] = ->
+
 # Filters
 # -------
 #

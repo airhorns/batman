@@ -119,6 +119,47 @@ asyncTest 'it should continue to render nodes after the loop', 1, ->
     equal 'qux', $('span', node).html(), "Node after the loop is also rendered"
     QUnit.start()
 
+asyncTest 'it should render consecutive loops', 1, ->
+  source = '<p data-foreach-object="objects1" data-bind="object"></p><p data-foreach-object="objects2" data-bind="object"></p>'
+  objects1 = new Batman.Set('foo', 'bar', 'baz')
+  objects2 = new Batman.Set('a', 'b', 'c')
+
+  helpers.render source, false, {objects1, objects2}, (node) ->
+    names = $('p', node).map(-> @innerHTML).toArray()
+    deepEqual names, ['foo', 'bar', 'baz', 'a', 'b', 'c']
+    QUnit.start()
+
+asyncTest 'it should render consecutive loops bound to the same collection', 4, ->
+  source = '<p data-foreach-object="objects" data-bind="object"></p><p data-foreach-object="objects" data-bind="object"></p>'
+  objects = new Batman.Set('foo', 'bar', 'baz')
+
+  helpers.render source, false, {objects}, (node) ->
+    equal $('p', node).length, 6
+    objects.remove 'foo'
+    delay ->
+      equal $('p', node).length, 4
+      objects.remove 'bar'
+      delay ->
+        equal $('p', node).length, 2
+        objects.remove 'baz'
+        delay ->
+          equal $('p', node).length, 0
+
+asyncTest 'it should render consecutive loops bound to the same collection when the collection starts empty', 3, ->
+  source = '<p data-foreach-object="objects" data-bind="object"></p><p data-foreach-object="objects" data-bind="object"></p>'
+  objects = new Batman.Set()
+
+  helpers.render source, false, {objects}, (node) ->
+    equal $('p', node).length, 0
+    objects.add 'foo', 'bar', 'baz'
+    delay ->
+      names = $('p', node).map(-> @innerHTML).toArray()
+      deepEqual names, ['foo', 'bar', 'baz', 'foo', 'bar', 'baz']
+      objects.remove 'bar'
+      delay ->
+        names = $('p', node).map(-> @innerHTML).toArray()
+        deepEqual names, ['foo', 'baz', 'foo', 'baz']
+
 asyncTest 'it should update the whole set of nodes if the collection changes', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   context = new Batman.Object
