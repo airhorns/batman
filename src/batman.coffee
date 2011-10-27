@@ -620,7 +620,7 @@ Batman.Observable =
     if key
       @property(key).forget(observer)
     else
-      @_batman.properties.forEach (key, property) -> property.forget()
+      @_batman.properties?.forEach (key, property) -> property.forget()
     @
 
 # `fire` tells any observers attached to a key to fire, manually.
@@ -2781,9 +2781,6 @@ class Batman.Renderer extends Batman.Object
     return
 
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
-# Every, and I really mean every method which uses filters has to be defined in terms of a new
-# binding, or by using the RenderContext.bind method. This is so that the proper order of objects
-# is traversed and any observers are properly attached.
 class Batman.RenderContext
   @start: (contexts...) ->
     node = new @(window)
@@ -2830,21 +2827,6 @@ class Batman.RenderContext
    proxy = new ContextProxy(@, key)
    return @descend(proxy, scopedKey)
 
-  # `bind` takes a `node`, a `key`, and observers for when the `dataChange`s and the `nodeChange`s. It
-  # creates a `Binding` to the key (supporting filters and the context stack), which fires the observers
-  # when appropriate. Note that `Binding` has default observers for `dataChange` and `nodeChange` that
-  # will set node/object values if these observers aren't passed in here.
-  # The optional `only` parameter can be used to create data-to-node-only or node-to-data-only bindings. If left unset,
-  # both data-to-node (source) and node-to-data (target) events are observed.
-  bind: (node, key, dataChange, nodeChange, only = false) ->
-    return new Batman.DOM.Binding
-      renderContext: @
-      keyPath: key
-      node: node
-      dataChange: dataChange
-      nodeChange: nodeChange
-      only: only
-
   # `chain` flattens a `RenderContext`'s path to the root.
   chain: ->
     x = []
@@ -2874,10 +2856,7 @@ class Batman.RenderContext
       unset: (key) -> @unset("proxiedObject.#{key}")
 
     constructor: (@renderContext, @keyPath, @localKey) ->
-      @binding = new Batman.DOM.Binding
-        renderContext: @renderContext
-        keyPath: @keyPath
-        only: 'neither'
+      @binding = new Batman.DOM.AbstractBinding(undefined, @keyPath, @renderContext)
 
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
@@ -2892,49 +2871,34 @@ Batman.DOM = {
       true
 
     bind: (node, key, context, renderer, only) ->
+      bindingClass = false
       switch node.nodeName.toLowerCase()
         when 'input'
           switch node.getAttribute('type')
             when 'checkbox'
-              return Batman.DOM.attrReaders.bind(node, 'checked', key, context, renderer, only)
+              Batman.DOM.attrReaders.bind(node, 'checked', key, context, renderer, only)
+              return true
             when 'radio'
-              return Batman.DOM.binders.radio(arguments...)
+              bindingClass = Batman.DOM.RadioBinding
             when 'file'
-              return Batman.DOM.binders.file(arguments...)
+              bindingClass = Batman.DOM.FileBinding
         when 'select'
-          return Batman.DOM.binders.select(arguments...)
-
-      # Fallback on the default nodeChange and dataChange observers in Binding
-      context.bind(node, key, undefined, undefined, only)
+          bindingClass = Batman.DOM.SelectBinding
+      bindingClass ||= Batman.DOM.Binding
+      new bindingClass(arguments...)
       true
 
     context: (node, key, context, renderer) -> return context.descendWithKey(key)
 
-    mixin: (node, key, context) ->
-      context.descend(Batman.mixins).bind(node, key, (mixin) ->
-        $mixin node, mixin
-      , ->)
+    mixin: (node, key, context, renderer) ->
+      new Batman.DOM.MixinBinding(node, key, context.descend(Batman.mixins), renderer)
       true
 
-    showif: (node, key, context, renderer, invert) ->
-      originalDisplay = node.style.display || ''
-
-      context.bind(node, key, (value) ->
-        if !!value is !invert
-          Batman.data(node, 'show')?.call(node)
-          node.style.display = originalDisplay
-        else
-          hide = Batman.data node, 'hide'
-          if typeof hide == 'function'
-            hide.call node
-          else
-            node.style.display = 'none'
-      , -> )
+    showif: (node, key, context, parentRenderer, invert) ->
+      new Batman.DOM.ShowHideBinding(node, key, context, parentRenderer, false, invert)
       true
 
-    hideif: (args...) ->
-      Batman.DOM.readers.showif args..., yes
-      true
+    hideif: -> Batman.DOM.readers.showif(arguments..., yes)
 
     route: (node, key, context) ->
       # you must specify the / in front to route directly to hash route
@@ -3007,133 +2971,39 @@ Batman.DOM = {
       Batman.DOM.attrReaders.bind node, attr, key, context, renderer, 'dataChange'
 
     bind: (node, attr, key, context, renderer, only) ->
-      switch attr
+      bindingClass = switch attr
         when 'checked', 'disabled', 'selected'
-          dataChange = (value) ->
-            node[attr] = !!value
-            # Update the parent's binding if necessary
-            Batman.data(node.parentNode, 'updateBinding')?()
-
-          nodeChange = (node, subContext) ->
-            subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
-
-          # Make the context and key available to the parent select
-          Batman.data node, attr,
-            context: context
-            key: key
-
+          Batman.DOM.CheckedBinding
         when 'value', 'href', 'src', 'size'
-          dataChange = (value) -> node[attr] = value
-          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node[attr]))
+          Batman.DOM.NodeAttributeBinding
         when 'class'
-          dataChange = (value) -> node.className = value
-          nodeChange = (node, subContext) -> subContext.set key, node.className
+          Batman.DOM.ClassBinding
         when 'style'
-          return Batman.DOM.binders.style node, attr, key, context, renderer, only
+          Batman.DOM.StyleBinding
         else
-          dataChange = (value) -> node.setAttribute(attr, value)
-          nodeChange = (node, subContext) -> subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(attr)))
-
-      context.bind(node, key, dataChange, nodeChange, only)
+          Batman.DOM.AttributeBinding
+      new bindingClass(arguments...)
       true
 
     context: (node, contextName, key, context) -> return context.descendWithKey(key, contextName)
 
     event: (node, eventName, key, context) ->
-      props =
-        callback:  null
-        subContext: null
-
-      context.bind node, key, (value, node, binding) ->
-        props.callback = value
-        if binding.get('key')
-          ks = binding.get('key').split('.')
-          ks.pop()
-          if ks.length > 0
-            props.subContext = binding.get('keyContext').get(ks.join('.'))
-          else
-            props.subContext = binding.get('keyContext')
-      , ->
-
-      confirmText = node.getAttribute('data-confirm')
-      Batman.DOM.events[eventName] node, ->
-        if confirmText and not confirm(confirmText)
-          return
-        props.callback?.apply props.subContext, arguments
+      new Batman.DOM.EventBinding(arguments...)
       true
 
     addclass: (node, className, key, context, parentRenderer, invert) ->
-      className = className.replace(/\|/g, ' ') #this will let you add or remove multiple class names in one binding
-      context.bind node, key, (value) ->
-        currentName = node.className
-        includesClassName = currentName.indexOf(className) isnt -1
-        if !!value is !invert
-          node.className = "#{currentName} #{className}" if !includesClassName
-        else
-          node.className = currentName.replace(className, '') if includesClassName
-      , ->
+      new Batman.DOM.AddClassBinding(node, className, key, context, parentRenderer, false, invert)
       true
 
-    removeclass: (args...) -> Batman.DOM.attrReaders.addclass args..., yes
+    removeclass: (node, className, key, context, parentRenderer) -> Batman.DOM.attrReaders.addclass node, className, key, context, parentRenderer, yes
 
     foreach: (node, iteratorName, key, context, parentRenderer) ->
-      new Batman.DOM.Iterator(arguments...)
+      new Batman.DOM.IteratorBinding(arguments...)
       false # Return false so the Renderer doesn't descend into this node's children.
 
     formfor: (node, localName, key, context) ->
       Batman.DOM.events.submit node, (node, e) -> $preventDefault e
       context.descendWithKey(key, localName)
-  }
-
-  # `Batman.DOM.binders` contains functions used to create element bindings
-  # These are called via `Batman.DOM.readers` or `Batman.DOM.attrReaders`
-  binders: {
-    select: (node, key, context, renderer, only) ->
-      new Batman.DOM.Select node, key, context, renderer, only
-      true
-
-    style: (node, attr, key, context, renderer, only) ->
-      new Batman.DOM.Style node, key, context
-      true
-
-    radio: (node, key, context, renderer, only) ->
-      dataChange = (value) ->
-        # don't overwrite `checked` attributes in the HTML unless a bound
-        # value is defined in the context. if no bound value is found, bind
-        # to the key if the node is checked.
-        [boundValue, container] = context.findKey key
-        if boundValue
-          node.checked = boundValue == node.value
-        else if node.checked
-          container.set key, node.value
-      nodeChange = (newNode, subContext) ->
-        subContext.set(key, Batman.DOM.attrReaders._parseAttribute(node.value))
-      context.bind node, key, dataChange, nodeChange, only
-      true
-
-    file: (node, key, context, renderer, only) ->
-      context.bind(node, key, (->), (node, subContext) ->
-        segments = key.split('.')
-        if segments.length > 1
-          keyContext = subContext.get(segments.slice(0, -1).join('.'))
-        else
-          keyContext = subContext
-
-        if keyContext instanceof Batman.RenderContext.ContextProxy
-          actualObject = keyContext.get('proxiedObject')
-        else
-          actualObject = keyContext
-
-        if actualObject.hasStorage && actualObject.hasStorage()
-          for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
-            adapter.defaultOptions.formData = true
-
-        if node.hasAttribute('multiple')
-          subContext.set key, Array::slice.call(node.files)
-        else
-          subContext.set key, node.files[0]
-      , only)
-      true
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
@@ -3312,17 +3182,12 @@ Batman.DOM = {
 
 }
 
-class Batman.DOM.AbstractBinding extends Batman.Object
-  constructor: (node) ->
-    super()
-    Batman.DOM.trackBinding(@, node) if node?
-
-  destroy: -> # called by $removeNode
-
 # Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
 # Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy
-# the automatic trigger and dependency system that Batman.Objects use.
-class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
+# the automatic trigger and dependency system that Batman.Objects use. Every, and I really mean every method
+# which uses filters has to be defined in terms of a new binding. This is so that the proper order of
+# objects is traversed and any observers are properly attached.
+class Batman.DOM.AbstractBinding extends Batman.Object
   # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
   # It makes the following matches:
   #
@@ -3387,40 +3252,35 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   # The `keyContext` accessor is
   @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
 
-  constructor: (options)->
-    super(options.node)
-    @mixin options
+  bindImmediately: true
 
-    # Pull out the key and filter from the `@keyPath`.
+  constructor: (@node, @keyPath, @renderContext, @renderer, @only = false) ->
+    Batman.DOM.trackBinding(@, @node) if @node?
+
+    # Pull out the `@key` and filter from the `@keyPath`.
     @parseFilter()
 
-    # Define the default observers.
-    @nodeChange ||= (node, context) =>
-      if @key && @filterFunctions.length == 0
-        @get('keyContext').set @key, @node.value
-    @dataChange ||= (value, node) ->
-      Batman.DOM.valueForNode @node, value
+    # Observe the node and the data.
+    @bind() if @bindImmediately
 
+  bind: ->
     shouldSet = yes
-
     # And attach them.
-    if @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
+    if @node? && @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
-        @nodeChange(@node, @get('keyContext') || @value, @)
+        @nodeChange?(@node, @get('keyContext') || @value)
         shouldSet = yes
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     if @only in [false, 'dataChange']
       @observeAndFire 'filteredValue', (value) =>
         if shouldSet
-          @dataChange(value, @node, @)
-    @
+          @dataChange?(value, @node)
 
   destroy: ->
     @forget()
-    @_batman.properties.forEach (key, property) -> property.removeSourceHandlers()
-    delete @[k] for own k of @
+    @_batman.properties?.forEach (key, property) -> property.removeSourceHandlers()
 
   parseFilter: ->
     # Store the function which does the filtering and the arguments (all except the actual value to apply the
@@ -3485,16 +3345,137 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   parseSegment: (segment) ->
     JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}") + "]" )
 
+class Batman.DOM.AbstractAttributeBinding extends Batman.DOM.AbstractBinding
+  constructor: (node, @attributeName, args...) -> super(node, args...)
 
-class Batman.DOM.Select extends Batman.DOM.AbstractBinding
-  constructor: (@node, @key, @context, @renderer, @only) ->
+class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
+  nodeChange: (node, context) ->
+    if @key && @filterFunctions.length == 0
+      @get('keyContext').set @key, @node.value
+
+  dataChange: (value, node) ->
+    Batman.DOM.valueForNode @node, value
+
+class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
+  dataChange: (value) -> @node.setAttribute(@attributeName, value)
+  nodeChange: (node) -> @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName)))
+
+class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBinding
+  dataChange: (value) -> @node[@attributeName] = value
+  nodeChange: (node) -> @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node[@attributeName]))
+
+class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
+  constructor: (node, className, key, context, parentRenderer, @invert = false) ->
+    @originalDisplay = node.style.display || ''
     super
-    @container = context.findKey(key)[1]
+
+  dataChange: (value) ->
+    if !!value is !@invert
+      Batman.data(@node, 'show')?.call(@node)
+      @node.style.display = @originalDisplay
+    else
+      hide = Batman.data @node, 'hide'
+      if typeof hide == 'function'
+        hide.call @node
+      else
+        @node.style.display = 'none'
+
+class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
+  dataChange: (value) ->
+    @node[@attributeName] = !!value
+    # Update the parent's binding if necessary
+    Batman.data(@node.parentNode, 'updateBinding')?()
+
+  constructor: ->
+    super
+    # Attach this binding to the node under the attribute name so that parent
+    # bindings can query this binding and modify its state. This is useful
+    # for <options> within a select or radio buttons.
+    Batman.data @node, @attributeName, @
+
+class Batman.DOM.ClassBinding extends Batman.DOM.AbstractAttributeBinding
+  dataChange: (value) -> @node.className = value
+  nodeChange: (node, subContext) -> subContext.set(@key, node.className) if @key
+
+class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
+  constructor: (node, className, keyPath, renderContext, renderer, only, @invert = false) ->
+    @className = className.replace(/\|/g, ' ')
+    super
+    delete @attributeName
+
+  dataChange: (value) ->
+    currentName = @node.className
+    includesClassName = currentName.indexOf(@className) isnt -1
+    if !!value is !@invert
+      @node.className = "#{currentName} #{@className}" if !includesClassName
+    else
+      @node.className = currentName.replace(@className, '') if includesClassName
+
+class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
+  bindImmediately: false
+  constructor: ->
+    super
+    confirmText = @node.getAttribute('data-confirm')
+    Batman.DOM.events[@attributeName] @node, =>
+      return if confirmText and not confirm(confirmText)
+      @get('filteredValue')?.apply @get('callbackContext'), arguments
+
+  @accessor 'callbackContext', ->
+    contextKeySegments = @key.split('.')
+    contextKeySegments.pop()
+    context = if contextKeySegments.length > 0
+      @get('keyContext').get(contextKeySegments.join('.'))
+    else
+      @get('keyContext')
+
+class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
+  dataChange: (value) ->
+    # don't overwrite `checked` attributes in the HTML unless a bound
+    # value is defined in the context. if no bound value is found, bind
+    # to the key if the node is checked.
+    if (boundValue = @get('filteredValue'))?
+      @node.checked = boundValue == @node.value
+    else if @node.checked
+      @get('keyContext').set @key, @node.value
+
+  nodeChange: (node) ->
+    @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node.value))
+
+class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
+  nodeChange: (node, subContext) ->
+    segments = @key.split('.')
+    if segments.length > 1
+      keyContext = subContext.get(segments.slice(0, -1).join('.'))
+    else
+      keyContext = subContext
+
+    if keyContext instanceof Batman.RenderContext.ContextProxy
+      actualObject = keyContext.get('proxiedObject')
+    else
+      actualObject = keyContext
+
+    if actualObject.hasStorage && actualObject.hasStorage()
+      for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
+        adapter.defaultOptions.formData = true
+
+    if node.hasAttribute('multiple')
+      subContext.set @key, Array::slice.call(node.files)
+    else
+      subContext.set @key, node.files[0]
+
+class Batman.DOM.MixinBinding extends Batman.DOM.AbstractBinding
+  dataChange: (value) -> $mixin @node, value if value?
+
+class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
+  bindImmediately: false
+  constructor: ->
+    super
 
     # wait for the select to render before binding to it
-    renderer.on 'rendered', =>
-      Batman.data node, 'updateBinding', @updateSelectBinding
-      context.bind node, key, @dataChange, @nodeChange, only
+    @renderer.on 'rendered', =>
+      if @node?
+        Batman.data @node, 'updateBinding', @updateSelectBinding
+        @bind()
 
   dataChange: (newValue) =>
     # For multi-select boxes, the `value` property only holds the first
@@ -3515,7 +3496,7 @@ class Batman.DOM.Select extends Batman.DOM.AbstractBinding
           match.selected = yes
     # For a regular select box, update the value.
     else
-      @node.value = newValue
+      Batman.DOM.valueForNode(@node, newValue)
 
     # Finally, update the options' `selected` bindings
     @updateOptionBindings()
@@ -3528,30 +3509,33 @@ class Batman.DOM.Select extends Batman.DOM.AbstractBinding
     # Gather the selected options and update the binding
     selections = if @node.multiple then (c.value for c in @node.children when c.selected) else @node.value
     selections = selections[0] if selections.length == 1
-    @container.set @key, selections
+    @get('keyContext').set @key, selections
+    true
 
   updateOptionBindings: =>
     # Go through the option nodes and update their bindings using the
     # context and key attached to the node via Batman.data
     for child in @node.children
-      if data = Batman.data(child, 'selected')
-        if (subContext = data.context) and (subKey = data.key)
-          [subBoundValue, subContainer] = subContext.findKey subKey
-          unless child.selected == subBoundValue
-            subContainer.set subKey, child.selected
+      if selectedBinding = Batman.data(child, 'selected')
+        selectedBinding.nodeChange(selectedBinding.node)
+    true
 
-class Batman.DOM.Style extends Batman.DOM.AbstractBinding
-  constructor: (@node, @key, @context) ->
-    super
+class Batman.DOM.StyleBinding extends Batman.DOM.AbstractAttributeBinding
+
+  class @SingleStyleBinding extends Batman.DOM.AbstractAttributeBinding
+    constructor: (args..., @parent) ->
+      super(args...)
+    dataChange: (value) -> @parent.setStyle(@attributeName, value)
+
+  constructor: ->
     @oldStyles = {}
+    super
 
-    context.bind node, key, @dataChange, ->
-
-  destroy: =>
+  destroy: ->
+    super
     @unbindCurrentHash()
-    delete @[k] for own k of this
 
-  dataChange: (value) =>
+  dataChange: (value) ->
     unless value
       @reapplyOldStyles()
       return
@@ -3579,7 +3563,7 @@ class Batman.DOM.Style extends Batman.DOM.AbstractBinding
       @reapplyOldStyles()
       for own key, keyValue of value
         # Check whether the value is an existing keypath, and if so bind this attribute to it
-        [keypathValue, keypathContext] = @context.findKey(keyValue)
+        [keypathValue, keypathContext] = @renderContext.findKey(keyValue)
         if keypathValue
           @bindSingleAttribute key, keyValue
           @setStyle key, keypathValue
@@ -3589,9 +3573,7 @@ class Batman.DOM.Style extends Batman.DOM.AbstractBinding
   onItemsAdded: (newKey) => @setStyle newKey, @styleHash.get(newKey)
   onItemsRemoved: (oldKey) => @setStyle oldKey, ''
 
-  bindSingleAttribute: (attr, keypath) =>
-    dataChange = (value) => @setStyle attr, value
-    @context.bind @node, keypath, dataChange, ->
+  bindSingleAttribute: (attr, keyPath) -> new @constructor.SingleStyleBinding(@node, attr, keyPath, @renderContext, @renderer, @only, @)
 
   setStyle: (key, value) =>
     return unless key
@@ -3599,30 +3581,35 @@ class Batman.DOM.Style extends Batman.DOM.AbstractBinding
     @oldStyles[key] = @node.style[key]
     @node.style[key] = if value then value.trim() else ""
 
-  reapplyOldStyles: =>
+  reapplyOldStyles: ->
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
 
-  unbindCurrentHash: =>
+  unbindCurrentHash: ->
     if @styleHash
       @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
       @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
 
-class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
+class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractAttributeBinding
   deferEvery: 50
   currentActionNumber: 0
   queuedActionNumber: 0
+  bindImmediately: false
 
-  constructor: (sourceNode, @iteratorName, @key, @context, @parentRenderer) ->
+  constructor: (sourceNode, args...) ->
+    @parentNode = sourceNode.parentNode
+    @initialSiblingNode = sourceNode.nextSibling
+    super(@parentNode, args...)
+
+    @iteratorName = @attributeName
+    @parentRenderer = @renderer
+
     @nodeMap = new Batman.SimpleHash
     @actionMap = new Batman.SimpleHash
     @rendererMap = new Batman.SimpleHash
     @actions = []
 
     @prototypeNode = sourceNode.cloneNode(true)
-    @prototypeNode.removeAttribute "data-foreach-#{iteratorName}"
-
-    @parentNode = sourceNode.parentNode
-    @initialSiblingNode = sourceNode.nextSibling
+    @prototypeNode.removeAttribute "data-foreach-#{@iteratorName}"
 
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
@@ -3635,18 +3622,15 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     # Don't let the parent emit its rendered event until all the children have.
     # This `prevent`'s matching allow is run once the queue is empty in `processActionQueue`.
     @parentRenderer.prevent 'rendered'
-
-    # Tie this binding to a node using Batman.data
-    super(@parentNode)
-
     @fragment = document.createDocumentFragment()
 
-    context.bind(sourceNode, key, @collectionChange, ->)
+    # Attach observers.
+    @bind()
 
   destroy: ->
+    super
     $unbindNode(@prototypeNode)
     @unbindCollection()
-    delete @[k] for own k of this
     @destroyed = true
 
   unbindCollection: ->
@@ -3661,7 +3645,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
         @collection.event('itemsWereAdded').removeHandler(@currentAddedHandler)
         @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
 
-  collectionChange: (newCollection) =>
+  dataChange: (newCollection) =>
     unless newCollection == @collection
       @unbindCollection()
       @collection = newCollection
@@ -3707,7 +3691,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     options.actionNumber = @queuedActionNumber++
     childRenderer = new Batman.Renderer @_nodeForItem(item),
                                         (-> self.insertItem(item, @node, options)),
-                                        @context.descend(item, @iteratorName)
+                                        @renderContext.descend(item, @iteratorName)
 
     @rendererMap.set(item, childRenderer)
 
@@ -3761,7 +3745,6 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
 
     @actions[options.actionNumber].item = item
     @processActionQueue()
-
 
   processActionQueue: ->
     return if @destroyed

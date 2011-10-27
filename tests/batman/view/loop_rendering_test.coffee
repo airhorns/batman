@@ -176,9 +176,9 @@ asyncTest 'it should not fail if the iterator is destroyed', 1, ->
   context = new Batman.Object
     objects: new Batman.Set([0...100]...)
 
-  oldIterator = Batman.DOM.Iterator
+  oldIterator = Batman.DOM.IteratorBinding
   instance = false
-  class Batman.DOM.Iterator extends oldIterator
+  class Batman.DOM.IteratorBinding extends oldIterator
     constructor: ->
       instance = @
       super
@@ -269,8 +269,8 @@ asyncTest 'it should loop over js objects', 6, ->
 
 
 asyncTest 'it should prevent parent renders even if it has to defer (note: this test can take a while)', ->
-  oldDeferEvery = Batman.DOM.Iterator::deferEvery
-  Batman.DOM.Iterator::deferEvery = 0.5
+  oldDeferEvery = Batman.DOM.IteratorBinding::deferEvery
+  Batman.DOM.IteratorBinding::deferEvery = 0.5
   x = new Batman.Set([0...500]...)
   context = Batman({x})
   source = '''<div data-foreach-obj="x">
@@ -278,7 +278,7 @@ asyncTest 'it should prevent parent renders even if it has to defer (note: this 
   </div>'''
   helpers.render source, context, (node, view) ->
     deepEqual getPs(view), [0...500].map((x) -> (x).toString())
-    Batman.DOM.Iterator::deferEvery = oldDeferEvery
+    Batman.DOM.IteratorBinding::deferEvery = oldDeferEvery
     QUnit.start()
 
 asyncTest 'it shouldn\'t become desynchronized if the foreach collection observer fires with the same collection', ->

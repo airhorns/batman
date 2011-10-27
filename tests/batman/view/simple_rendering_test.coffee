@@ -78,7 +78,6 @@ asyncTest 'bindings in lower down scopes should shadow higher ones with shadowin
       delay ->
         equals node.html(), "inner"
 
-
 asyncTest 'it should allow a class to be bound', 6, ->
   source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'
   helpers.render source,
@@ -150,7 +149,7 @@ asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
 
 asyncTest 'it should allow multiple class names to be bound and updated', ->
   source = '<div data-bind-class="classes"></div>'
-  context = new Batman.Object classes: 'foo bar'
+  context = Batman classes: 'foo bar'
   helpers.render source, context, (node) ->
     equal node[0].className, 'foo bar'
     context.set 'classes', 'bar baz'
@@ -165,7 +164,7 @@ asyncTest 'it should allow input values to be bound', 1, ->
     QUnit.start()
 
 asyncTest 'it should bind the input value and update the input when it changes', 2, ->
-  context = new Batman.Object
+  context = Batman
     one: "qux"
 
   helpers.render '<input data-bind="one" type="text" />', context, (node) ->
@@ -175,7 +174,7 @@ asyncTest 'it should bind the input value and update the input when it changes',
       equal $(node[0]).val(), 'bar'
 
 asyncTest 'it should bind the input value of checkboxes and update the value when the object changes', 2, ->
-  context = new Batman.Object
+  context = Batman
     one: true
 
   helpers.render '<input type="checkbox" data-bind="one" />', context, (node) ->
@@ -185,7 +184,7 @@ asyncTest 'it should bind the input value of checkboxes and update the value whe
       equal node[0].checked, false
 
 asyncTest 'it should bind the input value of checkboxes and update the object when the value changes', 1, ->
-  context = new Batman.Object
+  context = Batman
     one: true
 
   helpers.render '<input type="checkbox" data-bind="one" />', context, (node) ->
@@ -195,7 +194,7 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
       equal context.get('one'), false
 
 asyncTest 'it should bind the value of a select box and update when the value changes', 2, ->
-  context = new Batman.Object
+  context = Batman
     heros: new Batman.Set('mario', 'crono', 'link')
     selected: new Batman.Object(name: 'crono')
   helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
@@ -206,10 +205,10 @@ asyncTest 'it should bind the value of a select box and update when the value ch
         equal node[0].value, 'link'
 
 asyncTest 'it binds the options of a select box and updates when the select\'s value changes', ->
-  context = new Batman.Object
+  context = Batman
     something: 'crono'
-    mario: new Batman.Object(selected: null)
-    crono: new Batman.Object(selected: null)
+    mario: Batman(selected: null)
+    crono: Batman(selected: null)
   helpers.render '<select data-bind="something"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
       equal node[0].value, 'crono'
@@ -339,7 +338,7 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
       delay ->
         ok adapter.defaultOptions.formData
 
-asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 1, ->
+asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 2, ->
   context = Batman
     foo: Batman
       bar: Batman
@@ -349,6 +348,7 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
     delay ->
+      ok spy.called
       equal spy.lastCallContext, context.get('foo.bar')
 
 
