@@ -2277,17 +2277,17 @@ Batman.Association.Collection = (->
     constructor: ->
       # Contains Batman.Association objects mapped by base model, type, and then label
       # ie. @storage = {"Product": {"belongsTo": {<Association.belongsTo>: "store"}}}
-      @storage = new Batman.Hash
+      @storage = new Batman.SimpleHash
 
     add: (association) ->
       baseModelName = $functionName(association.model)
       unless baseModelHash = @storage.get(baseModelName)
-        baseModelHash = new Batman.Hash
+        baseModelHash = new Batman.SimpleHash
         @storage.set baseModelName, baseModelHash
 
       associationType = $functionName(association.constructor)
       unless associationTypeHash = baseModelHash.get(associationType)
-        associationTypeHash = new Batman.Hash
+        associationTypeHash = new Batman.SimpleHash
         baseModelHash.set associationType, associationTypeHash
 
       associationTypeHash.set association, association.label
