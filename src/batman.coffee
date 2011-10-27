@@ -3249,8 +3249,8 @@ Batman.DOM = {
 
   # Memory-safe removal of a node from the DOM
   removeNode: $removeNode = (node) ->
-    $unbindTree node
     node?.parentNode?.removeChild node
+    Batman.DOM.didRemoveNode(node)
 
   appendChild: $appendChild = (parent, child, args...) ->
     Batman.data(child, 'show')?.apply(child, args)
@@ -3303,6 +3303,8 @@ Batman.DOM = {
       node.detachEvent 'on'+eventName, callback
 
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
+
+  didRemoveNode: (node) -> $unbindTree node
 
 }
 
@@ -3634,6 +3636,7 @@ class Batman.DOM.Iterator extends Batman.DOM.AbstractBinding
     super(@parentNode)
 
     @fragment = document.createDocumentFragment()
+
     context.bind(sourceNode, key, @collectionChange, ->)
 
   destroy: ->

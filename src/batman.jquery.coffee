@@ -62,7 +62,9 @@ Batman.mixins.animation =
     else
       show()
     @
+
   hide: (removeFromParent) ->
     $(@).hide 600, =>
       @parentNode?.removeChild @ if removeFromParent
+      Batman.DOM.didRemoveNode(@)
     @
