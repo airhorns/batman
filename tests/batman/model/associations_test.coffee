@@ -8,9 +8,13 @@ QUnit.module "Batman.Model One-To-One Associations"
       @encode 'id', 'name'
       @hasOne 'product'
 
+    # Batman.currentApp exists under node and causes the adapters to explode
+    Batman.currentApp = undefined
+
     @storeAdapter = new AsyncTestStorageAdapter @App.Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
+      'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
     @App.Store.persist @storeAdapter
 
     class @App.Product extends Batman.Model
@@ -18,7 +22,9 @@ QUnit.module "Batman.Model One-To-One Associations"
       @belongsTo 'store'
 
     @productAdapter = new AsyncTestStorageAdapter @App.Product
-    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
+    @productAdapter.storage = 
+      'products1': {name: "Product One", id: 1, store_id: 1}
+      'products2': {name: "Product One", id: 1, store: {id:2, name:"JSON Store"}}
     @App.Product.persist @productAdapter
 
     @App.run()
@@ -48,29 +54,49 @@ asyncTest "should work with model classes that haven't been loaded yet", ->
       QUnit.start()
   ), ASYNC_TEST_DELAY
 
-asyncTest "belongsTo associations are loaded", 2, ->
+asyncTest "belongsTo associations are loaded via ID", 2, ->
   @App.Product.find 1, (err, product) =>
     store = product.get 'store'
     ok store instanceof @App.Store
     equal store.id, 1
     QUnit.start()
 
-asyncTest "belongsTo associations are saved", 2, ->
+asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
+  @App.Product.find 1, (err, product) =>
+    productJSON = product.toJSON()
+    storeJSON = product.get('store').toJSON()
+
+    # store will encode its product
+    delete storeJSON.product
+
+    deepEqual productJSON.store, storeJSON
+    QUnit.start()
+
+asyncTest "belongsTo associations are saved", 3, ->
   store = new @App.Store name: 'Zellers'
   product = new @App.Product name: 'Gizmo'
   product.set 'store', store
 
   productSaveSpy = spyOn product, 'save'
-  product.save (err, record) ->
+  product.save (err, record) =>
     equal productSaveSpy.callCount, 1
     equal record.get('store_id'), store.id
+    deepEqual @productAdapter.storage["products#{record.id}"], product.toJSON()
     QUnit.start()
 
-asyncTest "hasOne associations are loaded", 2, ->
+asyncTest "hasOne associations are loaded via ID", 2, ->
   @App.Store.find 1, (err, store) =>
     product = store.get 'product'
     ok product instanceof @App.Product
     equal product.id, 1
+    QUnit.start()
+
+asyncTest "hasOne associations are loaded via JSON", 3, ->
+  @App.Store.find 2, (err, store) =>
+    product = store.get 'product'
+    ok product instanceof @App.Product
+    equal product.get('id'), 3
+    equal product.get('name'), "JSON Product"
     QUnit.start()
 
 asyncTest "hasOne associations are saved", 2, ->
@@ -100,32 +126,6 @@ asyncTest "Models can save while related records are loading", 1, ->
       ok !err
       QUnit.start()
 
-asyncTest "hasOne association can be loaded from JSON", 3, ->
-  @storeAdapter.storage['stores2'] =
-    name: 'Two'
-    id: 2
-    product: '{"id": 5, "name": "JSON product"}'
-
-  @App.Store.find 2, (err, store) =>
-    product = store._batman.attributes.product
-    ok product instanceof @App.Product
-    equal product.get('id'), 5
-    equal product.get('name'), "JSON product"
-    QUnit.start()
-
-asyncTest "belongsTo association can be loaded from JSON", ->
-  @productAdapter.storage['products2'] =
-    name: 'Two'
-    id: 2
-    store: '{"id": 5, "name": "JSON store"}'
-
-  @App.Product.find 2, (err, product) =>
-    store = product._batman.attributes.store
-    ok store instanceof @App.Store
-    equal store.get('id'), 5
-    equal store.get('name'), "JSON store"
-    QUnit.start()
-
 asyncTest "belongsTo associations render", 1, ->
   @App.Product.find 1, (err, product) ->
     source = '<span data-bind="product.store.name"></span>'
@@ -150,6 +150,9 @@ QUnit.module "Batman.Model One-To-Many Associations"
       @encode 'id', 'name'
       @hasMany 'products'
 
+    # Batman.currentApp exists under node and causes the adapters to explode
+    Batman.currentApp = undefined
+
     @storeAdapter = new AsyncTestStorageAdapter @App.Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
@@ -164,7 +167,7 @@ QUnit.module "Batman.Model One-To-Many Associations"
     @productAdapter.storage =
       'products1': {name: "Product One", id: 1, store_id: 1}
       'products2': {name: "Product Two", id: 2, store_id: 1}
-      'products3': {name: "Product Three", id: 3, store_id: 1, productVariants: '{"productvariants5":{"price":50,"product_id":3},"productvariants6":{"price":60,"product_id":3}}'
+      'products3': {name: "Product Three", id: 3, store_id: 1, productVariants: {productvariants5:{price:50,product_id:3},productvariants6:{price:60,product_id:3}}
       }
     @App.Product.persist @productAdapter
 

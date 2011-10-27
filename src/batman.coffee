@@ -2106,12 +2106,14 @@ class Batman.Model extends Batman.Object
   # `toJSON` uses the various encoders for each key to grab a storable representation of the record.
   toJSON: ->
     obj = {}
+
+    # Encode associations into properties
+    Batman.Association.Collection.encodeModelIntoObject(@, obj)
+
     # Encode each key into a new object
     encoders = @_batman.get('encoders')
     unless !encoders or encoders.isEmpty()
       encoders.forEach (key, encoder) =>
-        return if Batman.Association.Collection.hasAssociationOn(@, key)
-
         val = @get key
         if typeof val isnt 'undefined'
           encodedVal = encoder(val)
@@ -2123,6 +2125,10 @@ class Batman.Model extends Batman.Object
   # stored in whichever storage mechanism.
   fromJSON: (data) ->
     obj = {}
+
+    # Decode associations into attributes
+    Batman.Association.Collection.decodeObjectIntoModel(@, obj, data)
+
     decoders = @_batman.get('decoders')
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
     # each key and just setting the values.
@@ -2262,12 +2268,23 @@ class Batman.Association
     self = @
     getAccessor = -> return self.getAccessor.call(@, model, label)
 
-    @addEncoders()
-
     model.accessor label,
       get: getAccessor
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
+
+  encodeModelIntoObject: (model, obj) ->
+    if relation = model.get(@label)
+      obj[@label] = relation.toJSON()
+      delete obj["#{@label}_id"]
+
+  decodeObjectIntoModel: (model, obj, data) ->
+    if json = data[@label]
+      relatedModelName = helpers.camelize(helpers.singularize(@label))
+      if relatedModel = Batman.currentApp?[relatedModelName]
+        record = new relatedModel(json)
+        record.set 'id', json.id
+        obj[@label] = relatedModel._mapIdentity(record)
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
@@ -2292,19 +2309,6 @@ Batman.Association.Collection = (->
 
       associationTypeHash.set association, association.label
 
-    hasAssociationOn: (model, name) ->
-      # TODO this could be optimized by keeping a reversed-hash
-      ret = false
-      modelName = $functionName(model.constructor)
-      if modelHash = @storage.get(modelName)
-        modelHash.forEach (type, hash) ->
-          return if ret is true
-          hash.forEach (association, label) ->
-            return if ret is true
-            if label is name
-              ret = true
-      ret
-
     getModelAssociations: (model) ->
       modelName = $functionName(model.constructor)
       if hash = @storage.get(modelName)
@@ -2319,39 +2323,59 @@ Batman.Association.Collection = (->
           typeHash.forEach (association, label) ->
             association.clearRelation(model)
 
+    encodeModelIntoObject: (model, obj) ->
+      unless @_encodingRelation
+        # Only encode this level of associations
+        @_encodingRelation = true
+        modelName = $functionName(model.constructor)
+        if modelHash = @storage.get(modelName)
+          modelHash.forEach (type, typeHash) ->
+            typeHash.forEach (association, label) ->
+              association.encodeModelIntoObject(model, obj)
+        @_encodingRelation = false
+
+    decodeObjectIntoModel: (model, obj, data) ->
+      unless @_decodingRelation
+        # Only decode this level of associations
+        @_decodingRelation = true
+        modelName = $functionName(model.constructor)
+        if modelHash = @storage.get(modelName)
+          modelHash.forEach (type, typeHash) ->
+            typeHash.forEach (association, label) ->
+              association.decodeObjectIntoModel(model, obj, data)
+        @_decodingRelation = false
+
   return new BatmanAssociationCollection
 )()
 
 class Batman.Association.belongsTo extends Batman.Association
+  constructor: ->
+    super
+    @model.encode "#{@label}_id"
+
   getAccessor: (model, label) ->
     if relatedRecord = @_batman.attributes?[label]
       return relatedRecord
-    else if relatedID = @get("#{label}_id")
-      relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(label))]
 
-      loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
-      unless loadedRecord.isEmpty()
-        return loadedRecord.toArray()[0]
-      else
-        return relatedModel.find relatedID, (error, loadedRecord) ->
-          throw error if error
+    # Make sure there is a relation
+    return unless relatedID = @get("#{label}_id")
+
+    # Make sure the related model has been loaded
+    relatedModelName = helpers.camelize(helpers.singularize(label))
+    return unless relatedModel = Batman.currentApp?[relatedModelName]
+
+    loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
+    unless loadedRecord.isEmpty()
+      return loadedRecord.toArray()[0]
+    else
+      return relatedModel.find relatedID, (error, loadedRecord) ->
+        throw error if error
 
   save: (base) ->
     if model = base.get(@label)
       base.set "#{@label}_id", model.id
 
   clearRelation: (base) -> # do nothing
-
-  addEncoders: ->
-    @model.encode "#{@label}_id"
-    @model.encode "#{@label}",
-      decode: (data) =>
-        if typeof data is "string"
-          relatedModelName = helpers.camelize(helpers.singularize(@label))
-          relatedModel = Batman.currentApp[relatedModelName]
-          new relatedModel(JSON.parse(data))
-        else
-          data
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (model, label) ->
@@ -2361,33 +2385,32 @@ class Batman.Association.hasOne extends Batman.Association
     existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
     return existingInstance if existingInstance?
 
+    # Make sure relatedModel has been loaded
+    relatedModelName = helpers.camelize(helpers.singularize(label))
+    return unless relatedModel = Batman.currentApp?[relatedModelName]
+
     # Make sure we have an id to match on
     return unless id = @get('id')
 
     # Check whether the relatedModel has already loaded the instance we want
     modelName = $functionName(model).toLowerCase()
-
-    relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(label))]
-
     relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
-      # FIXME shouldn't need to short-circuit the get/set accessor loop
-      @amSetting = true
-
       # Create a relatedModel instance to return immediately and populate when it loads
       loadedRecord = new relatedModel
+      # FIXME shouldn't need to short-circuit the get/set accessor loop
+      @amSetting = true
       @set label, loadedRecord
+      @amSetting = false
 
       loadOptions = {}
       loadOptions["#{modelName}_id"] = id
       relatedModel.load loadOptions, (error, loadedRecords) =>
         throw error if error
         return if !loadedRecords or loadedRecords.length <= 0
-        # FIXME hacky way to update the loadedRecord without overwriting the returned reference
         loadedRecord.fromJSON loadedRecords[0].toJSON()
-        @amSetting = false
       return loadedRecord
 
   save: (baseSaveError, base) ->
@@ -2398,20 +2421,11 @@ class Batman.Association.hasOne extends Batman.Association
   clearRelation: (base) ->
     # Unset the property on related models now pointing to a destroyed record
     baseName = $functionName(base.constructor).toLowerCase()
-    relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(@label))]
-    relatedModel.get('loaded').indexedBy("#{baseName}_id").get(base.id).forEach (relatedInstance) ->
-      relatedInstance.unset("#{baseName}_id")
-      relatedInstance.unset(baseName)
-
-  addEncoders: ->
-    @model.encode @label,
-      decode: (data) =>
-        if typeof data is "string"
-          relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(@label))]
-          record = new relatedModel(JSON.parse(data))
-          relatedModel._mapIdentity(record)
-        else
-          data
+    relatedModelName = helpers.camelize(helpers.singularize(@label))
+    if relatedModel = Batman.currentApp?[relatedModelName]
+      relatedModel.get('loaded').indexedBy("#{baseName}_id").get(base.id).forEach (relatedInstance) ->
+        relatedInstance.unset("#{baseName}_id")
+        relatedInstance.unset(baseName)
 
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (model, label) ->
@@ -2420,9 +2434,9 @@ class Batman.Association.hasMany extends Batman.Association
     existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
     return existingInstance if existingInstance?
 
+    relatedModelName = helpers.camelize(helpers.singularize(label))
+    return unless relatedModel = Batman.currentApp?[relatedModelName]
     return unless id = @get('id')
-
-    relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(label))]
 
     modelName = $functionName(model).toLowerCase()
     relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
@@ -2438,6 +2452,7 @@ class Batman.Association.hasMany extends Batman.Association
       loadedRecords = new Batman.Set
       @amSetting = true
       @set label, loadedRecords
+      @amSetting = false
 
       loadOptions = {}
       loadOptions["#{modelName}_id"] = id
@@ -2445,7 +2460,6 @@ class Batman.Association.hasMany extends Batman.Association
         throw error if error
         return unless records or records.isEmpty()
         loadedRecords.add(record) for record in records
-        @amSetting = false
       loadedRecords
 
   save: (baseSaveError, base) ->
@@ -2456,26 +2470,18 @@ class Batman.Association.hasMany extends Batman.Association
 
   clearRelation: Batman.Association.hasOne::clearRelation
 
-  addEncoders: ->
-    @model.encode @label,
-      decode: (data) =>
-        if typeof data is "string"
-          # FIXME remove this; needed to break out of get accessor loop
-          @model._readingFromJSON = true
-
-          # Parse the JSON into a set of models
-          relations = new Batman.Set
-          relatedModel = Batman.currentApp[helpers.camelize(helpers.singularize(@label))]
-          idRegex = new RegExp("^#{$functionName(relatedModel).toLowerCase()}s(\\d+)$")
-          for own storageKey, obj of JSON.parse(data)
-            [_, id] = storageKey.match(idRegex)
-            record = new relatedModel(obj)
-            record.set 'id', id
-            relatedModel._mapIdentity(record)
-            relations.add record
-          return relations
-        else
-          data
+  decodeObjectIntoModel: (model, obj, data) ->
+    if json = data[@label]
+      relations = new Batman.Set
+      if relatedModel = Batman.currentApp?[helpers.camelize(helpers.singularize(@label))]
+        idRegex = new RegExp("^#{$functionName(relatedModel).toLowerCase()}s(\\d+)$")
+        for own storageKey, obj of json
+          [_, id] = storageKey.match(idRegex)
+          record = new relatedModel(obj)
+          record.set 'id', id
+          relatedModel._mapIdentity(record)
+          relations.add record
+        obj[@label] = relations
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})
