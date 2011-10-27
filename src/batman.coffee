@@ -10,6 +10,8 @@
 Batman = (mixins...) ->
   new Batman.Object mixins...
 
+Batman.pathPrefix = ''
+
 # Global Helpers
 # -------
 
@@ -1435,7 +1437,7 @@ class Batman.App extends Batman.Object
 
     if typeof @historyManager is 'undefined' and @dispatcher.routeMap
       @on 'run', =>
-        @historyManager = Batman.historyManager = new Batman.HashHistory @
+        @historyManager = Batman.historyManager = Batman.HistoryManager.forApp(this)
         @historyManager.start()
 
     @hasRun = yes
@@ -1602,60 +1604,81 @@ class Batman.Dispatcher extends Batman.Object
 # History Manager
 # ---------------
 class Batman.HistoryManager
+  @forApp: (app) -> app.historyManager or new @defaultClass(app)
   constructor: (@app) ->
+  start: ->
+    return if typeof window is 'undefined'
+    return if @started
+    @started = yes
+    @startWatching()
+    Batman.currentApp.prevent 'ready'
+    $setImmediate =>
+      @handleCurrentURL()
+      Batman.currentApp.allow 'ready'
+      Batman.currentApp.fire 'ready'
+  stop: ->
+    @stopWatching()
+    @started = no
+  handleCurrentURL: =>
+    url = @getCurrentURL()
+    return if url is @cachedURL
+    @dispatch(@cachedURL = url)
   dispatch: (url) ->
-    url = "/#{url}" if url.indexOf('/') isnt 0
+    url = @joinPath('/', url)
     @app.dispatcher.dispatch url
-
     url
   redirect: (url) ->
     if $typeOf(url) isnt 'String'
       url = @app.dispatcher.findUrl(url)
-    @dispatch url
+    @cachedURL = @dispatch(url)
+  joinPath: (segments...) ->
+    segments = for seg, i in segments
+      seg = "/#{seg}" unless i is 0 or seg.charAt(0) is '/'
+      seg = "#{seg}".replace(/\/+$/,'') unless i is segments.length-1
+      seg
+    segments.join('')
+
+class Batman.StateHistory extends Batman.HistoryManager
+  @isSupported: -> window?.history?.pushState?
+  startWatching: ->
+    $addEventListener window, 'popstate', @handleCurrentURL
+  stopWatching: ->
+    $removeEventListener window, 'popstate', @handleCurrentURL
+  urlFor: (url) ->
+    result = @joinPath('/', Batman.pathPrefix, url)
+    result
+  getCurrentURL: ->
+    fullPath = window.location.pathname + window.location.search
+    prefixPattern = new RegExp("^#{@joinPath('/', Batman.pathPrefix)}")
+    result = fullPath.replace(prefixPattern, '')
+    result
+  redirect: (params) ->
+    url = super
+    window.history.pushState(null,'',@urlFor(url))
 
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
-  start: =>
-    return if typeof window is 'undefined'
-    return if @started
-    @started = yes
-
-    if 'onhashchange' of window
-      $addEventListener window, 'hashchange', @parseHash
-    else
-      @interval = setInterval @parseHash, 100
-
-    @first = true
-    Batman.currentApp.prevent 'ready'
-    $setImmediate @parseHash
-
-  stop: =>
-    if @interval
+  if 'onhashchange' of window
+    @::startWatching = ->
+      $addEventListener window, 'hashchange', @handleCurrentURL
+    @::stopWatching = ->
+      $removeEventListener window, 'hashchange', @handleCurrentURL
+  else
+    @::startWatching = ->
+      @interval = setInterval @handleCurrentURL, 100
+    @::stopWatching = ->
       @interval = clearInterval @interval
-    else
-      $removeEventListener window, 'hashchange', @parseHash
 
-    @started = no
-
-  urlFor: (url) ->
-    @HASH_PREFIX + url
-
-  parseHash: =>
-    hash = window.location.hash.replace @HASH_PREFIX, ''
-    return if hash is @cachedHash
-
-    result = @dispatch (@cachedHash = hash)
-    if @first
-      Batman.currentApp.allow 'ready'
-      Batman.currentApp.fire 'ready'
-      @first = false
-    result
-
+  urlFor: (url) -> @HASH_PREFIX + url
+  getCurrentURL: -> window.location.hash.replace(@HASH_PREFIX, '')
   redirect: (params) ->
     url = super
-    @cachedHash = url
+    window.location.hash = @urlFor(url)
 
-    window.location.hash = @HASH_PREFIX + url
+Batman.HistoryManager.defaultClass = if Batman.StateHistory.isSupported()
+  Batman.StateHistory
+else
+  Batman.HashHistory
 
 Batman.redirect = $redirect = (url) ->
   Batman.historyManager?.redirect url
@@ -2555,14 +2578,15 @@ class Batman.ViewSourceCache extends Batman.Object
   propertyClass: Batman.Property
 
   @accessor
-    get: (k) ->
-      return @sources[k] if @sources[k]?
-      unless @requests[k]?
+    get: (path) ->
+      path = Batman.HistoryManager::joinPath('/', path)
+      return @sources[path] if @sources[path]?
+      unless @requests[path]?
         @requests = new Batman.Request
-          url: url = "#{Batman.View::prefix}/#{k}"
+          url: path
           type: 'html'
-          success: (response) => @set(k, response)
-          error: (response) -> throw new Error("Could not load view from #{url}")
+          success: (response) => @set(path, response)
+          error: (response) -> throw new Error("Could not load view from #{path}")
       return undefined
     set: (k,v) -> @sources[k] = v
 
@@ -2607,7 +2631,8 @@ class Batman.View extends Batman.Object
       return @html if @html && @html.length > 0
       source = @get 'source'
       return if not source
-      @html = @constructor.sourceCache.get(source)
+      path = Batman.HistoryManager::joinPath('/', @prefix, source)
+      @html = @constructor.sourceCache.get(path)
 
   @accessor 'node'
     get: ->
@@ -2933,9 +2958,9 @@ Batman.DOM = {
       return unless url
 
       if node.nodeName.toUpperCase() is 'A'
-        node.href = Batman.HashHistory::urlFor url
+        node.href = Batman.HistoryManager.defaultClass::urlFor url
 
-      Batman.DOM.events.click node, (-> $redirect url)
+      Batman.DOM.events.click node, -> $redirect url
       true
 
     partial: (node, path, context, renderer) ->

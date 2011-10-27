@@ -11,7 +11,7 @@ QUnit.module 'Batman.View'
     MockRequest.reset()
     @options =
       source: "test_path#{++count}.html"
-      prefix: "views"
+      prefix: "some_other_prefix"
 
     Batman.Request = MockRequest
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
@@ -20,7 +20,7 @@ QUnit.module 'Batman.View'
 
 asyncTest 'should pull in the source for a view from a path, appending the prefix', 1, ->
   delay =>
-    deepEqual MockRequest.lastInstance.constructorArguments[0].url, "#{@options.prefix}/#{@options.source}"
+    equal MockRequest.lastInstance.constructorArguments[0].url, "/some_other_prefix/#{@options.source}"
 
 asyncTest 'should update its node with the contents of its view', 1, ->
   delay =>

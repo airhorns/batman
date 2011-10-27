@@ -16,7 +16,7 @@ QUnit.module 'Batman.View partial rendering'
 asyncTest "preloaded/already rendered partials should render", ->
   Batman.View.sourceCache =
     get: (k) ->
-      equal k, 'test/one.html'
+      equal k, '/views/test/one.html'
       "<div>Hello from a partial</div>"
 
   source = '<div data-partial="test/one"></div>'
@@ -33,7 +33,7 @@ asyncTest "unloaded partials should load then render", 2, ->
     QUnit.start()
 
   setTimeout ->
-    deepEqual MockRequest.lastInstance.constructorArguments[0].url, "views/test/one.html"
+    equal MockRequest.lastInstance.constructorArguments[0].url, "/views/test/one.html"
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
   , ASYNC_TEST_DELAY
 

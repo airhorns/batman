@@ -1,11 +1,22 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 
-QUnit.module 'Batman.View route rendering'
+QUnit.module 'Batman.View route rendering',
+  setup: ->
+    @defaultHistoryManagerClass = Batman.HistoryManager.defaultClass
+  teardown: ->
+    Batman.HistoryManager.defaultClass = @defaultHistoryManagerClass
 
 asyncTest 'should set href for URL fragment', 1, ->
   helpers.render '<a data-route="/test">click</a>', {},
   (node) =>
-    equal node.attr('href'), '#!/test'
+    equal node.attr('href'), Batman.HistoryManager.defaultClass::urlFor("/test")
+    QUnit.start()
+
+asyncTest 'should set hash href for URL fragment when using HashHistory', 1, ->
+  Batman.HistoryManager.defaultClass = Batman.HashHistory
+  helpers.render '<a data-route="/test">click</a>', {},
+  (node) =>
+    equal node.attr('href'), "#!/test"
     QUnit.start()
 
 asyncTest 'should set corresponding href for model and action', 1, ->
@@ -34,7 +45,9 @@ asyncTest 'should set corresponding href for model and action', 1, ->
     node: node
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
-    deepEqual urls, ['#!/tweets', '#!/tweets/new', '#!/tweets/1', '#!/tweets/1/edit']
+    expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit'].map (path) ->
+      Batman.HistoryManager.defaultClass::urlFor(path)
+    deepEqual urls, expected
     QUnit.start()
   view.get 'node'
 
@@ -57,6 +70,6 @@ asyncTest 'should allow you to use controller#action routes, if they are defined
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     urls[i] = url || '' for url, i in urls
-    deepEqual urls, ['#!/foo/bar', '']
+    deepEqual urls, [Batman.HistoryManager.defaultClass::urlFor('/foo/bar'), '']
     QUnit.start()
   view.get 'node'
