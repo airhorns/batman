@@ -2273,11 +2273,6 @@ class Batman.Association
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
-  encodeModelIntoObject: (model, obj) ->
-    if relation = model.get(@label)
-      obj[@label] = relation.toJSON()
-      delete obj["#{@label}_id"]
-
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]
       relatedModelName = helpers.camelize(helpers.singularize(@label))
@@ -2288,6 +2283,7 @@ class Batman.Association
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
+  encodeModelIntoObject: -> developer.error "You must override encodeModelIntoObject in Batman.Associatio subclasses."
 
 Batman.Association.Collection = (->
   class BatmanAssociationCollection
@@ -2375,7 +2371,12 @@ class Batman.Association.belongsTo extends Batman.Association
     if model = base.get(@label)
       base.set "#{@label}_id", model.id
 
-  clearRelation: (base) -> # do nothing
+  encodeModelIntoObject: (model, obj) ->
+    if relation = model.get(@label)
+      obj[@label] = relation.toJSON()
+      # Delete inline key on model
+
+  clearRelation: -> # do nothing
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (model, label) ->
@@ -2417,6 +2418,13 @@ class Batman.Association.hasOne extends Batman.Association
     if relatedModel = base._batman.attributes?[@label]
       foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
       relatedModel.set foreignKey, base.id
+
+  encodeModelIntoObject: (model, obj) ->
+    if relation = model.get(@label)
+      relationJSON = relation.toJSON()
+      modelName = $functionName(model.constructor).toLowerCase()
+      relationJSON["#{modelName}_id"] = model.get('id')
+      obj["#{@label}"] = relationJSON
 
   clearRelation: (base) ->
     # Unset the property on related models now pointing to a destroyed record
@@ -2469,6 +2477,16 @@ class Batman.Association.hasMany extends Batman.Association
         model.set foreignKey, base.id
 
   clearRelation: Batman.Association.hasOne::clearRelation
+
+  encodeModelIntoObject: (model, obj) ->
+    if relationSet = model.get(@label)
+      jsonArray = []
+      relationSet.forEach (relation) ->
+        relationJSON = relation.toJSON()
+        modelName = $functionName(model.constructor).toLowerCase()
+        relationJSON["#{modelName}_id"] = model.get('id')
+        jsonArray.push relationJSON
+      obj[@label] = jsonArray
 
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]

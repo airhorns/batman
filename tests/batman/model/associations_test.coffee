@@ -72,7 +72,17 @@ asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
     deepEqual productJSON.store, storeJSON
     QUnit.start()
 
-asyncTest "belongsTo associations are saved", 3, ->
+asyncTest "hasOne yields the related model when toJSON is called", 1, ->
+  @App.Store.find 1, (err, store) =>
+    storeJSON = store.toJSON()
+    productJSON = store.get('product').toJSON()
+    # store will encode its product
+    delete productJSON.store
+
+    deepEqual storeJSON.product, productJSON
+    QUnit.start()
+
+asyncTest "belongsTo associations are saved", 5, ->
   store = new @App.Store name: 'Zellers'
   product = new @App.Product name: 'Gizmo'
   product.set 'store', store
@@ -81,7 +91,12 @@ asyncTest "belongsTo associations are saved", 3, ->
   product.save (err, record) =>
     equal productSaveSpy.callCount, 1
     equal record.get('store_id'), store.id
-    deepEqual @productAdapter.storage["products#{record.id}"], product.toJSON()
+    storedJSON = @productAdapter.storage["products#{record.id}"]
+    deepEqual storedJSON, product.toJSON()
+
+    store = record.get('store')
+    equal storedJSON.store_id, undefined
+    deepEqual storedJSON.store, store.toJSON()
     QUnit.start()
 
 asyncTest "hasOne associations are loaded via ID", 2, ->
@@ -99,15 +114,21 @@ asyncTest "hasOne associations are loaded via JSON", 3, ->
     equal product.get('name'), "JSON Product"
     QUnit.start()
 
-asyncTest "hasOne associations are saved", 2, ->
+asyncTest "hasOne associations are saved", 4, ->
   store = new @App.Store name: 'Zellers'
   product = new @App.Product name: 'Gizmo'
   store.set 'product', product
 
   storeSaveSpy = spyOn store, 'save'
-  store.save (err, record) ->
+  store.save (err, record) =>
     equal storeSaveSpy.callCount, 1
     equal product.get('store_id'), record.id
+    storedJSON = @storeAdapter.storage["stores#{record.id}"]
+    deepEqual storedJSON, store.toJSON()
+
+    productJSON = store.get('product').toJSON()
+    delete productJSON.store
+    deepEqual storedJSON.product, productJSON
     QUnit.start()
 
 asyncTest "hasOne associations can be destroyed safely", 2, ->
@@ -191,17 +212,26 @@ asyncTest "hasMany associations are loaded", 6, ->
     equal trackedIds[3], yes
     QUnit.start()
 
-asyncTest "hasMany associations are saved via the parent model", 3, ->
+asyncTest "hasMany associations are saved via the parent model", 4, ->
   store = new @App.Store name: 'Zellers'
   product1 = new @App.Product name: 'Gizmo'
   product2 = new @App.Product name: 'Gadget'
   store.set 'products', new Batman.Set(product1, product2)
 
   storeSaveSpy = spyOn store, 'save'
-  store.save (err, record) ->
+  store.save (err, record) =>
     equal storeSaveSpy.callCount, 1
     equal product1.get('store_id'), record.id
     equal product2.get('store_id'), record.id
+
+    storedJSON = @storeAdapter.storage["stores#{record.id}"]
+    productsJSON = record.get('products').toJSON().map (product) ->
+      # Set.toJSON doesn't apply toJSON on its contents
+      productJSON = product.toJSON()
+      delete productJSON.store
+      productJSON
+    deepEqual storedJSON.products, productsJSON
+
     QUnit.start()
 
 asyncTest "hasMany associations are saved via the child model", 2, ->
