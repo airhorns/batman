@@ -2020,9 +2020,9 @@ class Batman.Model extends Batman.Object
 
   # ### Associations API
 
-  @belongsTo: (label) -> new Batman.Association.belongsTo(@, label)
-  @hasOne: (label) -> new Batman.Association.hasOne(@, label)
-  @hasMany: (label) -> new Batman.Association.hasMany(@, label)
+  @belongsTo: (label, scope) -> new Batman.Association.belongsTo(@, label, scope)
+  @hasOne: (label, scope) -> new Batman.Association.hasOne(@, label, scope)
+  @hasMany: (label, scope) -> new Batman.Association.hasMany(@, label, scope)
 
   # ### Record API
 
@@ -2261,7 +2261,7 @@ class Batman.Model extends Batman.Object
   isNew: -> typeof @get('id') is 'undefined'
 
 class Batman.Association
-  constructor: (@model, @label) ->
+  constructor: (@model, @label, @scope = Batman.currentApp) ->
     Batman.Association.Collection.add @
 
     # curry association info into the getAccessor, which has the model applied as the context
@@ -2273,9 +2273,9 @@ class Batman.Association
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
-  getRelatedModel: (scope = Batman.currentApp) ->
+  getRelatedModel: ->
     modelName = helpers.camelize(helpers.singularize(@label))
-    scope?[modelName]
+    @scope?[modelName]
 
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]

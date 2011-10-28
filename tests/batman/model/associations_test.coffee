@@ -1,11 +1,26 @@
 {TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../view/view_helper'
 
+asyncTest "Associations support custom model scopes", 2, ->
+  namespace = {}
+  class namespace.Store extends Batman.Model
+
+  class Product extends Batman.Model
+    @belongsTo 'store', namespace
+  productAdapter = new AsyncTestStorageAdapter Product
+  productAdapter.storage = 
+    'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
+  Product.persist productAdapter
+
+  Product.find 2, (err, product) ->
+    store = product.get('store')
+    ok store instanceof namespace.Store
+    equal store.get('id'), 3
+    QUnit.start()
+
 QUnit.module "belongsTo Associations"
   setup: ->
-    class @App extends Batman.App
-    # Batman.currentApp exists under node and causes the adapters to explode
-    Batman.currentApp = undefined
+    @App = Batman.currentApp = {}
 
     class @App.Store extends Batman.Model
       @encode 'id', 'name'
@@ -22,7 +37,6 @@ QUnit.module "belongsTo Associations"
     @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
     @App.Product.persist @productAdapter
 
-    @App.run()
 
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
   @App.Product.find 1, (err, product) =>
@@ -68,9 +82,7 @@ asyncTest "belongsTo associations render", 1, ->
 
 QUnit.module "hasOne Associations"
   setup: ->
-    class @App extends Batman.App
-    # Batman.currentApp exists under node and causes the adapters to explode
-    Batman.currentApp = undefined
+    @App = Batman.currentApp = {}
 
     class @App.Store extends Batman.Model
       @encode 'id', 'name'
@@ -86,8 +98,6 @@ QUnit.module "hasOne Associations"
     @productAdapter = new AsyncTestStorageAdapter @App.Product
     @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
     @App.Product.persist @productAdapter
-
-    @App.run()
 
 asyncTest "should work with model classes that haven't been loaded yet", ->
   class @App.Blog extends Batman.Model
@@ -176,9 +186,7 @@ asyncTest "hasOne associations render", 1, ->
 
 QUnit.module "hasMany Associations"
   setup: ->
-    class @App extends Batman.App
-    # Batman.currentApp exists under node and causes the adapters to explode
-    Batman.currentApp = undefined
+    @App = Batman.currentApp = {}
 
     class @App.Store extends Batman.Model
       @encode 'id', 'name'
@@ -212,8 +220,6 @@ QUnit.module "hasMany Associations"
       @belongsTo 'product'
     variantAdapter = new AsyncTestStorageAdapter @App.ProductVariant
     @App.ProductVariant.persist variantAdapter
-
-    @App.run()
 
 asyncTest "hasMany associations are loaded", 6, ->
   @App.Store.find 1, (err, store) =>
