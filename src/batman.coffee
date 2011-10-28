@@ -2266,17 +2266,20 @@ class Batman.Association
 
     # curry association info into the getAccessor, which has the model applied as the context
     self = @
-    getAccessor = -> return self.getAccessor.call(@, model, label)
+    getAccessor = -> return self.getAccessor.call(@, self, model, label)
 
     model.accessor label,
       get: getAccessor
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
+  getRelatedModel: (scope = Batman.currentApp) ->
+    modelName = helpers.camelize(helpers.singularize(@label))
+    scope?[modelName]
+
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]
-      relatedModelName = helpers.camelize(helpers.singularize(@label))
-      if relatedModel = Batman.currentApp?[relatedModelName]
+      if relatedModel = @getRelatedModel()
         record = new relatedModel(json)
         record.set 'id', json.id
         obj[@label] = relatedModel._mapIdentity(record)
@@ -2349,7 +2352,7 @@ class Batman.Association.belongsTo extends Batman.Association
     super
     @model.encode "#{@label}_id"
 
-  getAccessor: (model, label) ->
+  getAccessor: (self, model, label) ->
     if relatedRecord = @_batman.attributes?[label]
       return relatedRecord
 
@@ -2357,8 +2360,7 @@ class Batman.Association.belongsTo extends Batman.Association
     return unless relatedID = @get("#{label}_id")
 
     # Make sure the related model has been loaded
-    relatedModelName = helpers.camelize(helpers.singularize(label))
-    return unless relatedModel = Batman.currentApp?[relatedModelName]
+    return unless relatedModel = self.getRelatedModel()
 
     loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
     unless loadedRecord.isEmpty()
@@ -2379,7 +2381,7 @@ class Batman.Association.belongsTo extends Batman.Association
   clearRelation: -> # do nothing
 
 class Batman.Association.hasOne extends Batman.Association
-  getAccessor: (model, label) ->
+  getAccessor: (self, model, label) ->
     return if @amSetting
 
     # Check whether the relatedModel has already been set on this model
@@ -2388,7 +2390,7 @@ class Batman.Association.hasOne extends Batman.Association
 
     # Make sure relatedModel has been loaded
     relatedModelName = helpers.camelize(helpers.singularize(label))
-    return unless relatedModel = Batman.currentApp?[relatedModelName]
+    return unless relatedModel = self.getRelatedModel()
 
     # Make sure we have an id to match on
     return unless id = @get('id')
@@ -2429,21 +2431,19 @@ class Batman.Association.hasOne extends Batman.Association
   clearRelation: (base) ->
     # Unset the property on related models now pointing to a destroyed record
     baseName = $functionName(base.constructor).toLowerCase()
-    relatedModelName = helpers.camelize(helpers.singularize(@label))
-    if relatedModel = Batman.currentApp?[relatedModelName]
+    if relatedModel = @getRelatedModel()
       relatedModel.get('loaded').indexedBy("#{baseName}_id").get(base.id).forEach (relatedInstance) ->
         relatedInstance.unset("#{baseName}_id")
         relatedInstance.unset(baseName)
 
 class Batman.Association.hasMany extends Batman.Association
-  getAccessor: (model, label) ->
+  getAccessor: (self, model, label) ->
     return if @amSetting
 
     existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
     return existingInstance if existingInstance?
 
-    relatedModelName = helpers.camelize(helpers.singularize(label))
-    return unless relatedModel = Batman.currentApp?[relatedModelName]
+    return unless relatedModel = self.getRelatedModel()
     return unless id = @get('id')
 
     modelName = $functionName(model).toLowerCase()
@@ -2491,7 +2491,7 @@ class Batman.Association.hasMany extends Batman.Association
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]
       relations = new Batman.Set
-      if relatedModel = Batman.currentApp?[helpers.camelize(helpers.singularize(@label))]
+      if relatedModel = @getRelatedModel()
         idRegex = new RegExp("^#{$functionName(relatedModel).toLowerCase()}s(\\d+)$")
         for own storageKey, obj of json
           [_, id] = storageKey.match(idRegex)
