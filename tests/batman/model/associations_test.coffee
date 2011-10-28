@@ -1,16 +1,14 @@
 {TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../view/view_helper'
 
-QUnit.module "Batman.Model One-To-One Associations"
+QUnit.module "belongsTo Associations"
   setup: ->
     class @App extends Batman.App
-    class @App.Store extends Batman.Model
-      @encode 'id', 'name'
-      @hasOne 'product'
-
     # Batman.currentApp exists under node and causes the adapters to explode
     Batman.currentApp = undefined
 
+    class @App.Store extends Batman.Model
+      @encode 'id', 'name'
     @storeAdapter = new AsyncTestStorageAdapter @App.Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
@@ -20,11 +18,73 @@ QUnit.module "Batman.Model One-To-One Associations"
     class @App.Product extends Batman.Model
       @encode 'id', 'name'
       @belongsTo 'store'
-
     @productAdapter = new AsyncTestStorageAdapter @App.Product
-    @productAdapter.storage = 
-      'products1': {name: "Product One", id: 1, store_id: 1}
-      'products2': {name: "Product One", id: 1, store: {id:2, name:"JSON Store"}}
+    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
+    @App.Product.persist @productAdapter
+
+    @App.run()
+
+asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
+  @App.Product.find 1, (err, product) =>
+    productJSON = product.toJSON()
+    storeJSON = product.get('store').toJSON()
+    # store will encode its product
+    delete storeJSON.product
+
+    deepEqual productJSON.store, storeJSON
+    QUnit.start()
+
+asyncTest "belongsTo associations are loaded via ID", 2, ->
+  @App.Product.find 1, (err, product) =>
+    store = product.get 'store'
+    ok store instanceof @App.Store
+    equal store.id, 1
+    QUnit.start()
+
+asyncTest "belongsTo associations are saved", 5, ->
+  store = new @App.Store name: 'Zellers'
+  product = new @App.Product name: 'Gizmo'
+  product.set 'store', store
+
+  productSaveSpy = spyOn product, 'save'
+  product.save (err, record) =>
+    equal productSaveSpy.callCount, 1
+    equal record.get('store_id'), store.id
+    storedJSON = @productAdapter.storage["products#{record.id}"]
+    deepEqual storedJSON, product.toJSON()
+
+    store = record.get('store')
+    equal storedJSON.store_id, undefined
+    deepEqual storedJSON.store, store.toJSON()
+    QUnit.start()
+
+asyncTest "belongsTo associations render", 1, ->
+  @App.Product.find 1, (err, product) ->
+    source = '<span data-bind="product.store.name"></span>'
+    context = Batman(product: product)
+    helpers.render source, context, (node) =>
+      equal node[0].innerHTML, 'Store One'
+      QUnit.start()
+
+QUnit.module "hasOne Associations"
+  setup: ->
+    class @App extends Batman.App
+    # Batman.currentApp exists under node and causes the adapters to explode
+    Batman.currentApp = undefined
+
+    class @App.Store extends Batman.Model
+      @encode 'id', 'name'
+      @hasOne 'product'
+    @storeAdapter = new AsyncTestStorageAdapter @App.Store
+    @storeAdapter.storage =
+      'stores1': {name: "Store One", id: 1}
+      'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
+    @App.Store.persist @storeAdapter
+
+    class @App.Product extends Batman.Model
+      @encode 'id', 'name'
+    @productAdapter = new AsyncTestStorageAdapter @App.Product
+    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
     @App.Product.persist @productAdapter
 
     @App.run()
@@ -34,8 +94,7 @@ asyncTest "should work with model classes that haven't been loaded yet", ->
     @encode 'id', 'name'
     @hasOne 'customer'
   blogAdapter = new AsyncTestStorageAdapter @App.Blog
-  blogAdapter.storage =
-    'blogs1': {name: "Blog One", id: 1}
+  blogAdapter.storage = 'blogs1': {name: "Blog One", id: 1}
   @App.Blog.persist blogAdapter
 
   setTimeout (=>
@@ -54,49 +113,9 @@ asyncTest "should work with model classes that haven't been loaded yet", ->
       QUnit.start()
   ), ASYNC_TEST_DELAY
 
-asyncTest "belongsTo associations are loaded via ID", 2, ->
-  @App.Product.find 1, (err, product) =>
-    store = product.get 'store'
-    ok store instanceof @App.Store
-    equal store.id, 1
-    QUnit.start()
-
-asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
-  @App.Product.find 1, (err, product) =>
-    productJSON = product.toJSON()
-    storeJSON = product.get('store').toJSON()
-
-    # store will encode its product
-    delete storeJSON.product
-
-    deepEqual productJSON.store, storeJSON
-    QUnit.start()
-
 asyncTest "hasOne yields the related model when toJSON is called", 1, ->
   @App.Store.find 1, (err, store) =>
-    storeJSON = store.toJSON()
-    productJSON = store.get('product').toJSON()
-    # store will encode its product
-    delete productJSON.store
-
-    deepEqual storeJSON.product, productJSON
-    QUnit.start()
-
-asyncTest "belongsTo associations are saved", 5, ->
-  store = new @App.Store name: 'Zellers'
-  product = new @App.Product name: 'Gizmo'
-  product.set 'store', store
-
-  productSaveSpy = spyOn product, 'save'
-  product.save (err, record) =>
-    equal productSaveSpy.callCount, 1
-    equal record.get('store_id'), store.id
-    storedJSON = @productAdapter.storage["products#{record.id}"]
-    deepEqual storedJSON, product.toJSON()
-
-    store = record.get('store')
-    equal storedJSON.store_id, undefined
-    deepEqual storedJSON.store, store.toJSON()
+    deepEqual store.toJSON().product, @productAdapter.storage['products1']
     QUnit.start()
 
 asyncTest "hasOne associations are loaded via ID", 2, ->
@@ -123,12 +142,12 @@ asyncTest "hasOne associations are saved", 4, ->
   store.save (err, record) =>
     equal storeSaveSpy.callCount, 1
     equal product.get('store_id'), record.id
+
     storedJSON = @storeAdapter.storage["stores#{record.id}"]
     deepEqual storedJSON, store.toJSON()
-
-    productJSON = store.get('product').toJSON()
-    delete productJSON.store
-    deepEqual storedJSON.product, productJSON
+    deepEqual storedJSON.product,
+      name: "Gizmo"
+      store_id: record.id
     QUnit.start()
 
 asyncTest "hasOne associations can be destroyed safely", 2, ->
@@ -139,20 +158,12 @@ asyncTest "hasOne associations can be destroyed safely", 2, ->
       equal product._batman.attributes['store'], undefined
       QUnit.start()
 
-asyncTest "Models can save while related records are loading", 1, ->
+asyncTest "hasOne models can save while related records are loading", 1, ->
   @App.Store.find 1, (err, store) ->
     product = store.get 'product'
     product._batman.state = 'loading'
     store.save (err, savedStore) ->
       ok !err
-      QUnit.start()
-
-asyncTest "belongsTo associations render", 1, ->
-  @App.Product.find 1, (err, product) ->
-    source = '<span data-bind="product.store.name"></span>'
-    context = Batman(product: product)
-    helpers.render source, context, (node) =>
-      equal node[0].innerHTML, 'Store One'
       QUnit.start()
 
 asyncTest "hasOne associations render", 1, ->
@@ -163,17 +174,15 @@ asyncTest "hasOne associations render", 1, ->
       equal node[0].innerHTML, 'Product One'
       QUnit.start()
 
-QUnit.module "Batman.Model One-To-Many Associations"
+QUnit.module "hasMany Associations"
   setup: ->
     class @App extends Batman.App
+    # Batman.currentApp exists under node and causes the adapters to explode
+    Batman.currentApp = undefined
 
     class @App.Store extends Batman.Model
       @encode 'id', 'name'
       @hasMany 'products'
-
-    # Batman.currentApp exists under node and causes the adapters to explode
-    Batman.currentApp = undefined
-
     @storeAdapter = new AsyncTestStorageAdapter @App.Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
@@ -183,12 +192,18 @@ QUnit.module "Batman.Model One-To-Many Associations"
       @encode 'id', 'name', 'store_id'
       @belongsTo 'store'
       @hasMany 'productVariants'
-
     @productAdapter = new AsyncTestStorageAdapter @App.Product
     @productAdapter.storage =
       'products1': {name: "Product One", id: 1, store_id: 1}
       'products2': {name: "Product Two", id: 2, store_id: 1}
-      'products3': {name: "Product Three", id: 3, store_id: 1, productVariants: {productvariants5:{price:50,product_id:3},productvariants6:{price:60,product_id:3}}
+      'products3': {
+        name: "Product Three", 
+        id: 3, 
+        store_id: 1, 
+        productVariants: {
+          productvariants5: {price:50,product_id:3},
+          productvariants6: {price:60,product_id:3}
+        }
       }
     @App.Product.persist @productAdapter
 
@@ -225,13 +240,9 @@ asyncTest "hasMany associations are saved via the parent model", 4, ->
     equal product2.get('store_id'), record.id
 
     storedJSON = @storeAdapter.storage["stores#{record.id}"]
-    productsJSON = record.get('products').toJSON().map (product) ->
-      # Set.toJSON doesn't apply toJSON on its contents
-      productJSON = product.toJSON()
-      delete productJSON.store
-      productJSON
-    deepEqual storedJSON.products, productsJSON
-
+    deepEqual storedJSON.products, 
+      [{name: "Gizmo", store_id: record.id},
+       {name: "Gadget", store_id: record.id}]
     QUnit.start()
 
 asyncTest "hasMany associations are saved via the child model", 2, ->
