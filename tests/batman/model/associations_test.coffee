@@ -160,14 +160,6 @@ asyncTest "hasOne associations are saved", 4, ->
       store_id: record.id
     QUnit.start()
 
-asyncTest "hasOne associations can be destroyed safely", 2, ->
-  @Store.find 1, (err, store) =>
-    @Product.find 1, (err, product) ->
-      store.destroy()
-      equal product.get('store_id'), undefined
-      equal product._batman.attributes['store'], undefined
-      QUnit.start()
-
 asyncTest "hasOne models can save while related records are loading", 1, ->
   @Store.find 1, (err, store) ->
     product = store.get 'product'
@@ -260,15 +252,6 @@ asyncTest "hasMany associations are saved via the child model", 2, ->
       products = store.get('products')
       ok products.has(savedProduct)
       QUnit.start()
-
-asyncTest "hasMany associations can be destroyed safely", 6, ->
-  @Store.find 1, (err, store) =>
-    products = store.get('products')
-    store.destroy()
-    products.forEach (product) =>
-      equal product.get('store_id'), undefined
-      equal product._batman.attributes['store'], undefined
-    QUnit.start()
 
 asyncTest "hasMany association can be loaded from JSON data", 12, ->
   @Product.find 3, (err, product) =>

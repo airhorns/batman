@@ -2219,7 +2219,6 @@ class Batman.Model extends Batman.Object
   destroy: (callback) =>
     do @destroying
     @_doStorageOperation 'destroy', {}, (err, record) =>
-      Batman.Association.Collection.clearModelRelations(@)
       unless err
         @constructor.get('all').remove(@)
         do @destroyed
@@ -2285,7 +2284,6 @@ class Batman.Association
         obj[@label] = relatedModel._mapIdentity(record)
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
-  clearRelation: -> developer.error "You must override clearRelation in Batman.Association subclasses."
   encodeModelIntoObject: -> developer.error "You must override encodeModelIntoObject in Batman.Associatio subclasses."
 
 Batman.Association.Collection = (->
@@ -2314,13 +2312,6 @@ Batman.Association.Collection = (->
         belongsTo: hash.get('belongsTo')
         hasOne: hash.get('hasOne')
         hasMany: hash.get('hasMany')
-
-    clearModelRelations: (model) ->
-      modelName = $functionName(model.constructor)
-      if modelHash = @storage.get(modelName)
-        modelHash.forEach (type, typeHash) ->
-          typeHash.forEach (association, label) ->
-            association.clearRelation(model)
 
     encodeModelIntoObject: (model, obj) ->
       unless @_encodingRelation
@@ -2378,8 +2369,6 @@ class Batman.Association.belongsTo extends Batman.Association
       obj[@label] = relation.toJSON()
       # Delete inline key on model
 
-  clearRelation: -> # do nothing
-
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (self, model, label) ->
     return if @amSetting
@@ -2428,14 +2417,6 @@ class Batman.Association.hasOne extends Batman.Association
       relationJSON["#{modelName}_id"] = model.get('id')
       obj["#{@label}"] = relationJSON
 
-  clearRelation: (base) ->
-    # Unset the property on related models now pointing to a destroyed record
-    baseName = $functionName(base.constructor).toLowerCase()
-    if relatedModel = @getRelatedModel()
-      relatedModel.get('loaded').indexedBy("#{baseName}_id").get(base.id).forEach (relatedInstance) ->
-        relatedInstance.unset("#{baseName}_id")
-        relatedInstance.unset(baseName)
-
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (self, model, label) ->
     return if @amSetting
@@ -2475,8 +2456,6 @@ class Batman.Association.hasMany extends Batman.Association
       foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
       relatedModels.forEach (model) =>
         model.set foreignKey, base.id
-
-  clearRelation: Batman.Association.hasOne::clearRelation
 
   encodeModelIntoObject: (model, obj) ->
     if relationSet = model.get(@label)
