@@ -9,7 +9,7 @@ QUnit.module 'Batman.View route rendering',
 asyncTest 'should set href for URL fragment', 1, ->
   helpers.render '<a data-route="/test">click</a>', {},
   (node) =>
-    equal node.attr('href'), Batman.HistoryManager.defaultClass::urlFor("/test")
+    equal node.attr('href'), Batman.HistoryManager.defaultClass::linkTo("/test")
     QUnit.start()
 
 asyncTest 'should set hash href for URL fragment when using HashHistory', 1, ->
@@ -46,7 +46,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit'].map (path) ->
-      Batman.HistoryManager.defaultClass::urlFor(path)
+      Batman.HistoryManager.defaultClass::linkTo(path)
     deepEqual urls, expected
     QUnit.start()
   view.get 'node'
@@ -70,6 +70,6 @@ asyncTest 'should allow you to use controller#action routes, if they are defined
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     urls[i] = url || '' for url, i in urls
-    deepEqual urls, [Batman.HistoryManager.defaultClass::urlFor('/foo/bar'), '']
+    deepEqual urls, [Batman.HistoryManager.defaultClass::linkTo('/foo/bar'), '']
     QUnit.start()
   view.get 'node'
