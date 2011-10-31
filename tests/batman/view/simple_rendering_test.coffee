@@ -156,6 +156,45 @@ asyncTest 'it should allow multiple class names to be bound and updated', ->
     delay =>
       equal node[0].className, 'bar baz'
 
+asyncTest 'it should allow multiple class names to be bound and updated via set', ->
+  source = '<div data-bind-class="classes"></div>'
+  context = Batman
+    classes: new Batman.Set('foo', 'bar', 'baz')
+
+  helpers.render source, context, (node) ->
+    equal node[0].className, 'foo bar baz'
+    context.get('classes').remove('foo')
+    delay =>
+      equal node[0].className, 'bar baz'
+
+asyncTest 'it should allow multiple class names to be bound and updated via hash', ->
+  source = '<div data-bind-class="classes"></div>'
+  context = Batman
+    classes: new Batman.Hash
+      foo: true
+      bar: true
+      baz: true
+
+  helpers.render source, context, (node) ->
+    equal node[0].className, 'foo bar baz'
+    context.get('classes').unset('foo')
+    delay =>
+      equal node[0].className, 'bar baz'
+
+asyncTest 'it should allow multiple class names to be bound via object', ->
+  source = '<div data-bind-class="classes"></div>'
+  context = Batman
+    classes:
+      foo: true
+      bar: true
+      baz: true
+
+  helpers.render source, context, (node) ->
+    equal node[0].className, 'foo bar baz'
+    context.set('classes', {bar: true, baz: true})
+    delay =>
+      equal node[0].className, 'bar baz'
+
 asyncTest 'it should allow input values to be bound', 1, ->
   helpers.render '<input data-bind="one" type="text" />',
     one: "qux"

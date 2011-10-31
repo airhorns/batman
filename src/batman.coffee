@@ -3426,9 +3426,28 @@ class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
     # for <options> within a select or radio buttons.
     Batman.data @node, @attributeName, @
 
-class Batman.DOM.ClassBinding extends Batman.DOM.AbstractAttributeBinding
-  dataChange: (value) -> @node.className = value
-  nodeChange: (node, subContext) -> subContext.set(@key, node.className) if @key
+class Batman.DOM.ClassBinding extends Batman.DOM.AbstractCollectionBinding
+  dataChange: (value) ->
+    if value?
+      @unbindCollection()
+      if typeof value is 'string'
+        @node.className = value
+      else
+        @bindCollection(value)
+        @updateFromCollection()
+
+  updateFromCollection: ->
+    if @collection
+      array = if @collection.map
+        @collection.map((x) -> x)
+      else
+        (k for own k,v of @collection)
+      array = array.toArray() if array.toArray?
+      @node.className = array.join ' '
+
+  handleArrayChanged: => @updateFromCollection()
+  handleItemsWereRemoved: => @updateFromCollection()
+  handleItemsWereAdded: => @updateFromCollection()
 
 class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
   constructor: (node, className, keyPath, renderContext, renderer, only, @invert = false) ->
