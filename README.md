@@ -408,6 +408,123 @@ class Product extends Batman.Model
   url: -> "/admin/products/#{@id}"
 ```
 
+#### Associations
+
+Batman models support `belongsTo`, `hasOne`, and `hasMany` associations. Here's a simple example:
+
+```coffeescript
+class @App.Store extends Batman.Model
+  @hasMany 'products'
+
+class @App.Product extends Batman.Model
+  @belongsTo 'store'
+```
+
+By default, Batman will look for the associated models in Batman.currentApp, which means that models should be defined on the app (ie. `class @App.Store` rather than just `class Store`). If your models are defined elsewhere, you can pass a namespace when you declare the association, like so:
+
+```coffeescript
+class MyNamespace.Foo extends Batman.Model
+
+class Bar extends Batman.Model
+  @belongsTo 'foo', MyNamespace
+```
+
+When creating an association, Batman doesn't require a Batman.Model, and instead interprets the label you use to create the association. This allows you to create associations between models that may not have been loaded yet.
+
+```coffeescript
+class @App.Blog extends Batman.Model
+  @hasMany 'posts'
+
+# And the posts will come later...
+setTimeout (=>
+  class @App.Post extends Batman.Model
+    @belongsTo 'blog'
+), 5000
+```
+
+Associations can be loaded via foreign keys or inline JSON:
+
+```coffeescript
+class Store extends Batman.Model
+  @hasMany 'products'
+class Product extends Batman.Model
+  @belongsTo 'store'
+
+localStorage =
+  stores1: 
+    id: 1
+    name: "JSON Store"
+    products:
+      product1:
+        store_id: 1
+        name: "Product One"
+      product2:
+        store_id: 1
+        name: "Product Two"
+
+  stores2:
+    id: 2
+    name: "Foreign Key Store"
+
+  products3:
+    id: 3
+    store_id: 1
+    name: "Product Three"
+  products4:
+    id: 4
+    store_id: 2
+    name: "Product Four"
+
+Store.find 1, (error, store) ->
+  products = store.get('products') # => Batman.Set(Product1, Product2)
+  assert products instanceof Batman.Set
+  assert products.length is 2
+
+  productsArray = products.toArray()
+  assert productsArray[0] instanceof Product
+  assert productsArray[0].get('name') is "Product One"
+  assert productsArray[1].get('name') is "Product Two"
+
+Store.find 2, (error, store) ->
+  products = store.get('products') # => Batman.Set(Product3, Product4)
+  assert products instanceof Batman.Set
+  assert products.length is 2
+
+  productsArray = products.toArray()
+  assert productsArray[0] instanceof Product
+  assert productsArray[0].get('name') is "Product Three"
+  assert productsArray[1].get('name') is "Product Four"
+```
+
+Association saving is done inline:
+
+```coffeescript
+store = new Store name: "Angry Birds"
+product1 = new Product name: "Foo"
+product2 = new Product name: "Bar"
+
+store.set 'products', new Batman.Set(product1, product2)
+
+store.save (error, record) ->
+  storeID = record.get('id')
+  deepEqual localStorage["stores#{storeID}"], {
+    id: storeID
+    name: "Angry Birds"
+    products: [
+      {name: "Foo", store_id: storeID},
+      {name: "Bar", store_id: storeID}
+    ]
+  }
+```
+
+(Notice that the products did not receive IDs. This is because association saving is non-cascading, meaning that each model needs to be saved individually to fully persist. You can always call `toJSON` on a model instance to see what will be stored.)
+
+Associations can be rendered via keypaths, using the same labels you use to create the association:
+
+```html
+<div data-foreach-product="store.products" data-bind="product.name"></div>
+```
+
 # Contributing
 
 [![Build Status](https://secure.travis-ci.org/Shopify/batman.png)](http://travis-ci.org/Shopify/batman)
