@@ -2280,7 +2280,6 @@ class Batman.Association
     if json = data[@label]
       if relatedModel = @getRelatedModel()
         record = new relatedModel(json)
-        record.set 'id', json.id
         obj[@label] = relatedModel._mapIdentity(record)
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
