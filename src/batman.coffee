@@ -3348,6 +3348,39 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 class Batman.DOM.AbstractAttributeBinding extends Batman.DOM.AbstractBinding
   constructor: (node, @attributeName, args...) -> super(node, args...)
 
+class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeBinding
+
+  bindCollection: (newCollection) ->
+    unless newCollection == @collection
+      @unbindCollection()
+      @collection = newCollection
+      if @collection
+        if @collection.isObservable && @collection.toArray
+          @collection.observe 'toArray', @handleArrayChanged
+        else if @collection.isEventEmitter
+          @collection.on 'itemsWereAdded', @handleItemsWereAdded
+          @collection.on 'itemsWereRemoved', @handleItemsWereRemoved
+        else
+          return false
+        return true
+    return false
+
+  unbindCollection: ->
+    if @collection
+      if @collection.isObservable && @collection.toArray
+        @collection.forget('toArray', @handleArrayChanged)
+      else if @collection.isEventEmitter
+        @collection.event('itemsWereAdded').removeHandler(@handleItemsWereAdded)
+        @collection.event('itemsWereRemoved').removeHandler(@handleItemsWereRemoved)
+
+  handleItemsWereAdded: ->
+  handleItemsWereRemoved: ->
+  handleArrayChanged: ->
+
+  destroy: ->
+    @unbindCollection()
+    super
+
 class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   nodeChange: (node, context) ->
     if @key && @filterFunctions.length == 0
@@ -3520,7 +3553,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
         selectedBinding.nodeChange(selectedBinding.node)
     true
 
-class Batman.DOM.StyleBinding extends Batman.DOM.AbstractAttributeBinding
+class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
 
   class @SingleStyleBinding extends Batman.DOM.AbstractAttributeBinding
     constructor: (args..., @parent) ->
@@ -3531,35 +3564,24 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractAttributeBinding
     @oldStyles = {}
     super
 
-  destroy: ->
-    super
-    @unbindCurrentHash()
-
   dataChange: (value) ->
     unless value
       @reapplyOldStyles()
       return
 
-    # remove listeners from a previously bound hash
-    @unbindCurrentHash()
+    @unbindCollection()
 
-    if typeof value is 'string' and @boundValueType = 'string'
+    if typeof value is 'string'
       @reapplyOldStyles()
       for style in value.split(';')
         [cssName, cssValue] = style.split(':')
         @setStyle cssName, cssValue
       return
 
-    if value instanceof Batman.Hash and @boundValueType = 'batman.hash'
-      @styleHash = value
-
-      # attach listeners to the the new hash
-      value.on 'itemsWereAdded', @onItemsAdded
-      value.on 'itemsWereRemoved', @onItemsRemoved
-
-      # set styles
-      value.keys().forEach (key) => @onItemsAdded(key)
-    else if value instanceof Object and @boundValueType = 'object'
+    if value instanceof Batman.Hash
+      if @bindCollection(value)
+        value.forEach (key, value) => @setStyle key, value
+    else if value instanceof Object
       @reapplyOldStyles()
       for own key, keyValue of value
         # Check whether the value is an existing keypath, and if so bind this attribute to it
@@ -3570,8 +3592,8 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractAttributeBinding
         else
           @setStyle key, keyValue
 
-  onItemsAdded: (newKey) => @setStyle newKey, @styleHash.get(newKey)
-  onItemsRemoved: (oldKey) => @setStyle oldKey, ''
+  handleItemsWereAdded: (newKey) => @setStyle newKey, @collection.get(newKey)
+  handleItemsWereRemoved: (oldKey) => @setStyle oldKey, ''
 
   bindSingleAttribute: (attr, keyPath) -> new @constructor.SingleStyleBinding(@node, attr, keyPath, @renderContext, @renderer, @only, @)
 
@@ -3584,12 +3606,7 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractAttributeBinding
   reapplyOldStyles: ->
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
 
-  unbindCurrentHash: ->
-    if @styleHash
-      @styleHash.event('itemsWereRemoved').removeHandler(@onItemsRemoved)
-      @styleHash.event('itemsWereAdded').removeHandler(@onItemsAdded)
-
-class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractAttributeBinding
+class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   deferEvery: 50
   currentActionNumber: 0
   queuedActionNumber: 0
@@ -3628,9 +3645,8 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractAttributeBinding
     @bind()
 
   destroy: ->
-    super
     $unbindNode(@prototypeNode)
-    @unbindCollection()
+    super
     @destroyed = true
 
   unbindCollection: ->
@@ -3639,38 +3655,27 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractAttributeBinding
       @nodeMap.clear()
       @rendererMap.forEach (item, renderer) -> renderer.stop()
       @rendererMap.clear()
-      if @collection.isObservable && @collection.toArray
-        @collection.forget('toArray', @arrayChanged)
-      else if @collection.isEventEmitter
-        @collection.event('itemsWereAdded').removeHandler(@currentAddedHandler)
-        @collection.event('itemsWereRemoved').removeHandler(@currentRemovedHandler)
+      super
 
-  dataChange: (newCollection) =>
-    unless newCollection == @collection
-      @unbindCollection()
-      @collection = newCollection
-      if @collection
-        if @collection.isObservable && @collection.toArray
-          @collection.observe 'toArray', @arrayChanged
-        else if @collection.isEventEmitter
-          @collection.on 'itemsWereAdded', @currentAddedHandler = (items...) =>
-            @addItem(item, {fragment: true}) for item, i in items
-          @collection.on 'itemsWereRemoved', @currentRemovedHandler = (items...) =>
-            @removeItem(item) for item, i in items
+  dataChange: (newCollection) ->
+    @bindCollection(newCollection)
+    if @collection
+      if @collection.toArray
+        @handleArrayChanged()
+      else if @collection.forEach
+        @collection.forEach (item) => @addItem(item)
+      else
+        @addItem(key) for own key, value of @collection
 
-        if @collection.toArray
-          @arrayChanged()
-        else if @collection.forEach
-          @collection.forEach (item) => @addItem(item)
-        else
-          @addItem(key) for own key, value of @collection
-
-    unless @collection
+    else
       developer.warn "Warning! data-foreach-#{@iteratorName} called with an undefined binding. Key was: #{@key}."
 
     @processActionQueue()
 
-  arrayChanged: =>
+  handleItemsWereAdded: (items...) => @addItem(item, {fragment: true}) for item in items
+  handleItemsWereRemoved: (items...) => @removeItem(item) for item in items
+
+  handleArrayChanged: =>
     newItemsInOrder = @collection.toArray()
     trackingNodeMap = new Batman.SimpleHash
     for item in newItemsInOrder

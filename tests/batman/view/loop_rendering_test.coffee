@@ -233,7 +233,7 @@ asyncTest 'it should loop over hashes', 6, ->
       equal parseInt(childNode.innerHTML, 10), playerScores.get(childNode.id)
     QUnit.start()
 
-asyncTest 'it should update as a hash has items added and removed', ->
+asyncTest 'it should update as a hash has items added and removed', 8, ->
   source = '<div><p data-foreach-player="playerScores" data-bind-id="player" data-bind="playerScores[player]"></p></div>'
   context = new Batman.Object
     playerScores: new Batman.Hash
