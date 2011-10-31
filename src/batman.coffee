@@ -1646,6 +1646,10 @@ class Batman.HistoryManager
     path = @dispatch(params)
     @pushState(null, '', path)
     path
+  replace: (params) ->
+    path = @dispatch(params)
+    @replaceState(null, '', path)
+    path
   redirect: @::push
   normalizePath: Batman.Navigation.normalizePath
 
@@ -1657,6 +1661,8 @@ class Batman.StateHistory extends Batman.HistoryManager
     $removeEventListener window, 'popstate', @handleCurrentLocation
   pushState: (stateObject, title, path) ->
     window.history.pushState(stateObject, title, @linkTo(path))
+  replaceState: (stateObject, title, path) ->
+    window.history.replaceState(stateObject, title, @linkTo(path))
   linkTo: (url) ->
     @normalizePath(Batman.pathPrefix, url)
   pathFromLocation: (location) ->
@@ -1678,6 +1684,9 @@ class Batman.HashHistory extends Batman.HistoryManager
       @interval = clearInterval @interval
   pushState: (stateObject, title, path) ->
     window.location.hash = @linkTo(path)
+  replaceState: (stateObject, title, path) ->
+    loc = window.location
+    loc.replace("#{loc.pathname}#{loc.search}#{@linkTo(path)}")
   linkTo: (url) -> @HASH_PREFIX + url
   pathFromLocation: (location) ->
     hash = location.hash

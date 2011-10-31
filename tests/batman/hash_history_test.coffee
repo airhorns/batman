@@ -13,11 +13,22 @@ test "pathFromLocation(window.location) returns the app-relative path", ->
   equal @history.pathFromLocation(hash: '#'), '/'
   equal @history.pathFromLocation(hash: ''), '/'
 
-
 test "pushState(stateObject, title, path) sets window.location.hash", ->
   @history.pushState(null, '', '/foo/bar')
   equal window.location.hash, "#!/foo/bar"
 
+unless IN_NODE #jsdom doesn't like window.location.replace
+  asyncTest "replaceState(stateObject, title, path) replaces the current history entry", ->
+    window.location.hash = '#!/one'
+    window.location.hash = '#!/two'
+    @history.replaceState(null, '', '/three')
+    equal window.location.hash, "#!/three"
+    window.history.back()
+    setTimeout ->
+      equal window.location.hash, "#!/one"
+      QUnit.start()
+    , 500 # window.history.back() takes forever...
+    
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @history.handleLocation
     pathname: Batman.pathPrefix

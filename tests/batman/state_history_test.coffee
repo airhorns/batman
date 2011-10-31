@@ -17,6 +17,12 @@ if Batman.StateHistory.isSupported()
     @history.pushState(null,'','/foo/bar')
     equal window.location.pathname, "#{Batman.pathPrefix}/foo/bar"
 
+  test "replaceState(stateObject, title, path) replaces the current history entry", ->
+    originalHistoryLength = window.history.length
+    @history.replaceState(null,'','/foo/bar')
+    equal window.location.pathname, "#{Batman.pathPrefix}/foo/bar"
+    equal window.history.length, originalHistoryLength
+
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @history.handleLocation
     pathname: Batman.Navigation.normalizePath(Batman.pathPrefix, 'foo/bar')
