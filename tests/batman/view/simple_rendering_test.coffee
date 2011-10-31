@@ -423,6 +423,17 @@ asyncTest 'it should allow double click events to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
+asyncTest 'it should allow un-special-cased events like focus to be bound', 2, ->
+  context =
+    doSomething: spy = createSpy()
+
+  source = '<input type="text" data-event-focus="doSomething" value="foo"></input>'
+  helpers.render source, context, (node) ->
+    helpers.triggerFocus(node[0])
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0]
+
 asyncTest 'it should allow event handlers to update', 2, ->
   context = Batman
     doSomething: spy = createSpy()

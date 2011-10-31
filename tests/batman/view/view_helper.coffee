@@ -13,6 +13,14 @@ exports.triggerChange = (domNode) ->
   else if document.createEventObject
     domNode.fireEvent 'onchange'
 
+exports.triggerFocus = (domNode) ->
+  if document.createEvent
+    evt = document.createEvent("HTMLEvents")
+    evt.initEvent("focus", false, false)
+    domNode.dispatchEvent(evt)
+  else if document.createEventObject
+    domNode.fireEvent 'onfocus'
+
 exports.triggerClick = (domNode, eventName = 'click') ->
   if document.createEvent
     evt = document.createEvent("MouseEvents")

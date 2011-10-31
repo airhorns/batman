@@ -3055,6 +3055,8 @@ Batman.DOM = {
           callback node, args...
 
       node
+
+    other: (node, eventName, callback) -> $addEventListener node, eventName, (args...) -> callback node, args...
   }
 
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
@@ -3474,9 +3476,14 @@ class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
   constructor: ->
     super
     confirmText = @node.getAttribute('data-confirm')
-    Batman.DOM.events[@attributeName] @node, =>
+    callback = =>
       return if confirmText and not confirm(confirmText)
       @get('filteredValue')?.apply @get('callbackContext'), arguments
+
+    if attacher = Batman.DOM.events[@attributeName]
+      attacher @node, callback
+    else
+      Batman.DOM.events.other @node, @attributeName, callback
 
   @accessor 'callbackContext', ->
     contextKeySegments = @key.split('.')
