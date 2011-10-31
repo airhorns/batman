@@ -503,6 +503,18 @@ asyncTest 'it should allow contexts to be entered', 2, ->
     delay ->
       equal $("#test", node).html(), 'baz', 'if the context changes the bindings should update'
 
+asyncTest 'contexts should only be available inside the node with the context directive', 2, ->
+  context = Batman
+    namespace: Batman
+      foo: 'bar'
+  source = '<div data-context="namespace"></div><span id="test" data-bind="foo"></span>'
+
+  helpers.render source, context, (node) ->
+    equal node[1].innerHTML, ""
+    context.set('namespace', Batman(foo: 'baz'))
+    delay ->
+      equal node[1].innerHTML, ""
+
 asyncTest 'it should allow context names to be specified', 2, ->
   context = Batman
     namespace: 'foo'

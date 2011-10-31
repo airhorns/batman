@@ -2755,7 +2755,9 @@ class Batman.Renderer extends Batman.Object
           skipChildren = true
           break
         else if result instanceof Batman.RenderContext
+          oldContext = @context
           @context = result
+          $onParseExit(node, => @context = oldContext)
 
     if (nextNode = @nextNode(node, skipChildren)) then @parseNode(nextNode) else @finish()
 
@@ -2764,7 +2766,7 @@ class Batman.Renderer extends Batman.Object
       children = node.childNodes
       return children[0] if children?.length
 
-    Batman.data(node, 'onParseExit')?()
+    $onParseExit(node).forEach (callback) -> callback()
     return if @node == node
 
     sibling = node.nextSibling
@@ -2772,7 +2774,7 @@ class Batman.Renderer extends Batman.Object
 
     nextParent = node
     while nextParent = nextParent.parentNode
-      nextParent.onParseExit?()
+      $onParseExit(nextParent).forEach (callback) -> callback()
       return if @node == nextParent
 
       parentSibling = nextParent.nextSibling
@@ -3180,6 +3182,10 @@ Batman.DOM = {
 
   didRemoveNode: (node) -> $unbindTree node
 
+  onParseExit: $onParseExit = (node, callback) ->
+    set = Batman.data(node, 'onParseExit') || Batman.data(node, 'onParseExit', new Batman.SimpleSet)
+    set.add callback if callback?
+    set
 }
 
 # Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
