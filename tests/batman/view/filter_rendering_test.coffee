@@ -144,6 +144,46 @@ asyncTest 'should allow a mix of keypaths and simple values as arguments to filt
       equals node.html(), 'a b c'
       QUnit.start()
 
+renderWithoutBatmanizing = (source, context, callback) ->
+  node = document.createElement('div')
+  node.innerHTML = source
+
+  view = new Batman.View
+    node: node
+    context: context
+
+  view.on 'ready', callback
+  view.get('node')
+
+asyncTest 'should allow argument values which are simple objects', 2, ->
+  context =
+    foo: 'foo'
+    bar:
+      baz: "qux"
+
+  Batman.Filters.test = (val, arg) ->
+    equal val, 'foo'
+    deepEqual arg, {baz: "qux"}
+
+  node = document.createElement('div')
+  renderWithoutBatmanizing '<div data-bind="foo | test bar"></div>', context, ->
+    delete Batman.Filters.test
+    QUnit.start()
+
+asyncTest 'should allow argument values which are in the context of simple objects', 2, ->
+  context =
+    foo: 'foo'
+    bar:
+      baz: "qux"
+
+  Batman.Filters.test = (val, arg) ->
+    equal val, 'foo'
+    equal arg, "qux"
+
+  renderWithoutBatmanizing '<div data-bind="foo | test bar.baz"></div>', context, ->
+    delete Batman.Filters.test
+    QUnit.start()
+
 asyncTest 'should update bindings when argument keypaths change', 1, ->
   context = Batman
     foo: [1,2,3]

@@ -3226,7 +3226,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
         # Get any argument keypaths from the context stored at parse time.
         args = @filterArguments[i].map (argument) ->
           if argument._keypath
-            argument.context.get(argument._keypath)
+            $get(argument.context, argument._keypath)
           else
             argument
 
