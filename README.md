@@ -454,13 +454,15 @@ localStorage =
   stores1: 
     id: 1
     name: "JSON Store"
-    products:
-      product1:
-        store_id: 1
-        name: "Product One"
-      product2:
-        store_id: 1
-        name: "Product Two"
+    products: [{
+      id: 1
+      store_id: 1
+      name: "Product One"
+    }, {
+      id: 2
+      store_id: 1
+      name: "Product Two"
+    }]
 
   stores2:
     id: 2
