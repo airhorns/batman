@@ -216,14 +216,14 @@ QUnit.module "hasMany Associations"
 asyncTest "hasMany associations are loaded", 6, ->
   @Store.find 1, (err, store) =>
     products = store.get 'products'
-    trackedIds = {1: no, 2: no, 3: no}
-    products.forEach (product) =>
-      ok product instanceof @Product
-      trackedIds[product.id] = true
-    equal trackedIds[1], yes
-    equal trackedIds[2], yes
-    equal trackedIds[3], yes
-    QUnit.start()
+    delay =>
+      trackedIds = {1: no, 2: no, 3: no}
+      products.forEach (product) =>
+        ok product instanceof @Product
+        trackedIds[product.id] = true
+      equal trackedIds[1], yes
+      equal trackedIds[2], yes
+      equal trackedIds[3], yes
 
 asyncTest "hasMany associations are saved via the parent model", 4, ->
   store = new @Store name: 'Zellers'

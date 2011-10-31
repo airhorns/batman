@@ -2209,8 +2209,8 @@ class Batman.Model extends Batman.Object
           do @saved
           @dirtyKeys.clear()
 
-          for k in [hasOne, hasMany]
-            k?.forEach (association) -> association.save(err, record)
+          hasOne?.forEach (association) -> association.save(err, record)
+          hasMany?.forEach (association) -> association.save(err, record)
 
           record = @constructor._mapIdentity(record)
         callback?(err, record)
@@ -2362,12 +2362,11 @@ class Batman.Association.belongsTo extends Batman.Association
 
   save: (base) ->
     if model = base.get(@label)
-      base.set "#{@label}_id", model.id
+      base.set "#{@label}_id", model.get('id')
 
   encodeModelIntoObject: (model, obj) ->
     if relation = model.get(@label)
       obj[@label] = relation.toJSON()
-      # Delete inline key on model
 
 class Batman.Association.hasOne extends Batman.Association
   getAccessor: (self, model, label) ->
@@ -2378,7 +2377,6 @@ class Batman.Association.hasOne extends Batman.Association
     return existingInstance if existingInstance?
 
     # Make sure relatedModel has been loaded
-    relatedModelName = helpers.camelize(helpers.singularize(label))
     return unless relatedModel = self.getRelatedModel()
 
     # Make sure we have an id to match on
@@ -2406,16 +2404,14 @@ class Batman.Association.hasOne extends Batman.Association
       return loadedRecord
 
   save: (baseSaveError, base) ->
-    if relatedModel = base._batman.attributes?[@label]
-      foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
-      relatedModel.set foreignKey, base.id
+    if relation = base._batman.attributes?[@label]
+      relation.set @foreignKey, base.get('id')
 
   encodeModelIntoObject: (model, obj) ->
     if relation = model.get(@label)
       relationJSON = relation.toJSON()
-      modelName = $functionName(model.constructor).toLowerCase()
-      relationJSON["#{modelName}_id"] = model.get('id')
-      obj["#{@label}"] = relationJSON
+      relationJSON[@foreignKey] = model.get('id')
+      obj[@label] = relationJSON
 
 class Batman.Association.hasMany extends Batman.Association
   getAccessor: (self, model, label) ->
@@ -2452,10 +2448,9 @@ class Batman.Association.hasMany extends Batman.Association
       loadedRecords
 
   save: (baseSaveError, base) ->
-    if relatedModels = base._batman.attributes?[@label]
-      foreignKey = "#{$functionName(base.constructor).toLowerCase()}_id"
-      relatedModels.forEach (model) =>
-        model.set foreignKey, base.id
+    if relations = base._batman.attributes?[@label]
+      relations.forEach (model) =>
+        model.set @foreignKey, base.get('id')
 
   encodeModelIntoObject: (model, obj) ->
     if relationSet = model.get(@label)
