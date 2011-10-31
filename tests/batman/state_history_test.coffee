@@ -30,3 +30,10 @@ test "handleLocation(window.location) dispatches based on pathFromLocation", ->
     hash: '#!/unused'
   equal @dispatchSpy.callCount, 1
   deepEqual @dispatchSpy.lastCallArguments, ["/foo/bar?page=2"]
+
+test "handleLocation(window.location) uses the hashbang if necessary", ->
+  @dispatchSpy.whichReturns("/foo/bar?page=2")
+  @history.replaceState = createSpy()
+  @history.handleLocation hash: '#!/foo/bar?page=2'
+  equal @history.replaceState.callCount, 1
+  deepEqual @history.replaceState.lastCallArguments, [null, '', '/foo/bar?page=2']

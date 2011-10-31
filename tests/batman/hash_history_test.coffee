@@ -36,3 +36,15 @@ test "handleLocation(window.location) dispatches based on pathFromLocation", ->
     hash: '#!/foo/bar?page=2'
   equal @dispatchSpy.callCount, 1
   deepEqual @dispatchSpy.lastCallArguments, ["/foo/bar?page=2"]
+
+
+test "handleLocation(window.location) handles the real non-hashbang path if present", ->
+  location =
+    pathname: Batman.Navigation.normalizePath(Batman.pathPrefix, '/baz')
+    search: '?q=buzz'
+    hash: '#!/foo/bar?page=2'
+    replace: createSpy()
+  @history.handleLocation(location)
+  equal location.replace.callCount, 1
+  deepEqual location.replace.lastCallArguments, ["#{Batman.pathPrefix}#!/baz?q=buzz"]
+

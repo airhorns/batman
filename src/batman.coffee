@@ -1669,6 +1669,12 @@ class Batman.StateHistory extends Batman.HistoryManager
     fullPath = "#{location.pathname or ''}#{location.search or ''}"
     prefixPattern = new RegExp("^#{@normalizePath(Batman.pathPrefix)}")
     @normalizePath(fullPath.replace(prefixPattern, ''))
+  handleLocation: (location) ->
+    path = @pathFromLocation(location)
+    if path is '/' and (hashbangPath = Batman.HashHistory::pathFromLocation(location)) isnt '/'
+      @replace(hashbangPath)
+    else
+      super
 
 class Batman.HashHistory extends Batman.HistoryManager
   HASH_PREFIX: '#!'
@@ -1694,6 +1700,12 @@ class Batman.HashHistory extends Batman.HistoryManager
       @normalizePath(hash.substr(2))
     else
       '/'
+  handleLocation: (location) ->
+    realPath = Batman.StateHistory::pathFromLocation(location)
+    if realPath is '/'
+      super
+    else
+      location.replace(@normalizePath("#{Batman.pathPrefix}#{@linkTo(realPath)}"))
 
 Batman.HistoryManager.defaultClass = if Batman.StateHistory.isSupported()
   Batman.StateHistory
