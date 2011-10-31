@@ -2946,6 +2946,11 @@ Batman.DOM = {
 
       true
 
+    defineview: (node, name, context, renderer) ->
+      $onParseExit(node, -> $removeNode(node))
+      Batman.View.sourceCache.set(Batman.HistoryManager::joinPath('/', Batman.View::prefix, name), node.innerHTML)
+      false
+
     yield: (node, key) ->
       $setImmediate -> Batman.DOM.yield key, node
       true

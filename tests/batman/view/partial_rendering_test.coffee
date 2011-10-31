@@ -54,3 +54,18 @@ asyncTest "unloaded partials should only load once", ->
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
   , ASYNC_TEST_DELAY
 
+asyncTest "data-defineview bindings can be used to embed view contents", ->
+  source = '<div data-defineview="test/view">
+              <p data-bind="foo"></p>
+            </div>
+            <div>
+              <p data-partial="test/view"></p>
+            </div>'
+
+  context = Batman
+    foo: 'bar'
+
+  node = helpers.render source, context, (node) ->
+    equal node.length, 1
+    equal node.children(0).children(0).children(0).html(), 'bar'
+    QUnit.start()
