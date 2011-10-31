@@ -16,7 +16,7 @@ QUnit.module 'Batman.View partial rendering'
 asyncTest "preloaded/already rendered partials should render", ->
   Batman.View.sourceCache =
     get: (k) ->
-      equal k, '/views/test/one.html'
+      equal k, '/views/test/one'
       "<div>Hello from a partial</div>"
 
   source = '<div data-partial="test/one"></div>'

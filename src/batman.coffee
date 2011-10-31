@@ -1815,7 +1815,7 @@ class Batman.Controller extends Batman.Object
     if not options.view
       options.contexts ||= []
       options.contexts.push @
-      options.source ||= helpers.underscore($functionName(@constructor).replace('Controller', '')) + '/' + @_currentAction + '.html'
+      options.source ||= helpers.underscore($functionName(@constructor).replace('Controller', '')) + '/' + @_currentAction
       options.view = new Batman.View(options)
 
     if view = options.view
@@ -2583,7 +2583,7 @@ class Batman.ViewSourceCache extends Batman.Object
       return @sources[path] if @sources[path]?
       unless @requests[path]?
         @requests = new Batman.Request
-          url: path
+          url: path + '.html'
           type: 'html'
           success: (response) => @set(path, response)
           error: (response) -> throw new Error("Could not load view from #{path}")
@@ -2632,11 +2632,11 @@ class Batman.View extends Batman.Object
   prefix: 'views'
 
   @accessor 'html', ->
-      return @html if @html && @html.length > 0
-      source = @get 'source'
-      return if not source
-      path = Batman.HistoryManager::joinPath('/', @prefix, source)
-      @html = @constructor.sourceCache.get(path)
+    return @html if @html && @html.length > 0
+    source = @get 'source'
+    return if not source
+    path = Batman.HistoryManager::joinPath('/', @prefix, source)
+    @html = @constructor.sourceCache.get(path)
 
   @accessor 'node'
     get: ->
@@ -2766,10 +2766,9 @@ class Batman.Renderer extends Batman.Object
       children = node.childNodes
       return children[0] if children?.length
 
+    sibling = node.nextSibling # Grab the reference before onParseExit may remove the node
     $onParseExit(node).forEach (callback) -> callback()
     return if @node == node
-
-    sibling = node.nextSibling
     return sibling if sibling
 
     nextParent = node
@@ -2937,7 +2936,7 @@ Batman.DOM = {
       renderer.prevent('rendered')
 
       view = new Batman.View
-        source: path + '.html'
+        source: path
         contentFor: node
         contexts: context.chain()
 

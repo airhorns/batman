@@ -25,7 +25,7 @@ test 'it should pull in views if not present already', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
     @controller.render()
     view = mockClass.lastInstance
-    equal view.constructorArguments[0].source, 'test/show.html'
+    equal view.constructorArguments[0].source, 'test/show'
 
     spyOnDuring Batman.DOM, 'replace', (contentFor) =>
       view.fireReady()
