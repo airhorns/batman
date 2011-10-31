@@ -8,7 +8,7 @@ asyncTest "support custom model namespaces", 2, ->
   class namespace.Store extends Batman.Model
 
   class Product extends Batman.Model
-    @belongsTo 'store', namespace
+    @belongsTo 'store', modelNamespace: namespace
   productAdapter = new AsyncTestStorageAdapter Product
   productAdapter.storage =
     'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
@@ -24,7 +24,7 @@ asyncTest "work with model classes that haven't been loaded yet", ->
   namespace = this
   class @Blog extends Batman.Model
     @encode 'id', 'name'
-    @hasOne 'customer', namespace
+    @hasOne 'customer', modelNamespace: namespace
   blogAdapter = new AsyncTestStorageAdapter @Blog
   blogAdapter.storage = 'blogs1': {name: "Blog One", id: 1}
   @Blog.persist blogAdapter
@@ -48,7 +48,7 @@ asyncTest "work with model classes that haven't been loaded yet", ->
 asyncTest "models can save while related records are loading", 1, ->
   namespace = this
   class @Store extends Batman.Model
-    @hasOne 'product', namespace
+    @hasOne 'product', modelNamespace: namespace
   storeAdapter = new AsyncTestStorageAdapter @Store
   storeAdapter.storage =
     "stores1": {id: 1, name: "Store One", product: {id: 1, name: "JSON product"}}
@@ -79,7 +79,7 @@ QUnit.module "belongsTo Associations"
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
-      @belongsTo 'store', namespace
+      @belongsTo 'store', modelNamespace: namespace
     @productAdapter = new AsyncTestStorageAdapter @Product
     @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
     @Product.persist @productAdapter
@@ -133,7 +133,7 @@ QUnit.module "hasOne Associations"
     namespace = this
     class @Store extends Batman.Model
       @encode 'id', 'name'
-      @hasOne 'product', namespace
+      @hasOne 'product', modelNamespace: namespace
     @storeAdapter = new AsyncTestStorageAdapter @Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
@@ -200,7 +200,7 @@ QUnit.module "hasMany Associations"
 
     class @Store extends Batman.Model
       @encode 'id', 'name'
-      @hasMany 'products', namespace
+      @hasMany 'products', modelNamespace: namespace
     @storeAdapter = new AsyncTestStorageAdapter @Store
     @storeAdapter.storage =
       'stores1': {name: "Store One", id: 1}
@@ -208,8 +208,8 @@ QUnit.module "hasMany Associations"
 
     class @Product extends Batman.Model
       @encode 'id', 'name', 'store_id'
-      @belongsTo 'store', namespace
-      @hasMany 'productVariants', namespace
+      @belongsTo 'store', modelNamespace: namespace
+      @hasMany 'productVariants', modelNamespace: namespace
     @productAdapter = new AsyncTestStorageAdapter @Product
     @productAdapter.storage =
       'products1': {name: "Product One", id: 1, store_id: 1}
@@ -226,7 +226,7 @@ QUnit.module "hasMany Associations"
 
     class @ProductVariant extends Batman.Model
       @encode 'price'
-      @belongsTo 'product', namespace
+      @belongsTo 'product', modelNamespace: namespace
     variantAdapter = new AsyncTestStorageAdapter @ProductVariant
     @ProductVariant.persist variantAdapter
 

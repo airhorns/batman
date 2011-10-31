@@ -2260,7 +2260,7 @@ class Batman.Model extends Batman.Object
   isNew: -> typeof @get('id') is 'undefined'
 
 class Batman.Association
-  constructor: (@model, @label, @scope = Batman.currentApp) ->
+  constructor: (@model, @label, @options = {}) ->
     Batman.Association.Collection.add @
 
     # curry association info into the getAccessor, which has the model applied as the context
@@ -2274,7 +2274,8 @@ class Batman.Association
 
   getRelatedModel: ->
     modelName = helpers.camelize(helpers.singularize(@label))
-    @scope?[modelName]
+    scope = @options['modelNamespace'] or Batman.currentApp
+    scope?[modelName]
 
   decodeObjectIntoModel: (model, obj, data) ->
     if json = data[@label]

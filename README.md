@@ -420,13 +420,13 @@ class App.Product extends Batman.Model
   @belongsTo 'store'
 ```
 
-By default, Batman will look for the associated models in Batman.currentApp, which means that models should be defined on the app (ie. `class @App.Store` rather than just `class Store`). If your models are defined elsewhere, you can pass a namespace when you declare the association, like so:
+By default, Batman will look for the associated models in Batman.currentApp, which means that models should be defined on the app (ie. `class App.Store` rather than just `class Store`). If your models are defined elsewhere, you can pass a namespace via the `modelNamespace` option, like so:
 
 ```coffeescript
 class MyNamespace.Foo extends Batman.Model
 
 class Bar extends Batman.Model
-  @belongsTo 'foo', MyNamespace
+  @belongsTo 'foo', modelNamespace: MyNamespace
 ```
 
 Associations can be loaded via foreign keys or inline JSON:
