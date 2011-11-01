@@ -1,27 +1,27 @@
-QUnit.module 'Batman.HashHistory',
+QUnit.module 'Batman.HashbangNavigator',
   setup: ->
     @app =
       dispatcher:
         dispatch: @dispatchSpy = createSpy()
-    @history = new Batman.HashHistory(@app)
+    @nav = new Batman.HashbangNavigator(@app)
 
 test "pathFromLocation(window.location) returns the app-relative path", ->
   location =
     
-  equal @history.pathFromLocation(hash: '#!/foo/bar?page=2'), '/foo/bar?page=2'
-  equal @history.pathFromLocation(hash: '#/foo/bar?page=2'), '/'
-  equal @history.pathFromLocation(hash: '#'), '/'
-  equal @history.pathFromLocation(hash: ''), '/'
+  equal @nav.pathFromLocation(hash: '#!/foo/bar?page=2'), '/foo/bar?page=2'
+  equal @nav.pathFromLocation(hash: '#/foo/bar?page=2'), '/'
+  equal @nav.pathFromLocation(hash: '#'), '/'
+  equal @nav.pathFromLocation(hash: ''), '/'
 
 test "pushState(stateObject, title, path) sets window.location.hash", ->
-  @history.pushState(null, '', '/foo/bar')
+  @nav.pushState(null, '', '/foo/bar')
   equal window.location.hash, "#!/foo/bar"
 
 unless IN_NODE #jsdom doesn't like window.location.replace
   asyncTest "replaceState(stateObject, title, path) replaces the current history entry", ->
     window.location.hash = '#!/one'
     window.location.hash = '#!/two'
-    @history.replaceState(null, '', '/three')
+    @nav.replaceState(null, '', '/three')
     equal window.location.hash, "#!/three"
     window.history.back()
     setTimeout ->
@@ -30,7 +30,7 @@ unless IN_NODE #jsdom doesn't like window.location.replace
     , 500 # window.history.back() takes forever...
     
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
-  @history.handleLocation
+  @nav.handleLocation
     pathname: Batman.pathPrefix
     search: ''
     hash: '#!/foo/bar?page=2'
@@ -40,11 +40,11 @@ test "handleLocation(window.location) dispatches based on pathFromLocation", ->
 
 test "handleLocation(window.location) handles the real non-hashbang path if present", ->
   location =
-    pathname: Batman.Navigation.normalizePath(Batman.pathPrefix, '/baz')
+    pathname: @nav.normalizePath(Batman.pathPrefix, '/baz')
     search: '?q=buzz'
     hash: '#!/foo/bar?page=2'
     replace: createSpy()
-  @history.handleLocation(location)
+  @nav.handleLocation(location)
   equal location.replace.callCount, 1
   deepEqual location.replace.lastCallArguments, ["#{Batman.pathPrefix}#!/baz?q=buzz"]
 

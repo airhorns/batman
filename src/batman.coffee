@@ -1435,10 +1435,10 @@ class Batman.App extends Batman.Object
     else if typeof @layout is 'string'
       @set 'layout', new @[helpers.camelize(@layout) + 'View']
 
-    if typeof @historyManager is 'undefined' and @dispatcher.routeMap
+    if typeof @navigator is 'undefined' and @dispatcher.routeMap
       @on 'run', =>
-        @historyManager = Batman.historyManager = Batman.HistoryManager.forApp(this)
-        @historyManager.start()
+        @navigator = Batman.navigator = Batman.Navigator.forApp(this)
+        @navigator.start()
 
     @hasRun = yes
     @fire('run')
@@ -1448,8 +1448,8 @@ class Batman.App extends Batman.Object
 
   @event('stop').oneShot = true
   @stop: ->
-    @historyManager?.stop()
-    Batman.historyManager = null
+    @navigator?.stop()
+    Batman.navigator = null
     @hasRun = no
     @fire('stop')
     @
@@ -1524,13 +1524,6 @@ class Batman.Route extends Batman.Object
     return params.target?[action](params)
 
 
-Batman.Navigation =
-  normalizePath: (segments...) ->
-    segments = for seg, i in segments
-      "#{seg}".replace(/^(?!\/)/, '/').replace(/\/+$/,'')
-    segments.join('') or '/'
-
-
 class Batman.Dispatcher extends Batman.Object
   constructor: (@app) ->
     @app.route @
@@ -1601,7 +1594,7 @@ class Batman.Dispatcher extends Batman.Object
 
   pathFromParams: (params) ->
     if $typeOf(params) is 'String'
-      Batman.Navigation.normalizePath(params)
+      Batman.Navigator.normalizePath(params)
     else
       @findUrl(params)
   
@@ -1617,10 +1610,8 @@ class Batman.Dispatcher extends Batman.Object
     @app.set 'currentRoute', route
     url
 
-# History Manager
-# ---------------
-class Batman.HistoryManager
-  @forApp: (app) -> app.historyManager or new @defaultClass(app)
+class Batman.Navigator
+  @forApp: (app) -> app.navigator or new @defaultClass(app)
   constructor: (@app) ->
   start: ->
     return if typeof window is 'undefined'
@@ -1651,9 +1642,13 @@ class Batman.HistoryManager
     @replaceState(null, '', path)
     path
   redirect: @::push
-  normalizePath: Batman.Navigation.normalizePath
+  normalizePath: (segments...) ->
+    segments = for seg, i in segments
+      "#{seg}".replace(/^(?!\/)/, '/').replace(/\/+$/,'')
+    segments.join('') or '/'
+  @normalizePath: @::normalizePath
 
-class Batman.StateHistory extends Batman.HistoryManager
+class Batman.PushStateNavigator extends Batman.Navigator
   @isSupported: -> window?.history?.pushState?
   startWatching: ->
     $addEventListener window, 'popstate', @handleCurrentLocation
@@ -1671,12 +1666,12 @@ class Batman.StateHistory extends Batman.HistoryManager
     @normalizePath(fullPath.replace(prefixPattern, ''))
   handleLocation: (location) ->
     path = @pathFromLocation(location)
-    if path is '/' and (hashbangPath = Batman.HashHistory::pathFromLocation(location)) isnt '/'
+    if path is '/' and (hashbangPath = Batman.HashbangNavigator::pathFromLocation(location)) isnt '/'
       @replace(hashbangPath)
     else
       super
 
-class Batman.HashHistory extends Batman.HistoryManager
+class Batman.HashbangNavigator extends Batman.Navigator
   HASH_PREFIX: '#!'
   if window? and 'onhashchange' of window
     @::startWatching = ->
@@ -1701,19 +1696,19 @@ class Batman.HashHistory extends Batman.HistoryManager
     else
       '/'
   handleLocation: (location) ->
-    realPath = Batman.StateHistory::pathFromLocation(location)
+    realPath = Batman.PushStateNavigator::pathFromLocation(location)
     if realPath is '/'
       super
     else
       location.replace(@normalizePath("#{Batman.pathPrefix}#{@linkTo(realPath)}"))
 
-Batman.HistoryManager.defaultClass = if Batman.StateHistory.isSupported()
-  Batman.StateHistory
+Batman.Navigator.defaultClass = if Batman.PushStateNavigator.isSupported()
+  Batman.PushStateNavigator
 else
-  Batman.HashHistory
+  Batman.HashbangNavigator
 
 Batman.redirect = $redirect = (url) ->
-  Batman.historyManager?.redirect url
+  Batman.navigator?.redirect url
 
 # Route Declarators
 # -----------------
@@ -1798,8 +1793,8 @@ class Batman.Controller extends Batman.Object
     params.action ||= action
     params.target ||= @
 
-    oldRedirect = Batman.historyManager?.redirect
-    Batman.historyManager?.redirect = @redirect
+    oldRedirect = Batman.navigator?.redirect
+    Batman.navigator?.redirect = @redirect
 
     @_actedDuringAction = no
     @set 'action', action
@@ -1821,7 +1816,7 @@ class Batman.Controller extends Batman.Object
     delete @_actedDuringAction
     @set 'action', null
 
-    Batman.historyManager?.redirect = oldRedirect
+    Batman.navigator?.redirect = oldRedirect
 
     redirectTo = @_afterFilterRedirect
     delete @_afterFilterRedirect
@@ -2611,7 +2606,7 @@ class Batman.ViewSourceCache extends Batman.Object
 
   @accessor
     get: (path) ->
-      path = Batman.Navigation.normalizePath(path)
+      path = Batman.Navigator.normalizePath(path)
       return @sources[path] if @sources[path]?
       unless @requests[path]?
         @requests = new Batman.Request
@@ -2667,7 +2662,7 @@ class Batman.View extends Batman.Object
     return @html if @html && @html.length > 0
     source = @get 'source'
     return if not source
-    path = Batman.Navigation.normalizePath(@prefix, source)
+    path = Batman.Navigator.normalizePath(@prefix, source)
     @html = @constructor.sourceCache.get(path)
 
   @accessor 'node'
@@ -2959,7 +2954,7 @@ Batman.DOM = {
       return unless url
 
       if node.nodeName.toUpperCase() is 'A'
-        node.href = Batman.HistoryManager.defaultClass::linkTo url
+        node.href = Batman.Navigator.defaultClass::linkTo url
 
       Batman.DOM.events.click node, -> $redirect url
       true
@@ -2980,7 +2975,7 @@ Batman.DOM = {
 
     defineview: (node, name, context, renderer) ->
       $onParseExit(node, -> $removeNode(node))
-      Batman.View.sourceCache.set(Batman.Navigation.normalizePath(Batman.View::prefix, name), node.innerHTML)
+      Batman.View.sourceCache.set(Batman.Navigator.normalizePath(Batman.View::prefix, name), node.innerHTML)
       false
 
     yield: (node, key) ->

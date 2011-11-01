@@ -47,8 +47,8 @@ test '@render false disables implicit render', 1, ->
   @controller.dispatch 'test'
 
 test 'redirecting a dispatch prevents implicit render', 2, ->
-  Batman.historyManager = new Batman.HashHistory
-  Batman.historyManager.redirect = ->
+  Batman.navigator = new Batman.HashbangNavigator
+  Batman.navigator.redirect = ->
     ok true, 'redirecting history manager'
   @controller.render = ->
     ok true, 'redirecting controller'
