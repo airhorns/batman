@@ -1604,7 +1604,7 @@ class Batman.Dispatcher extends Batman.Object
       Batman.Navigator.normalizePath(params)
     else
       @findUrl(params)
-  
+
   dispatch: (params) ->
     url = @pathFromParams(params)
     route = @findRoute(url)
@@ -3940,7 +3940,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
       # Move any Batman.data from the sourceNode to the prototype; we need to
       # retain the bindings, and we want to dispose of the node.
       @prototypeNode[Batman.expando] = sourceNode[Batman.expando]
-      delete sourceNode[Batman.expando]
+      delete sourceNode[Batman.expando] if Batman.canDeleteExpando
       $removeNode sourceNode
 
     # Don't let the parent emit its rendered event until all the children have.
@@ -4186,7 +4186,13 @@ $mixin Batman,
   cache: {}
   uuid: 0
   expando: "batman" + Math.random().toString().replace(/\D/g, '')
-  canDeleteExpando: true
+  # Test to see if it's possible to delete an expando from an element
+  # Fails in Internet Explorer
+  canDeleteExpando: try
+      div = document.createElement 'div'
+      delete div.test
+    catch e
+      Batman.canDeleteExpando = false
   noData: # these throw exceptions if you attempt to add expandos to them
     "embed": true,
     # Ban all objects except for Flash (which handle expandos)
@@ -4330,13 +4336,6 @@ isEmptyDataObject = (obj) ->
     return false
   return true
 
-# Test to see if it's possible to delete an expando from an element
-# Fails in Internet Explorer
-try
-  div = document.createElement 'div'
-  delete div.test
-catch e
-  Batman.canDeleteExpando = false
 
 # Mixins
 # ------
