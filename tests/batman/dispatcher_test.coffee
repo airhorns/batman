@@ -1,6 +1,5 @@
 QUnit.module 'Batman.Dispatcher defining routes',
   setup: ->
-    @defaultNavigatorClass = Batman.Navigator.defaultClass
     Batman.START = new Date()
     class @App extends Batman.App
       @layout: null
@@ -22,7 +21,6 @@ QUnit.module 'Batman.Dispatcher defining routes',
         @render false
       edit: -> @render false
   teardown: ->
-    Batman.Navigator.defaultClass = @defaultNavigatorClass
     @App.stop()
 
 test 'controller aliases', ->
@@ -131,7 +129,7 @@ asyncTest 'resources', ->
   $redirect 'products/1/images'
 
 asyncTest 'hash history', 1, ->
-  Batman.Navigator.defaultClass = Batman.HashbangNavigator
+  Batman.config.usePushState = false
   @App.route 'test', ->
     window.location.hash = '#!/test2'
   @App.route 'test2', ->

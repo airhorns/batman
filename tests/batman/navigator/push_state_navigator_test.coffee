@@ -7,25 +7,25 @@ QUnit.module 'Batman.PushStateNavigator',
 
 test "pathFromLocation(window.location) returns the app-relative path", ->
   location =
-    pathname: @nav.normalizePath(Batman.pathPrefix, 'foo/bar')
+    pathname: @nav.normalizePath(Batman.config.pathPrefix, 'foo/bar')
     search: '?page=2'
   equal @nav.pathFromLocation(location), '/foo/bar?page=2'
-  equal @nav.pathFromLocation(pathname: Batman.pathPrefix, search: ''), '/'
+  equal @nav.pathFromLocation(pathname: Batman.config.pathPrefix, search: ''), '/'
 
 if Batman.PushStateNavigator.isSupported()
-  test "pushState(stateObject, title, path) prefixes the path with Batman.pathPrefix and delegates to window.history", ->
+  test "pushState(stateObject, title, path) prefixes the path with Batman.config.pathPrefix and delegates to window.history", ->
     @nav.pushState(null,'','/foo/bar')
-    equal window.location.pathname, "#{Batman.pathPrefix}/foo/bar"
+    equal window.location.pathname, "#{Batman.config.pathPrefix}/foo/bar"
 
   test "replaceState(stateObject, title, path) replaces the current history entry", ->
     originalHistoryLength = window.history.length
     @nav.replaceState(null,'','/foo/bar')
-    equal window.location.pathname, "#{Batman.pathPrefix}/foo/bar"
+    equal window.location.pathname, "#{Batman.config.pathPrefix}/foo/bar"
     equal window.history.length, originalHistoryLength
 
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @nav.handleLocation
-    pathname: @nav.normalizePath(Batman.pathPrefix, 'foo/bar')
+    pathname: @nav.normalizePath(Batman.config.pathPrefix, 'foo/bar')
     search: '?page=2'
     hash: '#!/unused'
   equal @dispatchSpy.callCount, 1

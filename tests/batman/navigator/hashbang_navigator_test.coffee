@@ -24,14 +24,12 @@ unless IN_NODE #jsdom doesn't like window.location.replace
     @nav.replaceState(null, '', '/three')
     equal window.location.hash, "#!/three"
     window.history.back()
-    setTimeout ->
+    delay 500, -> # window.history.back() takes forever...
       equal window.location.hash, "#!/one"
-      QUnit.start()
-    , 500 # window.history.back() takes forever...
     
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @nav.handleLocation
-    pathname: Batman.pathPrefix
+    pathname: Batman.config.pathPrefix
     search: ''
     hash: '#!/foo/bar?page=2'
   equal @dispatchSpy.callCount, 1
@@ -40,11 +38,11 @@ test "handleLocation(window.location) dispatches based on pathFromLocation", ->
 
 test "handleLocation(window.location) handles the real non-hashbang path if present", ->
   location =
-    pathname: @nav.normalizePath(Batman.pathPrefix, '/baz')
+    pathname: @nav.normalizePath(Batman.config.pathPrefix, '/baz')
     search: '?q=buzz'
     hash: '#!/foo/bar?page=2'
     replace: createSpy()
   @nav.handleLocation(location)
   equal location.replace.callCount, 1
-  deepEqual location.replace.lastCallArguments, ["#{Batman.pathPrefix}#!/baz?q=buzz"]
+  deepEqual location.replace.lastCallArguments, ["#{Batman.config.pathPrefix}#!/baz?q=buzz"]
 

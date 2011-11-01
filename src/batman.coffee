@@ -10,7 +10,9 @@
 Batman = (mixins...) ->
   new Batman.Object mixins...
 
-Batman.pathPrefix = '/'
+Batman.config =
+  pathPrefix: '/'
+  usePushState: no
 
 # Global Helpers
 # -------
@@ -1611,7 +1613,12 @@ class Batman.Dispatcher extends Batman.Object
     url
 
 class Batman.Navigator
-  @forApp: (app) -> app.navigator or new @defaultClass(app)
+  @defaultClass: ->
+    if Batman.config.usePushState and Batman.PushStateNavigator.isSupported()
+      Batman.PushStateNavigator
+    else
+      Batman.HashbangNavigator
+  @forApp: (app) -> new (@defaultClass())(app)
   constructor: (@app) ->
   start: ->
     return if typeof window is 'undefined'
@@ -1659,10 +1666,10 @@ class Batman.PushStateNavigator extends Batman.Navigator
   replaceState: (stateObject, title, path) ->
     window.history.replaceState(stateObject, title, @linkTo(path))
   linkTo: (url) ->
-    @normalizePath(Batman.pathPrefix, url)
+    @normalizePath(Batman.config.pathPrefix, url)
   pathFromLocation: (location) ->
     fullPath = "#{location.pathname or ''}#{location.search or ''}"
-    prefixPattern = new RegExp("^#{@normalizePath(Batman.pathPrefix)}")
+    prefixPattern = new RegExp("^#{@normalizePath(Batman.config.pathPrefix)}")
     @normalizePath(fullPath.replace(prefixPattern, ''))
   handleLocation: (location) ->
     path = @pathFromLocation(location)
@@ -1700,12 +1707,8 @@ class Batman.HashbangNavigator extends Batman.Navigator
     if realPath is '/'
       super
     else
-      location.replace(@normalizePath("#{Batman.pathPrefix}#{@linkTo(realPath)}"))
+      location.replace(@normalizePath("#{Batman.config.pathPrefix}#{@linkTo(realPath)}"))
 
-Batman.Navigator.defaultClass = if Batman.PushStateNavigator.isSupported()
-  Batman.PushStateNavigator
-else
-  Batman.HashbangNavigator
 
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
@@ -2954,7 +2957,7 @@ Batman.DOM = {
       return unless url
 
       if node.nodeName.toUpperCase() is 'A'
-        node.href = Batman.Navigator.defaultClass::linkTo url
+        node.href = Batman.Navigator.defaultClass()::linkTo(url)
 
       Batman.DOM.events.click node, -> $redirect url
       true

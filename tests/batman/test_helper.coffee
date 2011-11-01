@@ -10,10 +10,11 @@ else
 
 originalPathname = window.location.pathname
 
-# set Batman.pathPrefix:
+# set Batman.config:
 QUnit.__start = QUnit.start
 QUnit.start = ->
-  Batman.pathPrefix = originalPathname
+  Batman.config.pathPrefix = originalPathname
+  Batman.config.usePushState = true
   QUnit.__start.apply(this, arguments)
 
 # return clean links (e.g. "Rerun" links):

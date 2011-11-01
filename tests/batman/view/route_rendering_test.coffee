@@ -2,18 +2,15 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module 'Batman.View route rendering',
   setup: ->
-    @defaultNavigatorClass = Batman.Navigator.defaultClass
-  teardown: ->
-    Batman.Navigator.defaultClass = @defaultNavigatorClass
 
 asyncTest 'should set href for URL fragment', 1, ->
   helpers.render '<a data-route="/test">click</a>', {},
   (node) =>
-    equal node.attr('href'), Batman.Navigator.defaultClass::linkTo("/test")
+    equal node.attr('href'), Batman.Navigator.defaultClass()::linkTo("/test")
     QUnit.start()
 
 asyncTest 'should set hash href for URL fragment when using HashbangNavigator', 1, ->
-  Batman.Navigator.defaultClass = Batman.HashbangNavigator
+  Batman.config.usePushState = false
   helpers.render '<a data-route="/test">click</a>', {},
   (node) =>
     equal node.attr('href'), "#!/test"
@@ -46,7 +43,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit'].map (path) ->
-      Batman.Navigator.defaultClass::linkTo(path)
+      Batman.Navigator.defaultClass()::linkTo(path)
     deepEqual urls, expected
     QUnit.start()
   view.get 'node'
@@ -70,6 +67,6 @@ asyncTest 'should allow you to use controller#action routes, if they are defined
   view.on 'ready', ->
     urls = ($(a).attr('href') for a in view.get('node').children)
     urls[i] = url || '' for url, i in urls
-    deepEqual urls, [Batman.Navigator.defaultClass::linkTo('/foo/bar'), '']
+    deepEqual urls, [Batman.Navigator.defaultClass()::linkTo('/foo/bar'), '']
     QUnit.start()
   view.get 'node'

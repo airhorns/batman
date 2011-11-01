@@ -156,7 +156,7 @@ asyncTest 'it should update the whole set of nodes if the collection changes', -
       delay =>
         equal $('.present', node).length, 0
         context.set('objects', new Batman.Set('mario'))
-        delay =>
+        delay 60, =>
           equal $('.present', node).length, 1
           Batman.developer.unsuppress()
 
@@ -191,9 +191,7 @@ asyncTest 'it should not fail if the iterator is destroyed', 1, ->
     ok instance
     instance.destroy()
 
-  setTimeout ->
-    QUnit.start()
-  , ASYNC_TEST_DELAY
+  delay ->
 
 asyncTest 'previously observed collections shouldn\'t have any effect if they are replaced', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'

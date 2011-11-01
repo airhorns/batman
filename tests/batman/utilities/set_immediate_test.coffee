@@ -10,9 +10,8 @@ asyncTest "should be clearable", 0, ->
     ok false
 
   Batman.clearImmediate handle
-  setTimeout ->
-    QUnit.start()
-  , ASYNC_TEST_DELAY
+  
+  delay ->
 
 asyncTest "clearing one should not clear the other", 1, ->
   handleA = Batman.setImmediate ->
@@ -22,9 +21,8 @@ asyncTest "clearing one should not clear the other", 1, ->
     ok true
 
   Batman.clearImmediate handleA
-  setTimeout ->
-    QUnit.start()
-  , ASYNC_TEST_DELAY
+  
+  delay ->
 
 asyncTest "should execute in series", 2, ->
   x = 0
@@ -35,7 +33,5 @@ asyncTest "should execute in series", 2, ->
   Batman.setImmediate ->
     equal ++x, 2
 
-  setTimeout ->
-    QUnit.start()
-  , ASYNC_TEST_DELAY
+  delay ->
 
