@@ -2437,10 +2437,6 @@ class Batman.Association.hasMany extends Batman.Association
       return relatedRecords
     else if recordInAttributes = @_batman.attributes?[label]
       return recordInAttributes
-    else if model._readingFromJSON
-      # FIXME Remove this; needed to break out of get accessor loop
-      delete model._readingFromJSON
-      return undefined
     else
       loadedRecords = new Batman.Set
       @amSetting = true
