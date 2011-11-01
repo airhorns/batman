@@ -2294,31 +2294,27 @@ Batman.Association.Collection = (->
       @storage = new Batman.SimpleHash
 
     add: (association) ->
-      baseModelName = $functionName(association.model)
-      unless baseModelHash = @storage.get(baseModelName)
+      unless baseModelHash = @storage.get(association.model)
         baseModelHash = new Batman.SimpleHash
-        @storage.set baseModelName, baseModelHash
+        @storage.set association.model, baseModelHash
 
-      associationType = $functionName(association.constructor)
-      unless associationTypeHash = baseModelHash.get(associationType)
+      unless associationTypeHash = baseModelHash.get(association.constructor)
         associationTypeHash = new Batman.SimpleHash
-        baseModelHash.set associationType, associationTypeHash
+        baseModelHash.set association.constructor, associationTypeHash
 
       associationTypeHash.set association, association.label
 
     getModelAssociations: (model) ->
-      modelName = $functionName(model.constructor)
-      if hash = @storage.get(modelName)
-        belongsTo: hash.get('belongsTo')
-        hasOne: hash.get('hasOne')
-        hasMany: hash.get('hasMany')
+      if hash = @storage.get(model.constructor)
+        belongsTo: hash.get(Batman.Association.belongsTo)
+        hasOne: hash.get(Batman.Association.hasOne)
+        hasMany: hash.get(Batman.Association.hasMany)
 
     encodeModelIntoObject: (model, obj) ->
       unless @_encodingRelation
         # Only encode this level of associations
         @_encodingRelation = true
-        modelName = $functionName(model.constructor)
-        if modelHash = @storage.get(modelName)
+        if modelHash = @storage.get(model.constructor)
           modelHash.forEach (type, typeHash) ->
             typeHash.forEach (association, label) ->
               unless association.options["saveInline"] is false
@@ -2329,8 +2325,7 @@ Batman.Association.Collection = (->
       unless @_decodingRelation
         # Only decode this level of associations
         @_decodingRelation = true
-        modelName = $functionName(model.constructor)
-        if modelHash = @storage.get(modelName)
+        if modelHash = @storage.get(model.constructor)
           modelHash.forEach (type, typeHash) ->
             typeHash.forEach (association, label) ->
               association.decodeObjectIntoModel(model, obj, data)
@@ -2370,6 +2365,11 @@ class Batman.Association.belongsTo extends Batman.Association
       obj[@label] = relation.toJSON()
 
 class Batman.Association.hasOne extends Batman.Association
+  constructor: ->
+    super
+    @propertyName = $functionName(@model).toLowerCase()
+    @foreignKey = "#{@propertyName}_id"
+
   getAccessor: (self, model, label) ->
     return if @amSetting
 
@@ -2384,8 +2384,7 @@ class Batman.Association.hasOne extends Batman.Association
     return unless id = @get('id')
 
     # Check whether the relatedModel has already loaded the instance we want
-    modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
+    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
@@ -2397,7 +2396,7 @@ class Batman.Association.hasOne extends Batman.Association
       @amSetting = false
 
       loadOptions = {}
-      loadOptions["#{modelName}_id"] = id
+      loadOptions[self.foreignKey] = id
       relatedModel.load loadOptions, (error, loadedRecords) =>
         throw error if error
         return if !loadedRecords or loadedRecords.length <= 0
@@ -2415,6 +2414,11 @@ class Batman.Association.hasOne extends Batman.Association
       obj[@label] = relationJSON
 
 class Batman.Association.hasMany extends Batman.Association
+  constructor: ->
+    super
+    @propertyName = $functionName(@model).toLowerCase()
+    @foreignKey = "#{@propertyName}_id"
+
   getAccessor: (self, model, label) ->
     return if @amSetting
 
@@ -2424,8 +2428,7 @@ class Batman.Association.hasMany extends Batman.Association
     return unless relatedModel = self.getRelatedModel()
     return unless id = @get('id')
 
-    modelName = $functionName(model).toLowerCase()
-    relatedRecords = relatedModel.get('loaded').indexedBy("#{modelName}_id").get(id)
+    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords
     else if recordInAttributes = @_batman.attributes?[label]
@@ -2441,7 +2444,7 @@ class Batman.Association.hasMany extends Batman.Association
       @amSetting = false
 
       loadOptions = {}
-      loadOptions["#{modelName}_id"] = id
+      loadOptions[self.foreignKey] = id
       relatedModel.load loadOptions, (error, records) =>
         throw error if error
         return unless records or records.isEmpty()
@@ -2456,10 +2459,9 @@ class Batman.Association.hasMany extends Batman.Association
   encodeModelIntoObject: (model, obj) ->
     if relationSet = model.get(@label)
       jsonArray = []
-      relationSet.forEach (relation) ->
+      relationSet.forEach (relation) =>
         relationJSON = relation.toJSON()
-        modelName = $functionName(model.constructor).toLowerCase()
-        relationJSON["#{modelName}_id"] = model.get('id')
+        relationJSON[@foreignKey] = model.get('id')
         jsonArray.push relationJSON
       obj[@label] = jsonArray
 
