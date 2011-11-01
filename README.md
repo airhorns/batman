@@ -414,20 +414,17 @@ Batman models support `belongsTo`, `hasOne`, and `hasMany` associations. Here's 
 
 ```coffeescript
 class App.Store extends Batman.Model
-  @hasMany 'products'
+  @hasMany 'products', options
 
 class App.Product extends Batman.Model
-  @belongsTo 'store'
+  @belongsTo 'store', options
 ```
 
-By default, Batman will look for the associated models in Batman.currentApp, which means that models should be defined on the app (ie. `class App.Store` rather than just `class Store`). If your models are defined elsewhere, you can pass a namespace via the `modelNamespace` option, like so:
+The following options are available:
 
-```coffeescript
-class MyNamespace.Foo extends Batman.Model
-
-class Bar extends Batman.Model
-  @belongsTo 'foo', modelNamespace: MyNamespace
-```
+*  _namespace_: Tells Batman to look for the associated model under the provided namespace. (Defaults to `Batman.currentApp`.)
+*  _name_: Tells Batman to use the given model name instead. (Defaults to an interpretation of the association's label.)
+*  _saveInline_: Tells Batman whether to encode associations as inline JSON when the base model is saved. (Defaults to `true`.)
 
 Associations can be loaded via foreign keys or inline JSON:
 
@@ -466,8 +463,6 @@ store.save (error, record) ->
 ```
 
 (Notice that the products did not receive IDs. This is because association saving is non-cascading, meaning that each model needs to be saved individually to fully persist. You can always call `toJSON` on a model instance to see what will be stored.)
-
-Inline saving can be disabled by passing `saveInline: false` when declaring the association.
 
 Associations can be rendered via keypaths, using the same labels you use to create the association:
 

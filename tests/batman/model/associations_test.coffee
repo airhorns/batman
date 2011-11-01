@@ -3,17 +3,19 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module "Associations"
 
-asyncTest "support custom model namespaces", 2, ->
+asyncTest "support custom model namespaces and class names", 2, ->
   namespace = this
-  class namespace.Store extends Batman.Model
+  class namespace.Walmart extends Batman.Model
 
   class Product extends Batman.Model
-    @belongsTo 'store', modelNamespace: namespace
+    @belongsTo 'store', 
+      namespace: namespace
+      name: 'Walmart'
   productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
     'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
   Product.find 2, (err, product) ->
     store = product.get('store')
-    ok store instanceof namespace.Store
+    ok store instanceof namespace.Walmart
     equal store.get('id'), 3
     QUnit.start()
 
@@ -21,7 +23,7 @@ asyncTest "work with model classes that haven't been loaded yet", 3, ->
   namespace = this
   class @Blog extends Batman.Model
     @encode 'id', 'name'
-    @hasOne 'customer', modelNamespace: namespace
+    @hasOne 'customer', namespace: namespace
   blogAdapter = createStorageAdapter @Blog, AsyncTestStorageAdapter,
     'blogs1': {name: "Blog One", id: 1}
 
@@ -44,7 +46,7 @@ asyncTest "work with model classes that haven't been loaded yet", 3, ->
 asyncTest "models can save while related records are loading", 1, ->
   namespace = this
   class @Store extends Batman.Model
-    @hasOne 'product', modelNamespace: namespace
+    @hasOne 'product', namespace: namespace
   storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
     "stores1": {id: 1, name: "Store One", product: {id: 1, name: "JSON product"}}
 
@@ -62,7 +64,7 @@ asyncTest "inline saving and loading can be disabled", 1, ->
   namespace = this
   class @Store extends Batman.Model
     @hasMany 'products', 
-      modelNamespace: namespace
+      namespace: namespace
       saveInline: false
   @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
     "stores1": {id: 1, name: "Store One"}
@@ -87,7 +89,7 @@ QUnit.module "belongsTo Associations"
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
-      @belongsTo 'store', modelNamespace: namespace
+      @belongsTo 'store', namespace: namespace
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
 
@@ -140,7 +142,7 @@ QUnit.module "hasOne Associations"
     namespace = this
     class @Store extends Batman.Model
       @encode 'id', 'name'
-      @hasOne 'product', modelNamespace: namespace
+      @hasOne 'product', namespace: namespace
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
       'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
@@ -204,14 +206,14 @@ QUnit.module "hasMany Associations"
 
     class @Store extends Batman.Model
       @encode 'id', 'name'
-      @hasMany 'products', modelNamespace: namespace
+      @hasMany 'products', namespace: namespace
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
 
     class @Product extends Batman.Model
       @encode 'id', 'name', 'store_id'
-      @belongsTo 'store', modelNamespace: namespace
-      @hasMany 'productVariants', modelNamespace: namespace
+      @belongsTo 'store', namespace: namespace
+      @hasMany 'productVariants', namespace: namespace
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
       'products2': {name: "Product Two", id: 2, store_id: 1}
@@ -226,7 +228,7 @@ QUnit.module "hasMany Associations"
 
     class @ProductVariant extends Batman.Model
       @encode 'price'
-      @belongsTo 'product', modelNamespace: namespace
+      @belongsTo 'product', namespace: namespace
     variantAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter
 
 asyncTest "hasMany associations are loaded", 6, ->

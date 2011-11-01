@@ -2273,8 +2273,8 @@ class Batman.Association
       unset: Batman.Model.defaultAccessor.unset
 
   getRelatedModel: ->
-    modelName = helpers.camelize(helpers.singularize(@label))
-    scope = @options['modelNamespace'] or Batman.currentApp
+    scope = @options['namespace'] or Batman.currentApp
+    modelName = @options['name'] or helpers.camelize(helpers.singularize(@label))
     scope?[modelName]
 
   decodeObjectIntoModel: (model, obj, data) ->
