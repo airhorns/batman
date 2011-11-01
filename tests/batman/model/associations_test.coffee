@@ -1,4 +1,4 @@
-{TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
+{createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../view/view_helper'
 
 QUnit.module "Associations"
@@ -9,11 +9,8 @@ asyncTest "support custom model namespaces", 2, ->
 
   class Product extends Batman.Model
     @belongsTo 'store', modelNamespace: namespace
-  productAdapter = new AsyncTestStorageAdapter Product
-  productAdapter.storage =
+  productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
     'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
-  Product.persist productAdapter
-
   Product.find 2, (err, product) ->
     store = product.get('store')
     ok store instanceof namespace.Store
@@ -25,9 +22,8 @@ asyncTest "work with model classes that haven't been loaded yet", 3, ->
   class @Blog extends Batman.Model
     @encode 'id', 'name'
     @hasOne 'customer', modelNamespace: namespace
-  blogAdapter = new AsyncTestStorageAdapter @Blog
-  blogAdapter.storage = 'blogs1': {name: "Blog One", id: 1}
-  @Blog.persist blogAdapter
+  blogAdapter = createStorageAdapter @Blog, AsyncTestStorageAdapter,
+    'blogs1': {name: "Blog One", id: 1}
 
   setTimeout (=>
     class @Customer extends Batman.Model
@@ -49,15 +45,11 @@ asyncTest "models can save while related records are loading", 1, ->
   namespace = this
   class @Store extends Batman.Model
     @hasOne 'product', modelNamespace: namespace
-  storeAdapter = new AsyncTestStorageAdapter @Store
-  storeAdapter.storage =
+  storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
     "stores1": {id: 1, name: "Store One", product: {id: 1, name: "JSON product"}}
-  @Store.persist storeAdapter
 
   class @Product extends Batman.Model
-  productAdapter = new AsyncTestStorageAdapter @Product
-  productAdapter.storage = {"products500": {id:500}}
-  @Product.persist productAdapter
+  productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter
 
   @Store.find 1, (err, store) ->
     product  = store.get 'product'
@@ -72,13 +64,11 @@ asyncTest "inline saving and loading can be disabled", 1, ->
     @hasMany 'products', 
       modelNamespace: namespace
       saveInline: false
-  @storeAdapter = new AsyncTestStorageAdapter @Store
-  @storeAdapter.storage = "stores1": {id: 1, name: "Store One"}
-  @Store.persist @storeAdapter
+  @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
+    "stores1": {id: 1, name: "Store One"}
 
   class @Product extends Batman.Model
-  @productAdapter = new AsyncTestStorageAdapter @Product
-  @Product.persist @productAdapter
+  @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter
 
   @Store.find 1, (err, store) =>
     store.set 'products', new Batman.Set(new @Product)
@@ -91,18 +81,15 @@ QUnit.module "belongsTo Associations"
     namespace = this
     class @Store extends Batman.Model
       @encode 'id', 'name'
-    @storeAdapter = new AsyncTestStorageAdapter @Store
-    @storeAdapter.storage =
+    @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
       'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
-    @Store.persist @storeAdapter
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
       @belongsTo 'store', modelNamespace: namespace
-    @productAdapter = new AsyncTestStorageAdapter @Product
-    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
-    @Product.persist @productAdapter
+    @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
+      'products1': {name: "Product One", id: 1, store_id: 1}
 
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
   @Product.find 1, (err, product) =>
@@ -154,17 +141,14 @@ QUnit.module "hasOne Associations"
     class @Store extends Batman.Model
       @encode 'id', 'name'
       @hasOne 'product', modelNamespace: namespace
-    @storeAdapter = new AsyncTestStorageAdapter @Store
-    @storeAdapter.storage =
+    @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
       'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
-    @Store.persist @storeAdapter
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
-    @productAdapter = new AsyncTestStorageAdapter @Product
-    @productAdapter.storage = 'products1': {name: "Product One", id: 1, store_id: 1}
-    @Product.persist @productAdapter
+    @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
+      'products1': {name: "Product One", id: 1, store_id: 1}
 
 asyncTest "hasOne yields the related model when toJSON is called", 1, ->
   @Store.find 1, (err, store) =>
@@ -221,17 +205,14 @@ QUnit.module "hasMany Associations"
     class @Store extends Batman.Model
       @encode 'id', 'name'
       @hasMany 'products', modelNamespace: namespace
-    @storeAdapter = new AsyncTestStorageAdapter @Store
-    @storeAdapter.storage =
+    @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
-    @Store.persist @storeAdapter
 
     class @Product extends Batman.Model
       @encode 'id', 'name', 'store_id'
       @belongsTo 'store', modelNamespace: namespace
       @hasMany 'productVariants', modelNamespace: namespace
-    @productAdapter = new AsyncTestStorageAdapter @Product
-    @productAdapter.storage =
+    @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
       'products2': {name: "Product Two", id: 2, store_id: 1}
       'products3':
@@ -242,13 +223,11 @@ QUnit.module "hasMany Associations"
           {id:5, price:50, product_id:3},
           {id:6, price:60, product_id:3}
         ]
-    @Product.persist @productAdapter
 
     class @ProductVariant extends Batman.Model
       @encode 'price'
       @belongsTo 'product', modelNamespace: namespace
-    variantAdapter = new AsyncTestStorageAdapter @ProductVariant
-    @ProductVariant.persist variantAdapter
+    variantAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter
 
 asyncTest "hasMany associations are loaded", 6, ->
   @Store.find 1, (err, store) =>

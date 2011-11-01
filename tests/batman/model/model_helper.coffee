@@ -64,10 +64,18 @@ class AsyncTestStorageAdapter extends TestStorageAdapter
       AsyncTestStorageAdapter[k] = ->
         setTimeout (=> TestStorageAdapter[k].apply(@, arguments)), ASYNC_TEST_DELAY
 
+createStorageAdapter = (modelClass, adapterClass, data = {}) ->
+  adapter = new adapterClass(modelClass)
+  adapter.storage = data
+  modelClass.persist adapter
+  adapter
+
 if typeof exports is 'undefined'
   window.TestStorageAdapter = TestStorageAdapter
   window.AsyncTestStorageAdapter = AsyncTestStorageAdapter
+  window.createStorageAdapter = createStorageAdapter
 else
   exports.TestStorageAdapter = TestStorageAdapter
   exports.AsyncTestStorageAdapter = AsyncTestStorageAdapter
+  exports.createStorageAdapter = createStorageAdapter
 
