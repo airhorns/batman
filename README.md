@@ -467,6 +467,8 @@ store.save (error, record) ->
 
 (Notice that the products did not receive IDs. This is because association saving is non-cascading, meaning that each model needs to be saved individually to fully persist. You can always call `toJSON` on a model instance to see what will be stored.)
 
+Inline saving can be disabled by passing `saveInline: false` when declaring the association.
+
 Associations can be rendered via keypaths, using the same labels you use to create the association:
 
 ```html

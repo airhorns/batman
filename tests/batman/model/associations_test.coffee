@@ -4,7 +4,7 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 QUnit.module "Associations"
 
 asyncTest "support custom model namespaces", 2, ->
-  namespace = {}
+  namespace = this
   class namespace.Store extends Batman.Model
 
   class Product extends Batman.Model
@@ -20,7 +20,7 @@ asyncTest "support custom model namespaces", 2, ->
     equal store.get('id'), 3
     QUnit.start()
 
-asyncTest "work with model classes that haven't been loaded yet", ->
+asyncTest "work with model classes that haven't been loaded yet", 3, ->
   namespace = this
   class @Blog extends Batman.Model
     @encode 'id', 'name'
@@ -60,10 +60,30 @@ asyncTest "models can save while related records are loading", 1, ->
   @Product.persist productAdapter
 
   @Store.find 1, (err, store) ->
-    product = store.get 'product'
+    product  = store.get 'product'
     product._batman.state = 'loading'
     store.save (err, savedStore) ->
-      ok !err
+      ok !err 
+      QUnit.start()
+
+asyncTest "inline saving and loading can be disabled", 1, ->
+  namespace = this
+  class @Store extends Batman.Model
+    @hasMany 'products', 
+      modelNamespace: namespace
+      saveInline: false
+  @storeAdapter = new AsyncTestStorageAdapter @Store
+  @storeAdapter.storage = "stores1": {id: 1, name: "Store One"}
+  @Store.persist @storeAdapter
+
+  class @Product extends Batman.Model
+  @productAdapter = new AsyncTestStorageAdapter @Product
+  @Product.persist @productAdapter
+
+  @Store.find 1, (err, store) =>
+    store.set 'products', new Batman.Set(new @Product)
+    store.save (err, savedStore) =>
+      equal @storeAdapter.storage.stores1["products"], undefined
       QUnit.start()
 
 QUnit.module "belongsTo Associations"

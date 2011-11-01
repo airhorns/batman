@@ -2321,7 +2321,8 @@ Batman.Association.Collection = (->
         if modelHash = @storage.get(modelName)
           modelHash.forEach (type, typeHash) ->
             typeHash.forEach (association, label) ->
-              association.encodeModelIntoObject(model, obj)
+              unless association.options["saveInline"] is false
+                association.encodeModelIntoObject(model, obj)
         @_encodingRelation = false
 
     decodeObjectIntoModel: (model, obj, data) ->
