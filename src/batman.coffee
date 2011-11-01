@@ -1789,7 +1789,7 @@ class Batman.Controller extends Batman.Object
     filters = @_batman.afterFilters ||= []
     filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
 
-  @accessor 'action',
+  @accessor 'action', # FIXME: does this even need to be private?
     get: -> @_currentAction
     set: (key, value) -> @_currentAction = value
 
@@ -1805,6 +1805,7 @@ class Batman.Controller extends Batman.Object
 
     @_actedDuringAction = no
     @set 'action', action
+    @set 'params', params
 
     if filters = @constructor._batman?.get('beforeFilters')
       for filter in filters
@@ -1821,7 +1822,6 @@ class Batman.Controller extends Batman.Object
         if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
     delete @_actedDuringAction
-    @set 'action', null
 
     Batman.navigator?.redirect = oldRedirect
 
@@ -1847,16 +1847,19 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
+      controllerName = $functionName(@constructor).replace('Controller', '')
+
       options.contexts ||= []
       options.contexts.push @
-      options.source ||= helpers.underscore($functionName(@constructor).replace('Controller', '')) + '/' + @_currentAction
-      options.view = new Batman.View(options)
+      options.source ||= helpers.underscore(controllerName) + '/' + @_currentAction
+      options.view = new (Batman.currentApp?[helpers.camelize("#{controllerName}_#{@_currentAction}_view")] || Batman.View)(options)
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
-      view.on 'ready', ->
+      view.on 'ready', =>
         Batman.DOM.replace (options.into || 'main'), view.get('node')
         Batman.currentApp?.allowAndFire 'ready'
+        view.ready?(@params)
     view
 
 # Models
@@ -2869,9 +2872,9 @@ class Batman.ViewSourceCache extends Batman.Object
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
-  constructor: (options) ->
+  constructor: ->
     @contexts = []
-    super(options)
+    super
 
     # Support both `options.context` and `options.contexts`
     if context = @get('context')
@@ -2903,12 +2906,14 @@ class Batman.View extends Batman.Object
   # Where to look for views on the server
   prefix: 'views'
 
-  @accessor 'html', ->
-    return @html if @html && @html.length > 0
-    source = @get 'source'
-    return if not source
-    path = Batman.Navigator.normalizePath(@prefix, source)
-    @html = @constructor.sourceCache.get(path)
+  @accessor 'html',
+    get: ->
+      return @html if @html && @html.length > 0
+      source = @get 'source'
+      return if not source
+      path = Batman.Navigator.normalizePath(@prefix, source)
+      @html = @constructor.sourceCache.get(path)
+    set: (_, html) -> @html = html
 
   @accessor 'node'
     get: ->
