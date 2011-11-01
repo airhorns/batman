@@ -2203,7 +2203,7 @@ class Batman.Model extends Batman.Object
       if associations = Batman.Association.Collection.getModelAssociations(@)
         {belongsTo, hasOne, hasMany} = associations
         # Save belongsTo models immediately since we don't need this model's id
-        belongsTo?.forEach (association) => association.save(@)
+        belongsTo?.forEach (association) => association.apply(@)
 
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
         unless err
@@ -2212,8 +2212,8 @@ class Batman.Model extends Batman.Object
           do @saved
           @dirtyKeys.clear()
 
-          hasOne?.forEach (association) -> association.save(err, record)
-          hasMany?.forEach (association) -> association.save(err, record)
+          hasOne?.forEach (association) -> association.apply(err, record)
+          hasMany?.forEach (association) -> association.apply(err, record)
 
           record = @constructor._mapIdentity(record)
         callback?(err, record)
@@ -2292,8 +2292,8 @@ class Batman.Association
 Batman.Association.Collection = (->
   class BatmanAssociationCollection
     constructor: ->
-      # Contains Batman.Association objects mapped by base model, type, and then label
-      # ie. @storage = {"Product": {"belongsTo": {<Association.belongsTo>: "store"}}}
+      # Contains (association, label) pairs mapped by base model and association type
+      # ie. @storage = {<Model.constructor>: {<Association.constructor>: {<Association>: <label>}}}
       @storage = new Batman.SimpleHash
 
     add: (association) ->
@@ -2359,7 +2359,7 @@ class Batman.Association.belongsTo extends Batman.Association
       return relatedModel.find relatedID, (error, loadedRecord) ->
         throw error if error
 
-  save: (base) ->
+  apply: (base) ->
     if model = base.get(@label)
       base.set "#{@label}_id", model.get('id')
 
@@ -2406,7 +2406,7 @@ class Batman.Association.hasOne extends Batman.Association
         loadedRecord.fromJSON loadedRecords[0].toJSON()
       return loadedRecord
 
-  save: (baseSaveError, base) ->
+  apply: (baseSaveError, base) ->
     if relation = base._batman.attributes?[@label]
       relation.set @foreignKey, base.get('id')
 
@@ -2454,7 +2454,7 @@ class Batman.Association.hasMany extends Batman.Association
         loadedRecords.add(record) for record in records
       loadedRecords
 
-  save: (baseSaveError, base) ->
+  apply: (baseSaveError, base) ->
     if relations = base._batman.attributes?[@label]
       relations.forEach (model) =>
         model.set @foreignKey, base.get('id')
