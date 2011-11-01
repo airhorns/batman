@@ -2317,22 +2317,23 @@ Batman.Association.Collection = (->
       unless @_encodingRelation
         # Only encode this level of associations
         @_encodingRelation = true
-        if modelHash = @storage.get(model.constructor)
-          modelHash.forEach (type, typeHash) ->
-            typeHash.forEach (association, label) ->
-              unless association.options["saveInline"] is false
-                association.encodeModelIntoObject(model, obj)
+        @forEach model, (association) ->
+          unless association.options["saveInline"] is false
+            association.encodeModelIntoObject(model, obj)
         @_encodingRelation = false
 
     decodeObjectIntoModel: (model, obj, data) ->
       unless @_decodingRelation
-        # Only decode this level of associations
         @_decodingRelation = true
-        if modelHash = @storage.get(model.constructor)
-          modelHash.forEach (type, typeHash) ->
-            typeHash.forEach (association, label) ->
-              association.decodeObjectIntoModel(model, obj, data)
+        @forEach model, (association) ->
+          association.decodeObjectIntoModel(model, obj, data)
         @_decodingRelation = false
+
+    forEach: (model, callback) ->
+      if modelHash = @storage.get(model.constructor)
+        modelHash.forEach (type, typeHash) ->
+          typeHash?.forEach (association) ->
+            callback association
 
   return new BatmanAssociationCollection
 )()
