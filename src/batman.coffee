@@ -2596,12 +2596,17 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       return null
     super
     @storage = localStorage
-    @key_re = new RegExp("^#{@modelKey}(\\d+)$")
-    @nextId = 1
-    @_forAllRecords (k, v) ->
-      if matches = @key_re.exec(k)
-        @nextId = Math.max(@nextId, parseInt(matches[1], 10) + 1)
     return
+
+  storageRegExp: (record) -> new RegExp("^#{@modelKey(record)}(\\d+)$")
+
+  idForRecord: (record) ->
+    re = @storageRegExp(record)
+    nextId = 1
+    @_forAllRecords (k, v) ->
+      if matches = re.exec(k)
+        nextId = Math.max(nextId, parseInt(matches[1], 10) + 1)
+    nextId
 
   @::before 'create', 'update', $passError ([record, options]) ->
     [JSON.stringify(record), options]
@@ -2624,7 +2629,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     if !err
       id = record.get('id')
       if id?
-        @storage.setItem(@modelKey + id, recordToSave)
+        @storage.setItem(@modelKey(record) + id, recordToSave)
       else
         err = new Error("Couldn't get record primary key.")
     callback(@_filterData('after', 'update', err, record, options)...)
@@ -2632,9 +2637,9 @@ class Batman.LocalStorage extends Batman.StorageAdapter
   create: (record, options, callback) ->
     [err, recordToSave] = @_filterData('before', 'create', undefined, record, options)
     if !err
-      id = record.get('id') || record.set('id', @nextId++)
+      id = record.get('id') || record.set('id', @idForRecord(record))
       if id?
-        key = @modelKey + id
+        key = @modelKey(record) + id
         if @storage.getItem(key)
           err = new Error("Can't create because the record already exists!")
         else
@@ -2648,7 +2653,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     id = record.get('id')
     if !err
       if id?
-        attrs = @storage.getItem(@modelKey + id)
+        attrs = @storage.getItem(@modelKey(record) + id)
         if !attrs
           err = new Error("Couldn't find record!")
       else
@@ -2660,8 +2665,9 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     records = []
     [err, options] = @_filterData('before', 'readAll', undefined, options)
     if !err
+      re = @storageRegExp(proto)
       @_forAllRecords (storageKey, data) ->
-        if keyMatches = @key_re.exec(storageKey)
+        if keyMatches = re.exec(storageKey)
           records.push {data, id: keyMatches[1]}
 
     callback(@_filterData('after', 'readAll', err, records, options)...)
@@ -2694,7 +2700,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
     if !err
       id = record.get('id')
       if id?
-        key = @modelKey + id
+        key = @modelKey(record) + id
         if @storage.getItem key
           @storage.removeItem key
         else
