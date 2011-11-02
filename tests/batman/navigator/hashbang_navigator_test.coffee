@@ -36,7 +36,7 @@ test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   deepEqual @dispatchSpy.lastCallArguments, ["/foo/bar?page=2"]
 
 
-test "handleLocation(window.location) handles the real non-hashbang path if present", ->
+test "handleLocation(window.location) handles the real non-hashbang path if present, but only if Batman.config.usePushState is true", ->
   location =
     pathname: @nav.normalizePath(Batman.config.pathPrefix, '/baz')
     search: '?q=buzz'
@@ -45,4 +45,9 @@ test "handleLocation(window.location) handles the real non-hashbang path if pres
   @nav.handleLocation(location)
   equal location.replace.callCount, 1
   deepEqual location.replace.lastCallArguments, ["#{Batman.config.pathPrefix}#!/baz?q=buzz"]
+  
+  Batman.config.usePushState = no
+  @nav.handleLocation(location)
+  equal location.replace.callCount, 1
+  
 

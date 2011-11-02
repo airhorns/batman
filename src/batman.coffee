@@ -1707,6 +1707,7 @@ class Batman.HashbangNavigator extends Batman.Navigator
     else
       '/'
   handleLocation: (location) ->
+    return super unless Batman.config.usePushState
     realPath = Batman.PushStateNavigator::pathFromLocation(location)
     if realPath is '/'
       super
