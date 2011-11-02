@@ -2425,31 +2425,22 @@ class Batman.Association.hasMany extends Batman.Association
 
   getAccessor: (self, model, label) ->
     return if @amSetting
-
-    existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
-    return existingInstance if existingInstance?
-
     return unless relatedModel = self.getRelatedModel()
-    return unless id = @get('id')
 
-    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
-    unless relatedRecords.isEmpty()
-      return relatedRecords
-    else if recordInAttributes = @_batman.attributes?[label]
+    if recordInAttributes = @_batman.attributes?[label]
       return recordInAttributes
-    else
-      loadedRecords = new Batman.Set
+
+    return unless id = @get('id')
+    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
+    if relatedRecords.isEmpty()
       @amSetting = true
-      @set label, loadedRecords
+      @set label, relatedRecords
       @amSetting = false
 
       loadOptions = {}
       loadOptions[self.foreignKey] = id
-      relatedModel.load loadOptions, (error, records) =>
-        throw error if error
-        return unless records or records.isEmpty()
-        loadedRecords.add(record) for record in records
-      loadedRecords
+      relatedModel.load loadOptions, (error, records) -> throw error if error
+    relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base._batman.attributes?[@label]

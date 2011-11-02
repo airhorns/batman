@@ -296,13 +296,24 @@ asyncTest "hasMany association can be loaded from JSON data", 12, ->
 
     QUnit.start()
 
-asyncTest "hasMany associations render", 3, ->
-  @Store.find 1, (err, store) ->
+asyncTest "hasMany associations render", 4, ->
+  @Store.find 1, (err, store) =>
     source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
     context = Batman(store: store)
-    helpers.render source, context, (node) ->
-      equal node.children().get(0).innerHTML, 'Product One'
-      equal node.children().get(1).innerHTML, 'Product Two'
-      equal node.children().get(2).innerHTML, 'Product Three'
+    helpers.render source, context, (node) =>
+      equal node.children().get(0)?.innerHTML, 'Product One'
+      equal node.children().get(1)?.innerHTML, 'Product Two'
+      equal node.children().get(2)?.innerHTML, 'Product Three'
+
+      addedProduct = new @Product(name: 'Product Four', store_id: store.get('id'))
+      addedProduct.save (err, savedProduct) =>
+        delay =>
+          equal node.children().get(3)?.innerHTML, 'Product Four'
+
+asyncTest "hasMany adds new related model instances to its set", ->
+  @Store.find 1, (err, store) =>
+    addedProduct = new @Product(name: 'Product Four', store_id: store.get('id'))
+    addedProduct.save (err, savedProduct) =>
+      ok store.get('products').has(savedProduct)
       QUnit.start()
 
