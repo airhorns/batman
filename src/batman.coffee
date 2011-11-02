@@ -2318,7 +2318,7 @@ Batman.Association.Collection = (->
         # Only encode this level of associations
         @_encodingRelation = true
         @forEach model, (association) ->
-          unless association.options["saveInline"] is false
+          if association.options["saveInline"] is true
             association.encodeModelIntoObject(model, obj)
         @_encodingRelation = false
 
@@ -2374,7 +2374,7 @@ class Batman.Association.hasOne extends Batman.Association
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
-    @foreignKey = "#{@propertyName}_id"
+    @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
   getAccessor: (self, model, label) ->
     return if @amSetting
@@ -2423,7 +2423,7 @@ class Batman.Association.hasMany extends Batman.Association
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
-    @foreignKey = "#{@propertyName}_id"
+    @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
   getAccessor: (self, model, label) ->
     return if @amSetting
