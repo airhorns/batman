@@ -12,16 +12,17 @@
 url = require 'url'
 querystring = require 'querystring'
 
-{Batman} = require './batman'
+Batman = require './batman'
 
-Batman.Request::getModule = (protocol) ->
-  requestModule = switch protocol
-    when 'http:', 'https:'
-      require protocol.slice(0,-1)
-    else
-      throw "Unrecognized request protocol #{protocol}"
+Batman.mixin Batman.Request::,
+  getModule: (protocol) ->
+    requestModule = switch protocol
+      when 'http:', 'https:'
+        require protocol.slice(0,-1)
+      else
+        throw "Unrecognized request protocol #{protocol}"
 
-Batman.Request::send = (data) ->
+  send: (data) ->
     @fire 'loading'
     requestURL = url.parse(@get 'url', true)
     protocol = requestURL.protocol
@@ -73,15 +74,6 @@ Batman.Request::send = (data) ->
           @fire 'error', request
         @fire 'loaded'
 
-    # Set auth if its given
-    auth = if @get 'username'
-      "#{@get 'username'}:#{@get 'password'}"
-    else if requestURL.auth
-      requestURL.auth
-
-    if auth
-      request.setHeader("Authorization", new Buffer(auth).toString('base64'))
-
     if @get 'method' is 'POST'
       request.write JSON.stringify(@get 'data')
     request.end()
@@ -93,4 +85,4 @@ Batman.Request::send = (data) ->
 
     request
 
-exports.Batman = Batman
+module.exports = Batman
