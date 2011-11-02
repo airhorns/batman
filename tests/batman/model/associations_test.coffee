@@ -60,7 +60,7 @@ asyncTest "models can save while related records are loading", 1, ->
       ok !err 
       QUnit.start()
 
-asyncTest "inline saving and loading can be disabled", 1, ->
+asyncTest "inline saving can be disabled", 1, ->
   namespace = this
   class @Store extends Batman.Model
     @hasMany 'products', 
@@ -77,6 +77,39 @@ asyncTest "inline saving and loading can be disabled", 1, ->
     store.save (err, savedStore) =>
       equal @storeAdapter.storage.stores1["products"], undefined
       QUnit.start()
+
+asyncTest "associations are inherited by extended models", ->
+  namespace = this
+  class @Store extends Batman.Model
+    @hasMany 'products', namespace: namespace
+
+  class @Product extends Batman.Model
+    @encode 'name'
+    @belongsTo 'store'
+  @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
+    "products1":
+      id: 1
+      name: "Product One"
+      store_id: 1
+    "products2":
+      id: 2
+      name: "Product Two"
+      store_id: 1
+
+  class @ShopifyStore extends @Store
+  @shopifyStoreAdapter = createStorageAdapter @ShopifyStore, AsyncTestStorageAdapter,
+    "shopify_stores1":
+      id: 1
+      name: "Store One"
+
+  @ShopifyStore.find 1, (err, store) =>
+    products = store.get('products')
+    ok products instanceof Batman.Set
+    equal products.length, 2
+    arr = products.toArray()
+    equal arr[0].get('name'), "Product One"
+    equal arr[1].get('name'), "Product Two"
+    QUnit.start()
 
 QUnit.module "belongsTo Associations"
   setup: ->
@@ -306,8 +339,8 @@ asyncTest "hasMany associations render", 4, ->
       equal node.children().get(2)?.innerHTML, 'Product Three'
 
       addedProduct = new @Product(name: 'Product Four', store_id: store.get('id'))
-      addedProduct.save (err, savedProduct) =>
-        delay =>
+      addedProduct.save (err, savedProduct) ->
+        delay ->
           equal node.children().get(3)?.innerHTML, 'Product Four'
 
 asyncTest "hasMany adds new related model instances to its set", ->

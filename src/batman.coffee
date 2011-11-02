@@ -2330,9 +2330,11 @@ Batman.Association.Collection = (->
         @_decodingRelation = false
 
     forEach: (model, callback) ->
-      if modelHash = @storage.get(model.constructor)
-        modelHash.forEach (type, typeHash) ->
-          typeHash?.forEach (association) ->
+      @storage.forEach (modelClass, associationClassHash) ->
+        # Consider associations for any parent models
+        return unless model instanceof modelClass
+        associationClassHash.forEach (associationClass, associationHash) ->
+          associationHash?.forEach (association) ->
             callback association
 
   return new BatmanAssociationCollection
