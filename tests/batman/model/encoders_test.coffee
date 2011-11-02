@@ -4,6 +4,8 @@ QUnit.module "Batman.Model: encoding/decoding to/from JSON"
       @encode 'name', 'cost'
       @accessor 'excitingName'
         get: -> @get('name').toUpperCase()
+    class @FlakyProduct extends @Product
+      @encode 'broken?'
 
 test "keys marked for encoding should be encoded", ->
   p = new @Product {name: "Cool Snowboard", cost: 12.99}
@@ -60,6 +62,17 @@ test "models without any decoders should decode all keys", ->
   equal p.get('cost'), 12.99
   equal p.get('rails_is_silly'), 'yup'
   Batman.Model::_batman.decoders = oldDecoders
+
+test "key ending with ? marked for encoding should be encoded", ->
+  p = new @FlakyProduct {name: "Vintage Snowboard", cost: 122.99, "broken?": true}
+  deepEqual p.toJSON(), {name: "Vintage Snowboard", cost: 122.99, "broken?": true}
+
+test "key ending with ? marked for decoding should be decoded", ->
+  p = new @FlakyProduct
+  json = {name: "Vintage Snowboard", cost: 122.99, "broken?": true}
+
+  p.fromJSON(json)
+  ok p.get('broken?'), "Cool Snowboard"
 
 QUnit.module "Batman.Model: encoding: custom encoders/decoders"
   setup: ->

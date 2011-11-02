@@ -26,6 +26,13 @@ asyncTest 'it should bind undefined values as empty strings', 1, ->
     equals node.html(), ""
     QUnit.start()
 
+asyncTest 'it should allow ! and ? at the end of the key', 1, ->
+  helpers.render '<div data-bind="foo?"></div>',
+    'foo?': 'bar'
+  , (node) =>
+    equals node.html(), "bar"
+    QUnit.start()
+
 asyncTest 'it should ignore empty bindings', 1, ->
   helpers.render '<div data-bind=""></div>', Batman(), (node) =>
     equals node.html(), ""
