@@ -2143,7 +2143,6 @@ class Batman.Model extends Batman.Object
       # If we do have decoders, use them to get the data.
       decoders.forEach (key, decoder) ->
         obj[key] = decoder(data[key]) if data[key]
-
     developer.do ->
       if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
         developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
@@ -2543,8 +2542,12 @@ $mixin Batman.translate.messages,
 
 class Batman.StorageAdapter extends Batman.Object
   constructor: (model) ->
-    super(model: model, modelKey: model.get('storageKey') || helpers.pluralize(helpers.underscore($functionName(model))))
+    super(model: model)
+
   isStorageAdapter: true
+  modelKey: (record) ->
+    model = record?.constructor || @model
+    model.get('storageKey') || helpers.pluralize(helpers.underscore($functionName(model)))
 
   @::_batman.check(@::)
 
@@ -2651,7 +2654,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
     callback(@_filterData('after', 'read', err, record, attrs, options)...)
 
-  readAll: (_, options, callback) ->
+  readAll: (proto, options, callback) ->
     records = []
     [err, options] = @_filterData('before', 'readAll', undefined, options)
     if !err
@@ -2710,22 +2713,35 @@ class Batman.RestStorage extends Batman.StorageAdapter
   constructor: ->
     super
     @defaultOptions = $mixin {}, @defaultOptions
-    @recordJsonNamespace = helpers.singularize(@modelKey)
-    @collectionJsonNamespace = helpers.pluralize(@modelKey)
+
+  recordJsonNamespace: (record) ->
+    helpers.singularize(@modelKey(record))
+  collectionJsonNamespace: (proto) ->
+    helpers.pluralize(@modelKey(proto))
 
   @::before 'create', 'update', $passError ([record, options]) ->
     json = record.toJSON()
-    record = if @recordJsonNamespace
+    record = if namespace = @recordJsonNamespace(record)
       x = {}
-      x[@recordJsonNamespace] = json
+      x[namespace] = json
       x
     else
       json
     record = JSON.stringify(record) unless @serializeAsForm
     [record, options]
 
+  @::after 'create', 'read', 'readAll', 'update', 'destroy', ([error, record, data, options]) ->
+    if !error
+      if typeof data is 'string'
+        try
+          data = JSON.parse(data)
+        catch e
+          error = e
+    [error, record, data, options]
+
   @::after 'create', 'read', 'update', $passError ([record, data, options]) ->
-    data = data[@recordJsonNamespace] if data[@recordJsonNamespace]
+    namespace = @recordJsonNamespace(record)
+    data = data[namespace] if namespace && data[namespace]?
     [record, data, options]
 
   @::after 'create', 'read', 'update', $passError ([record, data, options]) ->
@@ -2736,7 +2752,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
     if record.url
       url = record.url?(record) || record.url
     else
-      url = @model.url?() || @model.url || "/#{@modelKey}"
+      url = record.constructor.url?() || record.constructor.url || "/#{@modelKey(record)}"
       if idRequired || !record.isNew()
         id = record.get('id')
         if !id?
@@ -2749,8 +2765,8 @@ class Batman.RestStorage extends Batman.StorageAdapter
     else
       callback.call @, undefined, $mixin({}, @defaultOptions, {url})
 
-  optionsForCollection: (recordsOptions, callback) ->
-    url = @model.url?() || @model.url || "/#{@modelKey}"
+  optionsForCollection: (model, recordsOptions, callback) ->
+    url = model.url?() || model.url || "/#{@modelKey(new model)}"
     unless url
       callback.call @, new Error("Couldn't get collection url!")
     else
@@ -2795,8 +2811,8 @@ class Batman.RestStorage extends Batman.StorageAdapter
         success: (data) => callback(@_filterData('after', 'read', undefined, record, data, recordOptions)...)
         error:  (error) => callback(@_filterData('after', 'read', error, record, error.request.get('response'), recordOptions)...)
 
-  readAll: (_, recordsOptions, callback) ->
-    @optionsForCollection recordsOptions, (err, options) ->
+  readAll: (proto, recordsOptions, callback) ->
+    @optionsForCollection proto.constructor, recordsOptions, (err, options) ->
       [err, recordsOptions] = @_filterData('before', 'readAll', err, recordsOptions)
       if err
         callback(err)
@@ -2808,15 +2824,16 @@ class Batman.RestStorage extends Batman.StorageAdapter
       new Batman.Request $mixin options,
         data: recordsOptions
         method: 'GET'
-        success: (data) => callback(@_filterData('after', 'readAll', undefined, data, recordsOptions)...)
-        error:  (error) => callback(@_filterData('after', 'readAll', error, error.request.get('response'), recordsOptions)...)
+        success: (data) => callback(@_filterData('after', 'readAll', undefined, data, proto, recordsOptions)...)
+        error:  (error) => callback(@_filterData('after', 'readAll', error, error.request.get('response'), proto, recordsOptions)...)
 
-  @::after 'readAll', $passError ([data, options]) ->
-    recordData = if data[@collectionJsonNamespace] then data[@collectionJsonNamespace] else data
-    [recordData, data, options]
+  @::after 'readAll', $passError ([data, proto, options]) ->
+    namespace = @collectionJsonNamespace(proto)
+    recordData = if namespace && data[namespace]? then data[namespace] else data
+    [recordData, data, proto, options]
 
-  @::after 'readAll', $passError ([recordData, serverData, options]) ->
-    [@getRecordFromData(attributes) for attributes in recordData, serverData, options]
+  @::after 'readAll', $passError ([recordData, serverData, proto, options]) ->
+    [@getRecordFromData(attributes) for attributes in recordData, serverData, proto, options]
 
   destroy: (record, recordOptions, callback) ->
     @optionsForRecord record, true, (err, options) ->
