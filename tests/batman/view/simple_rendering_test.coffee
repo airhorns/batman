@@ -688,3 +688,18 @@ asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs
     delay =>
       equal node.style.color, 'green'
       equal node.style['backgroundColor'], 'green'
+
+asyncTest 'data-bind-style should bind dash-separated CSS keys to camelized ones', 4, ->
+  source = '<input type="text" data-bind-style="string"></input>'
+  context = Batman
+    string: 'background-color:blue; color:green;'
+
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.style['backgroundColor'], 'blue'
+    equal node.style['color'], 'green'
+
+    context.set 'string', 'color: green'
+    delay =>
+      equal node.style['backgroundColor'], ''
+      equal node.style['color'], 'green'
