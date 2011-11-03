@@ -3942,7 +3942,6 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
   bindSingleAttribute: (attr, keyPath) -> new @constructor.SingleStyleBinding(@node, attr, keyPath, @renderContext, @renderer, @only, @)
 
   setStyle: (key, value) =>
-    debugger
     return unless key
     key = helpers.camelize(key.trim(), true)
     @oldStyles[key] = @node.style[key]
