@@ -711,5 +711,5 @@ asyncTest 'data-bind-style should correctly work for style with absolute URL', 1
 
   helpers.render source, context, (node) ->
     node = node[0]
-    equal node.style['backgroundImage'], 'url("http://batmanjs.org/images/logo.png")'
+    equal node.style.backgroundImage.replace(/"/g,""), 'url(http://batmanjs.org/images/logo.png)'
     QUnit.start()
