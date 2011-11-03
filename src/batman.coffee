@@ -3917,8 +3917,9 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
       @reapplyOldStyles()
       for style in value.split(';')
         # handle a case when css value contains colons itself (absolute URI)
-        [cssName, cssValue] = style.split(/:(.+)/)
-        @setStyle cssName, cssValue
+        # split and rejoin because IE7/8 don't splice values of capturing regexes into split's return array
+        [cssName, colonSplitCSSValues...] = style.split(":")
+        @setStyle cssName, colonSplitCSSValues.join(":")
       return
 
     if value instanceof Batman.Hash
