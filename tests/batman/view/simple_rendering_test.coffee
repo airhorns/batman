@@ -703,3 +703,13 @@ asyncTest 'data-bind-style should bind dash-separated CSS keys to camelized ones
     delay =>
       equal node.style['backgroundColor'], ''
       equal node.style['color'], 'green'
+
+asyncTest 'data-bind-style should correctly work for style with absolute URL', 1, ->
+  source = '<input type="text" data-bind-style="string"></input>'
+  context = Batman
+    string: 'background-image: url("http://batmanjs.org/images/logo.png");'
+
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal node.style['backgroundImage'], 'url("http://batmanjs.org/images/logo.png")'
+    QUnit.start()

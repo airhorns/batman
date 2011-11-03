@@ -3903,7 +3903,8 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
     if typeof value is 'string'
       @reapplyOldStyles()
       for style in value.split(';')
-        [cssName, cssValue] = style.split(':')
+        # handle a case when css value contains colons itself (absolute URI)
+        [cssName, cssValue] = style.split(/:(.+)/)
         @setStyle cssName, cssValue
       return
 
