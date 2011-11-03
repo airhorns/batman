@@ -2317,9 +2317,7 @@ Batman.Association.Collection = (->
       unless @_encodingRelation
         # Only encode this level of associations
         @_encodingRelation = true
-        @forEach model, (association) ->
-          if association.options["saveInline"] is true
-            association.encodeModelIntoObject(model, obj)
+        @forEach model, (association) -> association.encodeModelIntoObject(model, obj)
         @_encodingRelation = false
 
     decodeObjectIntoModel: (model, obj, data) ->
@@ -2367,6 +2365,7 @@ class Batman.Association.belongsTo extends Batman.Association
       base.set "#{@label}_id", model.get('id')
 
   encodeModelIntoObject: (model, obj) ->
+    return unless @options["saveInline"] is true
     if relation = model.get(@label)
       obj[@label] = relation.toJSON()
 
@@ -2414,6 +2413,7 @@ class Batman.Association.hasOne extends Batman.Association
       relation.set @foreignKey, base.get('id')
 
   encodeModelIntoObject: (model, obj) ->
+    return if @options["saveInline"] is false
     if relation = model.get(@label)
       relationJSON = relation.toJSON()
       relationJSON[@foreignKey] = model.get('id')
@@ -2450,6 +2450,7 @@ class Batman.Association.hasMany extends Batman.Association
         model.set @foreignKey, base.get('id')
 
   encodeModelIntoObject: (model, obj) ->
+    return if @options["saveInline"] is false
     if relationSet = model.get(@label)
       jsonArray = []
       relationSet.forEach (relation) =>

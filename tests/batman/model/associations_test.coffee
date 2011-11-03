@@ -216,7 +216,7 @@ asyncTest "hasOne associations are loaded via JSON", 3, ->
     equal product.get('name'), "JSON Product"
     QUnit.start()
 
-asyncTest "hasOne associations are saved", 4, ->
+asyncTest "hasOne associations are saved", 5, ->
   store = new @Store name: 'Zellers'
   product = new @Product name: 'Gizmo'
   store.set 'product', product
@@ -228,6 +228,8 @@ asyncTest "hasOne associations are saved", 4, ->
 
     storedJSON = @storeAdapter.storage["stores#{record.id}"]
     deepEqual storedJSON, store.toJSON()
+    # hasOne saves inline save by default
+    deepEqual storedJSON.product, {name: "Gizmo", store_id: record.id}
 
     @Store.find record.get('id'), (err, store2) =>
       deepEqual store2.toJSON(), storedJSON
@@ -240,23 +242,6 @@ asyncTest "hasOne associations render", 1, ->
     helpers.render source, context, (node) ->
       equal node[0].innerHTML, 'Product One'
       QUnit.start()
-
-asyncTest "hasOne supports inline saving", 1, ->
-  namespace = this
-  class @InlineStore extends Batman.Model
-    @encode 'name'
-    @hasOne 'product', namespace: namespace, saveInline: true
-  storageAdapter = createStorageAdapter @InlineStore, AsyncTestStorageAdapter
-
-  store = new @InlineStore name: "Inline Store"
-  product = new @Product name: "Inline Product"
-  store.set 'product', product
-
-  store.save (err, record) =>
-    deepEqual storageAdapter.storage["inline_stores#{record.get('id')}"],
-      name: "Inline Store"
-      product: {name: "Inline Product", inline_store_id: record.get("id")}
-    QUnit.start()
 
 QUnit.module "hasMany Associations"
   setup: ->
@@ -301,7 +286,7 @@ asyncTest "hasMany associations are loaded", 6, ->
       equal trackedIds[2], yes
       equal trackedIds[3], yes
 
-asyncTest "hasMany associations are saved via the parent model", 4, ->
+asyncTest "hasMany associations are saved via the parent model", 5, ->
   store = new @Store name: 'Zellers'
   product1 = new @Product name: 'Gizmo'
   product2 = new @Product name: 'Gadget'
@@ -313,9 +298,14 @@ asyncTest "hasMany associations are saved via the parent model", 4, ->
     equal product1.get('store_id'), record.id
     equal product2.get('store_id'), record.id
 
-    @Store.find record.get('id'), (err, store2) =>
+    @Store.find record.id, (err, store2) =>
       storedJSON = @storeAdapter.storage["stores#{record.id}"]
       deepEqual store2.toJSON(), storedJSON
+      # hasMany saves inline by default
+      deepEqual storedJSON.products, [
+        {name: "Gizmo", store_id: record.id}
+        {name: "Gadget", store_id: record.id}
+      ]
       QUnit.start()
 
 asyncTest "hasMany associations are saved via the child model", 2, ->
@@ -359,36 +349,15 @@ asyncTest "hasMany associations render", 4, ->
       equal node.children().get(1)?.innerHTML, 'Product Two'
       equal node.children().get(2)?.innerHTML, 'Product Three'
 
-      addedProduct = new @Product(name: 'Product Four', store_id: store.get('id'))
+      addedProduct = new @Product(name: 'Product Four', store_id: store.id)
       addedProduct.save (err, savedProduct) ->
         delay ->
           equal node.children().get(3)?.innerHTML, 'Product Four'
 
 asyncTest "hasMany adds new related model instances to its set", ->
   @Store.find 1, (err, store) =>
-    addedProduct = new @Product(name: 'Product Four', store_id: store.get('id'))
+    addedProduct = new @Product(name: 'Product Four', store_id: store.id)
     addedProduct.save (err, savedProduct) =>
       ok store.get('products').has(savedProduct)
       QUnit.start()
-
-asyncTest "hasMany supports inline saving", 1, ->
-  namespace = this
-  class @InlineStore extends Batman.Model
-    @encode 'name'
-    @hasMany 'products', namespace: namespace, saveInline: true
-  storageAdapter = createStorageAdapter @InlineStore, AsyncTestStorageAdapter
-
-  store = new @InlineStore name: "Inline Store"
-  p1 = new @Product name: "Inline Product One"
-  p2 = new @Product name: "Inline Product Two"
-  store.set 'products', new Batman.Set(p1, p2)
-
-  store.save (err, record) =>
-    deepEqual storageAdapter.storage["inline_stores#{record.get('id')}"],
-      name: "Inline Store"
-      products: [
-        {name: "Inline Product One", inline_store_id: record.get("id")}
-        {name: "Inline Product Two", inline_store_id: record.get("id")}
-      ]
-    QUnit.start()
 

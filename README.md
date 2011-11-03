@@ -424,7 +424,7 @@ The following options are available:
 
 *  _namespace_: Tells Batman to look for the associated model under the provided namespace. (Defaults to `Batman.currentApp`.)
 *  _name_: Tells Batman to use the given model name instead. (Defaults to an interpretation of the association's label.)
-*  _saveInline_: Tells Batman whether to encode associations as inline JSON when the base model is saved. (Defaults to `false`.)
+*  _saveInline_: Tells Batman whether to encode associations as inline JSON when the base model is saved. (Defaults to `false` for `belongsTo`, and `true` for `hasOne` and `hasMany`.)
 
 Associations can be loaded via foreign keys or inline JSON:
 
