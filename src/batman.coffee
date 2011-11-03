@@ -1615,6 +1615,7 @@ class Batman.Dispatcher extends Batman.Object
 
     @app.set 'currentURL', url
     @app.set 'currentRoute', route
+    @app.set 'currentParams', params
     url
 
 class Batman.Navigator
