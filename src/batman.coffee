@@ -539,7 +539,7 @@ class Batman.Property
     handler.call(@base, @value, @value)
   observe: (handler) ->
     @changeEvent().addHandler(handler)
-    @getValue()
+    @getValue() unless @sources?
     this
 
   removeSourceHandlers: ->
