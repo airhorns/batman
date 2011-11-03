@@ -8,7 +8,7 @@ asyncTest "support custom model namespaces and class names", 2, ->
   class namespace.Walmart extends Batman.Model
 
   class Product extends Batman.Model
-    @belongsTo 'store', 
+    @belongsTo 'store',
       namespace: namespace
       name: 'Walmart'
   productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
@@ -57,13 +57,13 @@ asyncTest "models can save while related records are loading", 1, ->
     product  = store.get 'product'
     product._batman.state = 'loading'
     store.save (err, savedStore) ->
-      ok !err 
+      ok !err
       QUnit.start()
 
 asyncTest "inline saving can be disabled", 1, ->
   namespace = this
   class @Store extends Batman.Model
-    @hasMany 'products', 
+    @hasMany 'products',
       namespace: namespace
       saveInline: false
   @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
@@ -158,7 +158,7 @@ asyncTest "belongsTo associations are saved", 5, ->
     equal storedJSON.store_id, undefined
 
     @Product.find record.get('id'), (err, product2) ->
-      deepEqual product2.toJSON(), storedJSON 
+      deepEqual product2.toJSON(), storedJSON
       QUnit.start()
 
 asyncTest "belongsTo associations render", 1, ->
