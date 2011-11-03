@@ -23,9 +23,17 @@ unless IN_NODE #jsdom doesn't like window.location.replace
     window.location.hash = '#!/two'
     @nav.replaceState(null, '', '/three')
     equal window.location.hash, "#!/three"
+    
     window.history.back()
-    delay 500, -> # window.history.back() takes forever...
-      equal window.location.hash, "#!/one"
+    
+    # window.history.back() is incredibly unpredictable with how much time it takes:
+    count = 0
+    assertHash = ->
+      if window.location.hash is "#!/one" or count++ > 500
+        equal window.location.hash, "#!/one"
+        clearInterval interval
+        QUnit.start()
+    interval = setInterval assertHash, 20
     
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @nav.handleLocation
