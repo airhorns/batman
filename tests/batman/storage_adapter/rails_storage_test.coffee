@@ -25,6 +25,7 @@ QUnit.module "Batman.RailsStorage"
     Batman.Request = oldRequest
     MockRequest.getExpectedForUrl = oldExpectedForUrl
 
+restStorageTestSuite.testOptionsGeneration('.json')
 restStorageTestSuite()
 
 asyncTest 'creating in storage: should callback with the record with errors on it if server side validation fails', ->

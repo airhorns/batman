@@ -106,6 +106,57 @@ restStorageTestSuite = ->
 
   sharedStorageTestSuite(restStorageTestSuite.sharedSuiteHooks)
 
+restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
+  asyncTest 'string record urls should be gotten in the options', 1, ->
+    product = new @Product
+    product.url = '/some/url'
+    @adapter.optionsForRecord product, {}, (err, options) ->
+      throw err if err
+      equal options.url, "/some/url#{urlSuffix}"
+      QUnit.start()
+
+  asyncTest 'function record urls should be executed in the options', 1, ->
+    product = new @Product
+    product.url = -> '/some/url'
+    @adapter.optionsForRecord product, {}, (err, options) ->
+      throw err if err
+      equal options.url, "/some/url#{urlSuffix}"
+      QUnit.start()
+
+  asyncTest 'function record urls should be given the options for the storage operation', 1, ->
+    product = new @Product
+    opts = {foo: true}
+    product.url = (passedOpts) ->
+      equal passedOpts, opts
+      '/some/url'
+
+    @adapter.optionsForRecord product, opts, (err, options) ->
+      throw err if err
+      QUnit.start()
+
+  asyncTest 'string model urls should be gotten in the options', 1, ->
+    @Product.url = '/some/url'
+    @adapter.optionsForCollection @Product, {}, (err, options) ->
+      throw err if err
+      equal options.url, "/some/url#{urlSuffix}"
+      QUnit.start()
+
+  asyncTest 'function model urls should be executed in the options', 1, ->
+    @Product.url = -> '/some/url'
+    @adapter.optionsForCollection @Product, {}, (err, options) ->
+      throw err if err
+      equal options.url, "/some/url#{urlSuffix}"
+      QUnit.start()
+
+  asyncTest 'function model urls should be given the options for the storage operation', 1, ->
+    opts = {foo: true}
+    @Product.url = (passedOpts) ->
+      equal passedOpts, opts
+      '/some/url'
+    @adapter.optionsForCollection @Product, opts, (err, options) ->
+      throw err if err
+      QUnit.start()
+
 restStorageTestSuite.sharedSuiteHooks =
   'creating in storage: should succeed if the record doesn\'t already exist': ->
     MockRequest.expect

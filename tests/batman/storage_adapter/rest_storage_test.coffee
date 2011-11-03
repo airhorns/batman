@@ -17,4 +17,5 @@ QUnit.module "Batman.RestStorage"
   teardown: ->
     Batman.Request = oldRequest
 
+restStorageTestSuite.testOptionsGeneration()
 restStorageTestSuite()

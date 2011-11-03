@@ -2758,12 +2758,19 @@ class Batman.RestStorage extends Batman.StorageAdapter
     record.fromJSON(data)
     [record, data, options]
 
-  optionsForRecord: (record, idRequired, callback) ->
+  optionsForRecord: (record, recordOptions, callback) ->
     if record.url
-      url = record.url?(record) || record.url
+      url = if typeof record.url is 'function' then record.url(recordOptions) else record.url
     else
-      url = record.constructor.url?() || record.constructor.url || "/#{@modelKey(record)}"
-      if idRequired || !record.isNew()
+      url = if record.constructor.url
+        if typeof record.constructor.url is 'function'
+          record.constructor.url(recordOptions)
+        else
+          record.constructor.url
+      else
+        "/#{@modelKey(record)}"
+
+      if recordOptions.idRequired
         id = record.get('id')
         if !id?
           callback.call(@, new Error("Couldn't get record primary key!"))
@@ -2776,14 +2783,18 @@ class Batman.RestStorage extends Batman.StorageAdapter
       callback.call @, undefined, $mixin({}, @defaultOptions, {url})
 
   optionsForCollection: (model, recordsOptions, callback) ->
-    url = model.url?() || model.url || "/#{@modelKey(new model)}"
+    if model.url
+      url = if typeof model.url is 'function' then model.url(recordsOptions) else model.url
+    else
+      url = "/#{@modelKey(model::)}"
+
     unless url
       callback.call @, new Error("Couldn't get collection url!")
     else
       callback.call @, undefined, $mixin {}, @defaultOptions, {url, data: $mixin({}, @defaultOptions.data, recordsOptions)}
 
   create: (record, recordOptions, callback) ->
-    @optionsForRecord record, false, (err, options) ->
+    @optionsForRecord record, {idRequired: false}, (err, options) ->
       [err, data] = @_filterData('before', 'create', err, record, recordOptions)
       if err
         callback(err)
@@ -2796,7 +2807,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         error:  (error) => callback(@_filterData('after', 'create', error, record, error.request.get('response'), recordOptions)...)
 
   update: (record, recordOptions, callback) ->
-    @optionsForRecord record, true, (err, options) ->
+    @optionsForRecord record, {idRequired: true}, (err, options) ->
       [err, data] = @_filterData('before', 'update', err, record, recordOptions)
       if err
         callback(err)
@@ -2809,7 +2820,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
         error:  (error) => callback(@_filterData('after', 'update', error, record, error.request.get('response'), recordOptions)...)
 
   read: (record, recordOptions, callback) ->
-    @optionsForRecord record, true, (err, options) ->
+    @optionsForRecord record, {idRequired: true}, (err, options) ->
       [err, record, recordOptions] = @_filterData('before', 'read', err, record, recordOptions)
       if err
         callback(err)
@@ -2846,7 +2857,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
     [@getRecordFromData(attributes) for attributes in recordData, serverData, proto, options]
 
   destroy: (record, recordOptions, callback) ->
-    @optionsForRecord record, true, (err, options) ->
+    @optionsForRecord record, {idRequired: true}, (err, options) ->
       [err, record, recordOptions] = @_filterData('before', 'destroy', err, record, recordOptions)
       if err
         callback(err)
