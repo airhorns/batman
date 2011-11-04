@@ -1,14 +1,14 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../view/view_helper'
 
-QUnit.module "Associations"
+QUnit.module "Batman.Model Associations"
 
 asyncTest "support custom model namespaces and class names", 2, ->
   namespace = this
   class namespace.Walmart extends Batman.Model
 
   class Product extends Batman.Model
-    @belongsTo 'store', 
+    @belongsTo 'store',
       namespace: namespace
       name: 'Walmart'
   productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
@@ -57,13 +57,13 @@ asyncTest "models can save while related records are loading", 1, ->
     product  = store.get 'product'
     product._batman.state = 'loading'
     store.save (err, savedStore) ->
-      ok !err 
+      ok !err
       QUnit.start()
 
 asyncTest "inline saving can be disabled", 1, ->
   namespace = this
   class @Store extends Batman.Model
-    @hasMany 'products', 
+    @hasMany 'products',
       namespace: namespace
       saveInline: false
   @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
@@ -111,7 +111,7 @@ asyncTest "associations are inherited by extended models", ->
     equal arr[1].get('name'), "Product Two"
     QUnit.start()
 
-QUnit.module "belongsTo Associations"
+QUnit.module "Batman.Model belongsTo Associations"
   setup: ->
     namespace = this
     class @Store extends Batman.Model
@@ -158,7 +158,7 @@ asyncTest "belongsTo associations are saved", 5, ->
     equal storedJSON.store_id, undefined
 
     @Product.find record.get('id'), (err, product2) ->
-      deepEqual product2.toJSON(), storedJSON 
+      deepEqual product2.toJSON(), storedJSON
       QUnit.start()
 
 asyncTest "belongsTo associations render", 1, ->
@@ -186,7 +186,7 @@ asyncTest "belongsTo supports inline saving", 1, ->
       store: {name: "Inline Store"}
     QUnit.start()
 
-QUnit.module "hasOne Associations"
+QUnit.module "Batman.Model hasOne Associations"
   setup: ->
     namespace = this
     class @Store extends Batman.Model
@@ -243,7 +243,7 @@ asyncTest "hasOne associations render", 1, ->
       equal node[0].innerHTML, 'Product One'
       QUnit.start()
 
-QUnit.module "hasMany Associations"
+QUnit.module "Batman.Model hasMany Associations"
   setup: ->
     namespace = this
 
@@ -360,4 +360,3 @@ asyncTest "hasMany adds new related model instances to its set", ->
     addedProduct.save (err, savedProduct) =>
       ok store.get('products').has(savedProduct)
       QUnit.start()
-
