@@ -4125,7 +4125,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
       if @initialSiblingNode && @initialSiblingNode.parentNode
         @initialSiblingNode
       else
-        undefined
+        null # IE doesn't like undefined being passed to insertBefore
 
   _nodeForItem: (item) ->
     newNode = @prototypeNode.cloneNode(true)
