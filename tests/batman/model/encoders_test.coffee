@@ -91,6 +91,30 @@ test "custom encoders with an encode and a decode implementation should be recog
   p.fromJSON({date: "clobbered"})
   equal p.get('date'), "yyy"
 
+test "custom encoders should receive the value to be encoded, the key it's from, the JSON being built, and the source object", 4, ->
+  @Product.encode 'date',
+    encode: (val, key, object, record) ->
+      equal val, "some date"
+      equal key, "date"
+      deepEqual object, {}
+      equal record, p
+      return 'foo bar'
+
+  p = new @Product(date: "some date")
+  p.toJSON()
+
+test "custom decoders should receive the value to decode, the key in the data it's from, the JSON being decoded, the object about to be mixed in, and the record", 5, ->
+  @Product.encode 'date',
+    decode: (val, key, json, object, record) ->
+      equal val, "some date"
+      equal key, 'date'
+      deepEqual json, {date: "some date"}
+      deepEqual object, {}
+      equal record, p
+
+  p = new @Product()
+  p.fromJSON(date: "some date")
+
 test "passing a function should shortcut to passing an encoder", ->
   p = new @Product(name: "snowboard")
   deepEqual p.toJSON(), {name: "SNOWBOARD"}

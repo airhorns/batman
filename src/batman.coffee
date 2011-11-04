@@ -2120,7 +2120,7 @@ class Batman.Model extends Batman.Object
       encoders.forEach (key, encoder) =>
         val = @get key
         if typeof val isnt 'undefined'
-          encodedVal = encoder(val)
+          encodedVal = encoder(val, key, obj, @)
           if typeof encodedVal isnt 'undefined'
             obj[key] = encodedVal
     obj
@@ -2141,8 +2141,8 @@ class Batman.Model extends Batman.Object
         obj[key] = value
     else
       # If we do have decoders, use them to get the data.
-      decoders.forEach (key, decoder) ->
-        obj[key] = decoder(data[key]) if data[key]
+      decoders.forEach (key, decoder) =>
+        obj[key] = decoder(data[key], key, data, obj, @) if data[key]
     developer.do ->
       if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
         developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
@@ -2275,6 +2275,8 @@ class Batman.Association
       set: Batman.Model.defaultAccessor.set
       unset: Batman.Model.defaultAccessor.unset
 
+    model.encode label, @encoder()
+
   getRelatedModel: ->
     scope = @options['namespace'] or Batman.currentApp
     modelName = @options['name'] or helpers.camelize(helpers.singularize(@label))
@@ -2287,7 +2289,8 @@ class Batman.Association
         obj[@label] = relatedModel._mapIdentity(record)
 
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
-  encodeModelIntoObject: -> developer.error "You must override encodeModelIntoObject in Batman.Associatio subclasses."
+  encodeModelIntoObject: -> developer.error "You must override encodeModelIntoObject in Batman.Association subclasses."
+  encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
 
 Batman.Association.Collection = (->
   class BatmanAssociationCollection
@@ -2360,6 +2363,18 @@ class Batman.Association.belongsTo extends Batman.Association
       return relatedModel.find relatedID, (error, loadedRecord) ->
         throw error if error
 
+  encoder: ->
+    association = @
+    return {
+      encode: (val) ->
+        return unless association.options.saveInline
+        val.toJSON()
+      decode: (data) ->
+        record = new (association.getRelatedModel())()
+        record.fromJSON(data)
+        record
+    }
+
   apply: (base) ->
     if model = base.get(@label)
       base.set "#{@label}_id", model.get('id')
@@ -2411,6 +2426,19 @@ class Batman.Association.hasOne extends Batman.Association
   apply: (baseSaveError, base) ->
     if relation = base._batman.attributes?[@label]
       relation.set @foreignKey, base.get('id')
+
+  encoder: ->
+    association = @
+    return {
+      encode: (val) ->
+        return unless association.options.saveInline
+        relationJSON[@foreignKey] = @get('id')
+        val.toJSON()
+      decode: (data) ->
+        record = new (association.getRelatedModel())()
+        record.fromJSON(data)
+        record
+    }
 
   encodeModelIntoObject: (model, obj) ->
     return if @options["saveInline"] is false
