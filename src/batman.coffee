@@ -137,7 +137,7 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
     node = node.parentNode
   false
 
-
+$setImmediate = $clearImmediate = null
 _implementImmediates = ->
   canUsePostMessage = ->
     return false unless container.postMessage
