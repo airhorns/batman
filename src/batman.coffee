@@ -3441,6 +3441,12 @@ Batman.DOM = {
     Batman.data(child, 'show')?.apply(child, args)
     parent.appendChild(child)
 
+  insertBefore: $insertBefore = (parentNode, newNode, referenceNode = null) ->
+    if !referenceNode or parentNode.childNodes.length <= 0
+      $appendChild parentNode, newNode
+    else
+      parentNode.insertBefore newNode, referenceNode
+
   valueForNode: (node, value = '') ->
     isSetting = arguments.length > 1
     switch node.nodeName.toUpperCase()
@@ -4082,13 +4088,14 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
         @rendererMap.unset item
         @actions[options.actionNumber] ||= ->
           show = Batman.data node, 'show'
+          nextSibling = @nextSibling()
           if typeof show is 'function'
-            show.call node, before: @nextSibling()
+            show.call node, before: nextSibling
           else
             if options.fragment
               @fragment.appendChild node
             else
-              @parentNode.insertBefore node, @nextSibling()
+              $insertBefore @parentNode, node, nextSibling
           @lastNode = node
 
     @actions[options.actionNumber].item = item
@@ -4112,7 +4119,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
-          @parentNode.insertBefore @fragment, @nextSibling()
+          $insertBefore @parentNode, @fragment, @nextSibling()
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber
@@ -4121,11 +4128,8 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   nextSibling: ->
     if @lastNode
       @lastNode.nextSibling
-    else
-      if @initialSiblingNode && @initialSiblingNode.parentNode
-        @initialSiblingNode
-      else
-        null # IE doesn't like undefined being passed to insertBefore
+    else if @initialSiblingNode?.parentNode
+      @initialSiblingNode
 
   _nodeForItem: (item) ->
     newNode = @prototypeNode.cloneNode(true)
