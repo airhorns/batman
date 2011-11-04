@@ -6,6 +6,7 @@ QUnit.module "Batman.Model belongsTo Associations"
     namespace = this
     class @Store extends Batman.Model
       @encode 'id', 'name'
+
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
       'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}

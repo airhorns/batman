@@ -2023,10 +2023,12 @@ class Batman.Model extends Batman.Object
         return record
 
   # ### Associations API
-
-  @belongsTo: (label, scope) -> new Batman.Association.belongsTo(@, label, scope)
-  @hasOne: (label, scope) -> new Batman.Association.hasOne(@, label, scope)
-  @hasMany: (label, scope) -> new Batman.Association.hasMany(@, label, scope)
+  for k in ['belongsTo', 'hasOne', 'hasMany']
+    do (k) =>
+      @[k] = (label, scope) ->
+        @_batman.check(@)
+        collection = @_batman.associations ||= new Batman.AssociationCollection(@)
+        collection.add new Batman.Association[k](@, label, scope)
 
   # ### Record API
 
@@ -2111,9 +2113,6 @@ class Batman.Model extends Batman.Object
   toJSON: ->
     obj = {}
 
-    # Encode associations into properties
-    Batman.Association.Collection.encodeModelIntoObject(@, obj)
-
     # Encode each key into a new object
     encoders = @_batman.get('encoders')
     unless !encoders or encoders.isEmpty()
@@ -2129,9 +2128,6 @@ class Batman.Model extends Batman.Object
   # stored in whichever storage mechanism.
   fromJSON: (data) ->
     obj = {}
-
-    # Decode associations into attributes
-    Batman.Association.Collection.decodeObjectIntoModel(@, obj, data)
 
     decoders = @_batman.get('decoders')
     # If no decoders were specified, do the best we can to interpret the given JSON by camelizing
@@ -2200,10 +2196,9 @@ class Batman.Model extends Batman.Object
       do @saving
       do @creating if creating
 
-      if associations = Batman.Association.Collection.getModelAssociations(@)
-        {belongsTo, hasOne, hasMany} = associations
-        # Save belongsTo models immediately since we don't need this model's id
-        belongsTo?.forEach (association) => association.apply(@)
+      associations = @constructor._batman.associations?.getAll()
+      # Save belongsTo models immediately since we don't need this model's id
+      associations?.get('belongsTo')?.forEach (association) => association.apply(@)
 
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
         unless err
@@ -2212,8 +2207,8 @@ class Batman.Model extends Batman.Object
           do @saved
           @dirtyKeys.clear()
 
-          hasOne?.forEach (association) -> association.apply(err, record)
-          hasMany?.forEach (association) -> association.apply(err, record)
+          associations?.get('hasOne')?.forEach (association) -> association.apply(err, record)
+          associations?.get('hasMany')?.forEach (association) -> association.apply(err, record)
 
           record = @constructor._mapIdentity(record)
         callback?(err, record)
@@ -2263,9 +2258,8 @@ class Batman.Model extends Batman.Object
   isNew: -> typeof @get('id') is 'undefined'
 
 class Batman.Association
+  associationType: ''
   constructor: (@model, @label, @options = {}) ->
-    Batman.Association.Collection.add @
-
     # curry association info into the getAccessor, which has the model applied as the context
     self = @
     getAccessor = -> return self.getAccessor.call(@, self, model, label)
@@ -2282,66 +2276,46 @@ class Batman.Association
     modelName = @options['name'] or helpers.camelize(helpers.singularize(@label))
     scope?[modelName]
 
-  decodeObjectIntoModel: (model, obj, data) ->
-    if json = data[@label]
-      if relatedModel = @getRelatedModel()
-        record = new relatedModel(json)
-        obj[@label] = relatedModel._mapIdentity(record)
-
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
-  encodeModelIntoObject: -> developer.error "You must override encodeModelIntoObject in Batman.Association subclasses."
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
 
-Batman.Association.Collection = (->
-  class BatmanAssociationCollection
-    constructor: ->
-      # Contains (association, label) pairs mapped by base model and association type
-      # ie. @storage = {<Model.constructor>: {<Association.constructor>: {<Association>: <label>}}}
-      @storage = new Batman.SimpleHash
+class Batman.AssociationCollection
+  @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
+  constructor: (@model) ->
+    # Contains (association, label) pairs mapped by association type
+    # ie. @storage = {<Association.associationType>: {<Association>: <label>}}
+    @storage = new Batman.SimpleHash
+    @model._batman.check(@model)
 
-    add: (association) ->
-      unless baseModelHash = @storage.get(association.model)
-        baseModelHash = new Batman.SimpleHash
-        @storage.set association.model, baseModelHash
+  add: (association) ->
+    unless associationTypeHash = @storage.get(association.constructor)
+      associationTypeHash = new Batman.SimpleHash
+      @storage.set association.associationType, associationTypeHash
 
-      unless associationTypeHash = baseModelHash.get(association.constructor)
-        associationTypeHash = new Batman.SimpleHash
-        baseModelHash.set association.constructor, associationTypeHash
+    associationTypeHash.set association, association.label
 
-      associationTypeHash.set association, association.label
+  get: (key) -> @storage.get(key)
 
-    getModelAssociations: (model) ->
-      if hash = @storage.get(model.constructor)
-        belongsTo: hash.get(Batman.Association.belongsTo)
-        hasOne: hash.get(Batman.Association.hasOne)
-        hasMany: hash.get(Batman.Association.hasMany)
+  getAll: ->
+    # Traverse the class heirarchy to get all the AssociationCollection objects
+    ancestorCollections = @model._batman.ancestors((ancestor) ->
+      ancestor._batman.check(ancestor)
+      ancestor._batman.get('associations'))
+    newStorage = new Batman.SimpleHash
 
-    encodeModelIntoObject: (model, obj) ->
-      unless @_encodingRelation
-        # Only encode this level of associations
-        @_encodingRelation = true
-        @forEach model, (association) -> association.encodeModelIntoObject(model, obj)
-        @_encodingRelation = false
+    # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.
+    for key in Batman.AssociationCollection.availableAssociations
+      ancestorValuesAtKey = for ancestorCollection in ancestorCollections when ancestorCollection? and val = ancestorCollection.get(key)
+        val
+      newStorage.set key, (@storage.get(key) || new Batman.SimpleHash).merge(ancestorValuesAtKey...)
 
-    decodeObjectIntoModel: (model, obj, data) ->
-      unless @_decodingRelation
-        @_decodingRelation = true
-        @forEach model, (association) ->
-          association.decodeObjectIntoModel(model, obj, data)
-        @_decodingRelation = false
-
-    forEach: (model, callback) ->
-      @storage.forEach (modelClass, associationClassHash) ->
-        # Consider associations for any parent models
-        return unless model instanceof modelClass
-        associationClassHash.forEach (associationClass, associationHash) ->
-          associationHash?.forEach (association) ->
-            callback association
-
-  return new BatmanAssociationCollection
-)()
+    @storage = newStorage
+    # Gives {hasMany: Hash{<Association>: <label>}, hasOne: Hash{...}, ...}
+    @getAll = -> @storage
+    @storage
 
 class Batman.Association.belongsTo extends Batman.Association
+  associationType: 'belongsTo'
   constructor: ->
     super
     @model.encode "#{@label}_id"
@@ -2379,12 +2353,8 @@ class Batman.Association.belongsTo extends Batman.Association
     if model = base.get(@label)
       base.set "#{@label}_id", model.get('id')
 
-  encodeModelIntoObject: (model, obj) ->
-    return unless @options["saveInline"] is true
-    if relation = model.get(@label)
-      obj[@label] = relation.toJSON()
-
 class Batman.Association.hasOne extends Batman.Association
+  associationType: 'hasOne'
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
@@ -2424,30 +2394,25 @@ class Batman.Association.hasOne extends Batman.Association
       return loadedRecord
 
   apply: (baseSaveError, base) ->
-    if relation = base._batman.attributes?[@label]
+    if relation = base.constructor.defaultAccessor.get.call(base, @label)
       relation.set @foreignKey, base.get('id')
 
   encoder: ->
     association = @
     return {
-      encode: (val) ->
-        return unless association.options.saveInline
-        relationJSON[@foreignKey] = @get('id')
-        val.toJSON()
+      encode: (val, key, object, record) ->
+        return if association.options.saveInline is false
+        json = val.toJSON()
+        json[association.foreignKey] = record.get('id')
+        json
       decode: (data) ->
         record = new (association.getRelatedModel())()
         record.fromJSON(data)
         record
     }
 
-  encodeModelIntoObject: (model, obj) ->
-    return if @options["saveInline"] is false
-    if relation = model.get(@label)
-      relationJSON = relation.toJSON()
-      relationJSON[@foreignKey] = model.get('id')
-      obj[@label] = relationJSON
-
 class Batman.Association.hasMany extends Batman.Association
+  associationType: 'hasMany'
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
@@ -2473,29 +2438,34 @@ class Batman.Association.hasMany extends Batman.Association
     relatedRecords
 
   apply: (baseSaveError, base) ->
-    if relations = base._batman.attributes?[@label]
+    if relations = base.constructor.defaultAccessor.get.call(base, @label)
       relations.forEach (model) =>
         model.set @foreignKey, base.get('id')
 
-  encodeModelIntoObject: (model, obj) ->
-    return if @options["saveInline"] is false
-    if relationSet = model.get(@label)
-      jsonArray = []
-      relationSet.forEach (relation) =>
-        relationJSON = relation.toJSON()
-        relationJSON[@foreignKey] = model.get('id')
-        jsonArray.push relationJSON
-      obj[@label] = jsonArray
+  encoder: ->
+    association = @
+    return {
+      encode: (relationSet, _, _, record) ->
+        return if association.options.saveInline is false
+        if relationSet?
+          jsonArray = []
+          relationSet.forEach (relation) ->
+            relationJSON = relation.toJSON()
+            relationJSON[association.foreignKey] = record.get('id')
+            jsonArray.push relationJSON
+        jsonArray
 
-  decodeObjectIntoModel: (model, obj, data) ->
-    if jsonArray = data[@label]
-      relations = new Batman.Set
-      if relatedModel = @getRelatedModel()
-        for jsonObject in jsonArray
-          record = new relatedModel(jsonObject)
-          record = relatedModel._mapIdentity(record)
-          relations.add record
-      obj[@label] = relations
+      decode: (data) ->
+        relations = new Batman.Set
+        if relatedModel = association.getRelatedModel()
+          for jsonObject in data
+            record = new relatedModel(jsonObject)
+            record = relatedModel._mapIdentity(record)
+            relations.add record
+        else
+          developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
+        relations
+    }
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})
