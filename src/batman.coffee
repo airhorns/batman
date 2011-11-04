@@ -744,6 +744,7 @@ Batman._Batman = class _Batman
         proto
 
     if parent?
+      parent._batman?.check(parent)
       # Apply the function and store the result if it isn't undefined.
       val = getter(parent)
       results.push(val) if val?

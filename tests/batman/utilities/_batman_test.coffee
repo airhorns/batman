@@ -1,16 +1,16 @@
-
-
-
 QUnit.module "_Batman",
   setup: ->
     class @Animal extends Batman.Object
       Batman.initializeObject @::
+      Batman.initializeObject @
 
     class @Snake extends @Animal
       Batman.initializeObject @::
+      Batman.initializeObject @
 
     class @BlackMamba extends @Snake
       Batman.initializeObject @::
+      Batman.initializeObject @
 
     @mamba = new @BlackMamba()
     @snake = new @Snake()
@@ -19,14 +19,25 @@ QUnit.module "_Batman",
 deepSortedEqual = (a,b,message) ->
   deepEqual(a.sort(), b.sort(), message)
 
-test "correct ancestors are returned", ->
+test "correct ancestors are returned for objects", ->
   deepEqual @snake._batman.object, @snake
-  expected = [@Snake::, @Animal::, Batman.Object::, Object.prototype]
-  window.SnakeClass = @Snake
-  @snake._batman.ancestors()
+  deepEqual [@Snake::, @Animal::, Batman.Object::, Object.prototype], @snake._batman.ancestors()
 
-  for k, v of @snake._batman.ancestors()
-    equal v, expected[k]
+test "correct ancestors are returned for classes", ->
+  deepEqual [@Snake, @Animal, Batman.Object], @BlackMamba._batman.ancestors()
+
+test "correct ancestors are returned for classes as long as the first one's _batman has been checked", ->
+  # Recreate classes without the initializeObject calls so the _batmans are copied by CoffeeScript,
+  # but have incorrect object pointers.
+  class @Animal extends Batman.Object
+  class @Snake extends @Animal
+  class @BlackMamba extends @Snake
+
+  # Check the first one
+  @BlackMamba._batman.check(@BlackMamba)
+
+  # Test
+  deepEqual [@Snake, @Animal, Batman.Object], @BlackMamba._batman.ancestors()
 
 test "primitives are traversed in _batman lookups", ->
   @Animal::_batman.set 'primitive_key', 1
