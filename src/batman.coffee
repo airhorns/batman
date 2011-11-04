@@ -4262,7 +4262,8 @@ $mixin Batman,
     unless id
       # Only DOM nodes need a new unique ID for each element since their data
       # ends up in the global cache
-      if isNode
+      # Also check that it's not a text node; IE can't set expandos on them
+      if isNode and elem.nodeType isnt 3
         elem[Batman.expando] = id = ++Batman.uuid
       else
         id = Batman.expando
