@@ -2992,7 +2992,7 @@ class Batman.Renderer extends Batman.Object
     super()
     @on('parsed', callback) if callback?
     @context = if contexts instanceof Batman.RenderContext then contexts else Batman.RenderContext.start(contexts...)
-    @timeout = $setImmediate @start
+    @immediate = $setImmediate @start
 
   start: =>
     @startTime = new Date
@@ -3008,7 +3008,7 @@ class Batman.Renderer extends Batman.Object
     @fire 'rendered'
 
   stop: ->
-    clearTimeout(@timeout)
+    $clearImmediate @immediate
     @fire 'stopped'
 
   forgetAll: ->
