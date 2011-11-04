@@ -2257,27 +2257,6 @@ class Batman.Model extends Batman.Object
 
   isNew: -> typeof @get('id') is 'undefined'
 
-class Batman.Association
-  associationType: ''
-  constructor: (@model, @label, @options = {}) ->
-    # curry association info into the getAccessor, which has the model applied as the context
-    self = @
-    getAccessor = -> return self.getAccessor.call(@, self, model, label)
-
-    model.accessor label,
-      get: getAccessor
-      set: Batman.Model.defaultAccessor.set
-      unset: Batman.Model.defaultAccessor.unset
-
-    model.encode label, @encoder()
-
-  getRelatedModel: ->
-    scope = @options['namespace'] or Batman.currentApp
-    modelName = @options['name'] or helpers.camelize(helpers.singularize(@label))
-    scope?[modelName]
-
-  getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
-  encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
 
 class Batman.AssociationCollection
   @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
@@ -2314,14 +2293,47 @@ class Batman.AssociationCollection
     @getAll = -> @storage
     @storage
 
+class Batman.Association
+  associationType: ''
+  defaultOptions:
+    saveInline: true
+
+  constructor: (@model, @label, options = {}) ->
+    defaultOptions =
+      namespace: Batman.currentApp
+      name: helpers.camelize(helpers.singularize(@label))
+    @options = $mixin defaultOptions, @defaultOptions, options
+
+    # curry association info into the getAccessor, which has the model applied as the context
+    self = @
+    getAccessor = -> return self.getAccessor.call(@, self, model, label)
+    model.accessor label,
+      get: getAccessor
+      set: Batman.Model.defaultAccessor.set
+      unset: Batman.Model.defaultAccessor.unset
+
+    model.encode label, @encoder()
+
+  getRelatedModel: ->
+    scope = @options.namespace or Batman.currentApp
+    modelName = @options.name
+    scope?[modelName]
+
+  getFromAttributes: (record) -> record.constructor.defaultAccessor.get.call(record, @label)
+  getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
+  encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
+
 class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
+  defaultOptions:
+    saveInline: false
+
   constructor: ->
     super
     @model.encode "#{@label}_id"
 
   getAccessor: (self, model, label) ->
-    if relatedRecord = @_batman.attributes?[label]
+    if relatedRecord = self.getFromAttributes(@)
       return relatedRecord
 
     # Make sure there is a relation
@@ -2364,8 +2376,8 @@ class Batman.Association.hasOne extends Batman.Association
     return if @amSetting
 
     # Check whether the relatedModel has already been set on this model
-    existingInstance = Batman.Model.defaultAccessor.get.call(@, label)
-    return existingInstance if existingInstance?
+    if existingInstance = self.getFromAttributes(@)
+      return existingInstance
 
     # Make sure relatedModel has been loaded
     return unless relatedModel = self.getRelatedModel()
@@ -2401,7 +2413,7 @@ class Batman.Association.hasOne extends Batman.Association
     association = @
     return {
       encode: (val, key, object, record) ->
-        return if association.options.saveInline is false
+        return unless association.options.saveInline
         json = val.toJSON()
         json[association.foreignKey] = record.get('id')
         json
@@ -2422,7 +2434,7 @@ class Batman.Association.hasMany extends Batman.Association
     return if @amSetting
     return unless relatedModel = self.getRelatedModel()
 
-    if recordInAttributes = @_batman.attributes?[label]
+    if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
 
     return unless id = @get('id')
@@ -2446,7 +2458,7 @@ class Batman.Association.hasMany extends Batman.Association
     association = @
     return {
       encode: (relationSet, _, _, record) ->
-        return if association.options.saveInline is false
+        return unless association.options.saveInline
         if relationSet?
           jsonArray = []
           relationSet.forEach (relation) ->

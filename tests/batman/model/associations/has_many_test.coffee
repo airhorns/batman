@@ -8,41 +8,52 @@ QUnit.module "Batman.Model hasMany Associations"
     class @Store extends Batman.Model
       @encode 'id', 'name'
       @hasMany 'products', namespace: namespace
+
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
-      'stores1': {name: "Store One", id: 1}
+      stores1:
+        name: "Store One"
+        id: 1
 
     class @Product extends Batman.Model
       @encode 'id', 'name', 'store_id'
       @belongsTo 'store', namespace: namespace
       @hasMany 'productVariants', namespace: namespace
+
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
-      'products1': {name: "Product One", id: 1, store_id: 1}
-      'products2': {name: "Product Two", id: 2, store_id: 1}
-      'products3':
-        name: "Product Three",
-        id: 3,
-        store_id: 1,
-        productVariants: [
-          {id:5, price:50, product_id:3},
-          {id:6, price:60, product_id:3}
-        ]
+      products1:
+        name: "Product One"
+        id: 1
+        store_id: 1
+      products2:
+        name: "Product Two"
+        id: 2
+        store_id: 1
+      products3:
+        name: "Product Three"
+        id: 3
+        store_id: 1
+        productVariants: [{
+          id:5
+          price:50
+          product_id:3
+        },{
+          id:6
+          price:60
+          product_id:3
+        }]
 
     class @ProductVariant extends Batman.Model
       @encode 'price'
       @belongsTo 'product', namespace: namespace
+
     variantAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter
 
-asyncTest "hasMany associations are loaded", 6, ->
+asyncTest "hasMany associations are loaded", 4, ->
   @Store.find 1, (err, store) =>
     products = store.get 'products'
     delay =>
-      trackedIds = {1: no, 2: no, 3: no}
-      products.forEach (product) =>
-        ok product instanceof @Product
-        trackedIds[product.id] = true
-      equal trackedIds[1], yes
-      equal trackedIds[2], yes
-      equal trackedIds[3], yes
+      products.forEach (product) => ok product instanceof @Product
+      deepEqual products.map((x) -> x.get('id')), [1,2,3]
 
 asyncTest "hasMany associations are saved via the parent model", 5, ->
   store = new @Store name: 'Zellers'
@@ -103,9 +114,9 @@ asyncTest "hasMany associations render", 4, ->
     source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
     context = Batman(store: store)
     helpers.render source, context, (node) =>
-      equal node.children().get(0)?.innerHTML, 'Product One'
-      equal node.children().get(1)?.innerHTML, 'Product Two'
-      equal node.children().get(2)?.innerHTML, 'Product Three'
+      equal node.children().get(0).innerHTML, 'Product One'
+      equal node.children().get(1).innerHTML, 'Product Two'
+      equal node.children().get(2).innerHTML, 'Product Three'
 
       addedProduct = new @Product(name: 'Product Four', store_id: store.id)
       addedProduct.save (err, savedProduct) ->
