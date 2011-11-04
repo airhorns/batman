@@ -942,6 +942,11 @@ class Batman.SimpleHash
       hash.forEach (obj, value) ->
         merged.set obj, value
     merged
+  toJSON: ->
+    @reduce (obj, key, value) ->
+      obj[key] = if value.toJSON then value.toJSON() else value
+      obj
+    , {}
 
 class Batman.Hash extends Batman.Object
   constructor: ->
@@ -980,14 +985,7 @@ class Batman.Hash extends Batman.Object
   equality: Batman.SimpleHash::equality
   hashKeyFor: Batman.SimpleHash::hashKeyFor
 
-  toJSON: ->
-    obj = {}
-    @keys().forEach (key) =>
-      value = @get key
-      obj[key] = if value.toJSON then value.toJSON() else value
-    obj
-
-  for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge']
+  for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge', 'toJSON']
     proto = @prototype
     do (k) ->
       proto[k] = ->
