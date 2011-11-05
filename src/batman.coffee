@@ -2264,7 +2264,6 @@ class Batman.AssociationCollection
     # Contains (association, label) pairs mapped by association type
     # ie. @storage = {<Association.associationType>: {<Association>: <label>}}
     @storage = new Batman.SimpleHash
-    @model._batman.check(@model)
 
   add: (association) ->
     unless associationTypeHash = @storage.get(association.constructor)
@@ -2277,9 +2276,8 @@ class Batman.AssociationCollection
 
   getAll: ->
     # Traverse the class heirarchy to get all the AssociationCollection objects
-    ancestorCollections = @model._batman.ancestors((ancestor) ->
-      ancestor._batman.check(ancestor)
-      ancestor._batman.get('associations'))
+    @model._batman.check(@model)
+    ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman.get('associations'))
     newStorage = new Batman.SimpleHash
 
     # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.
@@ -2304,15 +2302,17 @@ class Batman.Association
       name: helpers.camelize(helpers.singularize(@label))
     @options = $mixin defaultOptions, @defaultOptions, options
 
-    # curry association info into the getAccessor, which has the model applied as the context
+    # Setup encoders and accessors for this association. The accessor needs reference to this
+    # association object, so curry the association info into the getAccessor, which has the
+    # model applied as the context
+    model.encode label, @encoder()
+
     self = @
     getAccessor = -> return self.getAccessor.call(@, self, model, label)
     model.accessor label,
       get: getAccessor
-      set: Batman.Model.defaultAccessor.set
-      unset: Batman.Model.defaultAccessor.unset
-
-    model.encode label, @encoder()
+      set: model.defaultAccessor.set
+      unset: model.defaultAccessor.unset
 
   getRelatedModel: ->
     scope = @options.namespace or Batman.currentApp
@@ -2424,11 +2424,19 @@ class Batman.Association.hasOne extends Batman.Association
     }
 
 class Batman.Association.hasMany extends Batman.Association
+  class AssociationSetSetIndex extends Batman.SetIndex
+    constructor: (@association) -> super(@association.getRelatedModel().get('loaded'), @association.foreignKey)
+    _resultSetForKey: (key) -> @_storage.getOrSet(key, => new Batman.Association.Set(key, @association))
+
   associationType: 'hasMany'
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
+
+  setIndex: ->
+    @index ||= new AssociationSetSetIndex(@)
+    @index
 
   getAccessor: (self, model, label) ->
     return if @amSetting
@@ -2436,18 +2444,17 @@ class Batman.Association.hasMany extends Batman.Association
 
     if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
+    else
+      return unless id = @get('id')
 
-    return unless id = @get('id')
-    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
-    if relatedRecords.isEmpty()
+      relatedRecords = self.setIndex().get(id)
       @amSetting = true
       @set label, relatedRecords
       @amSetting = false
+      if relatedRecords.isEmpty()
+        relatedRecords.load (error, records) -> throw error if error
 
-      loadOptions = {}
-      loadOptions[self.foreignKey] = id
-      relatedModel.load loadOptions, (error, records) -> throw error if error
-    relatedRecords
+      return relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)
@@ -2478,6 +2485,13 @@ class Batman.Association.hasMany extends Batman.Association
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
         relations
     }
+
+class Batman.Association.Set extends Batman.Set
+  constructor: (@key, @association) -> super()
+  load: (callback) ->
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @key
+    @association.getRelatedModel().load(loadOptions, (error) => callback(error, @))
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})

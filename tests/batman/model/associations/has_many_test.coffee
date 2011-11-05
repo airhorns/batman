@@ -55,6 +55,14 @@ asyncTest "hasMany associations are loaded", 4, ->
       products.forEach (product) => ok product instanceof @Product
       deepEqual products.map((x) -> x.get('id')), [1,2,3]
 
+asyncTest "hasMany associations can be reloaded", 4, ->
+  @Store.find 1, (err, store) =>
+    store.get('products').load (error, products) =>
+      throw error if error
+      products.forEach (product) => ok product instanceof @Product
+      deepEqual products.map((x) -> x.get('id')), [1,2,3]
+      QUnit.start()
+
 asyncTest "hasMany associations are saved via the parent model", 5, ->
   store = new @Store name: 'Zellers'
   product1 = new @Product name: 'Gizmo'
