@@ -16,12 +16,23 @@ QUnit.module "Batman.Model hasOne Associations"
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
 
-asyncTest "hasOne associations are loaded via ID", 2, ->
+asyncTest "hasOne associations are loaded via ID", 3, ->
   @Store.find 1, (err, store) =>
     product = store.get 'product'
     ok product instanceof @Product
-    equal product.id, 1
-    QUnit.start()
+    equal product.get('id'), 1
+    delay ->
+      equal product.get('name'), 'Product One'
+
+asyncTest "hasOne associations can be reloaded", 4, ->
+  @Store.find 1, (err, store) =>
+    returnedProduct = store.get('product')
+    returnedProduct.load (error, product) =>
+      ok product instanceof @Product
+      equal product.get('id'), 1
+      equal product.get('name'), 'Product One'
+      equal returnedProduct.get('name'), 'Product One'
+      QUnit.start()
 
 asyncTest "hasOne associations are loaded via JSON", 3, ->
   @Store.find 2, (err, store) =>

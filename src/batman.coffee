@@ -2314,6 +2314,14 @@ class Batman.Association
       set: model.defaultAccessor.set
       unset: model.defaultAccessor.unset
 
+  class AssociationSetSetIndex extends Batman.SetIndex
+    constructor: (@association) -> super(@association.getRelatedModel().get('loaded'), @association.foreignKey)
+    _resultSetForKey: (key) -> @_storage.getOrSet(key, => new Batman.Association.Set(key, @association))
+
+  setIndex: ->
+    @index ||= new AssociationSetSetIndex(@)
+    @index
+
   getRelatedModel: ->
     scope = @options.namespace or Batman.currentApp
     modelName = @options.name
@@ -2342,7 +2350,7 @@ class Batman.Association.belongsTo extends Batman.Association
     # Make sure the related model has been loaded
     return unless relatedModel = self.getRelatedModel()
 
-    loadedRecord = relatedModel.get('loaded').indexedBy('id').get(relatedID)
+    loadedRecord = self.setIndex().get(relatedID)
     unless loadedRecord.isEmpty()
       return loadedRecord.toArray()[0]
     else
@@ -2386,24 +2394,30 @@ class Batman.Association.hasOne extends Batman.Association
     return unless id = @get('id')
 
     # Check whether the relatedModel has already loaded the instance we want
-    relatedRecords = relatedModel.get('loaded').indexedBy(self.foreignKey).get(id)
+    relatedRecords = self.setIndex().get(id)
     unless relatedRecords.isEmpty()
       return relatedRecords.toArray()[0]
     else
       # Create a relatedModel instance to return immediately and populate when it loads
-      loadedRecord = new relatedModel
+      loadingRecord = new relatedModel
+      loadingRecord.load = (callback) ->
+        loadOptions = {}
+        loadOptions[self.foreignKey] = id
+        relatedModel.load loadOptions, (error, loadedRecords) =>
+          unless error
+            if !loadedRecords or loadedRecords.length <= 0
+              return callback(new Error("Couldn't find related record!"))
+            else
+              @fromJSON loadedRecords[0].toJSON()
+          callback(undefined, loadedRecords[0])
+
       # FIXME shouldn't need to short-circuit the get/set accessor loop
       @amSetting = true
-      @set label, loadedRecord
+      @set label, loadingRecord
       @amSetting = false
 
-      loadOptions = {}
-      loadOptions[self.foreignKey] = id
-      relatedModel.load loadOptions, (error, loadedRecords) =>
-        throw error if error
-        return if !loadedRecords or loadedRecords.length <= 0
-        loadedRecord.fromJSON loadedRecords[0].toJSON()
-      return loadedRecord
+      loadingRecord.load (error) ->
+      return loadingRecord
 
   apply: (baseSaveError, base) ->
     if relation = base.constructor.defaultAccessor.get.call(base, @label)
@@ -2424,9 +2438,6 @@ class Batman.Association.hasOne extends Batman.Association
     }
 
 class Batman.Association.hasMany extends Batman.Association
-  class AssociationSetSetIndex extends Batman.SetIndex
-    constructor: (@association) -> super(@association.getRelatedModel().get('loaded'), @association.foreignKey)
-    _resultSetForKey: (key) -> @_storage.getOrSet(key, => new Batman.Association.Set(key, @association))
 
   associationType: 'hasMany'
   constructor: ->
@@ -2434,9 +2445,7 @@ class Batman.Association.hasMany extends Batman.Association
     @propertyName = $functionName(@model).toLowerCase()
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
-  setIndex: ->
-    @index ||= new AssociationSetSetIndex(@)
-    @index
+
 
   getAccessor: (self, model, label) ->
     return if @amSetting

@@ -62,7 +62,7 @@ class AsyncTestStorageAdapter extends TestStorageAdapter
   for k in ['update', 'create', 'read', 'readAll', 'destroy']
     do (k) =>
       AsyncTestStorageAdapter[k] = ->
-        setTimeout (=> TestStorageAdapter[k].apply(@, arguments)), ASYNC_TEST_DELAY
+        setTimeout (=> TestStorageAdapter[k].apply(@, arguments)), 0
 
 createStorageAdapter = (modelClass, adapterClass, data = {}) ->
   adapter = new adapterClass(modelClass)
