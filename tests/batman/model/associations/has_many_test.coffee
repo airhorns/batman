@@ -3,9 +3,10 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module "Batman.Model hasMany Associations"
   setup: ->
-    namespace = this
+    Batman.currentApp = null
+    namespace = {}
 
-    class @Store extends Batman.Model
+    namespace.Store = class @Store extends Batman.Model
       @encode 'id', 'name'
       @hasMany 'products', namespace: namespace
 
@@ -14,7 +15,7 @@ QUnit.module "Batman.Model hasMany Associations"
         name: "Store One"
         id: 1
 
-    class @Product extends Batman.Model
+    namespace.Product = class @Product extends Batman.Model
       @encode 'id', 'name', 'store_id'
       @belongsTo 'store', namespace: namespace
       @hasMany 'productVariants', namespace: namespace
@@ -42,7 +43,7 @@ QUnit.module "Batman.Model hasMany Associations"
           product_id:3
         }]
 
-    class @ProductVariant extends Batman.Model
+    namespace.ProductVariant = class @ProductVariant extends Batman.Model
       @encode 'price'
       @belongsTo 'product', namespace: namespace
 
@@ -121,10 +122,10 @@ asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>
     source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
     context = Batman(store: store)
-    helpers.render source, context, (node) =>
-      equal node.children().get(0).innerHTML, 'Product One'
-      equal node.children().get(1).innerHTML, 'Product Two'
-      equal node.children().get(2).innerHTML, 'Product Three'
+    helpers.render source, context, (node, view) =>
+      equal node.children().get(0)?.innerHTML, 'Product One'
+      equal node.children().get(1)?.innerHTML, 'Product Two'
+      equal node.children().get(2)?.innerHTML, 'Product Three'
 
       addedProduct = new @Product(name: 'Product Four', store_id: store.id)
       addedProduct.save (err, savedProduct) ->
