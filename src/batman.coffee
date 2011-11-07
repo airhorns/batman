@@ -3104,12 +3104,14 @@ class Batman.Renderer extends Batman.Object
 
     sibling = node.nextSibling # Grab the reference before onParseExit may remove the node
     $onParseExit(node).forEach (callback) -> callback()
+    $forgetParseExit(node)
     return if @node == node
     return sibling if sibling
 
     nextParent = node
     while nextParent = nextParent.parentNode
       $onParseExit(nextParent).forEach (callback) -> callback()
+      $forgetParseExit(nextParent)
       return if @node == nextParent
 
       parentSibling = nextParent.nextSibling
@@ -3533,6 +3535,8 @@ Batman.DOM = {
     set = Batman.data(node, 'onParseExit') || Batman.data(node, 'onParseExit', new Batman.SimpleSet)
     set.add callback if callback?
     set
+
+  forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit')
 }
 
 # Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
