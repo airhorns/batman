@@ -4,7 +4,6 @@ microtime = require 'microtime'
 jsdom = require 'jsdom'
 
 global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
-global.window.Benchmark = require 'benchmark'
 global.document = window.document
 
 simpleSource = '''
@@ -14,15 +13,17 @@ simpleSource = '''
 loopSource = '''
 <div data-foreach-obj="objects">
   <span data-bind="obj"></span>
-  <span data-bind="obj | times 10"></span>
-  <span data-bind="obj | times 100"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
 </div>
 '''
 
 Batman.Renderer::deferEvery = false
-Batman.Filters.times = (multiplicand, multiplier) -> multiplicand * multiplier
 
-Watson.trackMemory 'view memory usage: simple', 100, 1, (i) ->
+Watson.trackMemory 'view memory usage: simple', 400, {step: 10, async: true}, (i, next) ->
   node = document.createElement 'div'
   node.innerHTML = loopSource
   context = Batman(objects: new Batman.Set([0...50]...))
@@ -31,4 +32,11 @@ Watson.trackMemory 'view memory usage: simple', 100, 1, (i) ->
     contexts: [context]
     node: node
 
-  Batman.DOM.removeNode(node)
+  finish = ->
+    Batman.DOM.removeNode(node)
+    next()
+
+  if view.on?
+    view.on 'ready', finish
+  else
+    view.ready finish
