@@ -421,6 +421,7 @@ class Batman.Property
     get: (key) -> @[key]
     set: (key, val) -> @[key] = val
     unset: (key) -> x = @[key]; delete @[key]; x
+    cachable: no
   @forBaseAndKey: (base, key) ->
     if base.isObservable
       base.property(key)
@@ -489,7 +490,7 @@ class Batman.Property
 
   getValue: ->
     @registerAsMutableSource()
-    unless @cached
+    unless @isCached()
       @pushSourceTracker()
       try
         @value = @valueFromAccessor()
@@ -497,7 +498,13 @@ class Batman.Property
       finally
         @updateSourcesFromTracker()
     @value
-
+  
+  isCachable: ->
+    cachable = @accessor().cachable
+    if cachable? then !!cachable else true
+  
+  isCached: -> @isCachable() and @cached
+  
   refresh: ->
     @cached = no
     previousValue = @value
@@ -513,7 +520,7 @@ class Batman.Property
   _handleSourceChange: ->
     if @isIsolated()
       @_needsRefresh = yes
-    else if @changeEvent().handlers.isEmpty()
+    else if not @hasObservers()
       @cached = no
     else
       @refresh()
@@ -535,7 +542,7 @@ class Batman.Property
       @refresh()
     finally
       @popSourceTracker()
-    @die() if @value is undefined and not @hasObservers()
+    @die() unless @isCached() or @hasObservers()
     result
 
   forget: (handler) ->
@@ -987,6 +994,7 @@ class Batman.Hash extends Batman.Object
       result = Batman.SimpleHash::unset.call(@, key)
       @fire 'itemsWereRemoved', key if result?
       result
+    cachable: false
 
   clear: @mutation ->
     keys = @meta.get('keys')

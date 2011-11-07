@@ -36,6 +36,12 @@ test "get(key) where the key's value is undefined returns undefined", ->
   equalHashLength @hash, 1
   equal @hash.get('foo'), undefined
 
+test "get(key) is not cached", ->
+  @hash.set('foo', 'bar')
+  equal @hash.get('foo'), 'bar'
+  @hash.property('foo').value = 'baz'
+  equal @hash.get('foo'), 'bar'
+
 test "set(key, val) stores the value for that key, such that hasKey(key) returns true and get(key) returns the stored value", ->
   @hash.set 'foo', 'bar'
   equal @hash.hasKey('foo'), true
