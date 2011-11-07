@@ -3994,14 +3994,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   queuedActionNumber: 0
   bindImmediately: false
 
-  constructor: (sourceNode, args...) ->
-    @parentNode = sourceNode.parentNode
-    @initialSiblingNode = sourceNode.nextSibling
-    super(@parentNode, args...)
-
-    @iteratorName = @attributeName
-    @parentRenderer = @renderer
-
+  constructor: (sourceNode, @iteratorName, @key, @context, @parentRenderer) ->
     @nodeMap = new Batman.SimpleHash
     @actionMap = new Batman.SimpleHash
     @rendererMap = new Batman.SimpleHash
@@ -4009,6 +4002,9 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
     @prototypeNode = sourceNode.cloneNode(true)
     @prototypeNode.removeAttribute "data-foreach-#{@iteratorName}"
+
+    @parentNode = sourceNode.parentNode
+    @siblingNode = sourceNode.nextSibling
 
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
@@ -4021,6 +4017,10 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     # Don't let the parent emit its rendered event until all the children have.
     # This `prevent`'s matching allow is run once the queue is empty in `processActionQueue`.
     @parentRenderer.prevent 'rendered'
+
+    # Tie this binding to a node using Batman.data
+    super(@parentNode, @iteratorName, @key, @context, @parentRenderer)
+
     @fragment = document.createDocumentFragment()
 
     # Attach observers.
@@ -4120,15 +4120,13 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
         @rendererMap.unset item
         @actions[options.actionNumber] ||= ->
           show = Batman.data node, 'show'
-          nextSibling = @nextSibling()
           if typeof show is 'function'
-            show.call node, before: nextSibling
+            show.call node, before: @siblingNode
           else
             if options.fragment
               @fragment.appendChild node
             else
-              $insertBefore @parentNode, node, nextSibling
-          @lastNode = node
+              $insertBefore @parentNode, node, @siblingNode
 
     @actions[options.actionNumber].item = item
     @processActionQueue()
