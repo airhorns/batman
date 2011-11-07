@@ -3,16 +3,19 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module "Batman.Model hasOne Associations"
   setup: ->
-    namespace = this
+    namespace = @namespace = {}
+
     class @Store extends Batman.Model
       @encode 'id', 'name'
       @hasOne 'product', namespace: namespace
+
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
       'stores1': {name: "Store One", id: 1}
       'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
 
-    class @Product extends Batman.Model
+    namespace.Product = class @Product extends Batman.Model
       @encode 'id', 'name'
+
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
 
@@ -23,6 +26,22 @@ asyncTest "hasOne associations are loaded via ID", 3, ->
     equal product.get('id'), 1
     delay ->
       equal product.get('name'), 'Product One'
+
+asyncTest "hasOne associations are not loaded when autoload is false", 2, ->
+  ns = @namespace
+  class Store extends Batman.Model
+    @encode 'id', 'name'
+    @hasOne 'product', {namespace: ns, autoload: false}
+
+  storeAdapter = createStorageAdapter Store, AsyncTestStorageAdapter,
+    'stores1': {name: "Store One", id: 1}
+    'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
+
+  Store.find 1, (err, store) =>
+    product = store.get 'product'
+    equal (typeof product.get('name')), 'undefined'
+    delay ->
+      equal (typeof store.get('product.name')), 'undefined'
 
 asyncTest "hasOne associations can be reloaded", 4, ->
   @Store.find 1, (err, store) =>

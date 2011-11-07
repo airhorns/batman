@@ -3,7 +3,7 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module "Batman.Model belongsTo Associations"
   setup: ->
-    namespace = this
+    namespace = @namespace = this
     class @Store extends Batman.Model
       @encode 'id', 'name'
 
@@ -31,6 +31,19 @@ asyncTest "belongsTo associations are loaded via ID", 2, ->
     store = product.get 'store'
     ok store instanceof @Store
     equal store.id, 1
+    QUnit.start()
+
+asyncTest "belongsTo associations are not loaded when autoload is off", 1, ->
+  class Product extends Batman.Model
+    @encode 'id', 'name'
+    @belongsTo 'store', {namespace: @namespace, autoload: false}
+
+  productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
+    'products1': {name: "Product One", id: 1, store_id: 1}
+
+  Product.find 1, (err, product) =>
+    store = product.get 'store'
+    equal (typeof store), 'undefined'
     QUnit.start()
 
 asyncTest "belongsTo associations are saved", 5, ->

@@ -2198,7 +2198,7 @@ class Batman.Model extends Batman.Object
 
       associations = @constructor._batman.associations?.getAll()
       # Save belongsTo models immediately since we don't need this model's id
-      associations?.get('belongsTo')?.forEach (association) => association.apply(@)
+      associations?.get('belongsTo')?.forEach (association, label) => association.apply(@)
 
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
         unless err
@@ -2295,6 +2295,7 @@ class Batman.Association
   associationType: ''
   defaultOptions:
     saveInline: true
+    autoload: true
 
   constructor: (@model, @label, options = {}) ->
     defaultOptions =
@@ -2335,6 +2336,7 @@ class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
   defaultOptions:
     saveInline: false
+    autoload: true
 
   constructor: ->
     super
@@ -2351,11 +2353,14 @@ class Batman.Association.belongsTo extends Batman.Association
     return unless relatedModel = self.getRelatedModel()
 
     loadedRecord = self.setIndex().get(relatedID)
+
     unless loadedRecord.isEmpty()
-      return loadedRecord.toArray()[0]
+      loadedRecord.toArray()[0]
     else
-      return relatedModel.find relatedID, (error, loadedRecord) ->
-        throw error if error
+      if self.options.autoload
+        relatedModel.find relatedID, (error, loadedRecord) -> throw error if error
+      else
+        new relatedModel(relatedID)
 
   encoder: ->
     association = @
@@ -2416,7 +2421,9 @@ class Batman.Association.hasOne extends Batman.Association
       @set label, loadingRecord
       @amSetting = false
 
-      loadingRecord.load (error) ->
+      if self.options.autoload
+        loadingRecord.load (error) ->
+
       return loadingRecord
 
   apply: (baseSaveError, base) ->
@@ -2438,14 +2445,11 @@ class Batman.Association.hasOne extends Batman.Association
     }
 
 class Batman.Association.hasMany extends Batman.Association
-
   associationType: 'hasMany'
   constructor: ->
     super
     @propertyName = $functionName(@model).toLowerCase()
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
-
-
 
   getAccessor: (self, model, label) ->
     return if @amSetting
@@ -2453,17 +2457,16 @@ class Batman.Association.hasMany extends Batman.Association
 
     if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
-    else
-      return unless id = @get('id')
+    return unless id = @get('id')
 
-      relatedRecords = self.setIndex().get(id)
-      @amSetting = true
-      @set label, relatedRecords
-      @amSetting = false
-      if relatedRecords.isEmpty()
-        relatedRecords.load (error, records) -> throw error if error
+    relatedRecords = self.setIndex().get(id)
+    @amSetting = true
+    @set label, relatedRecords
+    @amSetting = false
+    if self.options.autoload && relatedRecords.isEmpty()
+      relatedRecords.load (error, records) -> throw error if error
 
-      return relatedRecords
+    return relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)

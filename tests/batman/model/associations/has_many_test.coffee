@@ -4,7 +4,7 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 QUnit.module "Batman.Model hasMany Associations"
   setup: ->
     Batman.currentApp = null
-    namespace = {}
+    namespace = @namespace = {}
 
     namespace.Store = class @Store extends Batman.Model
       @encode 'id', 'name'
@@ -55,6 +55,23 @@ asyncTest "hasMany associations are loaded", 4, ->
     delay =>
       products.forEach (product) => ok product instanceof @Product
       deepEqual products.map((x) -> x.get('id')), [1,2,3]
+
+asyncTest "hasMany associations are not loaded when autoload is false", 1, ->
+  ns = @namespace
+  class Store extends Batman.Model
+    @encode 'id', 'name'
+    @hasMany 'products', {namespace: ns, autoload: false}
+
+  storeAdapter = createStorageAdapter Store, AsyncTestStorageAdapter,
+    stores1:
+      name: "Store One"
+      id: 1
+
+  Store.find 1, (err, store) =>
+    store
+    products = store.get 'products'
+    delay =>
+      equal products.length, 0
 
 asyncTest "hasMany associations can be reloaded", 4, ->
   @Store.find 1, (err, store) =>
