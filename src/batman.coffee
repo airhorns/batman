@@ -465,8 +465,13 @@ class Batman.Property
       @base._batman.ancestors (ancestor) ->
         if ancestor.isObservable and ancestor.hasProperty(key)
           property = ancestor.property(key)
-          handlers = property.event('change').handlers
+          handlers = property.changeEvent().handlers
           handlers.forEach(iterator)
+  observers: ->
+    results = []
+    @eachObserver (observer) -> results.push(observer)
+    results
+  hasObservers: -> @observers().length > 0
 
   pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
   pushDummySourceTracker: -> Batman.Property._sourceTrackerStack.push(null)
@@ -486,9 +491,11 @@ class Batman.Property
     @registerAsMutableSource()
     unless @cached
       @pushSourceTracker()
-      @value = @valueFromAccessor()
-      @cached = yes
-      @updateSourcesFromTracker()
+      try
+        @value = @valueFromAccessor()
+        @cached = yes
+      finally
+        @updateSourcesFromTracker()
     @value
 
   refresh: ->
@@ -514,19 +521,21 @@ class Batman.Property
   valueFromAccessor: -> @accessor().get?.call(@base, @key)
 
   setValue: (val) ->
-    @pushDummySourceTracker()
-    @cached = no
-    result = @accessor().set?.call(@base, @key, val)
-    @refresh()
-    @popSourceTracker()
-    result
+    return unless set = @accessor().set
+    @_changeValue -> set.call(@base, @key, val)
   unsetValue: ->
+    return unless unset = @accessor().unset
+    @_changeValue -> unset.call(@base, @key)
+
+  _changeValue: (block) ->
+    @cached = no
     @pushDummySourceTracker()
-    result = @accessor().unset?.call(@base, @key)
-    @refresh()
-    @popSourceTracker()
-    if (!@sources? || @sources.length == 0) && @changeEvent().handlers?.length == 0
-      @base._batman?.properties?.unset(@key)
+    try
+      result = block.apply(this)
+      @refresh()
+    finally
+      @popSourceTracker()
+    @die() if @value is undefined and not @hasObservers()
     result
 
   forget: (handler) ->
@@ -542,10 +551,12 @@ class Batman.Property
     @getValue() unless @sources?
     this
 
-  removeSourceHandlers: ->
+  die: ->
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
-    @forget()
+    @changeEvent().handlers.clear()
+    @base._batman?.properties?.unset(@key)
+    @isDead = true
 
   fire: -> @changeEvent().fire(arguments...)
 
@@ -3640,7 +3651,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
   destroy: ->
     @forget()
-    @_batman.properties?.forEach (key, property) -> property.removeSourceHandlers()
+    @_batman.properties?.forEach (key, property) -> property.die()
 
   parseFilter: ->
     # Store the function which does the filtering and the arguments (all except the actual value to apply the

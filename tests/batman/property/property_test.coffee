@@ -83,13 +83,15 @@ test "observed properties should not call the accessor when cached", ->
   equal spy.callCount, 0
 
 test "observed properties should call the accessor when changed", ->
-  @class.accessor 'foo', (spy = createSpy())
+  @class.accessor 'foo',
+    get: getter = createSpy()
+    set: ->
   @object.property('foo').sources = new Batman.SimpleSet()
   @object.observe 'foo', ->
 
-  equal spy.callCount, 0
+  equal getter.callCount, 0
   @object.set 'foo', 12345
-  equal spy.callCount, 1
+  equal getter.callCount, 1
 
 
 QUnit.module 'Batman.Property',
