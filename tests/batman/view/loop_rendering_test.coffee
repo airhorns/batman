@@ -213,8 +213,26 @@ asyncTest 'it should order loops among their siblings properly', 5, ->
     equal 'corn', $('span', div).get(0).innerHTML, "Node before the loop is rendered"
     equal 'qux', $('span', div).get(1).innerHTML, "Node before the loop is rendered"
     equal 'p', div.childNodes[1].tagName.toLowerCase(), "Order of nodes is preserved"
-    equal 'span', div.childNodes[4].tagName.toLowerCase(), "Order of nodes is preserved"
-    equal 'span', div.childNodes[0].tagName.toLowerCase(), "Order of nodes is preserved"
+    equal 'span', $(':first', div).get(0).tagName.toLowerCase(), "Order of nodes is preserved"
+    equal 'span', $(':last', div).get(0).tagName.toLowerCase(), "Order of nodes is preserved"
+    QUnit.start()
+
+asyncTest 'it should order consecutive loops among their siblings properly', 1, ->
+  Batman.Filters.times = (multiplicand, multiplier) -> multiplicand * multiplier
+  source = '''
+    <div>
+      <p data-foreach-object="objects" data-bind="object"></p>
+      <p data-foreach-object="objects" data-bind="object | times 2"></p>
+      <p data-foreach-object="objects" data-bind="object | times 3"></p>
+      <p data-foreach-object="objects" data-bind="object | times 4"></p>
+    </div>
+  '''
+  objects = new Batman.Set(1,2,3)
+
+  helpers.render source, false, {objects}, (node) ->
+    div = node.childNodes[0]
+    deepEqual getVals(div), [1,2,3,2,4,6,3,6,9,4,8,12]
+    delete Batman.Filters.times
     QUnit.start()
 
 asyncTest 'it should loop over hashes', 6, ->
@@ -226,7 +244,7 @@ asyncTest 'it should loop over hashes', 6, ->
   )
 
   helpers.render source, false, {playerScores}, (node, view) ->
-    for childNode in node.childNodes
+    $('p', node).each (i, childNode) ->
       equal childNode.className,  'present'
       equal parseInt(childNode.innerHTML, 10), playerScores.get(childNode.id)
     QUnit.start()
@@ -237,20 +255,19 @@ asyncTest 'it should update as a hash has items added and removed', 8, ->
     playerScores: new Batman.Hash
       mario: 5
 
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.childNodes[0].id, 'mario'
-    equal node.childNodes[0].innerHTML, '5'
+  helpers.render source, context, (node, view) ->
+    equal $(':first', node).attr('id'), 'mario'
+    equal $(':first', node).html(), '5'
     context.playerScores.set 'link', 10
     delay =>
-      equal node.childNodes[0].id, 'mario'
-      equal node.childNodes[0].innerHTML, '5'
-      equal node.childNodes[1].id, 'link'
-      equal node.childNodes[1].innerHTML, '10'
+      equal $(':first', node).attr('id'), 'mario'
+      equal $(':first', node).html(), '5'
+      equal $(':nth-child(2)', node).attr('id'), 'link'
+      equal $(':nth-child(2)', node).html(), '10'
       context.playerScores.unset 'mario'
       delay =>
-        equal node.childNodes[0].id, 'link'
-        equal node.childNodes[0].innerHTML, '10'
+        equal $(':first', node).attr('id'), 'link'
+        equal $(':first', node).html(), '10'
 
 asyncTest 'it should loop over js objects', 6, ->
   source = '<p data-foreach-player="playerScores" class="present" data-bind-id="player" data-bind="playerScores[player]"></p>'
@@ -260,7 +277,7 @@ asyncTest 'it should loop over js objects', 6, ->
     crono: 10
 
   helpers.render source, false, {playerScores}, (node, view) ->
-    for childNode in node.childNodes
+    $('p', node).each (i, childNode) ->
       equal childNode.className,  'present'
       equal parseInt(childNode.innerHTML, 10), playerScores[childNode.id]
     QUnit.start()
@@ -349,7 +366,7 @@ asyncTest 'it shouldn\'t become desynchronized with a fancy filtered style set',
         deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
 
 getVals = (node) ->
-  parseInt(child.innerHTML, 10) for child in node.childNodes
+  parseInt(child.innerHTML, 10) for child in $(node).children()
 
 asyncTest 'it should stop previous ongoing renders if items are removed', ->
   getSet = (seed) -> new Batman.Set(seed, seed+1, seed+2)

@@ -4004,8 +4004,9 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @prototypeNode.removeAttribute "data-foreach-#{@iteratorName}"
 
     @parentNode = sourceNode.parentNode
-    @siblingNode = sourceNode.nextSibling
-
+    previousSiblingNode = sourceNode.nextSibling
+    @siblingNode = document.createComment "end #{@iteratorName}"
+    $insertBefore @parentNode, @siblingNode, previousSiblingNode
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
       # Move any Batman.data from the sourceNode to the prototype; we need to
@@ -4149,17 +4150,11 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
-          $insertBefore @parentNode, @fragment, @nextSibling()
+          $insertBefore @parentNode, @fragment, @siblingNode
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber
           @parentRenderer.allowAndFire 'rendered'
-
-  nextSibling: ->
-    if @lastNode
-      @lastNode.nextSibling
-    else if @initialSiblingNode?.parentNode
-      @initialSiblingNode
 
   _nodeForItem: (item) ->
     newNode = @prototypeNode.cloneNode(true)
