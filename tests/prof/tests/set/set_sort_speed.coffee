@@ -1,7 +1,7 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../../lib/batman'
 Watson = require 'watson'
-Clunk  = require './lib/clunk'
-Random = require './lib/number_generator'
+Clunk  = require '../lib/clunk'
+Random = require '../lib/number_generator'
 
 # 69ad8b18908c0171601db7198ffe5e78c73095ee
 # Batman.Set::sortedBy(key) and associated accessor

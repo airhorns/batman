@@ -1,6 +1,6 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../lib/batman'
 Watson = require 'watson'
-TestStorageAdapter = require './lib/test_storage_adapter'
+TestStorageAdapter = require '../lib/test_storage_adapter'
 
 Watson.ensureCommitted 'v0.6.1', ->
   class Product extends Batman.Model

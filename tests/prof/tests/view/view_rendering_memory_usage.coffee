@@ -1,14 +1,10 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../lib/batman'
 Watson = require 'watson'
 microtime = require 'microtime'
 jsdom = require 'jsdom'
 
 global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
 global.document = window.document
-
-simpleSource = '''
-<div data-bind="foo"></div>
-'''
 
 loopSource = '''
 <div data-foreach-obj="objects">

@@ -1,7 +1,7 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../lib/batman'
 Watson = require 'watson'
-Clunk  = require './lib/clunk'
-Random = require './lib/number_generator'
+Clunk  = require '../lib/clunk'
+Random = require '../lib/number_generator'
 
 generator = new Random(0, 10, 2000)
 clunks = (new Clunk(number: generator.next()) for i in [0...100])

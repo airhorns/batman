@@ -1,4 +1,4 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../lib/batman'
 Watson = require 'watson'
 microtime = require 'microtime'
 jsdom = require 'jsdom'

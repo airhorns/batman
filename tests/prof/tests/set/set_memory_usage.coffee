@@ -1,6 +1,6 @@
-Batman = require './../../../lib/batman'
+Batman = require '../../../../lib/batman'
 Watson = require 'watson'
-Clunk  = require './lib/clunk'
+Clunk  = require '../lib/clunk'
 
 set = new Batman.Set
 
