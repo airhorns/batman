@@ -439,6 +439,7 @@ class Batman.Property
   value: null
   sources: null
   isProperty: true
+  isDead: false
   eventClass: Batman.PropertyEvent
 
   isEqual: (other) ->
