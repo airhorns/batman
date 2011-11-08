@@ -13,6 +13,30 @@
 #   constructor: (obj) ->
 #     @[key] = val for own key, val of obj if obj
 
+
+QUnit.module 'Batman.Property final properties',
+  setup: ->
+    @thing = new Batman.Object
+    @thing.accessor 'foo',
+      get: -> @get('baz')
+      final: true
+    @thing.accessor 'bar', Batman.mixin({}, Batman.Property.defaultAccessor, final: true)
+
+test "get(key) for a final property locks in the first defined value", ->
+  strictEqual @thing.get('foo'), undefined
+  @thing.set('baz', 'something')
+  strictEqual @thing.get('foo'), 'something'
+  @thing.set('baz', 'something else')
+  strictEqual @thing.get('foo'), 'something'
+
+test "set(key) for a final property locks in the value unless it is undefined", ->
+  @thing.set 'bar', undefined
+  strictEqual @thing.get('bar'), undefined
+  @thing.set 'bar', null
+  strictEqual @thing.get('bar'), null
+  @thing.set 'bar', 'something else'
+  strictEqual @thing.get('bar'), null
+
 QUnit.module 'Batman.Property source tracking'
   setup: ->
     @class = class extends Batman.Object

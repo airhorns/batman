@@ -498,13 +498,17 @@ class Batman.Property
         @cached = yes
       finally
         @updateSourcesFromTracker()
+    @lockValue() if @value isnt undefined and @isFinal()
     @value
 
   isCachable: ->
+    return true if @isFinal()
     cachable = @accessor().cachable
     if cachable? then !!cachable else true
 
   isCached: -> @isCachable() and @cached
+
+  isFinal: -> !!@accessor().final
 
   refresh: ->
     @cached = no
@@ -558,11 +562,20 @@ class Batman.Property
     @changeEvent().addHandler(handler)
     @getValue() unless @sources?
     this
-
-  die: ->
+    
+  _removeHandlers: ->
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
+    delete @sources
     @changeEvent().handlers.clear()
+
+  lockValue: ->
+    @_removeHandlers()
+    @getValue = -> @value
+    @setValue = @unsetValue = @refresh = @observe = ->
+
+  die: ->
+    @_removeHandlers()
     @base._batman?.properties?.unset(@key)
     @isDead = true
 
