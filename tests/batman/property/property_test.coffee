@@ -13,7 +13,7 @@
 #   constructor: (obj) ->
 #     @[key] = val for own key, val of obj if obj
 
-QUnit.module 'Batman.Property basics'
+QUnit.module 'Batman.Property source tracking'
   setup: ->
     @class = class extends Batman.Object
     @object = new @class
@@ -44,6 +44,54 @@ test "calling mutators from inside an accessor does not add a new source", ->
   @object.get('foo')
 
   deepEqual @object.property('foo').sources.toArray(), []
+
+
+QUnit.module 'Batman.Property laziness'
+  setup: ->
+    @class = class extends Batman.Object
+    @object = new @class
+
+test "accessing a property with a cached value should not call the accessor", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').cached = yes
+  @object.property('foo').value = 12345
+
+  equal @object.get('foo'), 12345
+  equal spy.callCount, 0
+
+test "observing a property should call the accessor to populate its sources", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 1
+
+test "observing a property should not call the accessor if it has loaded its sources", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').sources = new Batman.SimpleSet()
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 0
+
+test "observed properties should not call the accessor when cached", ->
+  @class.accessor 'foo', (spy = createSpy())
+  @object.property('foo').cached = yes
+  @object.property('foo').value = 'yup'
+  @object.observe 'foo', ->
+
+  equal spy.callCount, 0
+  @object.property('foo').fire()
+  equal spy.callCount, 0
+
+test "observed properties should call the accessor when changed", ->
+  @class.accessor 'foo',
+    get: getter = createSpy()
+    set: ->
+  @object.property('foo').sources = new Batman.SimpleSet()
+  @object.observe 'foo', ->
+
+  equal getter.callCount, 0
+  @object.set 'foo', 12345
+  equal getter.callCount, 1
 
 
 QUnit.module 'Batman.Property',
@@ -100,13 +148,24 @@ test "getValue() stores the value in .value and sets .cached to true", ->
   strictEqual property.cached, yes
 
 test "getValue() just returns the .value without hitting the accessor if .cached is true", ->
-  property = @baseWithNestedAccessors.property('baz')
+  property = @baseWithNestedAccessors.property('bar')
   spy = spyOn(property.accessor(), 'get')
 
   property.cached = yes
   property.value = 'cached'
   strictEqual property.getValue(), 'cached'
   ok not spy.called
+
+test "getValue() ignores the cache if its accessor has cachable: false", ->
+  property = @baseWithNestedAccessors.property('baz') # uses Batman.Property.defaultAccessor, which has caching turned off
+  strictEqual property.accessor().cachable, false
+  strictEqual property.isCachable(), false
+  
+  spy = spyOn(property.accessor(), 'get')
+  property.cached = yes
+  property.value = 'cached'
+  strictEqual property.getValue(), @mutableSomething
+  ok spy.called
 
 test "refresh() should recursively refresh .value and set .sources to the properties accessed directly by the accessor's getter", ->
   foo = @baseWithNestedAccessors.property('foo')
