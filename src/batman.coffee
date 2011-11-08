@@ -3505,6 +3505,18 @@ Batman.DOM = {
       Batman.DOM.events.click node, -> $redirect url
       true
 
+    view: (node, key, context, renderer) ->
+      renderer.prevent('rendered')
+      node.removeAttribute "data-view"
+      [viewClass] = context.findKey(key)
+      view = new viewClass
+        node: node
+        context: context
+
+      view.on 'ready', -> renderer.allowAndFire 'rendered'
+
+      false
+
     partial: (node, path, context, renderer) ->
       Batman.DOM.partial node, path, context, renderer
       true
