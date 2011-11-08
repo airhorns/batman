@@ -23,6 +23,14 @@ test "primary key is 'id' by default", ->
   product = new @Product(id: 10)
   equal product.get('id'), 10
 
+test "integer string ids should be coerced into integers", 1, ->
+  product = new @Product(id: "1234")
+  strictEqual product.get('id'), 1234
+
+test "non-integer string ids should not be coerced", 1, ->
+  product = new @Product(id: "123d")
+  strictEqual product.get('id'), "123d"
+
 test "updateAttributes will update a model's attributes", ->
   product = new @Product(id: 10)
   product.updateAttributes {name: "foobar", id: 20}
