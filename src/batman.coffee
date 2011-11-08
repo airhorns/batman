@@ -3426,20 +3426,20 @@ Batman.DOM = {
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # `replace` is used to replace yielded content.
   # This can be used for abstraction as well as repetition.
-  yield: (name, node, _replaceContent = !Batman.data(node, 'yielded')) ->
+  yield: (name, node, _replaceContent = !Batman._data(node, 'yielded')) ->
     Batman.DOM._yields[name] = node
 
     # render any content for this yield
     if contents = Batman.DOM._yieldContents[name]
       if _replaceContent
         $setInnerHTML node, '', true
-      for content in contents when !Batman.data(content, 'yielded')
+      for content in contents when !Batman._data(content, 'yielded')
         content = content.cloneNode(true) if $isChildOf(node, content)
         $appendChild node, content, true
-        Batman.data(content, 'yielded', true)
+        Batman._data(content, 'yielded', true)
       # delete references to the rendered content nodes and mark the node as yielded
       delete Batman.DOM._yieldContents[name]
-      Batman.data(node, 'yielded', true)
+      Batman._data(node, 'yielded', true)
 
   contentFor: (name, node, _replaceContent) ->
     contents = Batman.DOM._yieldContents[name]
@@ -3455,26 +3455,27 @@ Batman.DOM = {
   # data, so that upon node removal we can unset the binding and any other objects
   # it retains.
   trackBinding: $trackBinding = (binding, node) ->
-    if bindings = Batman.data node, 'bindings'
+    if bindings = Batman._data node, 'bindings'
       bindings.add binding
     else
-      Batman.data node, 'bindings', new Batman.SimpleSet(binding)
+      Batman._data node, 'bindings', new Batman.SimpleSet(binding)
 
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
   # or removed without leaking memory
   unbindNode: $unbindNode = (node) ->
     # break down all bindings
-    if bindings = Batman.data node, 'bindings'
+    if bindings = Batman._data node, 'bindings'
       bindings.forEach (binding) -> binding.destroy()
 
     # remove all event listeners
-    if listeners = Batman.data node, 'listeners'
+    if listeners = Batman._data node, 'listeners'
       for eventName, eventListeners of listeners
         eventListeners.forEach (listener) ->
           $removeEventListener node, eventName, listener
 
     # remove all bindings and other data associated with this node
     Batman.removeData node
+    Batman.removeData node, undefined, true
 
   # Unbinds the tree rooted at `node`.
   # When set to `false`, `unbindRoot` skips the `node` before unbinding all of its children.
@@ -3527,8 +3528,8 @@ Batman.DOM = {
   # `$addEventListener uses attachEvent when necessary
   addEventListener: $addEventListener = (node, eventName, callback) ->
     # store the listener in Batman.data
-    unless listeners = Batman.data node, 'listeners'
-      listeners = Batman.data node, 'listeners', {}
+    unless listeners = Batman._data node, 'listeners'
+      listeners = Batman._data node, 'listeners', {}
     unless listeners[eventName]
       listeners[eventName] = new Batman.Set
     listeners[eventName].add callback
@@ -3541,7 +3542,7 @@ Batman.DOM = {
   # `$removeEventListener` uses detachEvent when necessary
   removeEventListener: $removeEventListener = (node, eventName, callback) ->
     # remove the listener from Batman.data
-    if listeners = Batman.data node, 'listeners'
+    if listeners = Batman._data node, 'listeners'
       if eventListeners = listeners[eventName]
         eventListeners.remove callback
 
@@ -3555,11 +3556,11 @@ Batman.DOM = {
   didRemoveNode: (node) -> $unbindTree node
 
   onParseExit: $onParseExit = (node, callback) ->
-    set = Batman.data(node, 'onParseExit') || Batman.data(node, 'onParseExit', new Batman.SimpleSet)
+    set = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', new Batman.SimpleSet)
     set.add callback if callback?
     set
 
-  forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit')
+  forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 }
 
 # Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
@@ -3800,14 +3801,14 @@ class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   dataChange: (value) ->
     @node[@attributeName] = !!value
     # Update the parent's binding if necessary
-    Batman.data(@node.parentNode, 'updateBinding')?()
+    Batman._data(@node.parentNode, 'updateBinding')?()
 
   constructor: ->
     super
     # Attach this binding to the node under the attribute name so that parent
     # bindings can query this binding and modify its state. This is useful
     # for <options> within a select or radio buttons.
-    Batman.data @node, @attributeName, @
+    Batman._data @node, @attributeName, @
 
 class Batman.DOM.ClassBinding extends Batman.DOM.AbstractCollectionBinding
   dataChange: (value) ->
@@ -3914,7 +3915,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     # wait for the select to render before binding to it
     @renderer.on 'rendered', =>
       if @node?
-        Batman.data @node, 'updateBinding', @updateSelectBinding
+        Batman._data @node, 'updateBinding', @updateSelectBinding
         @bind()
 
   dataChange: (newValue) =>
@@ -3956,7 +3957,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     # Go through the option nodes and update their bindings using the
     # context and key attached to the node via Batman.data
     for child in @node.children
-      if selectedBinding = Batman.data(child, 'selected')
+      if selectedBinding = Batman._data(child, 'selected')
         selectedBinding.nodeChange(selectedBinding.node)
     true
 
@@ -4036,7 +4037,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     $insertBefore @parentNode, @siblingNode, previousSiblingNode
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
-      # Move any Batman.data from the sourceNode to the prototype; we need to
+      # Move any Batman._data from the sourceNode to the prototype; we need to
       # retain the bindings, and we want to dispose of the node.
       @prototypeNode[Batman.expando] = sourceNode[Batman.expando]
       delete sourceNode[Batman.expando] if Batman.canDeleteExpando
@@ -4124,7 +4125,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
   removeItem: (item) ->
     return if @destroyed
-    @_removeOldAction(item)
+    @_removeActionsForItem(item)
     oldNode = @nodeMap.unset(item)
     if oldNode
       if hideFunction = Batman.data oldNode, 'hide'
@@ -4137,16 +4138,16 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     futureActionNumber = @actionMap.get(item)
     if futureActionNumber? && futureActionNumber > options.actionNumber
       # This same action is scheduled for the future, do it then to preserve ordering instead of now.
-      @actions[options.actionNumber] = ->
+      @actions[options.actionNumber] = false
     else
-      @_removeOldAction(item)
+      @_removeActionsForItem(item)
       @actionMap.set item, options.actionNumber
       if @nodeMap.get(item) != node
         # The render has rendered a node which is now out of date, do nothing.
-        @actions[options.actionNumber] ||= ->
+        @actions[options.actionNumber] = false
       else
         @rendererMap.unset item
-        @actions[options.actionNumber] ||= ->
+        @actions[options.actionNumber] = ->
           show = Batman.data node, 'show'
           if typeof show is 'function'
             show.call node, before: @siblingNode
@@ -4168,9 +4169,10 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
         delete @actionQueueTimeout
         startTime = new Date
 
-        while !!(f = @actions[@currentActionNumber])
-          @actions[@currentActionNumber] = true
-          f.call(@)
+        while (f = @actions[@currentActionNumber])?
+          delete @actions[@currentActionNumber]
+          @actionMap.unset f.item
+          f.call(@) if f
           @currentActionNumber++
 
           if @deferEvery && (new Date - startTime) > @deferEvery
@@ -4188,11 +4190,11 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @nodeMap.set(item, newNode)
     newNode
 
-  _removeOldAction: (item) ->
+  _removeActionsForItem: (item) ->
     oldActionNumber = @actionMap.get(item)
     if oldActionNumber? && oldActionNumber > @currentActionNumber
       @actionMap.unset(item)
-      @actions[oldActionNumber] = ->
+      delete @actions[oldActionNumber] = false
 
 # Filters
 # -------
@@ -4300,15 +4302,10 @@ $mixin Batman,
     return  unless Batman.acceptData(elem)
     internalKey = Batman.expando
     getByName = typeof name == "string"
-    # DOM nodes and JS objects have to be handled differently because IE6-7 can't
-    # GC object references properly across the DOM-JS boundary
-    isNode = elem.nodeType
-    # Only DOM nodes need the global cache; JS object data is attached directly so GC
-    # can occur automatically
-    cache = if isNode then Batman.cache else elem
+    cache = Batman.cache
     # Only defining an ID for JS objects if its cache already exists allows
     # the code to shortcut on the same path as a DOM node with no cache
-    id = if isNode then elem[Batman.expando] else elem[Batman.expando] && Batman.expando
+    id = elem[Batman.expando]
 
     # Avoid doing any more work than we need to when trying to get data on an
     # object that has no data at all
@@ -4316,17 +4313,15 @@ $mixin Batman,
       return
 
     unless id
-      # Only DOM nodes need a new unique ID for each element since their data
-      # ends up in the global cache
       # Also check that it's not a text node; IE can't set expandos on them
-      if isNode and elem.nodeType isnt 3
+      if elem.nodeType isnt 3
         elem[Batman.expando] = id = ++Batman.uuid
       else
         id = Batman.expando
 
     cache[id] = {} unless cache[id]
 
-    # An object can be passed to Batman.data instead of a key/value pair; this gets
+    # An object can be passed to Batman._data instead of a key/value pair; this gets
     # shallow copied over onto the existing cache
     if typeof name == "object" or typeof name == "function"
       if pvt
@@ -4340,19 +4335,17 @@ $mixin Batman,
     # cache in order to avoid key collisions between internal data and user-defined
     # data
     if pvt
-      thisCache[internalKey] = {} unless thisCache[internalKey]
+      thisCache[internalKey] ||= {}
       thisCache = thisCache[internalKey]
 
-    unless data is undefined
-      thisCache[helpers.camelize(name, true)] = data
+    if data != undefined
+      thisCache[name] = data
 
     # Check for both converted-to-camel and non-converted data property names
     # If a data property was specified
     if getByName
       # First try to find as-is property data
       ret = thisCache[name]
-      # Test for null|undefined property data and try to find camel-cased property
-      ret = thisCache[helpers.camelize(name, true)]  unless ret?
     else
       ret = thisCache
 
@@ -4363,8 +4356,8 @@ $mixin Batman,
     internalKey = Batman.expando
     isNode = elem.nodeType
     # non DOM-nodes have their data attached directly
-    cache = if isNode then Batman.cache else elem
-    id = if isNode then elem[Batman.expando] else Batman.expando
+    cache = Batman.cache
+    id = elem[Batman.expando]
 
     # If there is already no cache entry for this object, there is no
     # purpose in continuing
@@ -4374,7 +4367,6 @@ $mixin Batman,
       thisCache = if pvt then cache[id][internalKey] else cache[id]
       if thisCache
         # Support interoperable removal of hyphenated or camelcased keys
-        name = helpers.camelize(name, true) unless thisCache[name]
         delete thisCache[name]
         # If there is no data left in the cache, we want to continue
         # and let the cache object itself get destroyed
@@ -4405,7 +4397,7 @@ $mixin Batman,
       cache[id][internalKey] = internalCache
     # Otherwise, we need to eliminate the expando on the node to avoid
     # false lookups in the cache for entries that no longer exist
-    else if isNode
+    else
       if Batman.canDeleteExpando
         delete elem[Batman.expando]
       else if elem.removeAttribute
@@ -4429,7 +4421,6 @@ isEmptyDataObject = (obj) ->
   for name of obj
     return false
   return true
-
 
 # Mixins
 # ------

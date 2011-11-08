@@ -255,6 +255,7 @@ asyncTest 'it binds the options of a select box and updates when the select\'s v
     something: 'crono'
     mario: Batman(selected: null)
     crono: Batman(selected: null)
+
   helpers.render '<select data-bind="something"><option value="mario" data-bind-selected="mario.selected"></option><option value="crono" data-bind-selected="crono.selected"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
       equal node[0].value, 'crono'
@@ -300,11 +301,12 @@ asyncTest 'it binds the value of a multi-select box and updates the value when t
         for opt in node[0].children
           ok opt.selected, "#{opt.value} option is selected"
 
-asyncTest 'should be able to remove bound select nodes', 1, ->
+asyncTest 'should be able to remove bound select nodes', 2, ->
   context = new Batman.Object selected: "foo"
   helpers.render '<select data-bind="selected"><option value="foo">foo</option></select>', context, (node) ->
     Batman.DOM.removeNode(node[0])
     deepEqual Batman.data(node[0]), {}
+    deepEqual Batman._data(node[0]), {}
     QUnit.start()
 
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->

@@ -28,10 +28,10 @@ dataTests = (elem) ->
   strictEqual Batman.data(elem, "foo"), null, "Setting null using Batman.data works OK"
 
   Batman.data elem, "foo", "foo1"
-  Batman.data elem, 
+  Batman.data elem,
     bar: "baz"
     boom: "bloz"
-  
+
   strictEqual Batman.data(elem, "foo"), "foo1", "Passing an object extends the data object instead of replacing it"
   equals Batman.data(elem, "boom"), "bloz", "Extending the data object works"
 
@@ -103,12 +103,9 @@ test "expando", ->
   equals "expando" of Batman, true, "Batman is exposing the expando"
 
 test "Batman.data", ->
-  expect 128
+  expect 64
   div = document.createElement("div")
   dataTests div
-  dataTests {}
-  window.unload = null
-  dataTests window
   dataTests document
 
 test "Batman.acceptData", ->
@@ -148,56 +145,10 @@ test "Batman.data should not miss data with preset hyphenated property names", -
   expect 2
   div = document.createElement 'div'
   div.id = 'hyphened'
-  test = 
+  test =
     camelBar: "camelBar"
     "hyphen-foo": "hyphen-foo"
-  
+
   Batman.data div, test
   for k, v of test
     equal Batman.data(div, k), k, "data with property '" + k + "' was correctly found"
-
-test "Batman.data supports interoperable hyphenated/camelCase get/set of properties with arbitrary non-null|NaN|undefined values", ->
-  div = document.createElement 'div'
-  div.id = 'hyphened'
-  datas =
-    "non-empty": "a string"
-    "empty-string": ""
-    "one-value": 1
-    "zero-value": 0
-    "an-array": []
-    "an-object": {}
-    "bool-true": true
-    "bool-false": false
-    "some-json": "{ \"foo\": \"bar\" }"
-    "num-1-middle": true
-    "num-end-2": true
-    "2-num-start": true
-  
-  expect 24
-  for key, val of datas
-    Batman.data div, key, val
-    deepEqual Batman.data(div, key), val, "get: " + key
-    deepEqual Batman.data(div, Batman.helpers.camelize(key,yes)), val, "get: " + Batman.helpers.camelize(key,yes)
-
-test "Batman.data supports interoperable removal of hyphenated/camelCase properties", ->
-  div = document.createElement 'div'
-  div.id = 'hyphened'
-  datas =
-    "non-empty": "a string"
-    "empty-string": ""
-    "one-value": 1
-    "zero-value": 0
-    "an-array": []
-    "an-object": {}
-    "bool-true": true
-    "bool-false": false
-    "some-json": "{ \"foo\": \"bar\" }"
-
-  expect 27
-  for key, val of datas
-    Batman.data div, key, val
-    deepEqual Batman.data(div, key), val, "get: " + key
-    deepEqual Batman.data(div, Batman.helpers.camelize(key,yes)), val, "get: " + Batman.helpers.camelize(key,yes)
-    Batman.removeData div, key
-    equal Batman.data(div, key), undefined, "get: " + key
-

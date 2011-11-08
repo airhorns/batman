@@ -7,11 +7,11 @@ test "addEventListener and removeEventListener store and remove callbacks using 
   f = ->
 
   Batman.DOM.addEventListener div, 'click', f
-  listeners = Batman.data div, 'listeners'
+  listeners = Batman._data div, 'listeners'
   ok listeners.click.has f
 
   Batman.DOM.removeEventListener div, 'click', f
-  listeners = Batman.data div, 'listeners'
+  listeners = Batman._data div, 'listeners'
   ok !listeners.click.has f
 
 asyncTest "bindings are kept in Batman.data and destroyed when the node is removed", 6, ->
@@ -23,11 +23,11 @@ asyncTest "bindings are kept in Batman.data and destroyed when the node is remov
     parent = node[0]
     child = parent.childNodes[0]
     for node in [child, parent]
-      bindings = Batman.data node, 'bindings'
+      bindings = Batman._data node, 'bindings'
       ok !bindings.isEmpty()
 
       Batman.DOM.removeNode node
-      deepEqual Batman.data(node), {}
+      deepEqual Batman._data(node), {}
 
     context.set('bar', false)
     equal spy.callCount, 1
@@ -44,7 +44,7 @@ asyncTest "iterators are kept in Batman.data and destroyed when the parent node 
     toArraySpy = spyOn(set, 'toArray')
 
     Batman.DOM.removeNode(parent)
-    deepEqual Batman.data(parent), {}
+    deepEqual Batman._data(parent), {}
 
     context.set('bar', false)
     equal setSpy.callCount, 1
@@ -67,7 +67,7 @@ asyncTest "Batman.DOM.Style objects are kept in Batman.data and destroyed when t
     itemsAddedSpy = spyOn(set, 'itemsWereAdded')
 
     Batman.DOM.removeNode(node)
-    deepEqual Batman.data(node), {}
+    deepEqual Batman._data(node), {}
 
     context.set('styles', false)
     equal setSpy.callCount, 1
@@ -77,14 +77,14 @@ asyncTest "Batman.DOM.Style objects are kept in Batman.data and destroyed when t
     equal itemsAddedSpy.callCount, 0
     QUnit.start()
 
-asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 10, ->
+asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 12, ->
   context = new Batman.Object foo: ->
 
   helpers.render '<div data-event-click="foo"><div data-event-click="foo"></div></div>', context, (node) ->
     parent = node[0]
     child = parent.childNodes[0]
     for n in [child, parent]
-      listeners = Batman.data n, 'listeners'
+      listeners = Batman._data n, 'listeners'
       ok listeners and listeners.click
       ok listeners.click instanceof Batman.Set
       ok !listeners.click.isEmpty()
@@ -101,5 +101,6 @@ asyncTest "listeners are kept in Batman.data and destroyed when the node is remo
 
       ok spy.called
       deepEqual Batman.data(n), {}
+      deepEqual Batman._data(n), {}
 
     QUnit.start()
