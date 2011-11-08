@@ -24,8 +24,7 @@ Watson.ensureCommitted '7a418aea67be0b79ce11fd5616bd4627f4e576d9', ->
   '''
 
   Batman.Renderer::deferEvery = false
-  if Batman.DOM.IteratorBinding?
-    Batman.DOM.IteratorBinding::deferEvery = false
+  Batman.DOM.IteratorBinding::deferEvery = false
 
   node = document.createElement 'div'
   node.innerHTML = loopSource
@@ -38,11 +37,13 @@ Watson.ensureCommitted '7a418aea67be0b79ce11fd5616bd4627f4e576d9', ->
     node: node
 
   run = ->
-    Watson.trackMemory 'view memory usage: loop rendering', 1000, 5, (i) ->
+    Watson.trackMemory 'view memory usage: loop rendering with clear', 1000, 5, (i) ->
       objects.add(i)
-      objects.remove(Math.max(i - 10, 0))
+      if i % 300 == 0
+        objects.clear()
 
   if view.on?
     view.on 'ready', run
   else
     view.ready run
+

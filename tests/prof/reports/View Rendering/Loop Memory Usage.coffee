@@ -6,10 +6,11 @@ qs = (length) ->
   result = result.concat x for i in [0...length]
   result.join(', ')
 
-keys = ["view memory usage: simple", "view memory usage: loop rendering"]
+keys = ["view memory usage: simple", "view memory usage: loop rendering", "view memory usage: loop rendering with clear"]
 hashClass = Resultset.build 'name', 'value', ->
   @push ["Simple View Render", "view memory usage: simple"]
   @push ["Loop View Render with changes to the bound set", "view memory usage: loop rendering"]
+  @push ["Loop View Render with changes and clears on the bound set", "view memory usage: loop rendering with clear"]
 
 shas = query "SELECT DISTINCT (CONCAT(sha, ' ', human)) AS 'readable_sha', sha FROM Reports WHERE Reports.key = ?", params.key
 
