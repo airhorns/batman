@@ -364,6 +364,10 @@ asyncTest 'it shouldn\'t become desynchronized with a fancy filtered style set',
       x.set 'filtered', ''
       delay ->
         deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+        x.set 'filtered', 'a'
+        x.set 'filtered', ''
+        delay ->
+          deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
 
 getVals = (node) ->
   parseInt(child.innerHTML, 10) for child in $(node).children()
@@ -403,7 +407,9 @@ asyncTest 'it should stop previous ongoing renders if collection changes, but in
   helpers.render source, false, context, (node, view) ->
     deepEqual getVals(node), [1,2,3]
     context.set('all', getSet(2))
-    context.set('all', getSet(3))
     delay ->
-      deepEqual getVals(node), [3,4,5]
-
+      deepEqual getVals(node), [2,3,4]
+      context.set('all', getSet(3))
+      context.set('all', getSet(4))
+      delay ->
+        deepEqual getVals(node), [4,5,6]

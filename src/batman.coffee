@@ -3059,6 +3059,7 @@ class Batman.Renderer extends Batman.Object
 
   finish: ->
     @startTime = null
+    @prevent 'stopped'
     @fire 'parsed'
     @fire 'rendered'
 
@@ -3474,13 +3475,12 @@ Batman.DOM = {
           $removeEventListener node, eventName, listener
 
     # remove all bindings and other data associated with this node
-    Batman.removeData node
-    Batman.removeData node, undefined, true
+    Batman.removeData node                   # external data (Batman.data)
+    Batman.removeData node, undefined, true  # internal data (Batman._data)
 
   # Unbinds the tree rooted at `node`.
   # When set to `false`, `unbindRoot` skips the `node` before unbinding all of its children.
   unbindTree: $unbindTree = (node, unbindRoot = true) ->
-    return unless node?.nodeType is 1
     $unbindNode node if unbindRoot
     $unbindTree(child) for child in node.childNodes
 
@@ -3492,7 +3492,7 @@ Batman.DOM = {
 
   # Memory-safe removal of a node from the DOM
   removeNode: $removeNode = (node) ->
-    node?.parentNode?.removeChild node
+    node.parentNode?.removeChild node
     Batman.DOM.didRemoveNode(node)
 
   appendChild: $appendChild = (parent, child, args...) ->
@@ -4002,8 +4002,8 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
         else
           @setStyle key, keyValue
 
-  handleItemsWereAdded: (newKey) => @setStyle newKey, @collection.get(newKey)
-  handleItemsWereRemoved: (oldKey) => @setStyle oldKey, ''
+  handleItemsWereAdded: (newKey) => @setStyle newKey, @collection.get(newKey); return
+  handleItemsWereRemoved: (oldKey) => @setStyle oldKey, ''; return
 
   bindSingleAttribute: (attr, keyPath) -> new @constructor.SingleStyleBinding(@node, attr, keyPath, @renderContext, @renderer, @only, @)
 
@@ -4037,11 +4037,13 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     $insertBefore @parentNode, @siblingNode, previousSiblingNode
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
-      # Move any Batman._data from the sourceNode to the prototype; we need to
+      # Move any Batman._data from the sourceNode to the sibling; we need to
       # retain the bindings, and we want to dispose of the node.
-      @prototypeNode[Batman.expando] = sourceNode[Batman.expando]
+      @siblingNode[Batman.expando] = sourceNode[Batman.expando]
       delete sourceNode[Batman.expando] if Batman.canDeleteExpando
       $removeNode sourceNode
+      # Attach observers.
+      @bind()
 
     # Don't let the parent emit its rendered event until all the children have.
     # This `prevent`'s matching allow is run once the queue is empty in `processActionQueue`.
@@ -4052,62 +4054,67 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
     @fragment = document.createDocumentFragment()
 
-    # Attach observers.
-    @bind()
-
   destroy: ->
-    $unbindNode(@prototypeNode)
+    $unbindNode(@siblingNode)
     super
     @destroyed = true
 
   unbindCollection: ->
     if @collection
-      @nodeMap.forEach (item, node) -> $removeNode node
-      @nodeMap.clear()
-      @rendererMap.forEach (item, renderer) -> renderer.stop()
-      @rendererMap.clear()
+      @nodeMap.forEach (item) => @cancelExistingItem(item)
       super
 
   dataChange: (newCollection) ->
-    @bindCollection(newCollection)
+    if @collection != newCollection
+      @removeAll()
+
+    @bindCollection(newCollection) # Unbinds the old collection as well.
     if @collection
       if @collection.toArray
         @handleArrayChanged()
       else if @collection.forEach
-        @collection.forEach (item) => @addItem(item)
+        @collection.forEach (item) => @addOrInsertItem(item)
       else
-        @addItem(key) for own key, value of @collection
+        @addOrInsertItem(key) for own key, value of @collection
 
     else
       developer.warn "Warning! data-foreach-#{@iteratorName} called with an undefined binding. Key was: #{@key}."
-
     @processActionQueue()
 
-  handleItemsWereAdded: (items...) => @addItem(item, {fragment: true}) for item in items
-  handleItemsWereRemoved: (items...) => @removeItem(item) for item in items
+  handleItemsWereAdded: (items...) => @addOrInsertItem(item, {fragment: false}) for item in items; return
+  handleItemsWereRemoved: (items...) => @removeItem(item) for item in items; return
 
   handleArrayChanged: =>
     newItemsInOrder = @collection.toArray()
-    trackingNodeMap = new Batman.SimpleHash
+    nodesToRemove = (new Batman.SimpleHash).merge(@nodeMap)
     for item in newItemsInOrder
-      existingNode = @nodeMap.get(item)
-      trackingNodeMap.set(item, true)
-      if existingNode
-        @insertItem(item, existingNode, {fragment: false, actionNumber: @queuedActionNumber++, sync: true})
-      else
-        @addItem(item, {fragment: false})
+      @addOrInsertItem(item, {fragment: false})
+      nodesToRemove.unset(item)
 
-    @nodeMap.forEach (item, node) =>
-      @removeItem(item) unless trackingNodeMap.hasKey(item)
+    nodesToRemove.forEach (item, node) => @removeItem(item)
+
+  addOrInsertItem: (item, options = {}) ->
+    existingNode = @nodeMap.get(item)
+    if existingNode
+      @insertItem(item, existingNode, $mixin(options, {actionNumber: @queuedActionNumber++}))
+    else
+      @addItem(item, options)
 
   addItem: (item, options = {fragment: true}) ->
     @parentRenderer.prevent 'rendered'
 
+    # Remove any renderers in progress or actions lined up for an item, since we now know
+    # this item belongs at the end of the queue.
+    @cancelExistingItemActions(item) if @actionMap.get(item)?
+
     self = @
     options.actionNumber = @queuedActionNumber++
-    childRenderer = new Batman.Renderer @_nodeForItem(item),
-                                        (-> self.insertItem(item, @node, options)),
-                                        @renderContext.descend(item, @iteratorName)
+
+    # Render out the child in the custom context, and insert it once the render has completed the parse.
+    childRenderer = new Batman.Renderer @_nodeForItem(item), (->
+      self.rendererMap.unset(item)
+      self.insertItem(item, @node, options)
+    ), @renderContext.descend(item, @iteratorName)
 
     @rendererMap.set(item, childRenderer)
 
@@ -4118,47 +4125,71 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     childRenderer.on 'rendered', finish
     childRenderer.on 'stopped', =>
       return if @destroyed
-      @actions[options.actionNumber] = ->
+      @actions[options.actionNumber] = false
       finish()
       @processActionQueue()
     item
 
   removeItem: (item) ->
-    return if @destroyed
-    @_removeActionsForItem(item)
+    return if @destroyed || !item?
     oldNode = @nodeMap.unset(item)
+    @cancelExistingItem(item)
     if oldNode
       if hideFunction = Batman.data oldNode, 'hide'
         hideFunction.call(oldNode)
       else
         $removeNode(oldNode)
 
+  removeAll: -> @nodeMap.forEach (item) => @removeItem(item)
+
   insertItem: (item, node, options = {}) ->
     return if @destroyed
-    futureActionNumber = @actionMap.get(item)
-    if futureActionNumber? && futureActionNumber > options.actionNumber
-      # This same action is scheduled for the future, do it then to preserve ordering instead of now.
-      @actions[options.actionNumber] = false
+    existingActionNumber = @actionMap.get(item)
+    if existingActionNumber > options.actionNumber
+      # Another action for this item is scheduled for the future, do it then instead of now. Actions
+      # added later enforce order, so we make this one a noop and let the later one have its proper effects.
+      @actions[options.actionNumber] = ->
     else
-      @_removeActionsForItem(item)
-      @actionMap.set item, options.actionNumber
-      if @nodeMap.get(item) != node
-        # The render has rendered a node which is now out of date, do nothing.
-        @actions[options.actionNumber] = false
-      else
-        @rendererMap.unset item
-        @actions[options.actionNumber] = ->
-          show = Batman.data node, 'show'
-          if typeof show is 'function'
-            show.call node, before: @siblingNode
-          else
-            if options.fragment
-              @fragment.appendChild node
-            else
-              $insertBefore @parentNode, node, @siblingNode
+      # Another action has been scheduled for this item. It hasn't been done yet because
+      # its in the actionmap, but this insert is scheduled to happen after it. Skip it since its now defunct.
+      if existingActionNumber
+        @cancelExistingItemActions(item)
 
-    @actions[options.actionNumber].item = item
+      # Update the action number map to now reflect this new action which will go on the end of the queue.
+      @actionMap.set item, options.actionNumber
+      @actions[options.actionNumber] = ->
+        show = Batman.data node, 'show'
+        if typeof show is 'function'
+          show.call node, before: @siblingNode
+        else
+          if options.fragment
+            @fragment.appendChild node
+          else
+            $insertBefore @parentNode, node, @siblingNode
+
+      @actions[options.actionNumber].item = item
     @processActionQueue()
+
+  cancelExistingItem: (item) ->
+    @cancelExistingItemActions(item)
+    @cancelExistingItemRender(item)
+
+  cancelExistingItemActions: (item) ->
+    oldActionNumber = @actionMap.get(item)
+    # Only remove actions which haven't been completed yet.
+    if oldActionNumber? && oldActionNumber >= @currentActionNumber
+      @actionMap.unset(item)
+      @actions[oldActionNumber] = false
+
+    @actionMap.unset item
+
+  cancelExistingItemRender: (item) ->
+    oldRenderer = @rendererMap.get(item)
+    if oldRenderer
+      oldRenderer.stop()
+      $removeNode(oldRenderer.node)
+
+    @rendererMap.unset item
 
   processActionQueue: ->
     return if @destroyed
@@ -4189,12 +4220,6 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     newNode = @prototypeNode.cloneNode(true)
     @nodeMap.set(item, newNode)
     newNode
-
-  _removeActionsForItem: (item) ->
-    oldActionNumber = @actionMap.get(item)
-    if oldActionNumber? && oldActionNumber > @currentActionNumber
-      @actionMap.unset(item)
-      delete @actions[oldActionNumber] = false
 
 # Filters
 # -------
