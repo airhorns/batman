@@ -3000,8 +3000,6 @@ class Batman.View extends Batman.Object
   # Set an existing DOM node to parse immediately.
   node: null
 
-  contentFor: null
-
   # Fires once a node is parsed.
   @::event('ready').oneShot = true
 
@@ -3028,31 +3026,14 @@ class Batman.View extends Batman.Object
       return @node
     set: (_, node) -> @node = node
 
-
   render: (node) ->
     @event('ready').resetOneShot()
-
-    if @_renderer
-      @_renderer.forgetAll()
+    @_renderer?.forgetAll()
 
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
-      @_renderer = new Batman.Renderer(node, =>
-        yieldTo = @contentFor
-        if typeof yieldTo is 'string'
-          @contentFor = Batman.DOM._yields[yieldTo]
-
-        if @contentFor and node
-          $setInnerHTML @contentFor, ''
-          $appendChild @contentFor, node
-        else if yieldTo
-          if contents = Batman.DOM._yieldContents[yieldTo]
-            contents.push node
-          else
-            Batman.DOM._yieldContents[yieldTo] = [node]
-      , @contexts)
-
+      @_renderer = new Batman.Renderer(node, null, @contexts)
       @_renderer.on 'rendered', => @fire('ready', node)
 
 # DOM Helpers
@@ -3316,17 +3297,7 @@ Batman.DOM = {
       true
 
     partial: (node, path, context, renderer) ->
-      renderer.prevent('rendered')
-
-      view = new Batman.View
-        source: path
-        contentFor: node
-        contexts: context.chain()
-
-      view.on 'ready', ->
-        # Get rid of the surrounding div inserted by the view
-        $setInnerHTML @node.parentNode, @node.innerHTML
-        renderer.allowAndFire 'rendered'
+      Batman.DOM.partial node, path, context, renderer
       true
 
     defineview: (node, name, context, renderer) ->
@@ -3473,6 +3444,20 @@ Batman.DOM = {
 
   replace: (name, node) ->
     Batman.DOM.contentFor name, node, true
+
+  partial: (container, path, context, renderer) ->
+    renderer.prevent 'rendered'
+
+    view = new Batman.View
+      source: path
+      contexts: context.chain()
+    view.on 'ready', ->
+      $setInnerHTML container, ''
+      # Render the partial content into the data-partial node
+      # Text nodes move when they are appended, so copy childNodes
+      children = (node for node in view.get('node').childNodes)
+      $appendChild(container, child) for child in children
+      renderer.allowAndFire 'rendered'
 
   # Adds a binding or binding-like object to the `bindings` set in a node's
   # data, so that upon node removal we can unset the binding and any other objects
