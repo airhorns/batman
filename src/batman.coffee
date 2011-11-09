@@ -1878,7 +1878,14 @@ class Batman.Controller extends Batman.Object
     if view = options.view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
-        Batman.DOM.replace (options.into || 'main'), view.get('node')
+        node = view.get('node')
+        yieldTo = options.into || 'main'
+        if view.hasContainer
+          for child in node.childNodes when child # nodes are removed as we go
+            Batman.DOM.contentFor yieldTo, child, !replacedContent
+            replacedContent = true
+        else
+          Batman.DOM.replace yieldTo, node
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
@@ -3002,6 +3009,7 @@ class Batman.View extends Batman.Object
       unless @node
         html = @get('html')
         return unless html && html.length > 0
+        @hasContainer = true
         @node = document.createElement 'div'
         $setInnerHTML(@node, html)
       return @node
