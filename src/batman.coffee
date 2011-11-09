@@ -1894,9 +1894,9 @@ class Batman.Controller extends Batman.Object
         node = view.get('node')
         yieldTo = options.into || 'main'
         if view.hasContainer
-          for child in node.childNodes when child # nodes are removed as we go
-            Batman.DOM.contentFor yieldTo, child, !replacedContent
-            replacedContent = true
+          $setInnerHTML yieldingNode, ''
+          while node.childNodes.length > 0
+            $appendChild(yieldingNode, node.childNodes[0])
         else
           Batman.DOM.replace yieldTo, node
         Batman.currentApp?.allowAndFire 'ready'
