@@ -499,13 +499,13 @@ class Batman.Property
       finally
         @updateSourcesFromTracker()
     @value
-  
+
   isCachable: ->
     cachable = @accessor().cachable
     if cachable? then !!cachable else true
-  
+
   isCached: -> @isCachable() and @cached
-  
+
   refresh: ->
     @cached = no
     previousValue = @value
@@ -4035,13 +4035,13 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @parentNode = sourceNode.parentNode
     previousSiblingNode = sourceNode.nextSibling
     @siblingNode = document.createComment "end #{@iteratorName}"
+    @siblingNode[Batman.expando] = sourceNode[Batman.expando]
+    delete sourceNode[Batman.expando] if Batman.canDeleteExpando
     $insertBefore @parentNode, @siblingNode, previousSiblingNode
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
       # Move any Batman._data from the sourceNode to the sibling; we need to
       # retain the bindings, and we want to dispose of the node.
-      @siblingNode[Batman.expando] = sourceNode[Batman.expando]
-      delete sourceNode[Batman.expando] if Batman.canDeleteExpando
       $removeNode sourceNode
       # Attach observers.
       @bind()
@@ -4050,13 +4050,12 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     # This `prevent`'s matching allow is run once the queue is empty in `processActionQueue`.
     @parentRenderer.prevent 'rendered'
 
-    # Tie this binding to a node using Batman.data
-    super(@parentNode, @iteratorName, @key, @context, @parentRenderer)
+    # Tie this binding to a node using the default behaviour in the AbstractBinding
+    super(@siblingNode, @iteratorName, @key, @context, @parentRenderer)
 
     @fragment = document.createDocumentFragment()
 
   destroy: ->
-    $unbindNode(@siblingNode)
     super
     @destroyed = true
 
