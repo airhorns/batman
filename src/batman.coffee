@@ -976,10 +976,10 @@ class Batman.SimpleHash
         merged.set obj, value
     merged
   toObject: ->
-    @reduce (obj, key, value) ->
-      obj[key] = value
-      obj
-    , {}
+    obj = {}
+    for key, pair of @_storage
+      obj[key] = pair[0][1] # the first value for this key
+    obj
   toJSON: @::toObject
 
 class Batman.Hash extends Batman.Object

@@ -325,11 +325,13 @@ test "JSON.stringify(hash) returns the correct object representation for native 
   deepEqual JSON.parse(JSON.stringify(@hash)), obj
 
 test "JSON.stringify(hash) returns the correct object representation for Batman.Object types", ->
+  objectKey = new Batman.Object
   obj = new Batman.Object
     set: new Batman.Set 1, 2, 3
   obj.hashKey()
-  @hash = new Batman.Hash obj: obj
-  deepEqual JSON.parse(JSON.stringify(@hash)),
-    obj:
-      set: [1, 2, 3]
+  @hash = new Batman.Hash
+  @hash.set(objectKey, obj)
+  expected = {}
+  expected[objectKey.hashKey()] = set: [1,2,3]
+  deepEqual JSON.parse(JSON.stringify(@hash)), expected
 
