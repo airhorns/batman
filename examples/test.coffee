@@ -1,25 +1,38 @@
 ITERATONS = 3000
 
+loopSource = '''
+<div data-foreach-obj="objects">
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+  <span data-bind="obj"></span>
+</div>
+'''
+Batman.View.sourceCache.set '/views/a/test/path', loopSource
+
+Batman.Renderer::deferEvery = false if Batman.Renderer::deferEvery
+
 class window.MyApp extends Batman.App
   @aSet: new Batman.Set
   @index: @aSet.indexedBy('foo')
   @test: ->
-    clunks = (new MyApp.Product() for i in [0..ITERATONS])
+    next = (i) ->
+      if i == 0
+        console.log "Run"
+        return
 
-    for i in [0..ITERATONS]
-      @aSet.add clunks[i]
-      if i % 500 == 0
-        @aSet.clear()
+      context = Batman(objects: new Batman.Set([0...50]...))
 
-    array = @index.get('toArray')
-    console.log "Run."
+      view = new Batman.View
+        contexts: [context]
+        source: 'a/test/path'
 
-class MyApp.Product extends Batman.Model
-  constructor: ->
-    super
-    @set 'name', "Cool Snowboard"
-    @set 'cost', (Math.random() * 100).toFixed(2)
+      view.on 'ready', ->
+        Batman.DOM.removeNode(view.get('node'))
+        next(i-1)
 
-  @encode 'name', 'cost'
+    next(10)
 
 MyApp.run()
