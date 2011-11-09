@@ -22,14 +22,14 @@ asyncTest "preloaded/already rendered partials should render", ->
   source = '<div data-partial="test/one"></div>'
   node = helpers.render source, {}, (node) ->
     delay =>
-      equals node.children(0).children(0).html(), "Hello from a partial"
+      equals node.children(0).html(), "Hello from a partial"
 
 asyncTest "unloaded partials should load then render", 2, ->
   source = '<div data-partial="test/one"></div>'
 
   # Callback below doesn't fire until view's ready event, which waits for the partial to be fetched and rendered.
   node = helpers.render source, {}, (node) ->
-    equal node.children(0).children(0).html(), "Hello from a partial"
+    equal node.children(0).html(), "Hello from a partial"
     QUnit.start()
 
   setTimeout ->
@@ -46,7 +46,7 @@ asyncTest "unloaded partials should only load once", ->
     objects: new Batman.Set(1,2,3,4)
 
   node = helpers.render source, context, (node) ->
-    equal node.children(0).children(0).children(0).html(), "Hello from a partial"
+    equal node.children(0).children(0).html(), "Hello from a partial"
     QUnit.start()
 
   setTimeout ->
@@ -67,5 +67,5 @@ asyncTest "data-defineview bindings can be used to embed view contents", ->
 
   node = helpers.render source, context, (node) ->
     equal node.length, 1
-    equal node.children(0).children(0).children(0).html(), 'bar'
+    equal node.children(0).children(0).html(), 'bar'
     QUnit.start()

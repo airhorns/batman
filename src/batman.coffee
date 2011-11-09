@@ -3303,8 +3303,9 @@ Batman.DOM = {
         contexts: context.chain()
 
       view.on 'ready', ->
+        # Get rid of the surrounding div inserted by the view
+        $setInnerHTML @node.parentNode, @node.innerHTML
         renderer.allowAndFire 'rendered'
-
       true
 
     defineview: (node, name, context, renderer) ->
