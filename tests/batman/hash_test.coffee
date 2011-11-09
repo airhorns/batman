@@ -313,7 +313,7 @@ test "filter(f) returns a filtered hash", ->
   ok @filtered.get key1
   ok @filtered.get 'foo'
 
-test "toJSON returns the correct object representation for native types", ->
+test "JSON.stringify(hash) returns the correct object representation for native types", ->
   obj =
     number: 1
     string: "abc"
@@ -322,13 +322,14 @@ test "toJSON returns the correct object representation for native types", ->
       b: 2
       c: 3
   @hash = new Batman.Hash obj
-  deepEqual @hash.toJSON(), obj
+  deepEqual JSON.parse(JSON.stringify(@hash)), obj
 
-test "toJSON returns the correct object representation for Batman.Object types", ->
+test "JSON.stringify(hash) returns the correct object representation for Batman.Object types", ->
   obj = new Batman.Object
     set: new Batman.Set 1, 2, 3
   obj.hashKey()
   @hash = new Batman.Hash obj: obj
-  deepEqual @hash.toJSON(), obj:
-    set: [1, 2, 3]
+  deepEqual JSON.parse(JSON.stringify(@hash)),
+    obj:
+      set: [1, 2, 3]
 
