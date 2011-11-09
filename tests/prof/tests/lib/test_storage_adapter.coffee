@@ -1,7 +1,6 @@
-#Batman = require './../../../../lib/batman'
+Batman = require './../../../../lib/batman'
 
-#module.exports = class TestStorageAdapter extends Batman.StorageAdapter
-class window.TestStorageAdapter extends Batman.StorageAdapter
+module.exports = class TestStorageAdapter extends Batman.StorageAdapter
   constructor: ->
     super
     @counter = 10

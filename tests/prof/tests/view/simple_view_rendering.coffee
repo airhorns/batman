@@ -1,6 +1,5 @@
 Batman = require '../../../../lib/batman'
 Watson = require 'watson'
-microtime = require 'microtime'
 jsdom = require 'jsdom'
 
 global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()

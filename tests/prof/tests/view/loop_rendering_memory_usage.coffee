@@ -6,7 +6,6 @@ Clunk = require '../lib/clunk'
 # Make Iterator defer DOM touches every 50 ms.
 # Needed for the ::deferEvery settings below.
 Watson.ensureCommitted '7a418aea67be0b79ce11fd5616bd4627f4e576d9', ->
-  microtime = require 'microtime'
   jsdom = require 'jsdom'
 
   global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
