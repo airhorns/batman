@@ -23,11 +23,10 @@
     "build": "cake build"
   },
   "dependencies": {
-    "coffee-script": "~1.1",
     "connect": "~1.6.1"
   },
   "devDependencies": {
-    "coffee-script": "~1.1",
+    "coffee-script": "1.1.2",
     "daemon": "~0.3.0",
     "docco": "~0.3.0",
     "now": "~0.5",
