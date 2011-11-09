@@ -1894,6 +1894,7 @@ class Batman.Controller extends Batman.Object
         node = view.get('node')
         yieldTo = options.into || 'main'
         if view.hasContainer
+          yieldingNode = Batman.DOM._yields[yieldTo]
           $setInnerHTML yieldingNode, ''
           while node.childNodes.length > 0
             $appendChild(yieldingNode, node.childNodes[0])
