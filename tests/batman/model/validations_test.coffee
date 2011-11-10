@@ -39,6 +39,22 @@ validationsTestSuite = ->
       p.validate (result, errors) ->
         ok !result
         QUnit.start()
+        
+  asyncTest "presence and length", 4, ->
+    class Product extends Batman.Model
+      @validate 'name', {presence: yes, maxLength: 10, minLength: 3}
+
+    p = new Product
+    p.validate (result, errors) ->
+      ok !result      
+      equal errors.length, 2
+
+      p.set 'name', "beans"
+      p.validate (result, errors) ->
+        ok result
+        equal errors.length, 0
+        QUnit.start()
+        
 
   asyncTest "custom async validations", ->
     letItPass = true
