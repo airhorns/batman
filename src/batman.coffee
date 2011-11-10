@@ -975,6 +975,11 @@ class Batman.SimpleHash
       hash.forEach (obj, value) ->
         merged.set obj, value
     merged
+  update: (object) -> @set(k,v) for k,v of object
+  replace: (object) ->
+    @forEach (key, value) =>
+      @unset(key) unless key of object
+    @update(object)
   toObject: ->
     obj = {}
     for key, pair of @_storage
@@ -1012,11 +1017,13 @@ class Batman.Hash extends Batman.Object
     cachable: false
 
   clear: @mutation ->
-    keys = @meta.get('keys')
+    keys = @keys()
     @forEach (k) => @unset(k)
     result = Batman.SimpleHash::clear.call(@)
     @fire 'itemsWereRemoved', keys...
     result
+  update: Batman.SimpleHash::update
+  replace: Batman.SimpleHash::replace
   equality: Batman.SimpleHash::equality
   hashKeyFor: Batman.SimpleHash::hashKeyFor
 

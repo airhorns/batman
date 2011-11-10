@@ -335,3 +335,39 @@ test "JSON.stringify(hash) returns the correct object representation for Batman.
   expected[objectKey.hashKey()] = set: [1,2,3]
   deepEqual JSON.parse(JSON.stringify(@hash)), expected
 
+test "update(pojo) updates the keys and values with those of the given object", ->
+  @hash.set('foo', 'foo1')
+  @hash.set('bar', 'bar1')
+
+  @hash.observe 'foo', fooObserver = createSpy()
+  @hash.observe 'bar', barObserver = createSpy()
+  @hash.observe 'size', sizeObserver = createSpy()
+
+  @hash.update foo: 'foo2', size: 'medium'
+  
+  deepEqual @hash.toObject(), foo: 'foo2', bar: 'bar1', size: 'medium'
+
+  equal fooObserver.callCount, 1
+  deepEqual fooObserver.lastCallArguments, ['foo2', 'foo1']
+  equal barObserver.callCount, 0
+  equal sizeObserver.callCount, 1
+  deepEqual sizeObserver.lastCallArguments, ['medium', undefined]
+
+test "replace(pojo) replaces the keys and values with those of the given object", ->
+  @hash.set('foo', 'foo1')
+  @hash.set('bar', 'bar1')
+
+  @hash.observe 'foo', fooObserver = createSpy()
+  @hash.observe 'bar', barObserver = createSpy()
+  @hash.observe 'size', sizeObserver = createSpy()
+
+  @hash.replace foo: 'foo2', size: 'medium'
+  
+  deepEqual @hash.toObject(), foo: 'foo2', size: 'medium'
+
+  equal fooObserver.callCount, 1
+  deepEqual fooObserver.lastCallArguments, ['foo2', 'foo1']
+  equal barObserver.callCount, 1
+  deepEqual barObserver.lastCallArguments, [undefined, 'bar1']
+  equal sizeObserver.callCount, 1
+  deepEqual sizeObserver.lastCallArguments, ['medium', undefined]
