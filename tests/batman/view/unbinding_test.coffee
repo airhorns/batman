@@ -64,7 +64,7 @@ asyncTest "Batman.DOM.Style objects are kept in Batman.data and destroyed when t
     equal setSpy.callCount, 1  # Cached, so only called once
 
     node = node[0]
-    itemsAddedSpy = spyOn(set, 'itemsWereAdded')
+    itemsAddedSpy = spyOn(context.get('styles'), 'itemsWereAdded')
 
     Batman.DOM.removeNode(node)
     deepEqual Batman._data(node), {}

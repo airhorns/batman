@@ -2180,7 +2180,7 @@ class Batman.Model extends Batman.Object
       # If we do have decoders, use them to get the data.
       decoders.forEach (key, decoder) =>
         obj[key] = decoder(data[key], key, data, obj, @) if data[key]
-    developer.do ->
+    developer.do =>
       if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
         developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
 
@@ -3171,7 +3171,7 @@ class Batman.RenderContext
         return [$get(currentNode.object, key), currentNode.object]
       currentNode = currentNode.parent
 
-    return [container.get(key), container]
+    return [$get(container, key), container]
 
   # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
@@ -4541,8 +4541,6 @@ container = if exports?
 else
   window.Batman = Batman
   window
-
-$mixin container, Batman.Observable
 
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
