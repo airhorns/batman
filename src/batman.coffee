@@ -1015,15 +1015,43 @@ class Batman.Hash extends Batman.Object
       @fire 'itemsWereRemoved', key if result?
       result
     cachable: false
-
+  
+  _preventMutationEvents: (block) ->
+    @prevent 'change'
+    @prevent 'itemsWereAdded'
+    @prevent 'itemsWereRemoved'
+    try
+      block.call(this)
+    finally
+      @allow 'change'
+      @allow 'itemsWereAdded'
+      @allow 'itemsWereRemoved'
   clear: @mutation ->
     keys = @keys()
-    @forEach (k) => @unset(k)
+    @_preventMutationEvents -> @forEach (k) => @unset(k)
     result = Batman.SimpleHash::clear.call(@)
     @fire 'itemsWereRemoved', keys...
     result
-  update: Batman.SimpleHash::update
-  replace: Batman.SimpleHash::replace
+  update: @mutation (object) ->
+    addedKeys = []
+    @_preventMutationEvents ->
+      for k,v of object
+        addedKeys.push(k) unless @hasKey(k)
+        @set(k,v)
+    @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
+  replace: @mutation (object) ->
+    addedKeys = []
+    removedKeys = []
+    @_preventMutationEvents ->
+      @forEach (k, _) =>
+        unless k of object
+          @unset(k)
+          removedKeys.push(k)
+      for k,v of object
+        addedKeys.push(k) unless @hasKey(k)
+        @set(k,v)
+    @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
+    @fire('itemsWereRemoved', removedKeys...) if removedKeys.length > 0
   equality: Batman.SimpleHash::equality
   hashKeyFor: Batman.SimpleHash::hashKeyFor
 

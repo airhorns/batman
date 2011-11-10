@@ -268,12 +268,26 @@ test "clear() removes all keys from the hash", ->
   equalHashLength @hash, 0
   deepEqual spy.lastCallArguments.sort(), [key1, key2, 'foo', 'bar'].sort()
 
-test "clear() fires key observers", ->
-  key1 = {}
-  @hash.set key1, 1
-  @hash.observe key1, spy = createSpy()
+test "clear() fires key observers exactly once each, and exactly one 'change' and one 'itemsWereRemoved' event on the hash itself", ->
+  objKey = {}
+  @hash.set objKey, 1
+  @hash.set 'foo', 'bar'
+
+  @hash.observe objKey, objKeyObserver = createSpy()
+  @hash.observe 'foo', fooObserver = createSpy()
+  @hash.on 'change', changeHandler = createSpy()
+  @hash.on 'itemsWereRemoved', itemsWereRemovedHandler = createSpy()
+
   @hash.clear()
-  ok spy.called
+
+  equal objKeyObserver.callCount, 1
+  deepEqual objKeyObserver.lastCallArguments, [undefined, 1]
+  equal fooObserver.callCount, 1
+  deepEqual fooObserver.lastCallArguments, [undefined, 'bar']
+  equal changeHandler.callCount, 1
+  deepEqual changeHandler.lastCallArguments, [@hash, @hash]
+  equal itemsWereRemovedHandler.callCount, 1
+  deepEqual itemsWereRemovedHandler.lastCallArguments, [objKey, 'foo']
 
 test "merge(other) returns a new hash without modifying the original", ->
   key1 = {}
@@ -342,6 +356,8 @@ test "update(pojo) updates the keys and values with those of the given object", 
   @hash.observe 'foo', fooObserver = createSpy()
   @hash.observe 'bar', barObserver = createSpy()
   @hash.observe 'size', sizeObserver = createSpy()
+  @hash.on 'change', changeHandler = createSpy()
+  @hash.on 'itemsWereAdded', itemsWereAddedHandler = createSpy()
 
   @hash.update foo: 'foo2', size: 'medium'
   
@@ -352,22 +368,47 @@ test "update(pojo) updates the keys and values with those of the given object", 
   equal barObserver.callCount, 0
   equal sizeObserver.callCount, 1
   deepEqual sizeObserver.lastCallArguments, ['medium', undefined]
+  equal changeHandler.callCount, 1
+  deepEqual changeHandler.lastCallArguments, [@hash, @hash]
+  equal itemsWereAddedHandler.callCount, 1
+  deepEqual itemsWereAddedHandler.lastCallArguments, ['size']
 
 test "replace(pojo) replaces the keys and values with those of the given object", ->
   @hash.set('foo', 'foo1')
   @hash.set('bar', 'bar1')
+  @hash.set('baz', 'baz1')
 
   @hash.observe 'foo', fooObserver = createSpy()
   @hash.observe 'bar', barObserver = createSpy()
+  @hash.observe 'baz', bazObserver = createSpy()
+  @hash.observe 'material', materialObserver = createSpy()
   @hash.observe 'size', sizeObserver = createSpy()
+  @hash.on 'change', changeHandler = createSpy()
+  @hash.on 'itemsWereAdded', itemsWereAddedHandler = createSpy()
+  @hash.on 'itemsWereRemoved', itemsWereRemovedHandler = createSpy()
 
-  @hash.replace foo: 'foo2', size: 'medium'
+  @hash.replace foo: 'foo2', material: 'silk', size: 'medium'
   
-  deepEqual @hash.toObject(), foo: 'foo2', size: 'medium'
+  deepEqual @hash.toObject(), foo: 'foo2', material: 'silk', size: 'medium'
 
   equal fooObserver.callCount, 1
   deepEqual fooObserver.lastCallArguments, ['foo2', 'foo1']
   equal barObserver.callCount, 1
   deepEqual barObserver.lastCallArguments, [undefined, 'bar1']
+  equal bazObserver.callCount, 1
+  deepEqual bazObserver.lastCallArguments, [undefined, 'baz1']
+  equal materialObserver.callCount, 1
+  deepEqual materialObserver.lastCallArguments, ['silk', undefined]
   equal sizeObserver.callCount, 1
   deepEqual sizeObserver.lastCallArguments, ['medium', undefined]
+  equal changeHandler.callCount, 1
+  deepEqual changeHandler.lastCallArguments, [@hash, @hash]
+  equal itemsWereAddedHandler.callCount, 1
+  equal itemsWereAddedHandler.lastCallArguments.length, 2
+  ok 'material' in itemsWereAddedHandler.lastCallArguments
+  ok 'size' in itemsWereAddedHandler.lastCallArguments
+  equal itemsWereRemovedHandler.callCount, 1
+  equal itemsWereRemovedHandler.lastCallArguments.length, 2
+  ok 'bar' in itemsWereRemovedHandler.lastCallArguments
+  ok 'baz' in itemsWereRemovedHandler.lastCallArguments
+
