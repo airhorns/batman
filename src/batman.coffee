@@ -2593,7 +2593,7 @@ Validators = Batman.Validators = [
 
     validateEach: (errors, record, key, callback) ->
       options = @options
-      value = record.get(key)
+      value = record.get(key) ? []
       if options.minLength and value.length < options.minLength
         errors.add key, @format(key, 'too_short', {count: options.minLength})
       if options.maxLength and value.length > options.maxLength
