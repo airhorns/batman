@@ -47,7 +47,15 @@ QUnit.module "Batman.Model hasMany Associations"
       @encode 'price'
       @belongsTo 'product', namespace: namespace
 
-    variantAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter
+    @variantsAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter,
+      product_variants5:
+        id:5
+        price:50
+        product_id:3
+      product_variants6:
+        id:6
+        price:60
+        product_id:3
 
 asyncTest "hasMany associations are loaded", 4, ->
   @Store.find 1, (err, store) =>
@@ -134,6 +142,22 @@ asyncTest "hasMany association can be loaded from JSON data", 12, ->
     equal variant6.get('product'), product
 
     QUnit.start()
+
+asyncTest "hasMany child models are added to the identity map", 1, ->
+  @Product.find 3, (err, product) =>
+    equal @ProductVariant.get('loaded').length, 2
+    QUnit.start()
+
+asyncTest "hasMany child models are passed through the identity map", 4, ->
+  @ProductVariant.load (err, variants) =>
+    throw err if err
+    @Product.find 3, (err, product) =>
+      equal @ProductVariant.get('loaded').length, 2
+      productVariants = product.get('productVariants').toArray()
+      equal productVariants.length, 2
+      equal productVariants[0], variants[0]
+      equal productVariants[1], variants[1]
+      QUnit.start()
 
 asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>

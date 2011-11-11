@@ -15,9 +15,11 @@ QUnit.module "Batman.Model hasOne Associations"
 
     namespace.Product = class @Product extends Batman.Model
       @encode 'id', 'name'
+      @belongsTo 'store'
 
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1': {name: "Product One", id: 1, store_id: 1}
+      'products3': {name: "JSON Product", id: 3, store_id: 2}
 
 asyncTest "hasOne associations are loaded via ID", 3, ->
   @Store.find 1, (err, store) =>
@@ -78,6 +80,19 @@ asyncTest "hasOne associations are saved", 5, ->
 
     @Store.find record.get('id'), (err, store2) =>
       deepEqual store2.toJSON(), storedJSON
+      QUnit.start()
+
+asyncTest "hasOne child models are added to the identity map", 1, ->
+  @Store.find 2, (err, product) =>
+    equal @Product.get('loaded').length, 1
+    QUnit.start()
+
+asyncTest "hasOne child models are passed through the identity map", 2, ->
+  @Product.find 3, (err, product) =>
+    throw err if err
+    @Store.find 2, (err, store) =>
+      equal @Product.get('loaded').length, 1
+      equal store.get('product'), product
       QUnit.start()
 
 asyncTest "hasOne associations render", 1, ->

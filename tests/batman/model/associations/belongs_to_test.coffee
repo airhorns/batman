@@ -8,14 +8,33 @@ QUnit.module "Batman.Model belongsTo Associations"
       @encode 'id', 'name'
 
     @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
-      'stores1': {name: "Store One", id: 1}
-      'stores2': {name: "Store Two", id: 2, product: {id:3, name:"JSON Product"}}
+      'stores1':
+        name: "Store One"
+        id: 1
+      'stores2':
+        name: "Store Two"
+        id: 2
+        product:
+          id:3
+          name:"JSON Product"
+      'stores3':
+        name: "Store Three"
+        id: 3
 
     class @Product extends Batman.Model
       @encode 'id', 'name'
       @belongsTo 'store', namespace: namespace
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
-      'products1': {name: "Product One", id: 1, store_id: 1}
+      'products1':
+        name: "Product One"
+        id: 1
+        store_id: 1
+      'products4':
+        name: "Product One"
+        id: 1
+        store:
+          name: "Store Three",
+          id: 3
 
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
   @Product.find 1, (err, product) =>
@@ -63,6 +82,19 @@ asyncTest "belongsTo associations are saved", 5, ->
 
     @Product.find record.get('id'), (err, product2) ->
       deepEqual product2.toJSON(), storedJSON
+      QUnit.start()
+
+asyncTest "belongsTo parent models are added to the identity map", 1, ->
+  @Product.find 4, (err, product) =>
+    equal @Store.get('loaded').length, 1
+    QUnit.start()
+
+asyncTest "belongsTo parent models are passed through the identity map", 2, ->
+  @Store.find 3, (err, store) =>
+    throw err if err
+    @Product.find 4, (err, product) =>
+      equal @Store.get('loaded').length, 1
+      equal product.get('store'), store
       QUnit.start()
 
 asyncTest "belongsTo associations render", 1, ->

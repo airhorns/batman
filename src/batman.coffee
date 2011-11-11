@@ -2448,6 +2448,7 @@ class Batman.Association.belongsTo extends Batman.Association
       decode: (data) ->
         record = new (association.getRelatedModel())()
         record.fromJSON(data)
+        record = association.getRelatedModel()._mapIdentity(record)
         record
     }
 
@@ -2467,7 +2468,7 @@ class Batman.Association.hasOne extends Batman.Association
 
     # Check whether the relatedModel has already been set on this model
     if existingInstance = self.getFromAttributes(@)
-      return existingInstance
+      return existingInstance unless existingInstance.isProxy
 
     # Make sure relatedModel has been loaded
     return unless relatedModel = self.getRelatedModel()
@@ -2481,7 +2482,9 @@ class Batman.Association.hasOne extends Batman.Association
       return relatedRecords.toArray()[0]
     else
       # Create a relatedModel instance to return immediately and populate when it loads
+      return existingInstance if existingInstance?
       loadingRecord = new relatedModel
+      loadingRecord.isProxy = true
       loadingRecord.load = (callback) ->
         loadOptions = {}
         loadOptions[self.foreignKey] = id
@@ -2516,8 +2519,10 @@ class Batman.Association.hasOne extends Batman.Association
         json[association.foreignKey] = record.get('id')
         json
       decode: (data) ->
-        record = new (association.getRelatedModel())()
+        relatedModel = association.getRelatedModel()
+        record = new (relatedModel)()
         record.fromJSON(data)
+        record = relatedModel._mapIdentity(record)
         record
     }
 
