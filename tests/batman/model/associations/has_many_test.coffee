@@ -141,7 +141,7 @@ asyncTest "hasMany associations are saved via the child model", 2, ->
       ok products.has(savedProduct)
       QUnit.start()
 
-asyncTest "hasMany association can be loaded from JSON data", 12, ->
+asyncTest "hasMany association can be loaded from JSON data", 14, ->
   @Product.find 3, (err, product) =>
     variants = product.get('productVariants')
     ok variants instanceof Batman.Set
@@ -152,14 +152,18 @@ asyncTest "hasMany association can be loaded from JSON data", 12, ->
     equal variant5.id, 5
     equal variant5.get('price'), 50
     equal variant5.get('product_id'), 3
-    equal variant5.get('product'), product
+    proxiedProduct = variant5.get('product')
+    equal proxiedProduct.get('id'), product.get('id')
+    equal proxiedProduct.get('name'), product.get('name')
 
     variant6 = variants.toArray()[1]
     ok variant6 instanceof @ProductVariant
     equal variant6.id, 6
     equal variant6.get('price'), 60
     equal variant6.get('product_id'), 3
-    equal variant6.get('product'), product
+    proxiedProduct = variant6.get('product')
+    equal proxiedProduct.get('id'), product.get('id')
+    equal proxiedProduct.get('name'), product.get('name')
 
     QUnit.start()
 
@@ -187,6 +191,23 @@ asyncTest "hasMany adds new related model instances to its set", ->
     addedProduct = new @Product(name: 'Product Four', store_id: store.id)
     addedProduct.save (err, savedProduct) =>
       ok store.get('products').has(savedProduct)
+      QUnit.start()
+
+asyncTest "hasMany loads records for each parent instance", 2, ->
+  @storeAdapter.storage["stores2"] =
+    name: "Store Two"
+    id: 2
+  @productAdapter.storage["products4"] =
+    name: "Product Four"
+    id: 4
+    store_id: 2
+
+  @Store.find 1, (err, store) =>
+    products = store.get('products')
+    equal products.length, 3
+    @Store.find 2, (err, store2) =>
+      products2 = store2.get('products')
+      equal products2.length, 1
       QUnit.start()
 
 QUnit.module "Batman.Model hasMany Associations with inverse of"
@@ -242,3 +263,4 @@ asyncTest "hasMany sets the foreign key on the inverse relation if the children 
         equal variants.length, 2
         equal variants[0].get('product'), product
         equal variants[1].get('product'), product
+

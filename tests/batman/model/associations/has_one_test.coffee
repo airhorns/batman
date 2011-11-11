@@ -103,6 +103,27 @@ asyncTest "hasOne associations render", 1, ->
       equal node[0].innerHTML, 'Product One'
       QUnit.start()
 
+asyncTest "hasOne associations make the load method available", 4, ->
+  @storeAdapter.storage["stores200"] =
+    id: 200
+    name: "Store 200"
+
+  @Store.find 200, (err, store) =>
+    product = store.get('product')
+    ok product instanceof @Product
+    equal product.get('id'), undefined
+
+    @productAdapter.storage["products404"] =
+      id: 404
+      name: "Product 404"
+      store_id: 200
+
+    product.load (err, loadedProduct) ->
+      equal loadedProduct.get('name'), "Product 404"
+      # Proxies mark themselves as loaded
+      equal loadedProduct.get('proxyLoaded'), true
+      QUnit.start()
+
 QUnit.module "Batman.Model hasOne Associations with inverseOf"
   setup: ->
     namespace = {}
