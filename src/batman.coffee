@@ -2572,7 +2572,8 @@ class Batman.Association.hasMany extends Batman.Association
         relations = new Batman.Set
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
-            record = new relatedModel(jsonObject)
+            record = new relatedModel()
+            record.fromJSON(jsonObject)
             record = relatedModel._mapIdentity(record)
             relations.add record
         else

@@ -64,6 +64,26 @@ asyncTest "hasMany associations are loaded", 4, ->
       products.forEach (product) => ok product instanceof @Product
       deepEqual products.map((x) -> x.get('id')), [1,2,3]
 
+asyncTest "hasMany associations are loaded using encoders", 1, ->
+  @Product.encode 'name'
+    encode: (x) -> x
+    decode: (x) -> x.toUpperCase()
+
+  @Store.find 1, (err, store) =>
+    products = store.get 'products'
+    delay ->
+      deepEqual products.map((x) -> x.get('name')), ["PRODUCT ONE", "PRODUCT TWO", "PRODUCT THREE"]
+
+asyncTest "embedded hasMany associations are loaded using encoders", 1, ->
+  @ProductVariant.encode 'price'
+    encode: (x) -> x
+    decode: (x) -> x * 100
+
+  @Product.find 3, (err, product) =>
+    variants = product.get('productVariants')
+    deepEqual variants.map((x) -> x.get('price')), [5000, 6000]
+    QUnit.start()
+
 asyncTest "hasMany associations are not loaded when autoload is false", 1, ->
   ns = @namespace
   class Store extends Batman.Model
