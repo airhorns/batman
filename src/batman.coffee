@@ -433,6 +433,10 @@ class Batman.Property
     @sourceTracker()?.add(obj)
 
   constructor: (@base, @key) ->
+    developer.do =>
+      keyType = $typeOf(@key)
+      if keyType in ['Array', 'Object']
+        developer.warn "Constructing a property with an #{keyType} for a key:", this
 
   _isolationCount: 0
   cached: no
