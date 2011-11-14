@@ -3042,6 +3042,7 @@ class Batman.ViewSourceCache extends Batman.Object
           error: (response) -> throw new Error("Could not load view from #{path}")
       return undefined
     set: (k,v) -> @sources[k] = v
+    final: true
 
   prefetch: (path) ->
     @get(path)
