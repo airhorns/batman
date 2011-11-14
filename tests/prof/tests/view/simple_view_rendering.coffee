@@ -3,7 +3,7 @@ Watson = require 'watson'
 jsdom = require 'jsdom'
 
 global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
-global.window.Benchmark = require 'benchmark'
+global.window.Benchmark = Watson.Benchmark
 global.document = window.document
 
 simpleSource = '''
