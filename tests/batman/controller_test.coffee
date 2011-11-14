@@ -1,5 +1,4 @@
 class TestController extends Batman.Controller
-  _currentAction: "show"
   show: ->
 
 class MockView extends MockClass
@@ -23,7 +22,7 @@ test 'it should render views if given in the options', ->
 
 test 'it should pull in views if not present already', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
-    @controller.render()
+    @controller.dispatch 'show'
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show'
 
