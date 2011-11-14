@@ -74,6 +74,31 @@ test "the result set from get(value) should be updated to add matching items whe
   ok handler.lastCallArguments[0] is @anotherByZeke
   equal allByZeke.has(@anotherByZeke), true
 
+test "the result set from get(value) should remain the same object once it is initialized, even after it has been emptied", ->
+  allByZeke = @authorNameIndex.get("Zeke")
+  equal allByZeke.has(@byZeke), true
+  @base.remove @byZeke
+  equal allByZeke.has(@byZeke), false
+  @base.add @byZeke
+  equal allByZeke.has(@byZeke), true
+
+test "the result set from get(value) should be updated correctly when an item's value changes back and forth between two values", ->
+  bob = Batman name: 'Bob'
+  allByZeke = @authorNameIndex.get("Zeke")
+  allByBob = @authorNameIndex.get("Bob")
+  @base.add @anotherByZeke
+  equal allByZeke.has(@anotherByZeke), true
+  equal allByBob.has(@anotherByZeke), false
+  @anotherByZeke.set('author', bob)
+  equal allByZeke.has(@anotherByZeke), false
+  equal allByBob.has(@anotherByZeke), true
+  @anotherByZeke.set('author', @zeke)
+  equal allByZeke.has(@anotherByZeke), true
+  equal allByBob.has(@anotherByZeke), false
+  @anotherByZeke.set('author', bob)
+  equal allByZeke.has(@anotherByZeke), false
+  equal allByBob.has(@anotherByZeke), true
+
 test "the result set from get(value) should not be updated to add items which don't match the value", ->
   allByFred = @authorNameIndex.get("Fred")
   allByFred.on 'itemsWereAdded', handler = createSpy()

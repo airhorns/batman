@@ -1288,10 +1288,7 @@ class Batman.SetIndex extends Batman.Object
   _addItemToKey: (item, key) ->
     @_resultSetForKey(key).add item
   _removeItem: (item) -> @_removeItemFromKey(item, @_keyForItem(item))
-  _removeItemFromKey: (item, key) ->
-    results = @_resultSetForKey(key)
-    results.remove item
-    @_storage.unset(key) if results.isEmpty()
+  _removeItemFromKey: (item, key) -> @_resultSetForKey(key).remove(item)
   _resultSetForKey: (key) ->
     @_storage.getOrSet(key, -> new Batman.Set)
   _keyForItem: (item) ->
