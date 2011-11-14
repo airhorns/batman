@@ -1924,7 +1924,7 @@ class Batman.Controller extends Batman.Object
 
       options.contexts ||= []
       options.contexts.push @
-      options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action')
+      options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
       options.view = new (Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View)(options)
 
     if view = options.view
