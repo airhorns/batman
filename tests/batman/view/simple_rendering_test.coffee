@@ -26,7 +26,7 @@ asyncTest 'it should bind undefined values as empty strings', 1, ->
     equals node.html(), ""
     QUnit.start()
 
-asyncTest 'it should allow ! and ? at the end of the key', 1, ->
+asyncTest 'it should allow ! and ? at the end of a keypath', 1, ->
   helpers.render '<div data-bind="foo?"></div>',
     'foo?': 'bar'
   , (node) =>
@@ -85,24 +85,7 @@ asyncTest 'bindings in lower down scopes should shadow higher ones with shadowin
       delay ->
         equals node.html(), "inner"
 
-asyncTest 'it should allow a class to be bound', 6, ->
-  source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'
-  helpers.render source,
-    foo: true
-    bar: true
-  , (node) ->
-    ok node.hasClass('zero')
-    ok node.hasClass('one')
-    ok !node.hasClass('two')
-
-    helpers.render source,
-      foo: false
-      bar: false
-    , (node) ->
-      ok node.hasClass('zero')
-      ok !node.hasClass('one')
-      ok node.hasClass('two')
-      QUnit.start()
+QUnit.module 'Batman.View visibility bindings'
 
 asyncTest 'it should allow visibility to be bound on block elements', 2, ->
   testDiv = $('<div/>')
@@ -154,53 +137,7 @@ asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
     equal $(node[0]).attr('bar'), "qux"
     QUnit.start()
 
-asyncTest 'it should allow multiple class names to be bound and updated', ->
-  source = '<div data-bind-class="classes"></div>'
-  context = Batman classes: 'foo bar'
-  helpers.render source, context, (node) ->
-    equal node[0].className, 'foo bar'
-    context.set 'classes', 'bar baz'
-    delay =>
-      equal node[0].className, 'bar baz'
-
-asyncTest 'it should allow multiple class names to be bound and updated via set', ->
-  source = '<div data-bind-class="classes"></div>'
-  context = Batman
-    classes: new Batman.Set('foo', 'bar', 'baz')
-
-  helpers.render source, context, (node) ->
-    equal node[0].className, 'foo bar baz'
-    context.get('classes').remove('foo')
-    delay =>
-      equal node[0].className, 'bar baz'
-
-asyncTest 'it should allow multiple class names to be bound and updated via hash', ->
-  source = '<div data-bind-class="classes"></div>'
-  context = Batman
-    classes: new Batman.Hash
-      foo: true
-      bar: true
-      baz: true
-
-  helpers.render source, context, (node) ->
-    equal node[0].className, 'foo bar baz'
-    context.get('classes').unset('foo')
-    delay =>
-      equal node[0].className, 'bar baz'
-
-asyncTest 'it should allow multiple class names to be bound via object', ->
-  source = '<div data-bind-class="classes"></div>'
-  context = Batman
-    classes:
-      foo: true
-      bar: true
-      baz: true
-
-  helpers.render source, context, (node) ->
-    equal node[0].className, 'foo bar baz'
-    context.set('classes', {bar: true, baz: true})
-    delay =>
-      equal node[0].className, 'bar baz'
+QUnit.module 'Batman.View value bindings'
 
 asyncTest 'it should allow input values to be bound', 1, ->
   helpers.render '<input data-bind="one" type="text" />',
@@ -386,121 +323,46 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
       delay ->
         ok adapter.defaultOptions.formData
 
-asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 2, ->
+
+asyncTest 'should bind radio buttons to a value', ->
+  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
+    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
+    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade"/>'
   context = Batman
-    foo: Batman
-      bar: Batman
-        doSomething: spy = createSpy()
+    ad: Batman
+      sale_type: 'free'
 
-  source = '<button data-event-click="foo.bar.doSomething"></button>'
   helpers.render source, context, (node) ->
-    helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallContext, context.get('foo.bar')
+    fixed = node[0]
+    free = node[1]
+    trade = node[2]
 
+    ok (!fixed.checked and free.checked and !trade.checked)
 
-asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 1, ->
-  context = Batman
-    doSomething: spy = createSpy()
-
-  source = '<button data-event-click="doSomething"></button>'
-  helpers.render source, context, (node) ->
-    helpers.triggerClick(node[0])
-    delay ->
-      equal spy.lastCallContext, context
-
-asyncTest 'it should allow click events to be bound', 2, ->
-  context =
-    doSomething: spy = createSpy()
-
-  source = '<button data-event-click="doSomething"></button>'
-  helpers.render source, context, (node) ->
-    helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
-
-asyncTest 'it should allow double click events to be bound', 2, ->
-  context =
-    doSomething: spy = createSpy()
-
-  source = '<button data-event-doubleclick="doSomething"></button>'
-  helpers.render source, context, (node) ->
-    helpers.triggerDoubleClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
-
-asyncTest 'it should allow un-special-cased events like focus to be bound', 2, ->
-  context =
-    doSomething: spy = createSpy()
-
-  source = '<input type="text" data-event-focus="doSomething" value="foo"></input>'
-  helpers.render source, context, (node) ->
-    helpers.triggerFocus(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
-
-asyncTest 'it should allow event handlers to update', 2, ->
-  context = Batman
-    doSomething: spy = createSpy()
-
-  source = '<button data-event-click="doSomething"></button>'
-  helpers.render source, context, (node) ->
-    helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      context.set('doSomething', newSpy = createSpy())
-      helpers.triggerClick(node[0])
-      delay ->
-        ok newSpy.called
-
-asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
-  context = new Batman.Object
-    one: true
-    doSomething: createSpy()
-
-  helpers.render '<input type="checkbox" data-bind="one" data-event-change="doSomething"/>', context, (node) ->
-    node[0].checked = false
-    helpers.triggerChange(node[0])
+    context.set 'ad.sale_type', 'trade'
     delay =>
-      ok context.doSomething.called
+      ok (!fixed.checked and !free.checked and trade.checked)
 
-asyncTest 'it should allow submit events on inputs to be bound', 2, ->
-  context =
-    doSomething: spy = createSpy()
+asyncTest 'should bind to the value of radio buttons', ->
+  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
+    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
+    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade" checked/>'
+  context = Batman
+    ad: Batman()
 
-  source = '<form><input data-event-submit="doSomething" /></form>'
   helpers.render source, context, (node) ->
-    helpers.triggerKey(node[0].childNodes[0], 13)
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0].childNodes[0]
+    fixed = node[0]
+    free = node[1]
+    trade = node[2]
 
-asyncTest 'it should allow form submit events to be bound', 1, ->
-  context =
-    doSomething: spy = createSpy()
+    ok (!fixed.checked and !free.checked and trade.checked)
+    equal context.get('ad.sale_type'), 'trade', 'checked attribute binds'
 
-  source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
-  helpers.render source, context, (node) ->
-    helpers.triggerSubmit(node[0])
+    helpers.triggerChange(fixed)
     delay =>
-      ok spy.called
+      equal context.get('ad.sale_type'), 'fixed'
 
-asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
-  spy = createSpy()
-  class Foo extends Batman.Model
-    handleClick: spy
-
-  source = '<button data-event-click="foo.handleClick"></button>'
-
-  helpers.render source, {foo: new Foo()}, (node) ->
-    helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+QUnit.module "Batman.View: mixin and context bindings"
 
 asyncTest 'it should allow mixins to be applied', 1, ->
   Batman.mixins.set 'test',
@@ -558,160 +420,3 @@ asyncTest 'it should allow contexts to be specified using filters', 2, ->
     context.set('namespace', Batman(foo: Batman(bar: 'qux')))
     delay ->
       equal $("#test", node).html(), 'qux', 'if the context changes the bindings should update'
-
-asyncTest 'should bind radio buttons to a value', ->
-  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
-    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
-    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade"/>'
-  context = Batman
-    ad: Batman
-      sale_type: 'free'
-
-  helpers.render source, context, (node) ->
-    fixed = node[0]
-    free = node[1]
-    trade = node[2]
-
-    ok (!fixed.checked and free.checked and !trade.checked)
-
-    context.set 'ad.sale_type', 'trade'
-    delay =>
-      ok (!fixed.checked and !free.checked and trade.checked)
-
-asyncTest 'should bind to the value of radio buttons', ->
-  source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
-    <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>
-    <input id="trade" type="radio" data-bind="ad.sale_type" name="sale_type" value="trade" checked/>'
-  context = Batman
-    ad: Batman()
-
-  helpers.render source, context, (node) ->
-    fixed = node[0]
-    free = node[1]
-    trade = node[2]
-
-    ok (!fixed.checked and !free.checked and trade.checked)
-    equal context.get('ad.sale_type'), 'trade', 'checked attribute binds'
-
-    helpers.triggerChange(fixed)
-    delay =>
-      equal context.get('ad.sale_type'), 'fixed'
-
-asyncTest 'data-bind-style should bind to a string', 4, ->
-  source = '<input type="text" data-bind-style="string"></input>'
-  context = Batman
-    string: 'backgroundColor:blue; color:green;'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style['backgroundColor'], 'blue'
-    equal node.style['color'], 'green'
-
-    context.set 'string', 'color: green'
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'green'
-
-asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
-  source = '<input type="text" data-bind-style="object"></input>'
-  context = Batman
-    object:
-      'backgroundColor': 'blue'
-      color: 'green'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style['backgroundColor'], 'blue'
-    equal node.style['color'], 'green'
-    context.set 'object', {color: 'red'}
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'red'
-
-asyncTest 'data-bind-style should bind to a Batman object', 8, ->
-  source = '<input type="text" data-bind-style="object"></input>'
-  context = Batman
-    object: new Batman.Hash
-      'backgroundColor': 'blue'
-      color: 'green'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style['backgroundColor'], 'blue'
-    equal node.style['color'], 'green'
-    context.set 'object.color', 'blue'
-    delay =>
-      equal node.style['color'], 'blue'
-      equal node.style['backgroundColor'], 'blue'
-      context.unset 'object.color'
-      delay =>
-        equal node.style['color'], ''
-        equal node.style['backgroundColor'], 'blue'
-        context.set 'object', new Batman.Hash color: 'yellow'
-        delay =>
-          equal node.style['color'], 'yellow'
-          equal node.style['backgroundColor'], 'blue'
-
-asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
-  source = '<div data-bind-style="hash"></div>'
-  hash = new Batman.Hash
-    'backgroundColor': 'blue'
-    color: 'green'
-  context = Batman hash: hash
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style['backgroundColor'], 'blue'
-    equal node.style['color'], 'green'
-
-    context.set 'hash', new Batman.Hash color: 'red'
-    delay =>
-      equal node.style['backgroundColor'], 'blue'
-      equal node.style['color'], 'red'
-
-      hash.set 'color', 'green'
-      delay =>
-        equal node.style['backgroundColor'], 'blue'
-        equal node.style['color'], 'red'
-
-asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs', 4, ->
-  source = '<input type="text" data-bind-style="styles"></input>'
-  context = Batman
-    color: 'blue'
-    backgroundColor: 'green'
-    styles:
-      color: 'color'
-      'backgroundColor': 'backgroundColor'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style.color, 'blue'
-    equal node.style['backgroundColor'], 'green'
-    context.set 'color', 'green'
-    delay =>
-      equal node.style.color, 'green'
-      equal node.style['backgroundColor'], 'green'
-
-asyncTest 'data-bind-style should bind dash-separated CSS keys to camelized ones', 4, ->
-  source = '<input type="text" data-bind-style="string"></input>'
-  context = Batman
-    string: 'background-color:blue; color:green;'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style['backgroundColor'], 'blue'
-    equal node.style['color'], 'green'
-
-    context.set 'string', 'color: green'
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'green'
-
-asyncTest 'data-bind-style should correctly work for style with absolute URL', 1, ->
-  source = '<input type="text" data-bind-style="string"></input>'
-  context = Batman
-    string: 'background-image: url("http://batmanjs.org/images/logo.png");'
-
-  helpers.render source, context, (node) ->
-    node = node[0]
-    equal node.style.backgroundImage.replace(/"/g,""), 'url(http://batmanjs.org/images/logo.png)'
-    QUnit.start()
