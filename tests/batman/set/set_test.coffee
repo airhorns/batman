@@ -222,10 +222,6 @@ test "get('sortedBy').get(deepProperty) sorts by the deep property instead of tr
   sort = @set.get('sortedBy').get('foo.bar')
   deepEqual sort.toArray(), [@o1, @o2, @o3]
 
-#test "get('sortedBy.deep.property') sorts by the deep property instead of traversing the keypath", ->
-  #sort = @set.get('sortedBy.foo.bar')
-  #deepEqual sort.toArray(), [@o3, @o2, @o1]
-
 test "sortedBy(deepProperty, 'desc') sorts by the deep property instead of traversing the keypath", ->
   sort = @set.sortedBy('foo.bar', 'desc')
   deepEqual sort.toArray(), [@o3, @o2, @o1]
@@ -233,10 +229,6 @@ test "sortedBy(deepProperty, 'desc') sorts by the deep property instead of trave
 test "get('sortedByDescending').get(deepProperty) sorts by the deep property instead of traversing the keypath", ->
   sort = @set.get('sortedByDescending').get('foo.bar')
   deepEqual sort.toArray(), [@o3, @o2, @o1]
-
-#test "get('sortedByDescending.deep.property') sorts by the deep property instead of traversing the keypath", ->
-  #sort = @set.get('sortedByDescending.foo.bar')
-  #deepEqual sort.toArray(), [@o3, @o2, @o1]
 
 test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
   index = @set.indexedBy('length')
@@ -256,9 +248,15 @@ test "get('indexedBy').get(deepProperty) indexes by the deep property instead of
   index = @set.get('indexedBy').get('foo.bar')
   deepEqual index.get(2).toArray(), [@o2]
 
-#test "get('indexedBy.deep.property') indexes by the deep property instead of traversing the keypath", ->
-  #index = @set.get('indexedBy.foo.bar')
-  #deepEqual index.get(2).toArray(), [@o2]
+test "indexedByUnique(key) returns a memoized UniqueSetIndex for that key", ->
+  index = @set.indexedByUnique('foo')
+  ok index instanceof Batman.UniqueSetIndex
+  equal index.base, @set
+  equal index.key, 'foo'
+  strictEqual @set.indexedByUnique('foo'), index
+
+test "get('indexedByUnique.foo') returns a memoized UniqueSetIndex for the key 'foo'", ->
+  strictEqual @set.get('indexedByUnique.foo'), @set.indexedByUnique('foo')
 
 QUnit.module "Batman.SetSort polymorphism"
   setup: ->

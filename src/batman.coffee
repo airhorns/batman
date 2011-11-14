@@ -1066,6 +1066,7 @@ class Batman.SimpleSet
   constructor: ->
     @_storage = new Batman.SimpleHash
     @_indexes = new Batman.SimpleHash
+    @_uniqueIndexes = new Batman.SimpleHash
     @_sorts = new Batman.SimpleHash
     @length = 0
     @add.apply @, arguments if arguments.length > 0
@@ -1116,6 +1117,8 @@ class Batman.SimpleSet
     merged
   indexedBy: (key) ->
     @_indexes.get(key) or @_indexes.set(key, new Batman.SetIndex(@, key))
+  indexedByUnique: (key) ->
+    @_uniqueIndexes.get(key) or @_uniqueIndexes.set(key, new Batman.UniqueSetIndex(@, key))
   sortedBy: (key, order="asc") ->
     order = if order.toLowerCase() is "desc" then "desc" else "asc"
     sortsForKey = @_sorts.get(key) or @_sorts.set(key, new Batman.Object)
@@ -1127,7 +1130,7 @@ class Batman.Set extends Batman.Object
 
   $extendsEnumerable(@::)
 
-  for k in ['add', 'remove', 'clear', 'indexedBy', 'sortedBy']
+  for k in ['add', 'remove', 'clear', 'indexedBy', 'indexedByUnique', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']
@@ -1140,6 +1143,7 @@ class Batman.Set extends Batman.Object
   toJSON: @::toArray
 
   @accessor 'indexedBy', -> new Batman.TerminalAccessible (key) => @indexedBy(key)
+  @accessor 'indexedByUnique', -> new Batman.TerminalAccessible (key) => @indexedByUnique(key)
   @accessor 'sortedBy',  -> new Batman.TerminalAccessible (key) => @sortedBy(key)
   @accessor 'sortedByDescending', -> new Batman.TerminalAccessible (key) => @sortedBy(key, 'desc')
   @accessor 'isEmpty', -> @isEmpty()
