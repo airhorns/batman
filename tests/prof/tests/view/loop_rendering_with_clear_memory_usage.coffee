@@ -3,9 +3,9 @@ Watson = require 'watson'
 Random = require '../lib/number_generator'
 Clunk = require '../lib/clunk'
 
-# Make Iterator defer DOM touches every 50 ms.
+# Fix deferred loop rendering to actually happen, and always fire the parent's rendered event
 # Needed for the ::deferEvery settings below.
-Watson.ensureCommitted '7a418aea67be0b79ce11fd5616bd4627f4e576d9', ->
+Watson.ensureCommitted '6d132e078e3e07473b538ab157635b8664e2077e', ->
   jsdom = require 'jsdom'
 
   global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
@@ -23,7 +23,6 @@ Watson.ensureCommitted '7a418aea67be0b79ce11fd5616bd4627f4e576d9', ->
   '''
 
   Batman.Renderer::deferEvery = false
-  Batman.DOM.IteratorBinding::deferEvery = false
 
   node = document.createElement 'div'
   node.innerHTML = loopSource
