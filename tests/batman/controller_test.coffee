@@ -16,10 +16,10 @@ test 'it should render views if given in the options', ->
   @controller.render
     view: testView
 
-  spyOnDuring Batman.DOM, 'replace', (contentFor) ->
+  spyOnDuring Batman.DOM, 'replace', (replace) ->
     testView.fireReady()
     deepEqual testView.get.lastCallArguments, ['node']
-    deepEqual contentFor.lastCallArguments, ['main', 'view contents']
+    deepEqual replace.lastCallArguments, ['main', 'view contents']
 
 test 'it should pull in views if not present already', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
@@ -27,10 +27,10 @@ test 'it should pull in views if not present already', ->
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show'
 
-    spyOnDuring Batman.DOM, 'replace', (contentFor) =>
+    spyOnDuring Batman.DOM, 'replace', (replace) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
-      deepEqual contentFor.lastCallArguments, ['main', 'view contents']
+      deepEqual replace.lastCallArguments, ['main', 'view contents']
 
 test 'dispatching routes without any actions calls render', 1, ->
   @controller.test = ->
@@ -39,12 +39,44 @@ test 'dispatching routes without any actions calls render', 1, ->
 
   @controller.dispatch 'test'
 
-test '@render false disables implicit render', 1, ->
+test '@render false disables implicit render', 2, ->
   @controller.test = ->
     ok true, 'action called'
     @render false
 
-  @controller.dispatch 'test'
+  spyOnDuring Batman.DOM, 'replace', (replace) =>
+    @controller.dispatch 'test'
+    ok ! replace.called
+
+test 'event handlers can render after an action', 6, ->
+  testView = new MockView
+  @controller.test = ->
+    ok true, 'action called'
+    @render view: testView
+
+  testView2 = new MockView
+  @controller.handleEvent = ->
+    ok true, 'event called'
+    @render view: testView2
+
+  testView3 = new MockView
+  @controller.handleAnotherEvent = ->
+    ok true, 'another event called'
+    @render view: testView3
+
+  spyOnDuring Batman.DOM, 'replace', (replace) =>
+    @controller.dispatch 'test'
+    testView.fire 'ready'
+    equal replace.callCount, 1
+
+    @controller.handleEvent()
+    testView2.fire 'ready'
+    equal replace.callCount, 2
+
+    @controller.handleAnotherEvent()
+    testView3.fire 'ready'
+    equal replace.callCount, 3
+
 
 test 'redirecting a dispatch prevents implicit render', 2, ->
   Batman.navigator = new Batman.HashbangNavigator
@@ -57,6 +89,7 @@ test 'redirecting a dispatch prevents implicit render', 2, ->
 
   @controller.test1 = ->
     @redirect 'foo'
+
   @controller.test2 = ->
     Batman.redirect 'foo2'
 

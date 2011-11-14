@@ -562,7 +562,7 @@ class Batman.Property
     @changeEvent().addHandler(handler)
     @getValue() unless @sources?
     this
-    
+
   _removeHandlers: ->
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
@@ -1015,7 +1015,7 @@ class Batman.Hash extends Batman.Object
       @fire 'itemsWereRemoved', key if result?
       result
     cachable: false
-  
+
   _preventMutationEvents: (block) ->
     @prevent 'change'
     @prevent 'itemsWereAdded'
@@ -1847,21 +1847,17 @@ Batman.App.classMixin
 class Batman.Controller extends Batman.Object
   @singleton 'sharedController'
 
+  @accessor 'controllerName', -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
+
   @beforeFilter: (nameOrFunction) ->
     Batman.initializeObject @
     filters = @_batman.beforeFilters ||= []
     filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
 
-  @accessor 'controllerName',
-    get: -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
   @afterFilter: (nameOrFunction) ->
     Batman.initializeObject @
     filters = @_batman.afterFilters ||= []
     filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
-
-  @accessor 'action', # FIXME: does this even need to be private?
-    get: -> @_currentAction
-    set: (key, value) -> @_currentAction = value
 
   # You shouldn't call this method directly. It will be called by the dispatcher when a route is called.
   # If you need to call a route manually, use `$redirect()`.
@@ -1873,6 +1869,7 @@ class Batman.Controller extends Batman.Object
     oldRedirect = Batman.navigator?.redirect
     Batman.navigator?.redirect = @redirect
 
+    @_inAction = yes
     @_actedDuringAction = no
     @set 'action', action
     @set 'params', params
@@ -1892,6 +1889,7 @@ class Batman.Controller extends Batman.Object
         if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
 
     delete @_actedDuringAction
+    delete @_inAction
 
     Batman.navigator?.redirect = oldRedirect
 
@@ -1901,7 +1899,9 @@ class Batman.Controller extends Batman.Object
     $redirect(redirectTo) if redirectTo
 
   redirect: (url) =>
-    throw 'DoubleRedirectError' if @_actedDuringAction
+    if @_actedDuringAction && @_inAction
+      developer.warn "Warning! Trying to redirect but an action has already be taken during #{@get('controllerName')}.#{@_currentAction}}"
+
     if @get 'action'
       @_actedDuringAction = yes
       @_afterFilterRedirect = url
@@ -1912,8 +1912,11 @@ class Batman.Controller extends Batman.Object
       $redirect url
 
   render: (options = {}) ->
-    throw 'DoubleRenderError' if @_actedDuringAction
+    if @_actedDuringAction && @_inAction
+      developer.warn "Warning! Trying to render but an action has already be taken during #{@get('controllerName')}.#{@_currentAction}}"
+
     @_actedDuringAction = yes
+
     return if options is false
 
     if not options.view
