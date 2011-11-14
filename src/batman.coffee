@@ -1901,7 +1901,7 @@ class Batman.Controller extends Batman.Object
 
   redirect: (url) =>
     if @_actedDuringAction && @_inAction
-      developer.warn "Warning! Trying to redirect but an action has already be taken during #{@get('controllerName')}.#{@_currentAction}}"
+      developer.warn "Warning! Trying to redirect but an action has already be taken during #{@get('controllerName')}.#{@get('action')}}"
 
     if @get 'action'
       @_actedDuringAction = yes
@@ -1914,19 +1914,18 @@ class Batman.Controller extends Batman.Object
 
   render: (options = {}) ->
     if @_actedDuringAction && @_inAction
-      developer.warn "Warning! Trying to render but an action has already be taken during #{@get('controllerName')}.#{@_currentAction}}"
+      developer.warn "Warning! Trying to render but an action has already be taken during #{@get('controllerName')}.#{@get('action')}"
 
     @_actedDuringAction = yes
 
     return if options is false
 
     if not options.view
-      controllerName = $functionName(@constructor).replace('Controller', '')
 
       options.contexts ||= []
       options.contexts.push @
-      options.source ||= helpers.underscore(controllerName) + '/' + @_currentAction
-      options.view = new (Batman.currentApp?[helpers.camelize("#{controllerName}_#{@_currentAction}_view")] || Batman.View)(options)
+      options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action')
+      options.view = new (Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View)(options)
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
