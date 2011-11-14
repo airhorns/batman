@@ -2375,6 +2375,15 @@ class Batman.AssociationCollection
     @getAll = -> @storage
     @storage
 
+  associationForLabel: (searchLabel) ->
+    ret = undefined
+    @getAll().forEach (type, associations) ->
+      return if ret
+      associations.forEach (association, label) ->
+        return if ret
+        ret = association if label == searchLabel
+    ret
+
 class Batman.Association
   associationType: ''
   defaultOptions:
@@ -2415,6 +2424,9 @@ class Batman.Association
   getFromAttributes: (record) -> record.constructor.defaultAccessor.get.call(record, @label)
   getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
+  inverse: ->
+    return undefined unless @options.inverseOf
+    @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
 
 class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
@@ -2452,10 +2464,20 @@ class Batman.Association.belongsTo extends Batman.Association
       encode: (val) ->
         return unless association.options.saveInline
         val.toJSON()
-      decode: (data) ->
-        record = new (association.getRelatedModel())()
+      decode: (data, _, _, _, childRecord) ->
+        relatedModel = association.getRelatedModel()
+        record = new relatedModel()
         record.fromJSON(data)
-        record = association.getRelatedModel()._mapIdentity(record)
+        record = relatedModel._mapIdentity(record)
+        if association.options.inverseOf
+          inverse = association.inverse()
+          if inverse
+            if inverse instanceof Batman.Association.hasMany
+              # Rely on the parent's set index to get this out.
+              childRecord.set("#{association.label}_id", record.get('id'))
+            else
+              record.set(inverse.label, childRecord)
+        childRecord.set("#{association.label}", record)
         record
     }
 
@@ -2525,10 +2547,12 @@ class Batman.Association.hasOne extends Batman.Association
         json = val.toJSON()
         json[association.foreignKey] = record.get('id')
         json
-      decode: (data) ->
+      decode: (data, _, _, _, parentRecord) ->
         relatedModel = association.getRelatedModel()
         record = new (relatedModel)()
         record.fromJSON(data)
+        if association.options.inverseOf
+          record.set association.options.inverseOf, parentRecord
         record = relatedModel._mapIdentity(record)
         record
     }
@@ -2575,12 +2599,14 @@ class Batman.Association.hasMany extends Batman.Association
             jsonArray.push relationJSON
         jsonArray
 
-      decode: (data) ->
+      decode: (data, _, _, _, parentRecord) ->
         relations = new Batman.Set
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
             record = new relatedModel()
             record.fromJSON(jsonObject)
+            if association.options.inverseOf
+              record.set association.options.inverseOf, parentRecord
             record = relatedModel._mapIdentity(record)
             relations.add record
         else

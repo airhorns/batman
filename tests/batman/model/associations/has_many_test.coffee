@@ -168,17 +168,6 @@ asyncTest "hasMany child models are added to the identity map", 1, ->
     equal @ProductVariant.get('loaded').length, 2
     QUnit.start()
 
-asyncTest "hasMany child models are passed through the identity map", 4, ->
-  @ProductVariant.load (err, variants) =>
-    throw err if err
-    @Product.find 3, (err, product) =>
-      equal @ProductVariant.get('loaded').length, 2
-      productVariants = product.get('productVariants').toArray()
-      equal productVariants.length, 2
-      equal productVariants[0], variants[0]
-      equal productVariants[1], variants[1]
-      QUnit.start()
-
 asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>
     source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
@@ -199,3 +188,57 @@ asyncTest "hasMany adds new related model instances to its set", ->
     addedProduct.save (err, savedProduct) =>
       ok store.get('products').has(savedProduct)
       QUnit.start()
+
+QUnit.module "Batman.Model hasMany Associations with inverse of"
+  setup: ->
+    namespace = {}
+
+    namespace.Product = class @Product extends Batman.Model
+      @encode 'id', 'name'
+      @hasMany 'productVariants', {namespace: namespace, inverseOf: 'product'}
+
+    @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
+      products1:
+        name: "Product One"
+        id: 1
+        productVariants: [{
+          id:5
+          price:50
+        },{
+          id:6
+          price:60
+        }]
+
+    namespace.ProductVariant = class @ProductVariant extends Batman.Model
+      @encode 'price'
+      @belongsTo 'product', namespace: namespace
+
+    @variantsAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter,
+      product_variants5:
+        id:5
+        price:50
+      product_variants6:
+        id:6
+        price:60
+
+asyncTest "hasMany sets the foreign key on the inverse relation if the children haven't been loaded", 3, ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    variants = product.get('productVariants')
+    delay ->
+      variants = variants.toArray()
+      equal variants.length, 2
+      equal variants[0].get('product'), product
+      equal variants[1].get('product'), product
+
+asyncTest "hasMany sets the foreign key on the inverse relation if the children have already been loaded", 3, ->
+  @ProductVariant.load (err, variants) =>
+    throw err if err
+    @Product.find 1, (err, product) =>
+      throw err if err
+      variants = product.get('productVariants')
+      delay ->
+        variants = variants.toArray()
+        equal variants.length, 2
+        equal variants[0].get('product'), product
+        equal variants[1].get('product'), product

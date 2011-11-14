@@ -103,3 +103,44 @@ asyncTest "hasOne associations render", 1, ->
       equal node[0].innerHTML, 'Product One'
       QUnit.start()
 
+QUnit.module "Batman.Model hasOne Associations with inverseOf"
+  setup: ->
+    namespace = {}
+
+    namespace.Store = class @Store extends Batman.Model
+      @encode 'id', 'name'
+      @hasOne 'product', {namespace: namespace, inverseOf: 'store'}
+
+    @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
+      stores1:
+        name: "Store One"
+        id: 1
+        product:
+          name: "Product One"
+          id: 1
+
+    namespace.Product = class @Product extends Batman.Model
+      @encode 'id', 'name'
+      @belongsTo 'store', namespace: namespace
+
+    @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
+      products1:
+        name: "Product One"
+        id: 1
+
+asyncTest "hasOne sets the foreign key on the inverse relation if the child hasn't been loaded", 1, ->
+  @Store.find 1, (err, store) =>
+    throw err if err
+    product = store.get('product')
+    delay ->
+      equal product.get('store'), store
+
+asyncTest "hasOne sets the foreign key on the inverse relation if the child has already been loaded", 1, ->
+  @Product.find 1, (err, product) =>
+    throw err if err
+    @Store.find 1, (err, store) =>
+      throw err if err
+      product = store.get('product')
+      delay ->
+        equal product.get('store'), store
+

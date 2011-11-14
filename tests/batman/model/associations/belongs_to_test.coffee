@@ -121,3 +121,104 @@ asyncTest "belongsTo supports inline saving", 1, ->
       name: "Inline Product"
       store: {name: "Inline Store"}
     QUnit.start()
+
+QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasMany"
+  setup: ->
+    namespace = @namespace = this
+
+    class @Order extends Batman.Model
+      @encode 'id', 'name'
+      @belongsTo 'customer', {namespace: namespace, inverseOf: 'orders'}
+
+    @orderAdapter = createStorageAdapter @Order, AsyncTestStorageAdapter,
+      'orders1':
+        name: "Order One"
+        id: 1
+        customer:
+          name: "Customer One"
+          id: 1
+      'orders2':
+        name: "Order Two"
+        id: 1
+        customer:
+          name: "Customer One"
+          id: 1
+
+    class @Customer extends Batman.Model
+      @encode 'id', 'name'
+      @hasMany 'orders', namespace: namespace
+
+    @customerAdapter = createStorageAdapter @Customer, AsyncTestStorageAdapter,
+      'customers1':
+        name: "Customer One"
+        id: 1
+
+asyncTest "belongsTo sets the foreign key on itsself so the parent relation SetIndex adds it, if the parent hasn't been loaded", 1, ->
+  @Order.find 1, (err, order) =>
+    throw err if err
+    customer = order.get('customer')
+    delay ->
+      ok customer.get('orders').has(order)
+
+asyncTest "belongsTo sets the foreign key foreign key on itsself so the parent relation SetIndex adds it, if the parent has already been loaded", 1, ->
+  @Customer.find 1, (err, customer) =>
+    throw err if err
+    @Order.find 1, (err, order) =>
+      throw err if err
+      customer = order.get('customer')
+      delay ->
+        ok customer.get('orders').has(order)
+
+asyncTest "belongsTo sets the foreign key foreign key on itsself such that many loads are picked up by the parent", 3, ->
+  @Customer.find 1, (err, customer) =>
+    throw err if err
+    @Order.find 1, (err, order) =>
+      throw err if err
+      equal customer.get('orders').length, 1
+      @Order.find 2, (err, order) =>
+        throw err if err
+        equal customer.get('orders').length, 2
+        equal @Customer.get('loaded').length, 1, 'Only one parent record should be created'
+        QUnit.start()
+
+
+QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasOne"
+  setup: ->
+    namespace = @namespace = this
+
+    class @Order extends Batman.Model
+      @encode 'id', 'name'
+      @belongsTo 'customer', {namespace: namespace, inverseOf: 'order'}
+
+    @orderAdapter = createStorageAdapter @Order, AsyncTestStorageAdapter,
+      'orders1':
+        name: "Order One"
+        id: 1
+        customer:
+          name: "Customer One"
+          id: 1
+
+    class @Customer extends Batman.Model
+      @encode 'id', 'name'
+      @hasOne 'order', namespace: namespace
+
+    @customerAdapter = createStorageAdapter @Customer, AsyncTestStorageAdapter,
+      'customers1':
+        name: "Customer One"
+        id: 1
+
+asyncTest "belongsTo sets the inverse relation if the parent hasn't been loaded", 1, ->
+  @Order.find 1, (err, order) =>
+    throw err if err
+    customer = order.get('customer')
+    equal customer.get('order'), order
+    QUnit.start()
+
+asyncTest "belongsTo sets the inverse relation if the parent has already been loaded", 1, ->
+  @Customer.find 1, (err, customer) =>
+    throw err if err
+    @Order.find 1, (err, order) =>
+      throw err if err
+      customer = order.get('customer')
+      equal customer.get('order'), order
+      QUnit.start()
