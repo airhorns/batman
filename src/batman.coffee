@@ -3631,38 +3631,52 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
   deProxy = (object) -> if object instanceof Batman.RenderContext.ContextProxy then object.get('proxiedObject') else object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
-  @accessor 'filteredValue', ->
-    unfilteredValue = @get('unfilteredValue')
+  @accessor 'filteredValue'
+    get: ->
+      unfilteredValue = @get('unfilteredValue')
 
-    if @filterFunctions.length > 0
-      developer.currentFilterStack = @renderContext
+      if @filterFunctions.length > 0
+        developer.currentFilterStack = @renderContext
 
-      result = @filterFunctions.reduce((value, fn, i) =>
-        # Get any argument keypaths from the context stored at parse time.
-        args = @filterArguments[i].map (argument) ->
-          if argument._keypath
-            $get(argument.context, argument._keypath)
-          else
-            argument
+        result = @filterFunctions.reduce((value, fn, i) =>
+          # Get any argument keypaths from the context stored at parse time.
+          args = @filterArguments[i].map (argument) ->
+            if argument._keypath
+              $get(argument.context, argument._keypath)
+            else
+              argument
 
-        # Apply the filter.
-        args.unshift value
-        args = args.map deProxy
-        fn.apply(@renderContext, args)
-      , unfilteredValue)
-      developer.currentFilterStack = null
-      result
-    else
-      deProxy(unfilteredValue)
+          # Apply the filter.
+          args.unshift value
+          args = args.map deProxy
+          fn.apply(@renderContext, args)
+        , unfilteredValue)
+        developer.currentFilterStack = null
+        result
+      else
+        deProxy(unfilteredValue)
+
+    # We ignore any filters for setting, because they often aren't reversible.
+    set: (_, newValue) -> @set('unfilteredValue', newValue)
 
   # The `unfilteredValue` is whats evaluated each time any dependents change.
-  @accessor 'unfilteredValue', ->
-    # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
-    # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
-    if k = @get('key')
-      @get("keyContext.#{k}")
-    else
-      @get('value')
+  @accessor 'unfilteredValue'
+    get: ->
+      # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
+      # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
+      if k = @get('key')
+        @get("keyContext.#{k}")
+      else
+        @get('value')
+    set: (_, value) ->
+      if k = @get('key')
+        keyContext = @get('keyContext')
+        # Supress sets on the window
+        if keyContext != container
+          @set("keyContext.#{k}", value)
+      else
+        @set('value', value)
+
 
   # The `keyContext` accessor is
   @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
@@ -3680,7 +3694,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
   bind: ->
     shouldSet = yes
-    # And attach them.
+    # Attach the observers.
     if @node? && @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
@@ -3799,18 +3813,18 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
 class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   nodeChange: (node, context) ->
     if @key && @filterFunctions.length == 0
-      @get('keyContext').set @key, @node.value
+      @set 'filteredValue', @node.value
 
   dataChange: (value, node) ->
     Batman.DOM.valueForNode @node, value
 
 class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
   dataChange: (value) -> @node.setAttribute(@attributeName, value)
-  nodeChange: (node) -> @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName)))
+  nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName))
 
 class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBinding
   dataChange: (value) -> @node[@attributeName] = value
-  nodeChange: (node) -> @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node[@attributeName]))
+  nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node[@attributeName])
 
 class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
   constructor: (node, className, key, context, parentRenderer, @invert = false) ->
@@ -3908,10 +3922,10 @@ class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
     if (boundValue = @get('filteredValue'))?
       @node.checked = boundValue == @node.value
     else if @node.checked
-      @get('keyContext').set @key, @node.value
+      @set 'filteredValue', @node.value
 
   nodeChange: (node) ->
-    @get('keyContext').set(@key, Batman.DOM.attrReaders._parseAttribute(node.value))
+    @set('filteredValue', Batman.DOM.attrReaders._parseAttribute(node.value))
 
 class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
   nodeChange: (node, subContext) ->
@@ -3931,9 +3945,9 @@ class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
         adapter.defaultOptions.formData = true
 
     if node.hasAttribute('multiple')
-      subContext.set @key, Array::slice.call(node.files)
+      @set 'filteredValue', Array::slice.call(node.files)
     else
-      subContext.set @key, node.value
+      @set 'filteredValue', node.value
 
 class Batman.DOM.MixinBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) -> $mixin @node, value if value?
@@ -3981,7 +3995,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     # Gather the selected options and update the binding
     selections = if @node.multiple then (c.value for c in @node.children when c.selected) else @node.value
     selections = selections[0] if selections.length == 1
-    @get('keyContext').set @key, selections
+    @set 'unfilteredValue', selections
     true
 
   updateOptionBindings: =>

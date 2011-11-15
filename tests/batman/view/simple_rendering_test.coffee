@@ -156,6 +156,26 @@ asyncTest 'it should bind the input value and update the input when it changes',
     delay =>
       equal $(node[0]).val(), 'bar'
 
+asyncTest 'it should bind the input value but not update the window object if the input changes', 2, ->
+  context = Batman({})
+
+  helpers.render '<input data-bind="nonexistantKey" type="text" />', context, (node) ->
+    equal node[0].value, ''
+    node[0].value = 'foo'
+    helpers.triggerChange(node[0])
+    delay =>
+      equal typeof window.nonexistantKey, 'undefined'
+
+asyncTest 'it should bind the input value but not update the window object if the input changes with a many segment keypath', 2, ->
+  context = Batman({})
+
+  helpers.render '<input data-bind="someKey.path" type="text" />', context, (node) ->
+    equal node[0].value, ''
+    node[0].value = 'foo'
+    helpers.triggerChange(node[0])
+    delay =>
+      equal typeof window.someKey, 'undefined'
+
 asyncTest 'it should bind the input value of checkboxes and update the value when the object changes', 2, ->
   context = Batman
     one: true
