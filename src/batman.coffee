@@ -65,17 +65,6 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 
   from
 
-# `findName` allows an anonymous function to find out what key it resides
-# in within a context.
-Batman._findName = $findName = (f, context) ->
-  unless f.displayName
-    for key, value of context
-      if value is f
-        f.displayName = key
-        break
-
-  f.displayName
-
 # `$functionName` returns the name of a given function, if any
 # Used to deal with functions not having the `name` property in IE
 Batman._functionName = $functionName = (f) ->
