@@ -54,12 +54,13 @@ test "set(key, val) overwrites existing keys", ->
   equal @hash.get('foo'), 'baz'
 
 test "set(key, val) keeps unequal keys distinct", ->
-  key1 = {}
-  key2 = {}
-  @hash.set key1, 1
-  @hash.set key2, 2
-  equal @hash.get(key1), 1
-  equal @hash.get(key2), 2
+  Batman.developer.suppress =>
+    key1 = {}
+    key2 = {}
+    @hash.set key1, 1
+    @hash.set key2, 2
+    equal @hash.get(key1), 1
+    equal @hash.get(key2), 2
 
 test "set(key, undefined) sets", ->
   equal typeof(@hash.set 'foo', undefined), 'undefined'
@@ -76,21 +77,23 @@ test "unset(key) unsets a key and its value from the hash, returning the existin
   equal @hash.hasKey('foo'), false
 
 test "unset(key) doesn't touch any other keys", ->
-  @hash.set 'foo', 'bar'
-  @hash.set (o1 = {}), 1
-  @hash.set (o2 = {}), 2
-  @hash.set (o3 = {}), 3
-  @hash.unset o2
-  equal @hash.hasKey('foo'), true
-  equal @hash.hasKey(o1), true
-  equal @hash.hasKey(o2), false
-  equal @hash.hasKey(o3), true
+  Batman.developer.suppress =>
+    @hash.set 'foo', 'bar'
+    @hash.set (o1 = {}), 1
+    @hash.set (o2 = {}), 2
+    @hash.set (o3 = {}), 3
+    @hash.unset o2
+    equal @hash.hasKey('foo'), true
+    equal @hash.hasKey(o1), true
+    equal @hash.hasKey(o2), false
+    equal @hash.hasKey(o3), true
 
 test "unset(undefined) doesn't touch any other keys", ->
-  @hash.set 'foo', 'bar'
-  @hash.set {}, 'bar'
-  @hash.unset undefined
-  equalHashLength @hash, 2
+  Batman.developer.suppress =>
+    @hash.set 'foo', 'bar'
+    @hash.set {}, 'bar'
+    @hash.unset undefined
+    equalHashLength @hash, 2
 
 test "unset(key) fires an itemsWereRemoved event", ->
   @hash.set 'foo', 'bar'
@@ -99,37 +102,38 @@ test "unset(key) fires an itemsWereRemoved event", ->
   deepEqual spy.lastCallArguments, ['foo']
 
 test "length is maintained over get, set, and unset", ->
-  equalHashLength @hash, 0
+  Batman.developer.suppress =>
+    equalHashLength @hash, 0
 
-  @hash.set 'foo', 'bar'
-  equalHashLength @hash, 1
+    @hash.set 'foo', 'bar'
+    equalHashLength @hash, 1
 
-  @hash.set 'foo', 'baz'
-  equalHashLength @hash, 1, "Length doesn't increase after setting an already existing key"
+    @hash.set 'foo', 'baz'
+    equalHashLength @hash, 1, "Length doesn't increase after setting an already existing key"
 
-  @hash.set 'corge', 'qux'
-  equalHashLength @hash, 2
+    @hash.set 'corge', 'qux'
+    equalHashLength @hash, 2
 
-  @hash.unset 'foo'
-  equalHashLength @hash, 1, "Unsetting an existant key decreases the length"
+    @hash.unset 'foo'
+    equalHashLength @hash, 1, "Unsetting an existant key decreases the length"
 
-  @hash.unset 'nonexistant'
-  equalHashLength @hash, 1, "Unsetting an nonexistant key doesn't decrease the length"
+    @hash.unset 'nonexistant'
+    equalHashLength @hash, 1, "Unsetting an nonexistant key doesn't decrease the length"
 
-  @hash.set 'bar', 'baz'
-  @hash.clear()
-  equalHashLength @hash, 0
+    @hash.set 'bar', 'baz'
+    @hash.clear()
+    equalHashLength @hash, 0
+  
+    @hash.set o1 = {}, true
+    equalHashLength @hash, 1
+    @hash.set o2 = {}, true
+    equalHashLength @hash, 2
 
-  @hash.set o1 = {}, true
-  equalHashLength @hash, 1
-  @hash.set o2 = {}, true
-  equalHashLength @hash, 2
+    @hash.set o1, false, "Resetting object keys doesn't change length"
+    equalHashLength @hash, 2
 
-  @hash.set o1, false, "Resetting object keys doesn't change length"
-  equalHashLength @hash, 2
-
-  @hash.clear()
-  equalHashLength @hash, 0
+    @hash.clear()
+    equalHashLength @hash, 0
 
 test "using .hasKey(key) in an accessor registers the hash as a source of the property", ->
   obj = new Batman.Object
@@ -192,21 +196,22 @@ test "equality(lhs, rhs) returns true when both are NaN", ->
   equal @hash.equality(NaN, NaN), true
 
 test "keys() returns an array of the hash's keys", ->
-  @hash.set 'foo', 'bar'
-  @hash.set (o1 = {}), 1
-  @hash.set (o2 = {}), 2
-  @hash.set 'foo', 'baz'
-  @hash.set 'bar', 'buzz'
-  @hash.set 'baz', 'blue'
-  @hash.unset 'baz'
-  test = (keys) ->
-    equal keys.indexOf('baz'), -1
-    notEqual keys.indexOf('foo'), -1
-    notEqual keys.indexOf(o1), -1
-    notEqual keys.indexOf(o2), -1
-    notEqual keys.indexOf('bar'), -1
-  test(@hash.keys())
-  test(@hash.meta.get('keys'))
+  Batman.developer.suppress =>
+    @hash.set 'foo', 'bar'
+    @hash.set (o1 = {}), 1
+    @hash.set (o2 = {}), 2
+    @hash.set 'foo', 'baz'
+    @hash.set 'bar', 'buzz'
+    @hash.set 'baz', 'blue'
+    @hash.unset 'baz'
+    test = (keys) ->
+      equal keys.indexOf('baz'), -1
+      notEqual keys.indexOf('foo'), -1
+      notEqual keys.indexOf(o1), -1
+      notEqual keys.indexOf(o2), -1
+      notEqual keys.indexOf('bar'), -1
+    test(@hash.keys())
+    test(@hash.meta.get('keys'))
 
 test "get/set/unset/hasKey with an undefined or null key works like any other, and they don't collide with each other", ->
   equal @hash.hasKey(undefined), false
@@ -256,76 +261,80 @@ test "keys containing dots (.) are treated as simple keys, not keypaths", ->
   equal @hash.hasKey(key), false
 
 test "clear() removes all keys from the hash", ->
-  key1 = {}
-  key2 = {}
-  @hash.set key1, 1
-  @hash.set key2, 2
-  @hash.set 'foo', 'baz'
-  @hash.set 'bar', 'buzz'
+  Batman.developer.suppress =>
+    key1 = {}
+    key2 = {}
+    @hash.set key1, 1
+    @hash.set key2, 2
+    @hash.set 'foo', 'baz'
+    @hash.set 'bar', 'buzz'
 
-  @hash.on 'itemsWereRemoved', spy = createSpy()
-  @hash.clear()
-  equalHashLength @hash, 0
-  deepEqual spy.lastCallArguments.sort(), [key1, key2, 'foo', 'bar'].sort()
+    @hash.on 'itemsWereRemoved', spy = createSpy()
+    @hash.clear()
+    equalHashLength @hash, 0
+    deepEqual spy.lastCallArguments.sort(), [key1, key2, 'foo', 'bar'].sort()
 
 test "clear() fires key observers exactly once each, and exactly one 'change' and one 'itemsWereRemoved' event on the hash itself", ->
-  objKey = {}
-  @hash.set objKey, 1
-  @hash.set 'foo', 'bar'
+  Batman.developer.suppress =>
+    objKey = {}
+    @hash.set objKey, 1
+    @hash.set 'foo', 'bar'
 
-  @hash.observe objKey, objKeyObserver = createSpy()
-  @hash.observe 'foo', fooObserver = createSpy()
-  @hash.on 'change', changeHandler = createSpy()
-  @hash.on 'itemsWereRemoved', itemsWereRemovedHandler = createSpy()
+    @hash.observe objKey, objKeyObserver = createSpy()
+    @hash.observe 'foo', fooObserver = createSpy()
+    @hash.on 'change', changeHandler = createSpy()
+    @hash.on 'itemsWereRemoved', itemsWereRemovedHandler = createSpy()
 
-  @hash.clear()
+    @hash.clear()
 
-  equal objKeyObserver.callCount, 1
-  deepEqual objKeyObserver.lastCallArguments, [undefined, 1]
-  equal fooObserver.callCount, 1
-  deepEqual fooObserver.lastCallArguments, [undefined, 'bar']
-  equal changeHandler.callCount, 1
-  deepEqual changeHandler.lastCallArguments, [@hash, @hash]
-  equal itemsWereRemovedHandler.callCount, 1
-  deepEqual itemsWereRemovedHandler.lastCallArguments, [objKey, 'foo']
+    equal objKeyObserver.callCount, 1
+    deepEqual objKeyObserver.lastCallArguments, [undefined, 1]
+    equal fooObserver.callCount, 1
+    deepEqual fooObserver.lastCallArguments, [undefined, 'bar']
+    equal changeHandler.callCount, 1
+    deepEqual changeHandler.lastCallArguments, [@hash, @hash]
+    equal itemsWereRemovedHandler.callCount, 1
+    deepEqual itemsWereRemovedHandler.lastCallArguments, [objKey, 'foo']
 
 test "merge(other) returns a new hash without modifying the original", ->
-  key1 = {}
-  key2 = {}
-  @hash.set key1, 1
-  @hash.set key2, 2
-  @hash.set 'foo', 'baz'
-  @hash.set 'bar', 'buzz'
+  Batman.developer.suppress =>
+    key1 = {}
+    key2 = {}
+    @hash.set key1, 1
+    @hash.set key2, 2
+    @hash.set 'foo', 'baz'
+    @hash.set 'bar', 'buzz'
 
-  other = new Batman.Hash
-  other.set key1, 3
-  other.set key3 = {}, 4
+    other = new Batman.Hash
+    other.set key1, 3
+    other.set key3 = {}, 4
 
-  merged = @hash.merge other
+    merged = @hash.merge other
 
-  ok merged.hasKey 'foo'
-  ok merged.hasKey 'bar'
-  ok merged.hasKey key1
-  ok merged.hasKey key2
-  ok merged.hasKey key3
-  equal merged.get(key1), 3
+    ok merged.hasKey 'foo'
+    ok merged.hasKey 'bar'
+    ok merged.hasKey key1
+    ok merged.hasKey key2
+    ok merged.hasKey key3
+    equal merged.get(key1), 3
 
-  ok !@hash.hasKey(key3)
-  equal @hash.get(key1), 1
+    ok !@hash.hasKey(key3)
+    equal @hash.get(key1), 1
 
 test "filter(f) returns a filtered hash", ->
-  key1 = {}
-  key2 = {}
-  @hash.set key1, 1
-  @hash.set key2, 2
-  @hash.set 'foo', 'baz'
-  @hash.set 'bar', 'buzz'
+  Batman.developer.suppress =>
+    key1 = {}
+    key2 = {}
+    @hash.set key1, 1
+    @hash.set key2, 2
+    @hash.set 'foo', 'baz'
+    @hash.set 'bar', 'buzz'
 
-  @filtered = @hash.filter (k, v) -> k in [key1, 'foo']
-  ok @filtered instanceof Batman.Hash
-  equal @filtered.length, 2
-  ok @filtered.get key1
-  ok @filtered.get 'foo'
+    @filtered = @hash.filter (k, v) -> k in [key1, 'foo']
+    ok @filtered instanceof Batman.Hash
+    equal @filtered.length, 2
+    ok @filtered.get key1
+    ok @filtered.get 'foo'
 
 test "JSON.stringify(hash) returns the correct object representation for native types", ->
   obj =
@@ -339,15 +348,16 @@ test "JSON.stringify(hash) returns the correct object representation for native 
   deepEqual JSON.parse(JSON.stringify(@hash)), obj
 
 test "JSON.stringify(hash) returns the correct object representation for Batman.Object types", ->
-  objectKey = new Batman.Object
-  obj = new Batman.Object
-    set: new Batman.Set 1, 2, 3
-  obj.hashKey()
-  @hash = new Batman.Hash
-  @hash.set(objectKey, obj)
-  expected = {}
-  expected[objectKey.hashKey()] = set: [1,2,3]
-  deepEqual JSON.parse(JSON.stringify(@hash)), expected
+  Batman.developer.suppress =>
+    objectKey = new Batman.Object
+    obj = new Batman.Object
+      set: new Batman.Set 1, 2, 3
+    obj.hashKey()
+    @hash = new Batman.Hash
+    @hash.set(objectKey, obj)
+    expected = {}
+    expected[objectKey.hashKey()] = set: [1,2,3]
+    deepEqual JSON.parse(JSON.stringify(@hash)), expected
 
 test "update(pojo) updates the keys and values with those of the given object", ->
   @hash.set('foo', 'foo1')

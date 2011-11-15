@@ -249,14 +249,16 @@ test "get('indexedBy').get(deepProperty) indexes by the deep property instead of
   deepEqual index.get(2).toArray(), [@o2]
 
 test "indexedByUnique(key) returns a memoized UniqueSetIndex for that key", ->
-  index = @set.indexedByUnique('foo')
-  ok index instanceof Batman.UniqueSetIndex
-  equal index.base, @set
-  equal index.key, 'foo'
-  strictEqual @set.indexedByUnique('foo'), index
+  Batman.developer.suppress =>
+    index = @set.indexedByUnique('foo')
+    ok index instanceof Batman.UniqueSetIndex
+    equal index.base, @set
+    equal index.key, 'foo'
+    strictEqual @set.indexedByUnique('foo'), index
 
 test "get('indexedByUnique.foo') returns a memoized UniqueSetIndex for the key 'foo'", ->
-  strictEqual @set.get('indexedByUnique.foo'), @set.indexedByUnique('foo')
+  Batman.developer.suppress =>
+    strictEqual @set.get('indexedByUnique.foo'), @set.indexedByUnique('foo')
 
 QUnit.module "Batman.SetSort polymorphism"
   setup: ->

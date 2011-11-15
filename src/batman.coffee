@@ -383,7 +383,7 @@ class Batman.Property
     developer.do =>
       keyType = $typeOf(@key)
       if keyType in ['Array', 'Object']
-        developer.warn "Constructing a property with an #{keyType} for a key:", this
+        developer.log "Accessing a property with an #{keyType} key. This is okay, but could be a source of memory leaks if you aren't careful."
 
   _isolationCount: 0
   cached: no
