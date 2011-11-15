@@ -2171,8 +2171,8 @@ class Batman.Model extends Batman.Object
       decoders.forEach (key, decoder) =>
         obj[key] = decoder(data[key], key, data, obj, @) if data[key]
     developer.do =>
-      if (!decoders) || decoders.reduce(((sum, x) -> sum + x), 0) <= 1
-        developer.warn "Warning: Model #{@get('storageKey')} has suspiciously few decoders!"
+      if (!decoders) || decoders.length <= 1
+        developer.warn "Warning: Model #{$functionName(@constructor)} has suspiciously few decoders!"
 
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj

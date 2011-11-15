@@ -12,11 +12,12 @@ test "new instances start 'empty'", ->
 
 asyncTest "loaded instances start 'loaded'", 2, ->
   product = new @Product(10)
-  product.load (err, product) ->
-    throw err if err
-    ok !product.isNew()
-    equal product.state(), 'loaded'
-    QUnit.start()
+  Batman.developer.suppress =>
+    product.load (err, product) ->
+      throw err if err
+      ok !product.isNew()
+      equal product.state(), 'loaded'
+      QUnit.start()
 
 test "instances have state transitions for observation", 1, ->
   product = new @Product

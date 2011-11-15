@@ -6,11 +6,14 @@ QUnit.module "Batman.Model Associations"
 asyncTest "support custom model namespaces and class names", 2, ->
   namespace = {}
   class namespace.Walmart extends Batman.Model
+    @encode 'name', 'id'
 
   class Product extends Batman.Model
     @belongsTo 'store',
       namespace: namespace
       name: 'Walmart'
+    @encode 'name', 'id'
+
   productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
     'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
   Product.find 2, (err, product) ->
@@ -53,12 +56,13 @@ asyncTest "models can save while related records are loading", 1, ->
   class @Product extends Batman.Model
   productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter
 
-  @Store.find 1, (err, store) ->
-    product  = store.get 'product'
-    product._batman.state = 'loading'
-    store.save (err, savedStore) ->
-      ok !err
-      QUnit.start()
+  Batman.developer.suppress =>
+    @Store.find 1, (err, store) ->
+      product  = store.get 'product'
+      product._batman.state = 'loading'
+      store.save (err, savedStore) ->
+        ok !err
+        QUnit.start()
 
 asyncTest "inline saving can be disabled", 1, ->
   namespace = this
