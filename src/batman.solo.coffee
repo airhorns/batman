@@ -321,6 +321,7 @@ buildParams = (prefix, obj, add) ->
     add prefix, obj
 
 Batman.Request::send = (data) ->
+  data ?= @get('data')
   @fire 'loading'
 
   options =
@@ -342,17 +343,17 @@ Batman.Request::send = (data) ->
 
     complete: =>
       @fire 'loaded'
-
-  if options.method in ['PUT', 'POST']
-    unless @get('formData')
-      options.headers['Content-type'] = @get 'contentType'
-      data = data || @get('data')
-      if options.method is 'GET'
-        options.url += param(data)
-      else
-        options.data = param(data)
-    else
+  
+  unless @get('formData')
+    options.headers['Content-type'] = @get('contentType')
+  
+  if options.method is 'GET'
+    options.url += "?#{param(data)}"
+  else if options.method in ['PUT', 'POST']
+    if @get('formData')
       options.data = @constructor.objectToFormData(options.data)
+    else
+      options.data = param(data)
 
   # Fires the request. Grab a reference to the xhr object so we can get the status code elsewhere.
   xhr = (reqwest options).request
