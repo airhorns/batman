@@ -417,6 +417,18 @@ asyncTest 'contexts should only be available inside the node with the context di
     delay ->
       equal node[1].innerHTML, ""
 
+asyncTest 'contexts should be available on the node with the context directive', 2, ->
+  context = Batman
+    namespace: Batman
+      foo: 'bar'
+  source = '<div data-context="namespace" data-bind="foo"></div>'
+
+  helpers.render source, context, (node) ->
+    equal node[0].innerHTML, "bar"
+    context.set('namespace', Batman(foo: 'baz'))
+    delay ->
+      equal node[0].innerHTML, "baz"
+
 asyncTest 'it should allow context names to be specified', 2, ->
   context = Batman
     namespace: 'foo'

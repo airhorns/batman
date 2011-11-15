@@ -75,6 +75,15 @@ asyncTest 'it should add items in order', ->
     delay =>
       deepEqual getPs(view), ['zero', 'foo', 'bar']
 
+asyncTest 'it should allow data-context definitions on inner nodes', ->
+  source = '<p data-foreach-outer="objects" data-context-object="outer.foo.bar" data-bind="object.name"></p>'
+  objects = new Batman.Set({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
+  objects = objects.map (object) -> Batman(foo: Batman(bar: object))
+
+  helpers.render source, {objects}, (node, view) ->
+    deepEqual getPs(view), ['foo', 'bar']
+    QUnit.start()
+
 asyncTest 'the ready event should wait for all children to be rendered', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   objects = new Batman.Set('foo', 'bar', 'baz')

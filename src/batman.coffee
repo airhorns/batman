@@ -3108,6 +3108,10 @@ class Batman.Renderer extends Batman.Object
       -1
     else if b[0] == 'formfor'
       1
+    else if a[0] == 'context'
+      -1
+    else if b[0] == 'context'
+      1
     else if a[0] == 'bind'
       -1
     else if b[0] == 'bind'
