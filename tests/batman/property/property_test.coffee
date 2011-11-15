@@ -1,42 +1,3 @@
-# class Person
-#   @accessor 'name', 'momName', 'dadName',
-#     get: -> @firstName+' '+@lastName
-#     set: (val) -> [@firstName, @lastName] = val.split(' ')
-#     unset: ->
-#       @firstName = null
-#       delete @firstName
-#       @lastName = null
-#       delete @lastName
-
-#
-# class Batman.Object
-#   constructor: (obj) ->
-#     @[key] = val for own key, val of obj if obj
-
-
-QUnit.module 'Batman.Property final properties',
-  setup: ->
-    @thing = new Batman.Object
-    @thing.accessor 'foo',
-      get: -> @get('baz')
-      final: true
-    @thing.accessor 'bar', Batman.mixin({}, Batman.Property.defaultAccessor, final: true)
-
-test "get(key) for a final property locks in the first defined value", ->
-  strictEqual @thing.get('foo'), undefined
-  @thing.set('baz', 'something')
-  strictEqual @thing.get('foo'), 'something'
-  @thing.set('baz', 'something else')
-  strictEqual @thing.get('foo'), 'something'
-
-test "set(key) for a final property locks in the value unless it is undefined", ->
-  @thing.set 'bar', undefined
-  strictEqual @thing.get('bar'), undefined
-  @thing.set 'bar', null
-  strictEqual @thing.get('bar'), null
-  @thing.set 'bar', 'something else'
-  strictEqual @thing.get('bar'), null
-
 QUnit.module 'Batman.Property source tracking'
   setup: ->
     @class = class extends Batman.Object
@@ -68,7 +29,6 @@ test "calling mutators from inside an accessor does not add a new source", ->
   @object.get('foo')
 
   deepEqual @object.property('foo').sources.toArray(), []
-
 
 QUnit.module 'Batman.Property laziness'
   setup: ->
@@ -184,7 +144,7 @@ test "getValue() ignores the cache if its accessor has cachable: false", ->
   property = @baseWithNestedAccessors.property('baz') # uses Batman.Property.defaultAccessor, which has caching turned off
   strictEqual property.accessor().cachable, false
   strictEqual property.isCachable(), false
-  
+
   spy = spyOn(property.accessor(), 'get')
   property.cached = yes
   property.value = 'cached'
@@ -250,7 +210,7 @@ test "when a property has no observers and one of its sources changes, the prope
   equal bar.getValue(), 'newValue'
   equal bar.value, 'newValue'
   equal bar.cached, yes
-  
+
 
 ###
 # isolation
@@ -415,3 +375,41 @@ test "setValue or unsetValue within a getter should not register the updated pro
   deepEqual obj.property('foo').sources.toArray(), []
   deepEqual obj.property('bar').sources.toArray(), []
 
+QUnit.module 'Batman.Property final properties',
+  setup: ->
+    @thing = new Batman.Object
+    @thing.accessor 'foo',
+      get: -> @get('baz')
+      final: true
+    @thing.accessor 'bar', Batman.mixin({}, Batman.Property.defaultAccessor, final: true)
+
+test "set(key) for a final property locks in the value unless it is undefined", ->
+  @thing.set 'bar', undefined
+  strictEqual @thing.get('bar'), undefined
+  @thing.set 'bar', null
+  strictEqual @thing.get('bar'), null
+  @thing.set 'bar', 'something else'
+  strictEqual @thing.get('bar'), null
+
+test "get(key) for a final property with sources locks in the first defined value", ->
+  strictEqual @thing.get('foo'), undefined
+  @thing.set('baz', 'something')
+  strictEqual @thing.get('foo'), 'something'
+  @thing.set('baz', 'something else')
+  strictEqual @thing.get('foo'), 'something'
+
+test "observe(key) for a final property with sources calls back with the first defined value", ->
+  @thing.observe 'bar', spy = createSpy()
+  equal spy.callCount, 0
+  @thing.set('bar', 'something')
+  equal spy.callCount, 1
+  @thing.set('bar', 'something else')
+  equal spy.callCount, 1
+
+test "observe(key) for a final property with sources calls back with the first defined value", ->
+  @thing.observe 'foo', spy = createSpy()
+  equal spy.callCount, 0
+  @thing.set('baz', 'something')
+  equal spy.callCount, 1
+  @thing.set('baz', 'something else')
+  equal spy.callCount, 1

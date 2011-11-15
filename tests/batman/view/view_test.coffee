@@ -15,6 +15,7 @@ QUnit.module 'Batman.View'
 
     Batman.Request = MockRequest
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
+
   teardown: ->
     Batman.Request = oldRequest
 

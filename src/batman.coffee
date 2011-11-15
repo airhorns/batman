@@ -502,7 +502,6 @@ class Batman.Property
         @cached = yes
       finally
         @updateSourcesFromTracker()
-    @lockValue() if @value isnt undefined and @isFinal()
     @value
 
   isCachable: ->
@@ -520,6 +519,7 @@ class Batman.Property
     value = @getValue()
     if value isnt previousValue and not @isIsolated()
       @fire(value, previousValue)
+    @lockValue() if @value isnt undefined and @isFinal()
 
   sourceChangeHandler: ->
     handler = => @_handleSourceChange()
@@ -529,7 +529,7 @@ class Batman.Property
   _handleSourceChange: ->
     if @isIsolated()
       @_needsRefresh = yes
-    else if not @hasObservers()
+    else if not @isFinal() && not @hasObservers()
       @cached = no
     else
       @refresh()
