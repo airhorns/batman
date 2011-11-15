@@ -185,7 +185,7 @@ developer =
     if console.warn.apply then console.warn(arguments...) else developer._ie_console "warn", arguments
   error: (message) -> throw new developer.DevelopmentError(message)
   assert: (result, message) -> developer.error(message) unless result
-  do: (f) -> f()
+  do: (f) -> f() unless developer.suppressed
   addFilters: ->
     $mixin Batman.Filters,
       log: (value, key) ->
