@@ -65,48 +65,6 @@ Batman.unmixin = $unmixin = (from, mixins...) ->
 
   from
 
-# `$block` takes in a function and returns a function which can either
-#   A) take a callback as its last argument as it would normally, or
-#   B) accept a callback as a second function application.
-# This is useful so that multiline functions can be passed as callbacks
-# without the need for wrapping brackets (which a CoffeeScript bug
-# requires them to have). `$block` also takes an optional function airity
-# argument as the first argument. If a `length` argument is given, and `length`
-# or more arguments are passed, `$block` will call the second argument
-# (the function) with the passed arguments, regardless of their type.
-# Example:
-#  With a function that accepts a callback as its last argument
-#
-#     f = (a, b, callback) -> callback(a + b)
-#     ex = $block f
-#
-#  We can use $block to make it accept the callback in both ways:
-#
-#     ex(2, 3, (x) -> alert(x))  # alerts 5
-#
-#  or
-#
-#     ex(2, 3) (x) -> alert(x)
-#
-Batman._block = $block = (lengthOrFunction, fn) ->
-  if fn?
-    argsLength = lengthOrFunction
-  else
-    fn = lengthOrFunction
-
-  callbackEater = (args...) ->
-    ctx = @
-    f = (callback) ->
-      args.push callback
-      fn.apply(ctx, args)
-
-    # Call the function right now if we've been passed the callback already or if we've reached the argument count threshold
-    if (typeof args[args.length-1] is 'function') || (argsLength && (args.length >= argsLength))
-      f(args.pop())
-    else
-      f
-
-
 # `findName` allows an anonymous function to find out what key it resides
 # in within a context.
 Batman._findName = $findName = (f, context) ->
