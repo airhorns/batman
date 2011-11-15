@@ -4321,6 +4321,13 @@ filters = Batman.Filters =
   map: buntUndefined (value, key) ->
     value.map((x) -> x[key])
 
+  has: (set, item) ->
+    return false unless set?
+    if set.has?
+      set.has item
+    else
+      ~set.indexOf(item)
+
   first: buntUndefined (value) ->
     value[0]
 

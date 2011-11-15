@@ -200,6 +200,54 @@ asyncTest 'map over a set', 1, ->
     equals node.html(), "one, two"
     QUnit.start()
 
+asyncTest 'has in a set', 3, ->
+  posts = new Batman.Set(
+    Batman
+      name: 'one'
+      comments: 10
+  , Batman
+      name: 'two'
+      comments: 20
+  )
+
+  context = Batman
+    posts: posts
+    post: posts.toArray()[0]
+
+  helpers.render '<input type="checkbox" data-bind="posts | has post" />', context, (node) ->
+    ok node[0].checked
+    context.get('posts').remove(context.get('post'))
+    delay ->
+      ok !node[0].checked
+      context.get('posts').add(context.get('post'))
+      delay ->
+        ok node[0].checked
+
+asyncTest 'has in an array', 3, ->
+  posts = [
+    Batman
+      name: 'one'
+      comments: 10
+  , Batman
+      name: 'two'
+      comments: 20
+  ]
+
+  secondPost = [posts[1]]
+
+  context = Batman
+    posts: posts
+    post: posts[0]
+
+  helpers.render '<input type="checkbox" data-bind="posts | has post" />', context, (node) ->
+    ok node[0].checked
+    context.set 'posts', secondPost
+    delay ->
+      ok !node[0].checked
+      context.set 'posts', posts
+      delay ->
+        ok node[0].checked
+
 asyncTest 'meta', 2, ->
   context = Batman
     foo: Batman

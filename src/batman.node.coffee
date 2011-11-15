@@ -19,6 +19,8 @@ Batman.mixin Batman.Request::,
     requestModule = switch protocol
       when 'http:', 'https:'
         require protocol.slice(0,-1)
+      when undefined
+        require 'http'
       else
         throw "Unrecognized request protocol #{protocol}"
 
