@@ -155,10 +155,10 @@ asyncTest 'sort', 1, ->
     QUnit.start()
 
 asyncTest 'not', 1, ->
-  helpers.render '<div data-showif="foo | not"></div>',
+  helpers.render '<input type="checkbox" data-bind="foo | not" />',
     foo: true
   , (node) ->
-    equals node[0].style.display, "none"
+    equals node[0].checked, false
     QUnit.start()
 
 

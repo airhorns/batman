@@ -3844,7 +3844,7 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
       if typeof hide == 'function'
         hide.call @node
       else
-        @node.style.display = 'none'
+        @node.style.display = 'none !important'
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   dataChange: (value) ->
