@@ -17,16 +17,16 @@ asyncTest 'should request a url with default get', 2, ->
   delay =>
     req = @send.lastCallContext
     equal req.url, 'some/test/url.html'
-    equal req.method, 'get'
+    equal req.method, 'GET'
 
-asyncTest 'should request a url with a different method', 1, ->
+asyncTest 'should request a url with a different method, converting the method to uppercase', 1, ->
   new Batman.Request
     url: 'some/test/url.html'
     method: 'post'
 
   delay =>
     req = @send.lastCallContext
-    equal req.method, 'post'
+    equal req.method, 'POST'
 
 asyncTest 'should request a url with data', 1, ->
   new Batman.Request

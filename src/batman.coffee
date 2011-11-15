@@ -1356,10 +1356,13 @@ class Batman.Request extends Batman.Object
 
   url: ''
   data: ''
-  method: 'get'
+  method: 'GET'
   formData: false
   response: null
   status: null
+  
+  @accessor 'method', $mixin {}, Batman.Property.defaultAccessor,
+    set: (k,val) -> @[k] = val?.toUpperCase?()
 
   # Set the content type explicitly for PUT and POST requests.
   contentType: 'application/x-www-form-urlencoded'
