@@ -960,17 +960,17 @@ class Batman.SimpleHash
   toJSON: @::toObject
 
 class Batman.Hash extends Batman.Object
+  class @Metadata extends Batman.Object
+    constructor: (@hash) ->
+    @accessor 'length', ->
+      @hash.registerAsMutableSource()
+      @hash.length
+    @accessor 'isEmpty', -> @hash.isEmpty()
+    @accessor 'keys', -> @hash.keys()
+
   constructor: ->
+    @meta = new @constructor.Metadata(this)
     Batman.SimpleHash.apply(@, arguments)
-    # Add a meta object to all hashes which we can then use in the `meta` filter to allow binding
-    # to hash meta-properties without reserving keys.
-    @meta = new Batman.Object
-    self = this
-    @meta.accessor 'length', ->
-      self.registerAsMutableSource()
-      self.length
-    @meta.accessor 'isEmpty', -> self.isEmpty()
-    @meta.accessor 'keys', -> self.keys()
     super
 
   $extendsEnumerable(@::)
@@ -1760,9 +1760,24 @@ class Batman.HashbangNavigator extends Batman.Navigator
     else
       location.replace(@normalizePath("#{Batman.config.pathPrefix}#{@linkTo(realPath)}"))
 
-
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
+
+class Batman.ParamsManager extends Batman.Hash
+  @accessor
+    get: (k) -> @params.get(k)
+    set: @mutation (k,v) -> @params.set(k,v)
+    unset: @mutation (k) -> @params.unset(k)
+    cachable: false
+  constructor: (@navigator, @params) ->
+
+class Batman.ParamsReplacer extends Batman.ParamsManager
+  redirect: -> @navigator.replace(@toObject())
+
+class Batman.ParamsPusher extends Batman.ParamsManager
+  redirect: -> @navigator.push(@toObject())
+
+
 
 # Route Declarators
 # -----------------
