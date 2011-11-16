@@ -101,10 +101,16 @@ asyncTest "hasMany associations are not loaded when autoload is false", 1, ->
     delay =>
       equal products.length, 0
 
-asyncTest "hasMany associations can be reloaded", 4, ->
+asyncTest "hasMany associations can be reloaded", 7, ->
+  loadSpy = spyOn(@Product, 'load')
   @Store.find 1, (err, store) =>
-    store.get('products').load (error, products) =>
+    products = store.get('products')
+    ok products.loaded
+    equal loadSpy.callCount, 1
+
+    products.load (error, products) =>
       throw error if error
+      equal loadSpy.callCount, 2
       products.forEach (product) => ok product instanceof @Product
       deepEqual products.map((x) -> x.get('id')), [1,2,3]
       QUnit.start()

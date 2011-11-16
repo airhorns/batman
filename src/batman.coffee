@@ -2422,16 +2422,13 @@ class Batman.AssociationSet extends Batman.Set
   constructor: (@key, @association) -> super()
   loaded: false
   load: (callback) ->
-    if @loaded
-      callback(undefined, @)
-    else
-      loadOptions = {}
-      loadOptions[@association.foreignKey] = @key
-      @association.getRelatedModel().load loadOptions, (err, records) =>
-        unless err
-          @loaded = true
-          @add(record) for record in records
-        callback(err, @)
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @key
+    @association.getRelatedModel().load loadOptions, (err, records) =>
+      unless err
+        @loaded = true
+        @add(record) for record in records
+      callback(err, @)
 
 class Batman.AssociationSetIndex extends Batman.SetIndex
   constructor: (@association) ->
@@ -2570,7 +2567,7 @@ class Batman.Association.hasMany extends Batman.Association
       @set label, relatedRecords
       @amSetting = false
 
-      if self.options.autoload
+      if self.options.autoload and not relatedRecords.loaded
         relatedRecords.load (error, records) -> throw error if error
 
       return relatedRecords
