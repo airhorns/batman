@@ -2363,14 +2363,7 @@ class Batman.Association
       if @loaded
         @get('target').toJSON()
 
-    load: (model, callback) ->
-      # Clients calling load on a proxy object won't pass in model
-      unless callback
-        callback = model
-      else
-        # Keep a reference to the last seen model passed by association code
-        @model = model
-
+    load: (callback) ->
       @association.fetch callback, @model, @
       @get('target')
 
@@ -2428,7 +2421,7 @@ class Batman.Association
       proxy = @_batman.associations[@label] ||= new AssociationProxy(self, @)
 
       if not proxy.get('loaded') and self.options.autoload
-        proxy.load @, (err, relatedRecord) ->
+        proxy.load (err, relatedRecord) ->
           proxy.set('target', relatedRecord)
 
       proxy
