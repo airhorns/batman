@@ -2409,7 +2409,7 @@ class Batman.AssociationProxy extends Batman.Object
 
   @accessor 'target',
     get: ->
-      relatedKey = @association.getRelatedKey()
+      relatedKey = @association.localKey
       if id = @model.get(relatedKey)
         @association.getRelatedModel().get('loaded').indexedBy('id').get(id).toArray()[0]
     set: (v) -> v # This just needs to bust the cache
@@ -2447,11 +2447,12 @@ class Batman.Association.belongsTo extends Batman.Association
 
   constructor: ->
     super
+    @localKey = "#{@label}_id"
     @foreignKey = 'id'
-    @model.encode "#{@label}_id"
+    @model.encode @localKey
 
   fetch: (proxy, callback) ->
-    if relatedID = proxy.model.get "#{@label}_id"
+    if relatedID = proxy.model.get(@localKey)
       loadedRecords = @setIndex().get(relatedID)
 
       unless loadedRecords.isEmpty()
@@ -2465,8 +2466,6 @@ class Batman.Association.belongsTo extends Batman.Association
           else
             # Target hasn't loaded yet
             callback undefined, undefined
-
-  getRelatedKey: -> "#{@label}_id"
 
   encoder: ->
     association = @
@@ -2484,29 +2483,27 @@ class Batman.Association.belongsTo extends Batman.Association
           if inverse
             if inverse instanceof Batman.Association.hasMany
               # Rely on the parent's set index to get this out.
-              childRecord.set("#{association.label}_id", record.get('id'))
+              childRecord.set(association.localKey, record.get(association.foreignKey))
             else
               record.set(inverse.label, childRecord)
-        childRecord.set("#{association.label}", record)
+        childRecord.set(association.label, record)
         record
     }
 
   apply: (base) ->
     if model = base.get(@label)
-      base.set "#{@label}_id", model.get('id')
+      base.set @localKey, model.get(@foreignKey)
 
 class Batman.Association.hasOne extends Batman.Association
   associationType: 'hasOne'
 
   constructor: ->
     super
-    @propertyName = $functionName(@model).toLowerCase()
+    @localKey = "id"
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
-  getRelatedKey: -> "id"
-
   fetch: (proxy, callback) ->
-    if id = proxy.model.get('id')
+    if id = proxy.model.get(@localKey)
       # Check whether the relatedModel has already loaded the instance we want
       relatedRecords = @setIndex().get(id)
       unless relatedRecords.isEmpty()
@@ -2525,7 +2522,7 @@ class Batman.Association.hasOne extends Batman.Association
 
   apply: (baseSaveError, base) ->
     if relation = base.constructor.defaultAccessor.get.call(base, @label)
-      relation.set @foreignKey, base.get('id')
+      relation.set @foreignKey, base.get(@localKey)
 
   encoder: ->
     association = @
@@ -2533,7 +2530,7 @@ class Batman.Association.hasOne extends Batman.Association
       encode: (val, key, object, record) ->
         return unless association.options.saveInline
         if json = val.toJSON()
-          json[association.foreignKey] = record.get('id')
+          json[association.foreignKey] = record.get(association.localKey)
         json
       decode: (data, _, _, _, parentRecord) ->
         relatedModel = association.getRelatedModel()
@@ -2549,7 +2546,7 @@ class Batman.Association.hasMany extends Batman.Association
   associationType: 'hasMany'
   constructor: ->
     super
-    @propertyName = $functionName(@model).toLowerCase()
+    @localKey = "id"
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
   getAccessor: (self, model, label) ->
@@ -2560,7 +2557,7 @@ class Batman.Association.hasMany extends Batman.Association
     if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
 
-    if id = @get('id')
+    if id = @get(self.localKey)
       relatedRecords = self.setIndex().get(id)
 
       @amSetting = true
@@ -2575,7 +2572,7 @@ class Batman.Association.hasMany extends Batman.Association
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)
       relations.forEach (model) =>
-        model.set @foreignKey, base.get('id')
+        model.set @foreignKey, base.get(@localKey)
 
   encoder: ->
     association = @
@@ -2589,7 +2586,7 @@ class Batman.Association.hasMany extends Batman.Association
           jsonArray = []
           relationSet.forEach (relation) ->
             relationJSON = relation.toJSON()
-            relationJSON[association.foreignKey] = record.get('id')
+            relationJSON[association.foreignKey] = record.get(association.localKey)
             jsonArray.push relationJSON
 
         delete association._beingEncoded
