@@ -126,19 +126,19 @@ function(context, win) {
         }
 
         function setType(url) {
-            if (/\.json$/.test(url)) {
+            if (/\.json($|\?)/.test(url)) {
                 return 'json'
             }
-            if (/\.jsonp$/.test(url)) {
+            if (/\.jsonp($|\?)/.test(url)) {
                 return 'jsonp'
             }
-            if (/\.js$/.test(url)) {
+            if (/\.js($|\?)/.test(url)) {
                 return 'js'
             }
-            if (/\.html?$/.test(url)) {
+            if (/\.html?($|\?)/.test(url)) {
                 return 'html'
             }
-            if (/\.xml$/.test(url)) {
+            if (/\.xml($|\?)/.test(url)) {
                 return 'xml'
             }
             return 'js'
