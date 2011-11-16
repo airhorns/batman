@@ -4352,10 +4352,7 @@ filters = Batman.Filters =
 
   has: (set, item) ->
     return false unless set?
-    if set.has?
-      set.has item
-    else
-      ~set.indexOf(item)
+    Batman.contains(set, item)
 
   first: buntUndefined (value) ->
     value[0]
