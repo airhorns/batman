@@ -296,7 +296,7 @@ r20 = /%20/g
 param = (a) ->
   s = []
   add = (key, value) ->
-    value = (if Batman.typeOf(value) is 'function' then value() else value)
+    value = value() if typeof value is 'function'
     s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value)
 
   if Batman.typeOf(a) is 'Array'
