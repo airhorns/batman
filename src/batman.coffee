@@ -2064,7 +2064,7 @@ class Batman.Model extends Batman.Object
   associationProxy: (association) ->
     Batman.initializeObject(@)
     proxies = @_batman.associationProxies ||= new Batman.SimpleHash
-    proxies.get(association.label) or proxies.set(association.label, new Batman.AssociationProxy(association, @))
+    proxies.get(association.label) or proxies.set(association.label, new association.proxyClass(association, @))
 
   # ### Record API
 
@@ -2398,7 +2398,7 @@ class Batman.AssociationProxy extends Batman.Object
       @get('target').toJSON()
 
   load: (callback) ->
-    @association.fetch @, (err, relation) =>
+    @fetch (err, relation) =>
       @set('target', relation)
       callback?(undefined, relation)
     @get('target')
@@ -2416,6 +2416,42 @@ class Batman.AssociationProxy extends Batman.Object
   @accessor
     get: (k) -> @get('target')?.get(k)
     set: (k, v) -> @get('target')?.set(k, v)
+
+class Batman.BelongsToProxy extends Batman.AssociationProxy
+  fetch: (callback) ->
+    if relatedID = @model.get(@association.localKey)
+      loadedRecords = @association.setIndex().get(relatedID)
+
+      unless loadedRecords.isEmpty()
+        callback undefined, loadedRecords.toArray()[0]
+      else
+        @association.getRelatedModel().find relatedID, (error, loadedRecord) =>
+          throw error if error
+          if loadedRecord
+            @set('loaded', true)
+            callback undefined, loadedRecord
+          else
+            # Target hasn't loaded yet
+            callback undefined, undefined
+
+class Batman.HasOneProxy extends Batman.AssociationProxy
+  fetch: (callback) ->
+    if id = @model.get(@association.localKey)
+      # Check whether the relatedModel has already loaded the instance we want
+      relatedRecords = @association.setIndex().get(id)
+      unless relatedRecords.isEmpty()
+        @set('loaded', true)
+        callback undefined, relatedRecords.toArray()[0]
+      else
+        loadOptions = {}
+        loadOptions[@association.foreignKey] = id
+        @association.getRelatedModel().load loadOptions, (error, loadedRecords) =>
+          throw error if error
+          if !loadedRecords or loadedRecords.length <= 0
+            callback new Error("Couldn't find related record!"), undefined
+          else
+            @set('loaded', true)
+            callback undefined, loadedRecords[0]
 
 class Batman.AssociationSet extends Batman.Set
   constructor: (@key, @association) -> super()
@@ -2440,6 +2476,7 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
 
 class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
+  proxyClass: Batman.BelongsToProxy
   defaultOptions:
     saveInline: false
     autoload: true
@@ -2449,22 +2486,6 @@ class Batman.Association.belongsTo extends Batman.Association
     @localKey = "#{@label}_id"
     @foreignKey = 'id'
     @model.encode @localKey
-
-  fetch: (proxy, callback) ->
-    if relatedID = proxy.model.get(@localKey)
-      loadedRecords = @setIndex().get(relatedID)
-
-      unless loadedRecords.isEmpty()
-        callback undefined, loadedRecords.toArray()[0]
-      else
-        @getRelatedModel().find relatedID, (error, loadedRecord) =>
-          throw error if error
-          if loadedRecord
-            proxy.set('loaded', true)
-            callback undefined, loadedRecord
-          else
-            # Target hasn't loaded yet
-            callback undefined, undefined
 
   encoder: ->
     association = @
@@ -2495,29 +2516,12 @@ class Batman.Association.belongsTo extends Batman.Association
 
 class Batman.Association.hasOne extends Batman.Association
   associationType: 'hasOne'
+  proxyClass: Batman.HasOneProxy
 
   constructor: ->
     super
     @localKey = "id"
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
-
-  fetch: (proxy, callback) ->
-    if id = proxy.model.get(@localKey)
-      # Check whether the relatedModel has already loaded the instance we want
-      relatedRecords = @setIndex().get(id)
-      unless relatedRecords.isEmpty()
-        proxy.set('loaded', true)
-        callback undefined, relatedRecords.toArray()[0]
-      else
-        loadOptions = {}
-        loadOptions[@foreignKey] = id
-        @getRelatedModel().load loadOptions, (error, loadedRecords) =>
-          throw error if error
-          if !loadedRecords or loadedRecords.length <= 0
-            callback new Error("Couldn't find related record!"), undefined
-          else
-            proxy.set('loaded', true)
-            callback undefined, loadedRecords[0]
 
   apply: (baseSaveError, base) ->
     if relation = base.constructor.defaultAccessor.get.call(base, @label)
