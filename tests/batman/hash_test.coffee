@@ -422,3 +422,23 @@ test "replace(pojo) replaces the keys and values with those of the given object"
   ok 'bar' in itemsWereRemovedHandler.lastCallArguments
   ok 'baz' in itemsWereRemovedHandler.lastCallArguments
 
+test "update(hash) works with other batman hashes as expected", ->
+  @hash.set('foo', 'foo')
+  @hash.set('bar', 'bar')
+  otherHash = new Batman.Hash
+    foo: 'otherFoo'
+    baz: 'otherBaz'
+  @hash.update(otherHash)
+  
+  deepEqual @hash.toObject(), foo: 'otherFoo', bar: 'bar', baz: 'otherBaz'
+
+test "replace(hash) works with other batman hashes as expected", ->
+  @hash.set('foo', 'foo')
+  @hash.set('bar', 'bar')
+  otherHash = new Batman.Hash
+    foo: 'otherFoo'
+    baz: 'otherBaz'
+  @hash.replace(otherHash)
+  
+  deepEqual @hash.toObject(), foo: 'otherFoo', baz: 'otherBaz'
+

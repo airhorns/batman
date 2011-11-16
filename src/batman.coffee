@@ -150,6 +150,33 @@ Batman.clearImmediate = $clearImmediate = ->
   _implementImmediates()
   Batman.clearImmediate.apply(@, arguments)
 
+
+Batman.forEach = $forEach = (container, iterator, ctx) ->
+  if container.forEach
+    container.forEach(iterator, ctx)
+  else if container.indexOf
+    iterator.call(ctx, e, i, container) for e,i in container
+  else
+    iterator.call(ctx, k, v, container) for k,v of container
+Batman.objectHasKey = $objectHasKey = (object, key) ->
+  if typeof object.hasKey is 'function'
+    object.hasKey(key)
+  else
+    key of object
+Batman.contains = $contains = (container, item) ->
+  if container.indexOf
+    item in container
+  else if typeof container.has is 'function'
+    container.has(item)
+  else
+    $objectHasKey(container, item)
+
+Batman.get = $get = (base, key) ->
+  if typeof base.get is 'function'
+    base.get(key)
+  else
+    Batman.Property.forBaseAndKey(base, key).getValue()
+
 # `translate` is hook for the i18n extra to override and implemnent. All strings which might
 # be shown to the user pass through this method. `translate` is aliased to `t` internally.
 Batman.translate = (x, values = {}) -> helpers.interpolate($get(Batman.translate.messages, x), values)
@@ -629,12 +656,6 @@ Batman.Observable =
     @property(key).observeAndFire(args...)
     @
 
-$get = Batman.get = (base, key) ->
-  if base.get? && typeof base.get is 'function'
-    base.get(key)
-  else
-    Batman.Property.forBaseAndKey(base, key).getValue()
-
 # Objects
 # -------
 
@@ -906,9 +927,9 @@ class Batman.SimpleHash
     return true if lhs isnt lhs and rhs isnt rhs # when both are NaN
     return true if lhs?.isEqual?(rhs) and rhs?.isEqual?(lhs)
     return false
-  forEach: (iterator) ->
+  forEach: (iterator, ctx) ->
     for key, values of @_storage
-      iterator(obj, value) for [obj, value] in values.slice()
+      iterator.call(ctx, obj, value, this) for [obj, value] in values.slice()
   keys: ->
     result = []
     # Explicitly reference this foreach so that if it's overriden in subclasses the new implementation isn't used.
@@ -986,7 +1007,7 @@ class Batman.Hash extends Batman.Object
   update: @mutation (object) ->
     addedKeys = []
     @_preventMutationEvents ->
-      for k,v of object
+      Batman.forEach object, (k,v) =>
         addedKeys.push(k) unless @hasKey(k)
         @set(k,v)
     @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
@@ -995,10 +1016,10 @@ class Batman.Hash extends Batman.Object
     removedKeys = []
     @_preventMutationEvents ->
       @forEach (k, _) =>
-        unless k of object
+        unless Batman.objectHasKey(object, k)
           @unset(k)
           removedKeys.push(k)
-      for k,v of object
+      Batman.forEach object, (k,v) =>
         addedKeys.push(k) unless @hasKey(k)
         @set(k,v)
     @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
@@ -1047,8 +1068,9 @@ class Batman.SimpleSet
       @fire('change', this, this)
       @fire('itemsWereRemoved', removedItems...)
     removedItems
-  forEach: (iterator) ->
-    @_storage.forEach (key, value) -> iterator(key)
+  forEach: (iterator, ctx) ->
+    container = this
+    @_storage.forEach (key) -> iterator.call(ctx, key, null, container)
   isEmpty: -> @length is 0
   clear: ->
     items = @toArray()
@@ -1192,7 +1214,7 @@ class Batman.SetSort extends Batman.SetProxy
   stopObserving: -> @_setObserver?.stopObserving()
   toArray: -> @get('_storage')
   @accessor 'toArray', @::toArray
-  forEach: (iterator) -> iterator(e,i) for e,i in @get('_storage')
+  forEach: (iterator, ctx) -> iterator.call(ctx,e,i,this) for e,i in @get('_storage')
   compare: (a,b) ->
     return 0 if a is b
     return 1 if a is undefined
