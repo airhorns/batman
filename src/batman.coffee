@@ -2423,16 +2423,13 @@ class Batman.BelongsToProxy extends Batman.AssociationProxy
       loadedRecords = @association.setIndex().get(relatedID)
 
       unless loadedRecords.isEmpty()
+        @set 'loaded', true
         callback undefined, loadedRecords.toArray()[0]
       else
         @association.getRelatedModel().find relatedID, (error, loadedRecord) =>
           throw error if error
-          if loadedRecord
-            @set('loaded', true)
-            callback undefined, loadedRecord
-          else
-            # Target hasn't loaded yet
-            callback undefined, undefined
+          @set('loaded', true) if loadedRecord
+          callback undefined, loadedRecord
 
 class Batman.HasOneProxy extends Batman.AssociationProxy
   fetch: (callback) ->
@@ -2499,8 +2496,7 @@ class Batman.Association.belongsTo extends Batman.Association
         record.fromJSON(data)
         record = relatedModel._mapIdentity(record)
         if association.options.inverseOf
-          inverse = association.inverse()
-          if inverse
+          if inverse = association.inverse()
             if inverse instanceof Batman.Association.hasMany
               # Rely on the parent's set index to get this out.
               childRecord.set(association.localKey, record.get(association.foreignKey))
