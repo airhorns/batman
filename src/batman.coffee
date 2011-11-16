@@ -1760,24 +1760,9 @@ class Batman.HashbangNavigator extends Batman.Navigator
     else
       location.replace(@normalizePath("#{Batman.config.pathPrefix}#{@linkTo(realPath)}"))
 
+
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
-
-class Batman.ParamsManager extends Batman.Hash
-  @accessor
-    get: (k) -> @params.get(k)
-    set: @mutation (k,v) -> @params.set(k,v)
-    unset: @mutation (k) -> @params.unset(k)
-    cachable: false
-  constructor: (@navigator, @params) ->
-
-class Batman.ParamsReplacer extends Batman.ParamsManager
-  redirect: -> @navigator.replace(@toObject())
-
-class Batman.ParamsPusher extends Batman.ParamsManager
-  redirect: -> @navigator.push(@toObject())
-
-
 
 # Route Declarators
 # -----------------
