@@ -3660,22 +3660,22 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   @accessor 'filteredValue'
     get: ->
       unfilteredValue = @get('unfilteredValue')
-
+      self = @
       if @filterFunctions.length > 0
         developer.currentFilterStack = @renderContext
 
-        result = @filterFunctions.reduce((value, fn, i) =>
+        result = @filterFunctions.reduce((value, fn, i) ->
           # Get any argument keypaths from the context stored at parse time.
-          args = @filterArguments[i].map (argument) ->
+          args = self.filterArguments[i].map (argument) ->
             if argument._keypath
-              $get(argument.context, argument._keypath)
+              self.renderContext.findKey(argument._keypath)[0]
             else
               argument
 
           # Apply the filter.
           args.unshift value
           args = args.map deProxy
-          fn.apply(@renderContext, args)
+          fn.apply(self.renderContext, args)
         , unfilteredValue)
         developer.currentFilterStack = null
         result
@@ -3784,14 +3784,6 @@ class Batman.DOM.AbstractBinding extends Batman.Object
             @filterArguments.push []
         else
           developer.error "Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!"
-
-      # Map over each array of arguments to grab the context for any keypaths.
-      @filterArguments = @filterArguments.map (argumentList) =>
-        argumentList.map (argument) =>
-          if argument._keypath
-            # Discard the value (for the time being) and store the context for the keypath in `context`.
-            [_, argument.context] = @renderContext.findKey argument._keypath
-          argument
 
   # Turn a piece of a `data` keypath into a usable javascript object.
   #  + replacing keypaths using the above regular expression

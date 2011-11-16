@@ -184,15 +184,52 @@ asyncTest 'should allow argument values which are in the context of simple objec
     delete Batman.Filters.test
     QUnit.start()
 
-asyncTest 'should update bindings when argument keypaths change', 1, ->
+asyncTest 'should update bindings when argument keypaths change', 2, ->
   context = Batman
     foo: [1,2,3]
     bar: ''
 
   helpers.render '<div data-bind="foo | join bar"></div>', context, (node) ->
+    equals node.html(), '123'
     context.set('bar', "-")
     delay ->
       equals node.html(), '1-2-3'
+
+asyncTest 'should update bindings when argument keypaths change in the middle of the keypath', 2, ->
+  context = Batman
+    foo: Batman
+      bar: '.'
+    array: [1,2,3]
+
+  helpers.render '<div data-bind="array | join foo.bar"></div>', context, (node) ->
+    equals node.html(), '1.2.3'
+    context.set('foo', Batman(bar: '-'))
+    delay ->
+      equals node.html(), '1-2-3'
+
+asyncTest 'should update bindings when argument keypaths change context', 2, ->
+  context = Batman
+    foo: '.'
+    array: [1,2,3]
+
+  closer = Batman
+    closer: true
+
+  node = document.createElement 'div'
+  node.innerHTML = '<div data-bind="array | join foo"></div>'
+  context = Batman.RenderContext.start(context).descend(closer)
+  view = new Batman.View
+    context: context
+    node: node.childNodes[0]
+
+  view.on 'ready', ->
+    node = view.get('node')
+    equals node.innerHTML, '1.2.3'
+    closer.set('foo', '-')
+    delay ->
+      equals node.innerHTML, '1-2-3'
+
+  view.get('node')
 
 asyncTest 'it should update the data object if value bindings aren\'t filtered', 3, ->
   context = new Batman.Object
@@ -307,5 +344,3 @@ asyncTest 'should allow filtered keypaths as arguments to foreach', 3, ->
       ok tracker['1']
       ok tracker['2']
       ok tracker['3']
-
-
