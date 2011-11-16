@@ -2608,6 +2608,7 @@ class Batman.Association.hasMany extends Batman.Association
             if association.options.inverseOf
               record.set association.options.inverseOf, parentRecord
 
+            record = relatedModel._mapIdentity(record)
             relations.add record
         else
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
