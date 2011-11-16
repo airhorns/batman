@@ -14,6 +14,16 @@ test "constructors should always be called with new", ->
   product = new Namespace.Product()
   ok product instanceof Product
 
+test "properties can be stored", ->
+  product = new @Product
+  product.set('foo', 'bar')
+  equal product.get('foo'), 'bar'
+
+test "falsey properties can be stored", ->
+  product = new @Product
+  product.set('foo', false)
+  equal product.get('foo'), false
+
 test "primary key is undefined on new models", ->
   product = new @Product
   ok product.isNew()

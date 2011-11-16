@@ -2119,7 +2119,12 @@ class Batman.Model extends Batman.Object
 
   # Add a default accessor to make models store their attributes under a namespace by default.
   @accessor Model.defaultAccessor =
-    get: (k) -> (@_batman.attributes ||= {})[k] || @[k]
+    get: (k) ->
+      attribute = (@_batman.attributes ||= {})[k]
+      if typeof attribute isnt 'undefined'
+        attribute
+      else
+        @[k]
     set: (k, v) -> (@_batman.attributes ||= {})[k] = v
     unset: (k) ->
       x = (@_batman.attributes ||={})[k]
@@ -2194,7 +2199,8 @@ class Batman.Model extends Batman.Object
     else
       # If we do have decoders, use them to get the data.
       decoders.forEach (key, decoder) =>
-        obj[key] = decoder(data[key], key, data, obj, @) if data[key]
+        obj[key] = decoder(data[key], key, data, obj, @) unless typeof data[key] is 'undefined'
+
     developer.do =>
       if (!decoders) || decoders.length <= 1
         developer.warn "Warning: Model #{$functionName(@constructor)} has suspiciously few decoders!"

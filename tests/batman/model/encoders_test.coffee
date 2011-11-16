@@ -4,6 +4,7 @@ QUnit.module "Batman.Model: encoding/decoding to/from JSON"
       @encode 'name', 'cost'
       @accessor 'excitingName'
         get: -> @get('name').toUpperCase()
+
     class @FlakyProduct extends @Product
       @encode 'broken?'
 
@@ -29,6 +30,13 @@ test "keys marked for decoding should be decoded", ->
   p.fromJSON(json)
   equal p.get('name'), "Cool Snowboard"
   equal p.get('cost'), 12.99
+
+test "falsy keys marked for decoding should be decoded", ->
+  p = new @Product
+  json = {cost: 0}
+
+  p.fromJSON(json)
+  equal p.get('cost'), 0
 
 test "keys not marked for encoding shouldn't be encoded", ->
   p = new @Product {name: "Cool Snowboard", cost: 12.99, wibble: 'wobble'}
