@@ -2373,9 +2373,7 @@ class Batman.Association
     if self.getRelatedModel()
       proxy = @associationProxy(self)
       if not proxy.get('loaded') and self.options.autoload
-        proxy.load (err, relatedRecord) ->
-          proxy.set('target', relatedRecord)
-
+        proxy.load()
       proxy
 
   getRelatedModel: ->
@@ -2400,7 +2398,9 @@ class Batman.AssociationProxy extends Batman.Object
       @get('target').toJSON()
 
   load: (callback) ->
-    @association.fetch callback, @model, @
+    @association.fetch @, (err, relation) =>
+      @set('target', relation)
+      callback?(undefined, relation)
     @get('target')
 
   @accessor 'loaded'
@@ -2453,8 +2453,8 @@ class Batman.Association.belongsTo extends Batman.Association
     @foreignKey = 'id'
     @model.encode "#{@label}_id"
 
-  fetch: (callback, model, proxy) ->
-    if relatedID = model.get "#{@label}_id"
+  fetch: (proxy, callback) ->
+    if relatedID = proxy.model.get "#{@label}_id"
       loadedRecords = @setIndex().get(relatedID)
 
       unless loadedRecords.isEmpty()
@@ -2508,8 +2508,8 @@ class Batman.Association.hasOne extends Batman.Association
 
   getRelatedKey: -> "id"
 
-  fetch: (callback, model, proxy) ->
-    if id = model.get('id')
+  fetch: (proxy, callback) ->
+    if id = proxy.model.get('id')
       # Check whether the relatedModel has already loaded the instance we want
       relatedRecords = @setIndex().get(id)
       unless relatedRecords.isEmpty()
