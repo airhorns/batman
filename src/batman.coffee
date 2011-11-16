@@ -2061,6 +2061,11 @@ class Batman.Model extends Batman.Object
         collection = @_batman.associations ||= new Batman.AssociationCollection(@)
         collection.add new Batman.Association[k](@, label, scope)
 
+  associationProxy: (association) ->
+    Batman.initializeObject(@)
+    proxies = @_batman.associationProxies ||= new Batman.SimpleHash
+    proxies.get(association.label) or proxies.set(association.label, new Batman.AssociationProxy(association, @))
+
   # ### Record API
 
   # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
@@ -2355,59 +2360,8 @@ class Batman.Association
       set: model.defaultAccessor.set
       unset: model.defaultAccessor.unset
 
-  class AssociationProxy extends Batman.Object
-    constructor: (@association, @model) ->
-    loaded: false
-
-    toJSON: ->
-      if @loaded
-        @get('target').toJSON()
-
-    load: (callback) ->
-      @association.fetch callback, @model, @
-      @get('target')
-
-    @accessor 'loaded'
-      get: -> @loaded
-      set: (_, v) -> @loaded = v
-
-    @accessor 'target',
-      get: ->
-        relatedKey = @association.getRelatedKey()
-        if id = @model.get(relatedKey)
-          @association.getRelatedModel().get('loaded').indexedBy('id').get(id).toArray()[0]
-      set: (v) -> v # This just needs to bust the cache
-
-    @accessor
-      get: (k) -> @get('target')?.get(k)
-      set: (k, v) -> @get('target')?.set(k, v)
-
-  class AssociationSet extends Batman.Set
-    constructor: (@key, @association) -> super()
-    loaded: false
-    load: (callback) ->
-      if @loaded
-        callback(undefined, @)
-      else
-        loadOptions = {}
-        loadOptions[@association.foreignKey] = @key
-        @association.getRelatedModel().load loadOptions, (err, records) =>
-          unless err
-            @loaded = true
-            @add(record) for record in records
-          callback(err, @)
-
-  class AssociationSetIndex extends Batman.SetIndex
-    constructor: (@association) ->
-      super @association.getRelatedModel().get('loaded'),
-        @association.foreignKey
-
-    _resultSetForKey: (key) ->
-      @_storage.getOrSet key, =>
-        new AssociationSet(key, @association)
-
   setIndex: ->
-    @index ||= new AssociationSetIndex(@)
+    @index ||= new Batman.AssociationSetIndex(@)
     @index
 
   getAccessor: (self, model, label) ->
@@ -2417,9 +2371,7 @@ class Batman.Association
 
     # Make sure the related model has been loaded
     if self.getRelatedModel()
-      @_batman.associations ||= {}
-      proxy = @_batman.associations[@label] ||= new AssociationProxy(self, @)
-
+      proxy = @associationProxy(self)
       if not proxy.get('loaded') and self.options.autoload
         proxy.load (err, relatedRecord) ->
           proxy.set('target', relatedRecord)
@@ -2436,8 +2388,59 @@ class Batman.Association
 
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
   inverse: ->
-    return undefined unless @options.inverseOf
-    @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
+    if @options.inverseOf
+      @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
+
+class Batman.AssociationProxy extends Batman.Object
+  constructor: (@association, @model) ->
+  loaded: false
+
+  toJSON: ->
+    if @loaded
+      @get('target').toJSON()
+
+  load: (callback) ->
+    @association.fetch callback, @model, @
+    @get('target')
+
+  @accessor 'loaded'
+    get: -> @loaded
+    set: (_, v) -> @loaded = v
+
+  @accessor 'target',
+    get: ->
+      relatedKey = @association.getRelatedKey()
+      if id = @model.get(relatedKey)
+        @association.getRelatedModel().get('loaded').indexedBy('id').get(id).toArray()[0]
+    set: (v) -> v # This just needs to bust the cache
+
+  @accessor
+    get: (k) -> @get('target')?.get(k)
+    set: (k, v) -> @get('target')?.set(k, v)
+
+class Batman.AssociationSet extends Batman.Set
+  constructor: (@key, @association) -> super()
+  loaded: false
+  load: (callback) ->
+    if @loaded
+      callback(undefined, @)
+    else
+      loadOptions = {}
+      loadOptions[@association.foreignKey] = @key
+      @association.getRelatedModel().load loadOptions, (err, records) =>
+        unless err
+          @loaded = true
+          @add(record) for record in records
+        callback(err, @)
+
+class Batman.AssociationSetIndex extends Batman.SetIndex
+  constructor: (@association) ->
+    super @association.getRelatedModel().get('loaded'),
+      @association.foreignKey
+
+  _resultSetForKey: (key) ->
+    @_storage.getOrSet key, =>
+      new Batman.AssociationSet(key, @association)
 
 class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
