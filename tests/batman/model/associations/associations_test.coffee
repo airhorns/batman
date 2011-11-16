@@ -19,7 +19,7 @@ asyncTest "support custom model namespaces and class names", 2, ->
     equal store.get('id'), 3
     QUnit.start()
 
-asyncTest "work with model classes that haven't been loaded yet", 3, ->
+asyncTest "support model classes that haven't been loaded yet", 2, ->
   namespace = this
   class @Blog extends Batman.Model
     @encode 'id', 'name'
@@ -37,7 +37,6 @@ asyncTest "work with model classes that haven't been loaded yet", 3, ->
 
     @Blog.find 1, (err, blog) =>
       customer = blog.get 'customer'
-      ok customer instanceof @Customer
       equal customer.get('id'), 1
       equal customer.get('name'), 'Customer One'
       QUnit.start()
