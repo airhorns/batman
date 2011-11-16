@@ -2409,9 +2409,8 @@ class Batman.AssociationProxy extends Batman.Object
 
   @accessor 'target',
     get: ->
-      relatedKey = @association.localKey
-      if id = @model.get(relatedKey)
-        @association.getRelatedModel().get('loaded').indexedBy('id').get(id).toArray()[0]
+      if id = @model.get(@association.localKey)
+        @association.getRelatedModel().get('loaded').indexedByUnique('id').get(id)
     set: (v) -> v # This just needs to bust the cache
 
   @accessor
