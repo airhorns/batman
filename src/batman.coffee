@@ -1382,7 +1382,7 @@ class Batman.Request extends Batman.Object
   formData: false
   response: null
   status: null
-  
+
   @accessor 'method', $mixin {}, Batman.Property.defaultAccessor,
     set: (k,val) -> @[k] = val?.toUpperCase?()
 
@@ -1482,7 +1482,7 @@ class Batman.App extends Batman.Object
 
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View
-        contexts: [@]
+        context: @
         node: document
     else if typeof @layout is 'string'
       @set 'layout', new @[helpers.camelize(@layout) + 'View']
@@ -1897,9 +1897,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
-
-      options.contexts ||= []
-      options.contexts.push @
+      options.context ||= @
       options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
       options.view = new (Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View)(options)
 
@@ -3030,14 +3028,7 @@ class Batman.ViewSourceCache extends Batman.Object
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   constructor: ->
-    @contexts = []
     super
-
-    # Support both `options.context` and `options.contexts`
-    if context = @get('context')
-      @contexts.push context
-      @unset('context')
-
     # Start the rendering by asking for the node
     if node = @get('node')
       @render node
@@ -3088,7 +3079,7 @@ class Batman.View extends Batman.Object
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
-      @_renderer = new Batman.Renderer(node, null, @contexts)
+      @_renderer = new Batman.Renderer(node, null, @context)
       @_renderer.on 'rendered', => @fire('ready', node)
 
 # DOM Helpers
@@ -3100,10 +3091,10 @@ class Batman.View extends Batman.Object
 class Batman.Renderer extends Batman.Object
   deferEvery: 50
 
-  constructor: (@node, callback, contexts = []) ->
+  constructor: (@node, callback, context) ->
     super()
     @on('parsed', callback) if callback?
-    @context = if contexts instanceof Batman.RenderContext then contexts else Batman.RenderContext.start(contexts...)
+    @context = if context instanceof Batman.RenderContext then context else Batman.RenderContext.start(context)
     @immediate = $setImmediate @start
 
   start: =>
@@ -3206,11 +3197,10 @@ class Batman.Renderer extends Batman.Object
 
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 class Batman.RenderContext
-  @start: (contexts...) ->
+  @start: (context) ->
     node = new @(window)
-    contexts.push Batman.currentApp if Batman.currentApp
-    while context = contexts.pop()
-      node = node.descend(context)
+    node = node.descend Batman.currentApp if Batman.currentApp
+    node = node.descend(context) if context
     node
 
   constructor: (@object, @parent) ->
@@ -3509,7 +3499,8 @@ Batman.DOM = {
 
     view = new Batman.View
       source: path
-      contexts: context.chain()
+      context: context
+
     view.on 'ready', ->
       $setInnerHTML container, ''
       # Render the partial content into the data-partial node

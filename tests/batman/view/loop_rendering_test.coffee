@@ -90,7 +90,7 @@ asyncTest 'the ready event should wait for all children to be rendered', ->
   node = document.createElement 'div'
   node.innerHTML = source
   view = new Batman.View
-    contexts: [Batman(), Batman({objects})]
+    context: Batman({objects})
     node: node
   ok !view.event('ready').oneShotFired, 'make sure views render async'
   view._renderer.on 'parsed', =>

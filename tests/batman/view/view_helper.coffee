@@ -99,7 +99,7 @@ exports.render = (source, jqueryize = true, context = {}, callback = ->) ->
 
   context = if context.get && context.set then context else Batman(context)
   view = new Batman.View
-    contexts: [Batman({}), context]
+    context: context
     node: node
 
   view.on 'ready', ->

@@ -53,7 +53,7 @@ asyncTest 'it should not render past its original node', ->
   node3 = $(node).find('#node3')[0]
 
   view = new Batman.View
-    contexts: [@context]
+    context: @context
     node: node2
   view.on 'ready', ->
     equal node1.className, ''
