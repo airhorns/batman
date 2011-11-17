@@ -1124,6 +1124,8 @@ class Batman.Set extends Batman.Object
   @accessor 'length', ->
     @registerAsMutableSource()
     @length
+  @accessor 'first', -> @toArray()[0]
+  @accessor 'last', -> @toArray()[@length - 1]
 
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
@@ -1879,7 +1881,7 @@ class Batman.Controller extends Batman.Object
     if @_actedDuringAction && @_inAction
       developer.warn "Warning! Trying to redirect but an action has already be taken during #{@get('controllerName')}.#{@get('action')}}"
 
-    if @get 'action'
+    if @_inAction
       @_actedDuringAction = yes
       @_afterFilterRedirect = url
     else
