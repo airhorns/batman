@@ -344,3 +344,12 @@ asyncTest 'should allow filtered keypaths as arguments to foreach', 3, ->
       ok tracker['1']
       ok tracker['2']
       ok tracker['3']
+
+asyncTest 'should bind to things under window only when the keypath specifies it', 2, ->
+  Batman.container.foo = "bar"
+  helpers.render '<div data-bind="foo"></div>', null, (node) ->
+    equal node.html(), ""
+    helpers.render '<div data-bind="window.foo"></div>', null, (node) ->
+      equal node.html(), "bar"
+      QUnit.start()
+

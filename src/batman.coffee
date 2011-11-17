@@ -3192,7 +3192,8 @@ class Batman.Renderer extends Batman.Object
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 class Batman.RenderContext
   @start: (context) ->
-    node = new @(window)
+    @windowWrapper ||= window: Batman.container
+    node = new @(@windowWrapper)
     node = node.descend Batman.currentApp if Batman.currentApp
     node = node.descend(context) if context
     node
@@ -3213,7 +3214,8 @@ class Batman.RenderContext
         return [$get(currentNode.object, key), currentNode.object]
       currentNode = currentNode.parent
 
-    [$get(Batman.container, key), Batman.container]
+    @windowWrapper ||= window: Batman.container
+    [$get(@windowWrapper, key), @windowWrapper]
 
   # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
