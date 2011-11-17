@@ -76,7 +76,7 @@ asyncTest 'it should add items in order', ->
       deepEqual getPs(view), ['zero', 'foo', 'bar']
 
 asyncTest 'it should allow data-context definitions on inner nodes', ->
-  source = '<p data-foreach-outer="objects" data-context-object="outer.foo.bar" data-bind="object.name"></p>'
+  source = '<p data-context-object="outer.foo.bar" data-foreach-outer="objects" data-bind="object.name"></p>'
   objects = new Batman.Set({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
   objects = objects.map (object) -> Batman(foo: Batman(bar: object))
 

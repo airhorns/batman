@@ -495,7 +495,7 @@ asyncTest 'it should continue rendering on the node it stopped rendering', 2, ->
     proceed: false
     foo: "bar"
 
-  source = '<div data-renderif="proceed" data-bind="foo">unrendered</div>'
+  source = '<div data-bind="foo" data-renderif="proceed" >unrendered</div>'
 
   helpers.render source, context, (node) ->
     equal node.html(), 'unrendered'

@@ -3127,7 +3127,7 @@ class Batman.Renderer extends Batman.Object
 
   sortBindings = (a, b) ->
     aindex = bindingSortOrder.indexOf(a[0])
-    bindex = bindingSortOrder.indexOf(a[0])
+    bindex = bindingSortOrder.indexOf(b[0])
     if aindex > bindex
       -1
     else if bindex > aindex
