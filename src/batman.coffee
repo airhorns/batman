@@ -3121,22 +3121,16 @@ class Batman.Renderer extends Batman.Object
     @::event(k).oneShot = true
 
   bindingRegexp = /^data\-(.*)/
+
+  # Bindings processed first appear in this array last
+  bindingSortOrder = ['bind', 'context', 'formfor', 'foreach', 'renderif']
+
   sortBindings = (a, b) ->
-    if a[0] == 'foreach'
+    aindex = bindingSortOrder.indexOf(a[0])
+    bindex = bindingSortOrder.indexOf(a[0])
+    if aindex > bindex
       -1
-    else if b[0] == 'foreach'
-      1
-    else if a[0] == 'formfor'
-      -1
-    else if b[0] == 'formfor'
-      1
-    else if a[0] == 'context'
-      -1
-    else if b[0] == 'context'
-      1
-    else if a[0] == 'bind'
-      -1
-    else if b[0] == 'bind'
+    else if bindex > aindex
       1
     else
       0
@@ -3352,6 +3346,10 @@ Batman.DOM = {
     defineview: (node, name, context, renderer) ->
       $onParseExit(node, -> $removeNode(node))
       Batman.View.sourceCache.set(Batman.Navigator.normalizePath(Batman.View::prefix, name), node.innerHTML)
+      false
+
+    renderif: (node, key, context, renderer) ->
+      new Batman.DOM.DeferredRenderingBinding(node, key, context, renderer)
       false
 
     yield: (node, key) ->
@@ -3895,6 +3893,21 @@ class Batman.DOM.ClassBinding extends Batman.DOM.AbstractCollectionBinding
   handleArrayChanged: => @updateFromCollection()
   handleItemsWereRemoved: => @updateFromCollection()
   handleItemsWereAdded: => @updateFromCollection()
+
+class Batman.DOM.DeferredRenderingBinding extends Batman.DOM.AbstractBinding
+  rendered: false
+  constructor: ->
+    super
+    @node.removeAttribute "data-renderif"
+
+  nodeChange: ->
+  dataChange: (value) ->
+    if value && !@rendered
+      @render()
+
+  render: ->
+    new Batman.Renderer(@node, null, @renderContext)
+    @rendered = true
 
 class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
   constructor: (node, className, keyPath, renderContext, renderer, only, @invert = false) ->
