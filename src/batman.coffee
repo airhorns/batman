@@ -85,7 +85,7 @@ Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
   false
 
 $setImmediate = $clearImmediate = null
-_implementImmediates = ->
+_implementImmediates = (container) ->
   canUsePostMessage = ->
     return false unless container.postMessage
     async = true
@@ -143,11 +143,11 @@ _implementImmediates = ->
   Batman.clearImmediate = $clearImmediate
 
 Batman.setImmediate = $setImmediate = ->
-  _implementImmediates()
+  _implementImmediates(Batman.container)
   Batman.setImmediate.apply(@, arguments)
 
 Batman.clearImmediate = $clearImmediate = ->
-  _implementImmediates()
+  _implementImmediates(Batman.container)
   Batman.clearImmediate.apply(@, arguments)
 
 
@@ -769,7 +769,7 @@ class BatmanObject
   # This should be used sparingly; it's mostly useful for debugging.
   @global: (isGlobal) ->
     return if isGlobal is false
-    container[$functionName(@)] = @
+    Batman.container[$functionName(@)] = @
 
   # Apply mixins to this class.
   @classMixin: -> $mixin @, arguments...
@@ -864,9 +864,9 @@ class Batman.TerminalAccessible extends Batman.Accessible
 
 Batman.Enumerable =
   isEnumerable: true
-  map:   (f, ctx = container) -> r = []; @forEach(-> r.push f.apply(ctx, arguments)); r
-  every: (f, ctx = container) -> r = true; @forEach(-> r = r && f.apply(ctx, arguments)); r
-  some:  (f, ctx = container) -> r = false; @forEach(-> r = r || f.apply(ctx, arguments)); r
+  map:   (f, ctx = Batman.container) -> r = []; @forEach(-> r.push f.apply(ctx, arguments)); r
+  every: (f, ctx = Batman.container) -> r = true; @forEach(-> r = r && f.apply(ctx, arguments)); r
+  some:  (f, ctx = Batman.container) -> r = false; @forEach(-> r = r || f.apply(ctx, arguments)); r
   reduce: (f, r) ->
     count = 0
     self = @
@@ -3213,7 +3213,7 @@ class Batman.RenderContext
         return [$get(currentNode.object, key), currentNode.object]
       currentNode = currentNode.parent
 
-    return [$get(container, key), container]
+    [$get(Batman.container, key), Batman.container]
 
   # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
@@ -3316,7 +3316,7 @@ Batman.DOM = {
         isHash = key.indexOf('#') > 1
         [key, action] = if isHash then key.split('#') else key.split('/')
         [dispatcher, app] = context.findKey 'dispatcher'
-        [model, container] = context.findKey key if not isHash
+        [model, _] = context.findKey key if not isHash
 
         dispatcher ||= Batman.currentApp.dispatcher
 
@@ -3696,7 +3696,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
       if k = @get('key')
         keyContext = @get('keyContext')
         # Supress sets on the window
-        if keyContext != container
+        if keyContext != Batman.container
           @set("keyContext.#{k}", value)
       else
         @set('value', value)
@@ -4607,7 +4607,7 @@ class Batman.ModelPaginator extends Batman.Paginator
 
 # Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
 # In node, the container is the `global` object, and in the browser, the container is the window object.
-container = if exports?
+Batman.container = if exports?
   module.exports = Batman
   global
 else
@@ -4621,4 +4621,4 @@ Batman.exportHelpers = (onto) ->
   onto
 
 Batman.exportGlobals = () ->
-  Batman.exportHelpers(container)
+  Batman.exportHelpers(Batman.container)
