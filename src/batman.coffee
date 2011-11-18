@@ -1418,6 +1418,24 @@ class Batman.Request extends Batman.Object
 # `Batman.App` manages requiring files and acts as a namespace for all code subclassing
 # Batman objects.
 class Batman.App extends Batman.Object
+  @classAccessor 'currentParams',
+    get: -> new Batman.Hash
+    final: true
+
+  @classAccessor 'paramsManager',
+    get: ->
+      return unless nav = @get('navigator')
+      params = @get('currentParams')
+      params.manager = new Batman.ParamsManager(nav, params)
+    final: true
+
+  @classAccessor 'paramsPusher',
+    get: ->
+      return unless nav = @get('navigator')
+      params = @get('currentParams')
+      params.pusher = new Batman.ParamsPusher(nav, params)
+    final: true
+
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
 
@@ -1493,8 +1511,7 @@ class Batman.App extends Batman.Object
 
     if typeof @navigator is 'undefined' and @dispatcher.routeMap
       @on 'run', =>
-        @navigator = Batman.navigator = Batman.Navigator.forApp(this)
-        @navigator.start()
+        @set('navigator', Batman.navigator = Batman.Navigator.forApp(this)).start()
 
     @hasRun = yes
     @fire('run')
@@ -1571,8 +1588,9 @@ class Batman.Route extends Batman.Object
     params
 
   dispatch: (url) ->
-    if $typeOf(url) is 'String'
-      params = @parameterize url
+    params = @parameterize url
+    
+    @dispatcher.app.get('currentParams').replace(params)
 
     $redirect('/404') if not (action = params.action) and url isnt '/404'
     return action(params) if typeof action is 'function'
@@ -1659,12 +1677,16 @@ class Batman.Dispatcher extends Batman.Object
     route = @findRoute(url)
     if route
       route.dispatch(url)
-    else if url isnt '/404'
-      $redirect('/404')
+    else
+      if $typeOf(params) is 'Object'
+        @app.get('currentParams').replace(params)
+      else
+        @app.get('currentParams').clear()
+      $redirect('/404') if url isnt '/404'
 
     @app.set 'currentURL', url
     @app.set 'currentRoute', route
-    @app.set 'currentParams', params
+    
     url
 
 class Batman.Navigator
@@ -1767,6 +1789,34 @@ class Batman.HashbangNavigator extends Batman.Navigator
 
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
+
+class Batman.ParamsManager extends Batman.Object
+  constructor: (@navigator, @params) ->
+  redirect: -> @navigator.replace(@toObject())
+  replace: (params) ->
+    @params.replace(params)
+    @redirect()
+  update: (params) ->
+    @params.update(params)
+    @redirect()
+  clear: () ->
+    @params.clear()
+    @redirect()
+  toObject: -> @params.toObject()
+  @accessor
+    get: (k) -> @params.get(k)
+    set: (k,v) ->
+      result = @params.set(k,v)
+      @redirect()
+      result
+    unset: (k) ->
+      result = @params.unset(k)
+      @redirect()
+      result
+
+class Batman.ParamsPusher extends Batman.ParamsManager
+  redirect: -> @navigator.push(@toObject())
+
 
 # Route Declarators
 # -----------------
