@@ -332,7 +332,7 @@ Batman.Request::send = (data) ->
 
     success: (response) =>
       @set 'response', response
-      @set 'status', xhr.status
+      @set 'status', (xhr?.status or 200)
       @fire 'success', response
 
     error: (xhr) =>
