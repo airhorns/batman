@@ -38,18 +38,18 @@ QUnit.module "Batman.Model belongsTo Associations"
 
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
   @Product.find 1, (err, product) =>
-    storeJSON = product.get('store').toJSON()
+    store = product.get('store')
+    storeJSON = store.toJSON()
     # store will encode its product
     delete storeJSON.product
 
     deepEqual storeJSON, @storeAdapter.storage["stores1"]
     QUnit.start()
 
-asyncTest "belongsTo associations are loaded via ID", 2, ->
+asyncTest "belongsTo associations are loaded via ID", 1, ->
   @Product.find 1, (err, product) =>
     store = product.get 'store'
-    ok store instanceof @Store
-    equal store.id, 1
+    equal store.get('id'), 1
     QUnit.start()
 
 asyncTest "belongsTo associations are not loaded when autoload is off", 1, ->

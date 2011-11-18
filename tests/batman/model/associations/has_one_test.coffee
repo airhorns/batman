@@ -21,10 +21,9 @@ QUnit.module "Batman.Model hasOne Associations"
       'products1': {name: "Product One", id: 1, store_id: 1}
       'products3': {name: "JSON Product", id: 3, store_id: 2}
 
-asyncTest "hasOne associations are loaded via ID", 3, ->
+asyncTest "hasOne associations are loaded via ID", 2, ->
   @Store.find 1, (err, store) =>
     product = store.get 'product'
-    ok product instanceof @Product
     equal product.get('id'), 1
     delay ->
       equal product.get('name'), 'Product One'
@@ -101,6 +100,26 @@ asyncTest "hasOne associations render", 1, ->
     context = Batman(store: store)
     helpers.render source, context, (node) ->
       equal node[0].innerHTML, 'Product One'
+      QUnit.start()
+
+asyncTest "hasOne associations make the load method available", 3, ->
+  @storeAdapter.storage["stores200"] =
+    id: 200
+    name: "Store 200"
+
+  @Store.find 200, (err, store) =>
+    product = store.get('product')
+    equal product.get('id'), undefined
+
+    @productAdapter.storage["products404"] =
+      id: 404
+      name: "Product 404"
+      store_id: 200
+
+    product.load (err, loadedProduct) ->
+      # Proxies mark themselves as loaded
+      equal product.get('loaded'), true
+      equal loadedProduct.get('name'), "Product 404"
       QUnit.start()
 
 QUnit.module "Batman.Model hasOne Associations with inverseOf"

@@ -2088,6 +2088,11 @@ class Batman.Model extends Batman.Object
         collection = @_batman.associations ||= new Batman.AssociationCollection(@)
         collection.add new Batman.Association[k](@, label, scope)
 
+  associationProxy: (association) ->
+    Batman.initializeObject(@)
+    proxies = @_batman.associationProxies ||= new Batman.SimpleHash
+    proxies.get(association.label) or proxies.set(association.label, new association.proxyClass(association, @))
+
   # ### Record API
 
   # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
@@ -2388,55 +2393,129 @@ class Batman.Association
       set: model.defaultAccessor.set
       unset: model.defaultAccessor.unset
 
-  class AssociationSetSetIndex extends Batman.SetIndex
-    constructor: (@association) -> super(@association.getRelatedModel().get('loaded'), @association.foreignKey)
-    _resultSetForKey: (key) -> @_storage.getOrSet(key, => new Batman.Association.Set(key, @association))
-
   setIndex: ->
-    @index ||= new AssociationSetSetIndex(@)
+    @index ||= new Batman.AssociationSetIndex(@)
     @index
+
+  getAccessor: (self, model, label) ->
+    # Check whether the relation has already been set on this model
+    if recordInAttributes = self.getFromAttributes(@)
+      return recordInAttributes
+
+    # Make sure the related model has been loaded
+    if self.getRelatedModel()
+      proxy = @associationProxy(self)
+      if not proxy.get('loaded') and self.options.autoload
+        proxy.load()
+      proxy
 
   getRelatedModel: ->
     scope = @options.namespace or Batman.currentApp
     modelName = @options.name
     scope?[modelName]
 
-  getFromAttributes: (record) -> record.constructor.defaultAccessor.get.call(record, @label)
-  getAccessor: -> developer.error "You must override getAccessor in Batman.Association subclasses."
+  getFromAttributes: (record) ->
+    record.constructor.defaultAccessor.get.call(record, @label)
+
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
   inverse: ->
-    return undefined unless @options.inverseOf
-    @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
+    if @options.inverseOf
+      @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
+
+class Batman.AssociationProxy extends Batman.Object
+  constructor: (@association, @model) ->
+  loaded: false
+
+  toJSON: ->
+    if @loaded
+      @get('target').toJSON()
+
+  load: (callback) ->
+    @fetch (err, relation) =>
+      @set('target', relation)
+      callback?(undefined, relation)
+    @get('target')
+
+  @accessor 'loaded'
+    get: -> @loaded
+    set: (_, v) -> @loaded = v
+
+  @accessor 'target',
+    get: ->
+      if id = @model.get(@association.localKey)
+        @association.getRelatedModel().get('loaded').indexedByUnique('id').get(id)
+    set: (v) -> v # This just needs to bust the cache
+
+  @accessor
+    get: (k) -> @get('target')?.get(k)
+    set: (k, v) -> @get('target')?.set(k, v)
+
+class Batman.BelongsToProxy extends Batman.AssociationProxy
+  fetch: (callback) ->
+    if relatedID = @model.get(@association.localKey)
+      loadedRecords = @association.setIndex().get(relatedID)
+
+      unless loadedRecords.isEmpty()
+        @set 'loaded', true
+        callback undefined, loadedRecords.toArray()[0]
+      else
+        @association.getRelatedModel().find relatedID, (error, loadedRecord) =>
+          throw error if error
+          @set('loaded', true) if loadedRecord
+          callback undefined, loadedRecord
+
+class Batman.HasOneProxy extends Batman.AssociationProxy
+  fetch: (callback) ->
+    if id = @model.get(@association.localKey)
+      # Check whether the relatedModel has already loaded the instance we want
+      relatedRecords = @association.setIndex().get(id)
+      unless relatedRecords.isEmpty()
+        @set('loaded', true)
+        callback undefined, relatedRecords.toArray()[0]
+      else
+        loadOptions = {}
+        loadOptions[@association.foreignKey] = id
+        @association.getRelatedModel().load loadOptions, (error, loadedRecords) =>
+          throw error if error
+          if !loadedRecords or loadedRecords.length <= 0
+            callback new Error("Couldn't find related record!"), undefined
+          else
+            @set('loaded', true)
+            callback undefined, loadedRecords[0]
+
+class Batman.AssociationSet extends Batman.Set
+  constructor: (@key, @association) -> super()
+  loaded: false
+  load: (callback) ->
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @key
+    @association.getRelatedModel().load loadOptions, (err, records) =>
+      unless err
+        @loaded = true
+        @add(record) for record in records
+      callback(err, @)
+
+class Batman.AssociationSetIndex extends Batman.SetIndex
+  constructor: (@association) ->
+    super @association.getRelatedModel().get('loaded'),
+      @association.foreignKey
+
+  _resultSetForKey: (key) ->
+    @_storage.getOrSet key, =>
+      new Batman.AssociationSet(key, @association)
 
 class Batman.Association.belongsTo extends Batman.Association
   associationType: 'belongsTo'
+  proxyClass: Batman.BelongsToProxy
   defaultOptions:
     saveInline: false
     autoload: true
 
   constructor: ->
     super
-    @model.encode "#{@label}_id"
-
-  getAccessor: (self, model, label) ->
-    if relatedRecord = self.getFromAttributes(@)
-      return relatedRecord
-
-    # Make sure there is a relation
-    return unless relatedID = @get("#{label}_id")
-
-    # Make sure the related model has been loaded
-    return unless relatedModel = self.getRelatedModel()
-
-    loadedRecord = self.setIndex().get(relatedID)
-
-    unless loadedRecord.isEmpty()
-      loadedRecord.toArray()[0]
-    else
-      if self.options.autoload
-        relatedModel.find relatedID, (error, loadedRecord) -> throw error if error
-      else
-        new relatedModel(relatedID)
+    @localKey = "#{@label}_id"
+    @foreignKey = 'id'
+    @model.encode @localKey
 
   encoder: ->
     association = @
@@ -2450,82 +2529,40 @@ class Batman.Association.belongsTo extends Batman.Association
         record.fromJSON(data)
         record = relatedModel._mapIdentity(record)
         if association.options.inverseOf
-          inverse = association.inverse()
-          if inverse
+          if inverse = association.inverse()
             if inverse instanceof Batman.Association.hasMany
               # Rely on the parent's set index to get this out.
-              childRecord.set("#{association.label}_id", record.get('id'))
+              childRecord.set(association.localKey, record.get(association.foreignKey))
             else
               record.set(inverse.label, childRecord)
-        childRecord.set("#{association.label}", record)
+        childRecord.set(association.label, record)
         record
     }
 
   apply: (base) ->
     if model = base.get(@label)
-      base.set "#{@label}_id", model.get('id')
+      base.set @localKey, model.get(@foreignKey)
 
 class Batman.Association.hasOne extends Batman.Association
   associationType: 'hasOne'
+  proxyClass: Batman.HasOneProxy
+
   constructor: ->
     super
-    @propertyName = $functionName(@model).toLowerCase()
+    @localKey = "id"
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
-
-  getAccessor: (self, model, label) ->
-    return if @amSetting
-
-    # Check whether the relatedModel has already been set on this model
-    if existingInstance = self.getFromAttributes(@)
-      return existingInstance unless existingInstance.isProxy
-
-    # Make sure relatedModel has been loaded
-    return unless relatedModel = self.getRelatedModel()
-
-    # Make sure we have an id to match on
-    return unless id = @get('id')
-
-    # Check whether the relatedModel has already loaded the instance we want
-    relatedRecords = self.setIndex().get(id)
-    unless relatedRecords.isEmpty()
-      return relatedRecords.toArray()[0]
-    else
-      # Create a relatedModel instance to return immediately and populate when it loads
-      return existingInstance if existingInstance?
-      loadingRecord = new relatedModel
-      loadingRecord.isProxy = true
-      loadingRecord.load = (callback) ->
-        loadOptions = {}
-        loadOptions[self.foreignKey] = id
-        relatedModel.load loadOptions, (error, loadedRecords) =>
-          unless error
-            if !loadedRecords or loadedRecords.length <= 0
-              return callback(new Error("Couldn't find related record!"))
-            else
-              @fromJSON loadedRecords[0].toJSON()
-          callback(undefined, loadedRecords[0])
-
-      # FIXME shouldn't need to short-circuit the get/set accessor loop
-      @amSetting = true
-      @set label, loadingRecord
-      @amSetting = false
-
-      if self.options.autoload
-        loadingRecord.load (error) ->
-
-      return loadingRecord
 
   apply: (baseSaveError, base) ->
     if relation = base.constructor.defaultAccessor.get.call(base, @label)
-      relation.set @foreignKey, base.get('id')
+      relation.set @foreignKey, base.get(@localKey)
 
   encoder: ->
     association = @
     return {
       encode: (val, key, object, record) ->
         return unless association.options.saveInline
-        json = val.toJSON()
-        json[association.foreignKey] = record.get('id')
+        if json = val.toJSON()
+          json[association.foreignKey] = record.get(association.localKey)
         json
       decode: (data, _, _, _, parentRecord) ->
         relatedModel = association.getRelatedModel()
@@ -2541,65 +2578,68 @@ class Batman.Association.hasMany extends Batman.Association
   associationType: 'hasMany'
   constructor: ->
     super
-    @propertyName = $functionName(@model).toLowerCase()
+    @localKey = "id"
     @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
 
   getAccessor: (self, model, label) ->
     return if @amSetting
-    return unless relatedModel = self.getRelatedModel()
+    return unless self.getRelatedModel()
 
+    # Check whether the relation has already been set on this model
     if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
-    return unless id = @get('id')
 
-    relatedRecords = self.setIndex().get(id)
-    @amSetting = true
-    @set label, relatedRecords
-    @amSetting = false
-    if self.options.autoload && relatedRecords.isEmpty()
-      relatedRecords.load (error, records) -> throw error if error
+    if id = @get(self.localKey)
+      relatedRecords = self.setIndex().get(id)
 
-    return relatedRecords
+      @amSetting = true
+      @set label, relatedRecords
+      @amSetting = false
+
+      if self.options.autoload and not relatedRecords.loaded
+        relatedRecords.load (error, records) -> throw error if error
+
+      return relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)
       relations.forEach (model) =>
-        model.set @foreignKey, base.get('id')
+        model.set @foreignKey, base.get(@localKey)
 
   encoder: ->
     association = @
     return {
       encode: (relationSet, _, _, record) ->
+        return if association._beingEncoded
+        association._beingEncoded = true
+
         return unless association.options.saveInline
         if relationSet?
           jsonArray = []
           relationSet.forEach (relation) ->
             relationJSON = relation.toJSON()
-            relationJSON[association.foreignKey] = record.get('id')
+            relationJSON[association.foreignKey] = record.get(association.localKey)
             jsonArray.push relationJSON
+
+        delete association._beingEncoded
         jsonArray
 
       decode: (data, _, _, _, parentRecord) ->
         relations = new Batman.Set
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
-            record = new relatedModel()
-            record.fromJSON(jsonObject)
+            record = new relatedModel
+            record.fromJSON jsonObject
+
             if association.options.inverseOf
               record.set association.options.inverseOf, parentRecord
+
             record = relatedModel._mapIdentity(record)
             relations.add record
         else
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
         relations
     }
-
-class Batman.Association.Set extends Batman.Set
-  constructor: (@key, @association) -> super()
-  load: (callback) ->
-    loadOptions = {}
-    loadOptions[@association.foreignKey] = @key
-    @association.getRelatedModel().load(loadOptions, (error) => callback(error, @))
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})
