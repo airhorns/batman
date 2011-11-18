@@ -10,6 +10,8 @@
 Batman = (mixins...) ->
   new Batman.Object mixins...
 
+Batman.version = '0.8.0'
+
 Batman.config =
   pathPrefix: '/'
   usePushState: no
