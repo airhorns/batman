@@ -1082,6 +1082,13 @@ class Batman.SimpleSet
       @fire('change', this, this)
       @fire('itemsWereRemoved', items...)
     items
+  replace: (other) ->
+    try
+      @prevent('change') if @prevent
+      @clear()
+      @add.apply(@, other.toArray())
+    finally
+      @allowAndFire('change', this, this) if @allow
   toArray: ->
     @_storage.keys()
   merge: (others...) ->
@@ -1105,7 +1112,7 @@ class Batman.Set extends Batman.Object
 
   $extendsEnumerable(@::)
 
-  for k in ['add', 'remove', 'clear', 'indexedBy', 'indexedByUnique', 'sortedBy']
+  for k in ['add', 'remove', 'clear', 'replace', 'indexedBy', 'indexedByUnique', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']
@@ -1179,7 +1186,7 @@ class Batman.SetProxy extends Batman.Object
     r = new Batman.Set()
     @reduce(((r, e) -> r.add(e) if f(e); r), r)
 
-  for k in ['add', 'remove', 'clear']
+  for k in ['add', 'remove', 'clear', 'replace']
     do (k) =>
       @::[k] = ->
         results = @base[k](arguments...)

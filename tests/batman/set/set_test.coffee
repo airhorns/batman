@@ -90,6 +90,45 @@ basicSetTestSuite = ->
     @set.clear()
     equal spy.callCount, 2, 'clear() fires length observers'
 
+  test "replace() doesn't fire length observers if the size didn't change", ->
+    spy = createSpy()
+    other = new Batman.Set
+    other.add('baz', 'cux')
+    @set.add('foo', 'bar')
+    @set.observe('length', spy)
+    @set.replace(other)
+    equal spy.callCount, 0, 'replaces() fires length observers'
+
+  test "replace() fires length observers if the size has changed", ->
+    spy = createSpy()
+    other = new Batman.Set
+    other.add('baz', 'cux', 'cuux')
+    @set.add('foo', 'bar')
+    @set.observe('length', spy)
+    @set.replace(other)
+    equal spy.callCount, 1, 'replaces() fires length observers'
+
+  test "replace() fires item-based mutation events for Batman.Set", ->
+    return if @set.console isnt Batman.Set
+    addedSpy = createSpy()
+    removedSpy = createSpy()
+    other = new Batman.Set
+    other.add('baz', 'cux')
+    @set.add('foo', 'bar')
+    @set.on('itemsWereAdded', addedSpy)
+    @set.on('itemsWereRemoved', removedSpy)
+    @set.replace(other)
+    equal addedSpy.callCount, 1, 'replaces() fires itemsWereAdded observers'
+    equal removedSpy.callCount, 1, 'replaces() fires itemsWereRemoved observers'
+
+  test "replace() removes existing items", ->
+    spy = createSpy()
+    other = new Batman.Set
+    other.add('baz', 'cux')
+    @set.add('foo', 'bar')
+    @set.replace(other)
+    deepEqual @set.toArray(), other.toArray()
+
   test "filter() returns a set", ->
     @set.add 'foo', 'bar', 'baz'
 
