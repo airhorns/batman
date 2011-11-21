@@ -6,7 +6,8 @@ Batman.mixin Batman.Encoders,
       if a
         return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
       else
-        developer.error "Unrecognized rails date #{value}!"
+        Batman.developer.warn "Unrecognized rails date #{value}!"
+        return Date.parse(value)
 
 class Batman.RailsStorage extends Batman.RestStorage
 
