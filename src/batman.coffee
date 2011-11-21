@@ -2977,14 +2977,25 @@ class Batman.RestStorage extends Batman.StorageAdapter
     record = JSON.stringify(record) unless @serializeAsForm
     [record, options]
 
-  @::after 'create', 'read', 'readAll', 'update', 'destroy', ([error, record, data, options]) ->
+  @::after 'create', 'read', 'update', 'destroy', ([error, record, data, options]) ->
     if !error
       if typeof data is 'string'
         try
           data = JSON.parse(data)
         catch e
           error = e
+          error.data = data
     [error, record, data, options]
+
+  @::after 'readAll', ([error, data, proto, options]) ->
+    if !error
+      if typeof data is 'string'
+        try
+          data = JSON.parse(data)
+        catch e
+          error = e
+          error.data = data
+    [error, data, proto, options]
 
   @::after 'create', 'read', 'update', $passError ([record, data, options]) ->
     namespace = @recordJsonNamespace(record)
