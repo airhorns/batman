@@ -216,6 +216,18 @@ asyncTest "hasMany loads records for each parent instance", 2, ->
       equal products2.length, 1
       QUnit.start()
 
+asyncTest "hasMany loads after an instance of the related model is saved locally", 2, ->
+  product = new @Product
+    name: "Local product"
+    store_id: 1
+
+  product.save (err, savedProduct) =>
+    @Store.find 1, (err, store) ->
+      products = store.get('products')
+      ok products.has(savedProduct)
+      equal products.length, 4
+      QUnit.start()
+
 QUnit.module "Batman.Model hasMany Associations with inverse of"
   setup: ->
     namespace = {}
