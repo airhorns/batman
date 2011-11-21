@@ -6,8 +6,6 @@ QUnit.module 'Batman.HashbangNavigator',
     @nav = new Batman.HashbangNavigator(@app)
 
 test "pathFromLocation(window.location) returns the app-relative path", ->
-  location =
-    
   equal @nav.pathFromLocation(hash: '#!/foo/bar?page=2'), '/foo/bar?page=2'
   equal @nav.pathFromLocation(hash: '#/foo/bar?page=2'), '/'
   equal @nav.pathFromLocation(hash: '#'), '/'
