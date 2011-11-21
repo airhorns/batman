@@ -2331,7 +2331,7 @@ class Batman.Model extends Batman.Object
       do @saving
       do @creating if creating
 
-      associations = @constructor._batman.associations?.getAll()
+      associations = @constructor._batman.associations?.getAllByType()
       # Save belongsTo models immediately since we don't need this model's id
       associations?.get('belongsTo')?.forEach (association, label) => association.apply(@)
 
@@ -2398,18 +2398,21 @@ class Batman.AssociationCollection
   constructor: (@model) ->
     # Contains (association, label) pairs mapped by association type
     # ie. @storage = {<Association.associationType>: {<Association>: <label>}}
-    @storage = new Batman.SimpleHash
+    @byTypeStorage = new Batman.SimpleHash
+    @byLabelStorage = new Batman.SimpleHash
 
   add: (association) ->
-    unless associationTypeHash = @storage.get(association.constructor)
+    @byLabelStorage.set association.label, association
+    unless associationTypeHash = @byTypeStorage.get(association.constructor)
       associationTypeHash = new Batman.SimpleHash
-      @storage.set association.associationType, associationTypeHash
-
+      @byTypeStorage.set association.associationType, associationTypeHash
     associationTypeHash.set association, association.label
 
-  get: (key) -> @storage.get(key)
+  getByType: (type) -> @byTypeStorage.get(type)
+  getByLabel: (label) -> @byLabelStorage.get(label)
 
-  getAll: ->
+
+  getAllByType: ->
     # Traverse the class heirarchy to get all the AssociationCollection objects
     @model._batman.check(@model)
     ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman.get('associations'))
@@ -2417,18 +2420,18 @@ class Batman.AssociationCollection
 
     # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.
     for key in Batman.AssociationCollection.availableAssociations
-      ancestorValuesAtKey = for ancestorCollection in ancestorCollections when ancestorCollection? and val = ancestorCollection.get(key)
+      ancestorValuesAtKey = for ancestorCollection in ancestorCollections when val = ancestorCollection?.getByType(key)
         val
-      newStorage.set key, (@storage.get(key) || new Batman.SimpleHash).merge(ancestorValuesAtKey...)
+      newStorage.set key, (@byTypeStorage.get(key) || new Batman.SimpleHash).merge(ancestorValuesAtKey...)
 
-    @storage = newStorage
+    @byTypeStorage = newStorage
     # Gives {hasMany: Hash{<Association>: <label>}, hasOne: Hash{...}, ...}
-    @getAll = -> @storage
-    @storage
+    @getAllByType = -> @byTypeStorage
+    @byTypeStorage
 
   associationForLabel: (searchLabel) ->
     ret = undefined
-    @getAll().forEach (type, associations) ->
+    @getAllByType().forEach (type, associations) ->
       return if ret
       associations.forEach (association, label) ->
         return if ret

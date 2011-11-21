@@ -7,17 +7,18 @@ QUnit.module "Batman.Model AssociationCollection",
     class @Product extends Batman.Model
     class @ShopifyStore extends @Store
 
-test "associations can be added", ->
+test "associations can be added", 2, ->
   collection = new Batman.AssociationCollection(@Store)
 
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   collection.add association
 
-  associationsObject = collection.getAll()
+  associationsObject = collection.getAllByType()
 
   equal associationsObject.get('belongsTo').get(association), 'products'
+  equal collection.getByLabel('products'), association
 
-test "associations are inherited by subclasses", ->
+test "associations are inherited by subclasses", 1, ->
   @Store._batman.check(@Store)
   @Store._batman.associations = parentCollection = new Batman.AssociationCollection(@Store)
   subClassCollection = new Batman.AssociationCollection(@ShopifyStore)
@@ -25,6 +26,6 @@ test "associations are inherited by subclasses", ->
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   parentCollection.add association
 
-  associationsObject = subClassCollection.getAll()
+  associationsObject = subClassCollection.getAllByType()
 
   equal associationsObject.get('belongsTo').get(association), 'products'
