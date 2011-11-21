@@ -74,6 +74,8 @@ asyncTest "models can save while related records are loading", 1, ->
     "stores1": {id: 1, name: "Store One", product: {id: 1, name: "JSON product"}}
 
   class @Product extends Batman.Model
+    @encode 'name'
+
   productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter
 
   Batman.developer.suppress =>
@@ -86,14 +88,18 @@ asyncTest "models can save while related records are loading", 1, ->
 
 asyncTest "inline saving can be disabled", 1, ->
   namespace = this
+
   class @Store extends Batman.Model
     @hasMany 'products',
       namespace: namespace
       saveInline: false
+
   @storeAdapter = createStorageAdapter @Store, AsyncTestStorageAdapter,
     "stores1": {id: 1, name: "Store One"}
 
   class @Product extends Batman.Model
+    @encode 'name'
+
   @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter
 
   @Store.find 1, (err, store) =>

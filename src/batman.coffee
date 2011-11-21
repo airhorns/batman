@@ -1535,7 +1535,7 @@ class Batman.Request extends Batman.Object
         else
           [[key, object]]
 
-    formData = new FormData()
+    formData = new Batman.container.FormData()
     for [key, val] in pairForList("", data, true)
       formData.append(key, val)
     formData
@@ -1566,12 +1566,13 @@ class Batman.Request extends Batman.Object
   # After the URL gets set, we'll try to automatically send
   # your request after a short period. If this behavior is
   # not desired, use @cancel() after setting the URL.
-  @observeAll 'url', ->
-    @_autosendTimeout = $setImmediate => @send()
+  @observeAll 'url', (url) ->
+    @_autosendTimeout = $setImmediate =>
+      @send()
 
   # `send` is implmented in the platform layer files. One of those must be required for
   # `Batman.Request` to be useful.
-  send: () -> developer.error "Please source a dependency file for a request implementation"
+  send: -> developer.error "Please source a dependency file for a request implementation"
 
   cancel: ->
     $clearImmediate(@_autosendTimeout) if @_autosendTimeout
@@ -1803,6 +1804,16 @@ class Batman.RouteMap
 
 class Batman.NamedRouteQuery extends Batman.Object
   isNamedRouteQuery: true
+
+  developer.do =>
+    class NonWarningProperty extends Batman.Keypath
+      constructor: ->
+        developer.suppress()
+        super
+        developer.unsuppress
+
+    @::propertyClass = NonWarningProperty
+
   constructor: (routeMap, args = []) ->
     super({routeMap, args})
 
@@ -2019,8 +2030,9 @@ class Batman.Navigator
     @startWatching()
     Batman.currentApp.prevent 'ready'
     $setImmediate =>
-      @handleCurrentLocation()
-      Batman.currentApp.allowAndFire 'ready'
+      if @started && Batman.currentApp
+        @handleCurrentLocation()
+        Batman.currentApp.allowAndFire 'ready'
   stop: ->
     @stopWatching()
     @started = no
@@ -4891,7 +4903,7 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
         new Batman.DOM.AddClassBinding(node, @errorClass, @get('keyPath') + " | get 'errors.#{field}.length'", @renderContext, @renderer)
 
   setupErrorsList: ->
-    if @errorsListNode = @get('node').querySelector(@get('errorsListSelector'))
+    if @errorsListNode = @get('node').querySelector?(@get('errorsListSelector'))
       $setInnerHTML @errorsListNode, @errorsListHTML()
 
       unless @errorsListNode.getAttribute 'data-showif'

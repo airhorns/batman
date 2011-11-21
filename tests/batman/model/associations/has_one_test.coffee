@@ -91,7 +91,7 @@ asyncTest "hasOne child models are passed through the identity map", 2, ->
     throw err if err
     @Store.find 2, (err, store) =>
       equal @Product.get('loaded').length, 1
-      equal store.get('product'), product
+      ok store.get('product') == product
       QUnit.start()
 
 asyncTest "hasOne associations render", 1, ->
@@ -167,7 +167,7 @@ asyncTest "hasOne sets the foreign key on the inverse relation if the child hasn
     throw err if err
     product = store.get('product')
     delay ->
-      equal product.get('store'), store
+      ok product.get('store') == store
 
 asyncTest "hasOne sets the foreign key on the inverse relation if the child has already been loaded", 1, ->
   @Product.find 1, (err, product) =>
@@ -176,5 +176,5 @@ asyncTest "hasOne sets the foreign key on the inverse relation if the child has 
       throw err if err
       product = store.get('product')
       delay ->
-        equal product.get('store'), store
+        ok product.get('store') == store
 

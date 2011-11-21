@@ -28,6 +28,7 @@ applyExtra = (Batman) ->
 
   class Batman.I18N.LocalesStorage extends Batman.Object
     constructor: ->
+      @isStorage = true
       @_storage = {}
       super
 
@@ -40,7 +41,8 @@ applyExtra = (Batman) ->
           new Batman.Request
             url: "/locales/#{k}.json"
             success: (data) => @set k, data[k]
-            error: (xhr) -> throw new Error("Couldn't load locale file #{k}!")
+            error: (xhr) ->
+              throw new Error("Couldn't load locale file #{k}!")
         @_storage[k]
       set: (k, v) -> @_storage[k] = v
       unset: (k) ->

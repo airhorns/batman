@@ -39,14 +39,14 @@ validationsTestSuite = ->
       p.validate (result, errors) ->
         ok !result
         QUnit.start()
-        
+
   asyncTest "presence and length", 4, ->
     class Product extends Batman.Model
       @validate 'name', {presence: yes, maxLength: 10, minLength: 3}
 
     p = new Product
     p.validate (result, errors) ->
-      ok !result      
+      ok !result
       equal errors.length, 2
 
       p.set 'name', "beans"
@@ -54,7 +54,6 @@ validationsTestSuite = ->
         ok result
         equal errors.length, 0
         QUnit.start()
-        
 
   asyncTest "custom async validations", ->
     letItPass = true
@@ -88,20 +87,26 @@ validationsTestSuite()
 QUnit.module "Batman.Model: binding to errors"
   setup: ->
     class @Product extends Batman.Model
-      @validate 'name', presence: yes
+      @validate 'name', {presence: true}
 
     @product = new @Product
-    @someObject = Batman product: @product
+    @someObject = Batman {product: @product}
 
-asyncTest "errors set length should be observable", 3, ->
+asyncTest "errors set length should be observable", 4, ->
+  count = 0
+  errorsAtCount =
+    0: 1
+    1: 0
+
   @product.get('errors').observe 'length', (newLength, oldLength) ->
-    return if newLength == oldLength # Prevents the assertion below when the errors set is cleared and its length goes from 0 to 0
-    equal newLength, 1
+    equal newLength, errorsAtCount[count++]
 
-  @product.validate (result, errors) ->
+  @product.validate (result, errors) =>
     equal errors.get('length'), 1
-    equal errors.length, 1
-    QUnit.start()
+    @product.set 'name', 'Foo'
+    @product.validate (result, errors) =>
+      equal errors.get('length'), 0
+      QUnit.start()
 
 asyncTest "errors set contents should be observable", 3, ->
   x = @product.get('errors.name')
@@ -111,7 +116,6 @@ asyncTest "errors set contents should be observable", 3, ->
   @product.validate (result, errors) =>
     equal errors.get('length'), 1
     equal errors.length, 1
-    x
     QUnit.start()
 
 asyncTest "errors set length should be bindable", 4, ->
@@ -144,4 +148,3 @@ asyncTest "errors set contents should be bindable", 4, ->
     equal errors.length, 1, 'the validation shouldn\'t succeed'
     equal @someObject.get('productNameErrorsLength'), 1, 'the foreign key should have updated'
     QUnit.start()
-

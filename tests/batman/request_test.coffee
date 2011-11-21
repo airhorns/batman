@@ -2,30 +2,33 @@ oldSend = Batman.Request::send
 
 QUnit.module 'Batman.Request'
   setup: ->
-    @send = Batman.Request::send = createSpy()
+    @sendSpy = createSpy()
+    Batman.Request::send = @sendSpy
   teardown: ->
     Batman.Request::send = oldSend
+    @request?.cancel()
 
 test 'should not fire if not given a url', ->
   new Batman.Request
-  ok !@send.called
+  ok !@sendSpy.called
 
 asyncTest 'should request a url with default get', 2, ->
-  new Batman.Request
+  @request = new Batman.Request
     url: 'some/test/url.html'
-
+    send: @sendSpy
   delay =>
-    req = @send.lastCallContext
+    req = @sendSpy.lastCallContext
     equal req.url, 'some/test/url.html'
     equal req.method, 'GET'
 
 asyncTest 'should request a url with a different method, converting the method to uppercase', 1, ->
-  new Batman.Request
-    url: 'some/test/url.html'
+  @request = new Batman.Request
+    url: 'B/test/url.html'
     method: 'post'
+    send: @sendSpy
 
   delay =>
-    req = @send.lastCallContext
+    req = @sendSpy.lastCallContext
     equal req.method, 'POST'
 
 asyncTest 'should request a url with data', 1, ->
@@ -34,9 +37,10 @@ asyncTest 'should request a url with data', 1, ->
     data:
       a: "b"
       c: 1
+    send: @sendSpy
 
   delay =>
-    req = @send.lastCallContext
+    req = @sendSpy.lastCallContext
     deepEqual req.data, {a: "b", c: 1}
 
 asyncTest 'should call the success callback if the request was successful', 2, ->
@@ -45,10 +49,12 @@ asyncTest 'should call the success callback if the request was successful', 2, -
   req = new Batman.Request
     url: 'some/test/url.html'
     success: optionsHashObserver
+    send: @sendSpy
+
   req.on 'success', postInstantiationObserver
 
   delay =>
-    req = @send.lastCallContext
+    req = @sendSpy.lastCallContext
     req.fire 'success', 'some test data'
 
     delay =>
@@ -59,14 +65,15 @@ asyncTest 'should set headers', 2, ->
   new Batman.Request
     url: 'some/test/url.html'
     headers: {'test_header': 'test-value'}
+    send: @sendSpy
 
   delay =>
-    req = @send.lastCallContext
+    req = @sendSpy.lastCallContext
     notEqual req.headers.test_header, undefined
     equal req.headers.test_header, 'test-value'
 
-if typeof FormData isnt 'undefined'
-  oldFormData = FormData
+if typeof Batman.container.FormData isnt 'undefined'
+  oldFormData = Batman.container.FormData
 else
   oldFormData = {}
 
@@ -79,20 +86,13 @@ class MockFormData extends MockClass
     @appends++
     @appended.push [k, v]
 
-container = (if typeof IN_NODE isnt undefined && IN_NODE then global else window)
 QUnit.module 'Batman.Request: serializing to FormData'
   setup: ->
-    container.FormData = MockFormData
+    Batman.container.FormData = MockFormData
     MockFormData.reset()
+
   teardown: ->
-    container.FormData = oldFormData
-
-test 'should serialize simple data to FormData objects', ->
-  object =
-    foo: "bar"
-
-  formData = Batman.Request.objectToFormData(object)
-  deepEqual formData.appended, [["foo", "bar"]]
+    Batman.container.FormData = oldFormData
 
 test 'should serialize array data to FormData objects', ->
   object =
@@ -100,6 +100,13 @@ test 'should serialize array data to FormData objects', ->
 
   formData = Batman.Request.objectToFormData(object)
   deepEqual formData.appended, [["foo[]", "bar"], ["foo[]", "baz"]]
+
+test 'should serialize simple data to FormData objects', ->
+  object =
+    foo: "bar"
+
+  formData = Batman.Request.objectToFormData(object)
+  deepEqual formData.appended, [["foo", "bar"]]
 
 test 'should serialize object data to FormData objects', ->
   object =
@@ -118,5 +125,3 @@ test 'should serialize nested object and array data to FormData objects', ->
 
   formData = Batman.Request.objectToFormData(object)
   deepEqual formData.appended, [["foo[bar][]", "baz"], ["foo[bar][]", "qux"], ["corge[][ding]", "dong"], ["corge[][walla]", "walla"]]
-
-

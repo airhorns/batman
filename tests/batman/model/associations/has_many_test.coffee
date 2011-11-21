@@ -403,8 +403,8 @@ asyncTest "hasMany sets the foreign key on the inverse relation if the children 
     delay ->
       variants = variants.toArray()
       equal variants.length, 2
-      equal variants[0].get('product'), product
-      equal variants[1].get('product'), product
+      ok variants[0].get('product') == product
+      ok variants[1].get('product') == product
 
 asyncTest "hasMany sets the foreign key on the inverse relation if the children have already been loaded", 3, ->
   @ProductVariant.load (err, variants) =>
@@ -415,5 +415,5 @@ asyncTest "hasMany sets the foreign key on the inverse relation if the children 
       delay ->
         variants = variants.toArray()
         equal variants.length, 2
-        equal variants[0].get('product'), product
-        equal variants[1].get('product'), product
+        ok variants[0].get('product') == product
+        ok variants[1].get('product') == product

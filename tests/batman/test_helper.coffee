@@ -1,12 +1,11 @@
-if window?
-  exports = window
-  exports.IN_NODE = false
-else
-  exports = global
-  exports.window = w = jsdom("<html><head><script></script></head><body></body></html>").createWindow()
-  exports.document = w.document
-  global.notStrictEqual = (actual, expected, message) -> ok expected != actual, message
+if module?.exports
+  exports = module.exports
+  container = global
   exports.IN_NODE = true
+else
+  exports = window
+  container = window
+  exports.IN_NODE = false
 
 originalPathname = window.location.pathname
 __begin = QUnit.begin
@@ -40,17 +39,17 @@ QUnit.reset = ->
 if exports.IN_NODE
   do ->
     hash = ''
-    exports.window.location.__defineGetter__ 'hash', -> hash
-    exports.window.location.__defineSetter__ 'hash', (value) ->
+    window.location.__defineGetter__ 'hash', -> hash
+    window.location.__defineSetter__ 'hash', (value) ->
       hash = value
-      evt = exports.window.document.createEvent "HTMLEvents"
+      evt = window.document.createEvent "HTMLEvents"
       evt.initEvent "hashchange", true, false
-      exports.window.dispatchEvent evt
+      window.dispatchEvent evt
 
-unless exports.localStorage?
+unless container.localStorage?
   do ->
     storage = {}
-    exports.localStorage =
+    container.localStorage =
       key: (index) -> (key for key, value of storage when !index--)[0]
       getItem: (key) -> storage["#{key}"]
       setItem: (key, value) -> storage["#{key}"] = value
@@ -259,25 +258,17 @@ if QUnit.api? and not QUnit.config?
       oldTest(testName, expect, testFn, async)
 
 # Handy for async tests which usually follow this pattern
+delayCount = 0
 delay = (time, fn) ->
   [time, fn] = [ASYNC_TEST_DELAY, time] unless fn?
 
-  test = QUnit.config.current
-  test.delay ||= 0
+  delayCount++
+  defer = ->
+    fn()
+    if --delayCount == 0
+      QUnit.start()
 
-  start = QUnit.start
-
-  spyOnDuring QUnit, 'start', ->
-    do (test) ->
-      test.delay++
-      defer = ->
-        fn()
-        if QUnit.start.called
-          console.error "#{test.module}: #{testName} called QUnit.start(); don't do that."
-        if --test.delay == 0
-          start()
-
-      setTimeout(defer, time)
+  setTimeout(defer, time)
 
 doWhen = (conditionFunction, actionFunction, timeout=2000) ->
   t = new Date
@@ -289,7 +280,6 @@ doWhen = (conditionFunction, actionFunction, timeout=2000) ->
       finally
         clearInterval interval
   interval = setInterval f, 20
-
 
 for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay, doWhen}
   exports[k] = v

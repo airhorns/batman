@@ -45,6 +45,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   @App.resources 'tweets', 'users'
 
   class @App.User extends Batman.Model
+    @encode 'name'
     @persist TestStorageAdapter
 
   app = @App
@@ -131,7 +132,7 @@ asyncTest 'should allow you to use {controller, action} routes, if they are defi
       <a data-route="{'controller': 'foo', 'action': 'baz'}">baz</a>
     '''
 
-    viewHelpers.render source, {}, (node, view) ->
+    helpers.render source, {}, (node, view) ->
       urls = ($(a).attr('href') for a in $('a', view.get('node')))
       urls[i] = url || '' for url, i in urls
       deepEqual urls, [Batman.navigator.linkTo('/foo/bar'), '#']
@@ -157,7 +158,7 @@ asyncTest 'should allow you to bind to objects in the context stack', 2, ->
         controller: 'foo'
         action: 'bar'
 
-    viewHelpers.render source, false, context, (node, view) ->
+    helpers.render source, false, context, (node, view) ->
       a = $(node.childNodes[0])
       deepEqual a.attr('href'), Batman.navigator.linkTo('/foo/bar')
       context.set 'whereToRedirect',
@@ -189,7 +190,7 @@ asyncTest 'should allow you to use named route queries', 2, ->
       image: Batman
         toParam: -> 20
 
-    viewHelpers.render source, false, context, (node, view) ->
+    helpers.render source, false, context, (node, view) ->
       checkUrls = (expected) ->
         urls = ($(a).attr('href') for a in $('a', view.get('node')))
         expected = expected.map (path) -> Batman.navigator.linkTo(path)
@@ -215,7 +216,7 @@ asyncTest 'should redirect to named route queries when clicked', 1, ->
       product: Batman
         toParam: -> 10
 
-    viewHelpers.render source, context, (node, view) =>
+    helpers.render source, context, (node, view) =>
       delay =>
         helpers.triggerClick(node[0])
         delay =>
