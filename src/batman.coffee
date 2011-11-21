@@ -2556,9 +2556,7 @@ class Batman.AssociationSet extends Batman.Set
     loadOptions = {}
     loadOptions[@association.foreignKey] = @key
     @association.getRelatedModel().load loadOptions, (err, records) =>
-      unless err
-        @loaded = true
-        @add(record) for record in records
+      @loaded = true unless err
       callback(err, @)
 
 class Batman.AssociationSetIndex extends Batman.SetIndex
