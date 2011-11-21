@@ -13,6 +13,8 @@ url = require 'url'
 querystring = require 'querystring'
 
 Batman = require './batman'
+(require './extras/batman.rails')(Batman)
+(require './extras/batman.i18n')(Batman)
 
 Batman.mixin Batman.Request::,
   getModule: (protocol) ->
