@@ -2411,7 +2411,6 @@ class Batman.AssociationCollection
   getByType: (type) -> @byTypeStorage.get(type)
   getByLabel: (label) -> @byLabelStorage.get(label)
 
-
   getAllByType: ->
     # Traverse the class heirarchy to get all the AssociationCollection objects
     @model._batman.check(@model)
@@ -2491,6 +2490,9 @@ class Batman.Association
     if @options.inverseOf
       @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
 
+class Batman.SingularAssociation extends Batman.Association
+class Batman.PluralAssociation extends Batman.Association
+
 class Batman.AssociationProxy extends Batman.Object
   constructor: (@association, @model) ->
   loaded: false
@@ -2513,7 +2515,7 @@ class Batman.AssociationProxy extends Batman.Object
     get: ->
       if id = @model.get(@association.localKey)
         @association.getRelatedModel().get('loaded').indexedByUnique('id').get(id)
-    set: (v) -> v # This just needs to bust the cache
+    set: (_, v) -> v # This just needs to bust the cache
 
   @accessor
     get: (k) -> @get('target')?.get(k)
@@ -2571,7 +2573,7 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
     @_storage.getOrSet key, =>
       new Batman.AssociationSet(key, @association)
 
-class Batman.BelongsToAssociation extends Batman.Association
+class Batman.BelongsToAssociation extends Batman.SingularAssociation
   associationType: 'belongsTo'
   proxyClass: Batman.BelongsToProxy
   defaultOptions:
@@ -2610,7 +2612,7 @@ class Batman.BelongsToAssociation extends Batman.Association
     if model = base.get(@label)
       base.set @localKey, model.get(@foreignKey)
 
-class Batman.HasOneAssociation extends Batman.Association
+class Batman.HasOneAssociation extends Batman.SingularAssociation
   associationType: 'hasOne'
   proxyClass: Batman.HasOneProxy
 
@@ -2641,7 +2643,7 @@ class Batman.HasOneAssociation extends Batman.Association
         record
     }
 
-class Batman.HasManyAssociation extends Batman.Association
+class Batman.HasManyAssociation extends Batman.PluralAssociation
   associationType: 'hasMany'
   constructor: ->
     super
