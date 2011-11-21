@@ -1596,7 +1596,7 @@ class Batman.Route extends Batman.Object
 
   dispatch: (url) ->
     params = @parameterize url
-    
+
     @dispatcher.app.get('currentParams').replace(params)
 
     $redirect('/404') if not (action = params.action) and url isnt '/404'
@@ -1693,7 +1693,7 @@ class Batman.Dispatcher extends Batman.Object
 
     @app.set 'currentURL', url
     @app.set 'currentRoute', route
-    
+
     url
 
 class Batman.Navigator
@@ -3650,6 +3650,12 @@ Batman.DOM = {
     $unbindTree node, false
     node?.innerHTML = html
 
+  setStyleProperty: $setStyleProperty = (node, property, value, importance) ->
+    if node.style.setAttribute
+      node.style.setAttribute(property, value, importance)
+    else
+      node.style.setProperty(property, value, importance)
+
   # Memory-safe removal of a node from the DOM
   removeNode: $removeNode = (node) ->
     node.parentNode?.removeChild node
@@ -3961,7 +3967,7 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
       if typeof hide == 'function'
         hide.call @node
       else
-        @node.style.display = 'none !important'
+        $setStyleProperty(@node, 'display', 'none', 'important')
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   dataChange: (value) ->
