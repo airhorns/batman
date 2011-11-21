@@ -104,10 +104,7 @@ asyncTest 'it should allow visibility to be bound on block elements', 2, ->
       foo: false
     , (node) ->
         helpers.withNodeInDom node, ->
-          if IN_NODE
-            equal node.css('display'), 'none !important'
-          else
-            equal node.css('display'), 'none'
+          equal node.css('display'), 'none'
         QUnit.start()
 
 asyncTest 'it should allow visibility to be bound on inline elements', 2, ->
@@ -127,10 +124,7 @@ asyncTest 'it should allow visibility to be bound on inline elements', 2, ->
       foo: false
     , (node) ->
         helpers.withNodeInDom node, ->
-          if IN_NODE
-            equal node.css('display'), 'none !important'
-          else
-            equal node.css('display'), 'none'
+          equal node.css('display'), 'none'
         QUnit.start()
 
 asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
