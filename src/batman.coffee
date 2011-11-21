@@ -2487,11 +2487,21 @@ class Batman.Association
 
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
   inverse: ->
-    if @options.inverseOf
-      @getRelatedModel()._batman.associations.associationForLabel(@options.inverseOf)
+    if relatedAssocs = @getRelatedModel()._batman.associations
+      if @options.inverseOf
+        return relatedAssocs.getByLabel(@options.inverseOf)
+
+      inverse = null
+      relatedAssocs.byLabelStorage.forEach (label, assoc) =>
+        if assoc.getRelatedModel() is @model
+          inverse = assoc
+      inverse
 
 class Batman.SingularAssociation extends Batman.Association
+  isSingular: true
+
 class Batman.PluralAssociation extends Batman.Association
+  isPlural: true
 
 class Batman.AssociationProxy extends Batman.Object
   constructor: (@association, @model) ->
