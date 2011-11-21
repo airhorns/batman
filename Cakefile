@@ -94,7 +94,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     options: options
     map:
       'src/batman.coffee'                        : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
-      'src/batman.solo.coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.solo.js", muffin.extend({notify: !first}, options))
+      'src/batman.node.coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.node.js", muffin.extend({notify: !first}, options))
       'tests/batman/(.+)_(test|helper).coffee'   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/tests/batman/#{matches[1]}_#{matches[2]}.js", muffin.extend({notify: !first}, options))
       'src/extras/(.+).coffee'                   : (matches) ->
         extras.push destination = "#{tmpdir}/extras/#{matches[1]}.js"
@@ -102,9 +102,9 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
     after: ->
       first = false
       runner.run
-        code:  {namespace: "Batman", path: "#{tmpdir}/batman.js"}
+        code:  {namespace: "Batman", path: "#{tmpdir}/batman.node.js"}
         deps: ["jsdom", "#{tmpdir}/tests/batman/test_helper.js", "./tests/lib/jquery.js"]
-        tests: extras.concat(glob.globSync("#{tmpdir}/tests/**/*_test.js"))
+        tests: glob.globSync("#{tmpdir}/tests/**/*_test.js")
         coverage: options.coverage || false
       , (report) ->
         unless options.watch
