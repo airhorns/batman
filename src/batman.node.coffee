@@ -66,7 +66,7 @@ Batman.mixin Batman.Request::,
 
       response.on 'end', () =>
         # Join the array and set it as the response
-        data = data.join()
+        data = data.join('')
         @set 'response', data
 
         # Dispatch the appropriate event based on the status code
