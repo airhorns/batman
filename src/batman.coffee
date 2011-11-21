@@ -594,8 +594,14 @@ class Batman.Keypath extends Batman.Property
   slice: (begin, end=@depth) ->
     base = @base
     for segment in @segments.slice(0, begin)
-      return unless base? and base = Batman.Property.forBaseAndKey(base, segment).getValue()
-    Batman.Property.forBaseAndKey base, @segments.slice(begin, end).join('.')
+      return unless base? and base = $get(base, segment)
+    propertyClass = base.propertyClass or Batman.Keypath
+    remainingSegments = @segments.slice(begin, end)
+    remainingPath = remainingSegments.join('.')
+    if propertyClass is Batman.Keypath or remainingSegments.length is 1
+      Batman.Keypath.forBaseAndKey(base, remainingPath)
+    else
+      new Batman.Keypath(base, remainingPath)
   terminalProperty: -> @slice -1
   valueFromAccessor: ->
     if @depth is 1 then super else @terminalProperty()?.getValue()
@@ -891,9 +897,10 @@ Batman.Enumerable =
 $extendsEnumerable = (onto) -> onto[k] = v for k,v of Batman.Enumerable
 
 class Batman.SimpleHash
-  constructor: ->
+  constructor: (obj) ->
     @_storage = {}
     @length = 0
+    @update(obj) if obj?
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
   hasKey: (key) ->

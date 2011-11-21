@@ -128,3 +128,56 @@ test "isEqual(other) returns false if the other keypath has a different array of
   ok not path1.isEqual(path2)
   ok not path2.isEqual(path1)
 
+###
+# working with segments that refer to objects with a non-Keypath propertyClass
+###
+test "working with Hashes", ->
+  obj = new Batman.Object
+    hash: new Batman.Hash
+      foo: new Batman.Object(bar: 'nested value'),
+      "foo.bar": 'flat value'
+  
+  equal obj.get('hash.foo.bar'), 'nested value'
+  equal obj.hash.get('foo.bar'), 'flat value'
+  
+  property = obj.property('hash.foo.bar')
+  ok property instanceof Batman.Keypath
+  equal property.getValue(), 'nested value'
+
+  foobar = property.slice(-2)
+  ok foobar instanceof Batman.Keypath
+  equal foobar.getValue(), 'nested value'
+
+  obj.observe 'hash.foo.bar', hashFooBarSpy = createSpy()
+  obj.set 'hash.foo.bar', 'new value'
+  equal hashFooBarSpy.callCount, 1
+  deepEqual hashFooBarSpy.lastCallArguments, ['new value', 'nested value']
+
+  obj.hash.observe 'foo.bar', fooBarSpy = createSpy()
+  obj.hash.set 'foo.bar', 'newer value'
+  equal fooBarSpy.callCount, 1
+  deepEqual fooBarSpy.lastCallArguments, ['newer value', 'flat value']
+
+test "working with SimpleHashes", ->
+  obj = new Batman.Object
+    hash: new Batman.SimpleHash
+      foo: new Batman.Object(bar: 'nested value'),
+      "foo.bar": 'flat value'
+  
+  equal obj.get('hash.foo.bar'), 'nested value'
+  equal obj.hash.get('foo.bar'), 'flat value'
+  
+  property = obj.property('hash.foo.bar')
+  ok property instanceof Batman.Keypath
+  equal property.getValue(), 'nested value'
+
+  foobar = property.slice(-2)
+  ok foobar instanceof Batman.Keypath
+  equal foobar.getValue(), 'nested value'
+
+  obj.observe 'hash.foo.bar', hashFooBarSpy = createSpy()
+  obj.set 'hash.foo.bar', 'new value'
+  equal hashFooBarSpy.callCount, 1
+  deepEqual hashFooBarSpy.lastCallArguments, ['new value', 'nested value']
+  
+
