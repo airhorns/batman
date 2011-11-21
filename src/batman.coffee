@@ -1426,7 +1426,7 @@ class Batman.App extends Batman.Object
     get: ->
       return unless nav = @get('navigator')
       params = @get('currentParams')
-      params.manager = new Batman.ParamsManager(nav, params)
+      params.replacer = new Batman.ParamsReplacer(nav, params)
     final: true
 
   @classAccessor 'paramsPusher',
@@ -1790,7 +1790,7 @@ class Batman.HashbangNavigator extends Batman.Navigator
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
 
-class Batman.ParamsManager extends Batman.Object
+class Batman.ParamsReplacer extends Batman.Object
   constructor: (@navigator, @params) ->
   redirect: -> @navigator.replace(@toObject())
   replace: (params) ->
@@ -1816,7 +1816,7 @@ class Batman.ParamsManager extends Batman.Object
       @redirect() if hadKey
       result
 
-class Batman.ParamsPusher extends Batman.ParamsManager
+class Batman.ParamsPusher extends Batman.ParamsReplacer
   redirect: -> @navigator.push(@toObject())
 
 

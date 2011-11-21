@@ -1,4 +1,4 @@
-QUnit.module "Batman.ParamsManager",
+QUnit.module "Batman.ParamsReplacer",
   setup: ->
     @navigator =
       replace: createSpy()
@@ -6,42 +6,42 @@ QUnit.module "Batman.ParamsManager",
     @params = new Batman.Hash
       foo: 'fooVal'
       bar: 'barVal'
-    @manager = new Batman.ParamsManager(@navigator, @params)
+    @replacer = new Batman.ParamsReplacer(@navigator, @params)
 
 test "toObject() delegates to the wrapped params hash", ->
-  deepEqual @manager.toObject(), @params.toObject()
+  deepEqual @replacer.toObject(), @params.toObject()
 
 test "get(key) delegates to the wrapped params hash", ->
-  equal @manager.get('foo'), 'fooVal'
+  equal @replacer.get('foo'), 'fooVal'
 
 test "set(key, value) delegates to the wrapped params hash and redirects in-place", ->
-  @manager.set('foo', 'newFoo')
+  @replacer.set('foo', 'newFoo')
   equal @params.get('foo'), 'newFoo'
   equal @navigator.replace.callCount, 1
   deepEqual @navigator.replace.lastCallArguments, [{foo: 'newFoo', bar: 'barVal'}]
 
 test "unset(key) delegates to the wrapped params hash and redirects in-place", ->
-  @manager.unset('foo')
+  @replacer.unset('foo')
   equal @params.hasKey('foo'), false
   equal @navigator.replace.callCount, 1
   deepEqual @navigator.replace.lastCallArguments, [{bar: 'barVal'}]
 
 test "replace(params) delegates to the wrapped params hash and redirects in-place", ->
-  @manager.replace foo: 'newFoo', baz: 'bazVal'
+  @replacer.replace foo: 'newFoo', baz: 'bazVal'
   expected = foo: 'newFoo', baz: 'bazVal'
   deepEqual @params.toObject(), expected
   equal @navigator.replace.callCount, 1
   deepEqual @navigator.replace.lastCallArguments, [expected]
 
 test "update(params) delegates to the wrapped params hash and redirects in-place", ->
-  @manager.update foo: 'newFoo', baz: 'bazVal'
+  @replacer.update foo: 'newFoo', baz: 'bazVal'
   expected = foo: 'newFoo', bar: 'barVal', baz: 'bazVal'
   deepEqual @params.toObject(), expected
   equal @navigator.replace.callCount, 1
   deepEqual @navigator.replace.lastCallArguments, [expected]
 
 test "clear() delegates to the wrapped params hash and redirects in-place", ->
-  @manager.clear()
+  @replacer.clear()
   deepEqual @params.toObject(), {}
   equal @navigator.replace.callCount, 1
   deepEqual @navigator.replace.lastCallArguments, [{}]
