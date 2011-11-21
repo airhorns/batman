@@ -1091,11 +1091,11 @@ class Batman.SimpleSet
     items
   replace: (other) ->
     try
-      @prevent('change') if @prevent
+      @prevent?('change')
       @clear()
-      @add.apply(@, other.toArray())
+      @add(other.toArray()...)
     finally
-      @allowAndFire('change', this, this) if @allow
+      @allowAndFire?('change', this, this)
   toArray: ->
     @_storage.keys()
   merge: (others...) ->
