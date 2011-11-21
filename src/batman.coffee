@@ -1806,12 +1806,14 @@ class Batman.ParamsManager extends Batman.Object
   @accessor
     get: (k) -> @params.get(k)
     set: (k,v) ->
+      oldValue = @params.get(k)
       result = @params.set(k,v)
-      @redirect()
+      @redirect() if oldValue isnt v
       result
     unset: (k) ->
+      hadKey = @params.hasKey(k)
       result = @params.unset(k)
-      @redirect()
+      @redirect() if hadKey
       result
 
 class Batman.ParamsPusher extends Batman.ParamsManager
