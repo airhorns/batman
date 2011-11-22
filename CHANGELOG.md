@@ -4,7 +4,7 @@ Major Release
 
  - Add `Batman.StateHistory` for pushState navigation support
  - View source html can be prefetched via `View.viewSourceCache.prefetch`
- - Major refactoring of view bindings into class based heirarchy
+ - Major refactoring of view bindings into class based hierarchy
  - Add `data-defineview` to allow view sources to be declared inline
  - Add Association support to Model via `Model.hasOne`, `Model.hasMany`, `Model.belongsTo`
  - Add smart AssociationProxy objects which support reloading
@@ -23,8 +23,8 @@ Major Release
 Bugfixes:
 
  - `Hash::clear` now fires observers for cleared keys
- - Properties are no longer retained if they aren't being observed for mega memory usage efficency
- - `IteratorBinding` can have it's sibling node changed without erroring
+ - Properties are no longer retained if they aren't being observed to reduce memory usage
+ - `IteratorBinding` can have its sibling node changed without erroring
  - Filter arguments can be keypaths which start on or descend through POJOs
  - `data-context` now correctly only takes effect for its child nodes
  - `data-event-*` has a catchall to attach event listeners for any event
