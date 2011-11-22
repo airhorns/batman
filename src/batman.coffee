@@ -3438,6 +3438,7 @@ Batman.DOM = {
         [key, action] = if isHash then key.split('#') else key.split('/')
         [dispatcher, app] = context.findKey 'dispatcher'
         [model, _] = context.findKey key if not isHash
+        model = model.get('target') if model instanceof Batman.AssociationProxy
 
         dispatcher ||= Batman.currentApp.dispatcher
 
