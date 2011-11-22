@@ -2461,6 +2461,10 @@ class Batman.Association
       set: model.defaultAccessor.set
       unset: model.defaultAccessor.unset
 
+    if @url
+      model.url ||= (recordOptions) ->
+        return self.url(recordOptions)
+
   setIndex: ->
     @index ||= new Batman.AssociationSetIndex(@)
     @index
@@ -2595,6 +2599,15 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
     @localKey = @options.localKey or "#{@label}_id"
     @foreignKey = @options.foreignKey or "id"
     @model.encode @localKey
+
+  url: (recordOptions) ->
+    if inverse = @inverse()
+      root = Batman.helpers.pluralize(@label)
+      id = recordOptions["#{@label}_id"]
+      helper = if inverse.isSingular then "singularize" else "pluralize"
+      ending = Batman.helpers[helper](inverse.label)
+
+      return "/#{root}/#{id}/#{ending}"
 
   encoder: ->
     association = @

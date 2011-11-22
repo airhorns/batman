@@ -108,7 +108,6 @@ asyncTest 'hasMany formats the URL to /roots/id/plural', 1, ->
     name: 'Store One'
   ]
 
-
   store = new @Store id: 1
   products = store.get('products')
   delay ->
