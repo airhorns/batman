@@ -3241,16 +3241,24 @@ class Batman.Renderer extends Batman.Object
 
   bindingRegexp = /^data\-(.*)/
 
-  # Bindings processed first appear in this array last
-  bindingSortOrder = ['bind', 'context', 'formfor', 'foreach', 'renderif']
+  bindingSortOrder = ["renderif", "foreach", "formfor", "context", "bind"]
 
-  sortBindings = (a, b) ->
-    aindex = bindingSortOrder.indexOf(a[0])
-    bindex = bindingSortOrder.indexOf(b[0])
+  bindingSortPositions = {}
+  bindingSortPositions[name] = pos for name, pos in bindingSortOrder
+
+  _sortBindings: (a,b) ->
+    aindex = bindingSortPositions[a[0]]
+    bindex = bindingSortPositions[b[0]]
+    aindex ?= bindingSortOrder.length # put unspecified bindings last
+    bindex ?= bindingSortOrder.length
     if aindex > bindex
-      -1
-    else if bindex > aindex
       1
+    else if bindex > aindex
+      -1
+    else if a[0] > b[0]
+      1
+    else if b[0] > a[0]
+      -1
     else
       0
 
@@ -3269,7 +3277,7 @@ class Batman.Renderer extends Batman.Object
         else
           [name, attr.value]
 
-      for readerArgs in bindings.sort(sortBindings)
+      for readerArgs in bindings.sort(@_sortBindings)
         key = readerArgs[1]
         result = if readerArgs.length == 2
           Batman.DOM.readers[readerArgs[0]]?(node, key, @context, @)
