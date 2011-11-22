@@ -160,7 +160,7 @@ asyncTest "belongsTo sets the foreign key on itsself so the parent relation SetI
     delay ->
       ok customer.get('orders').has(order)
 
-asyncTest "belongsTo sets the foreign key foreign key on itsself so the parent relation SetIndex adds it, if the parent has already been loaded", 1, ->
+asyncTest "belongsTo sets the foreign key on itself so the parent relation SetIndex adds it, if the parent has already been loaded", 1, ->
   @Customer.find 1, (err, customer) =>
     throw err if err
     @Order.find 1, (err, order) =>

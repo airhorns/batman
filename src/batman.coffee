@@ -2152,7 +2152,7 @@ class Batman.Model extends Batman.Object
       @[k] = (label, scope) ->
         @_batman.check(@)
         collection = @_batman.associations ||= new Batman.AssociationCollection(@)
-        collection.add new Batman.Association[k](@, label, scope)
+        collection.add new Batman["#{helpers.capitalize(k)}Association"](@, label, scope)
 
   associationProxy: (association) ->
     Batman.initializeObject(@)
@@ -2568,7 +2568,7 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
     @_storage.getOrSet key, =>
       new Batman.AssociationSet(key, @association)
 
-class Batman.Association.belongsTo extends Batman.Association
+class Batman.BelongsToAssociation extends Batman.Association
   associationType: 'belongsTo'
   proxyClass: Batman.BelongsToProxy
   defaultOptions:
@@ -2594,7 +2594,7 @@ class Batman.Association.belongsTo extends Batman.Association
         record = relatedModel._mapIdentity(record)
         if association.options.inverseOf
           if inverse = association.inverse()
-            if inverse instanceof Batman.Association.hasMany
+            if inverse instanceof Batman.HasManyAssociation
               # Rely on the parent's set index to get this out.
               childRecord.set(association.localKey, record.get(association.foreignKey))
             else
@@ -2607,7 +2607,7 @@ class Batman.Association.belongsTo extends Batman.Association
     if model = base.get(@label)
       base.set @localKey, model.get(@foreignKey)
 
-class Batman.Association.hasOne extends Batman.Association
+class Batman.HasOneAssociation extends Batman.Association
   associationType: 'hasOne'
   proxyClass: Batman.HasOneProxy
 
@@ -2638,7 +2638,7 @@ class Batman.Association.hasOne extends Batman.Association
         record
     }
 
-class Batman.Association.hasMany extends Batman.Association
+class Batman.HasManyAssociation extends Batman.Association
   associationType: 'hasMany'
   constructor: ->
     super
