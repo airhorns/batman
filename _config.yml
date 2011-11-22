@@ -6,6 +6,8 @@ download:
     blurb: Third alpha release of batman.js. Please see the blog post or release notes for more information.
 examples:
     - title: Hello World
-      key: hello world
+      url: '/hello_world.html'
     - title: Alfred - Batman's Todos
-      key: alfred
+      url: '/alfred.html'
+    - title: Shopify Classifieds
+      url: 'http://batman-classifieds.heroku.com/'
