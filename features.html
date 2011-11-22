@@ -27,14 +27,14 @@ layout: default
 
 <!-- Begin content-column-wrapper -->
 <div id="content-column-wrapper">
-  
+
   <h2>Giant Feature List</h2>
   <p>The heart of batman.js is a tiny microframework that makes building web apps easier and more beautiful. It embodies a set of principles that makes trivial the parts of development that should be trivial.</p>
   <p>If you are starting a new app, batman.js is also an optional full stack framework that embodies the same principles. It sports a utility belt that includes a toolchain, a powerful node.js server, and a push based persistence layer.</p>
   <p>It's also worth defining a microframework as it applies here: batman.js only includes code to do what it needs to do in order to run. It won't give you utilities to work with objects like Prototype.js or manipulate the DOM like jQuery. But batman.js is a good JavaScript citizen; it won't pollute the global namespace and you can use it with any other library.</p>
   <p>For example, if you're doing a lot of DOM manipulation, you can, and probably should, still include something like jQuery. If you want to use a full UI library like jQuery UI, UKI, or even (with a bit of hackery) Cappuccino, batman.js will happily work with those as well.</p>
   <br />
-  
+
   <a name="speed"></a>
   <h4>Fast Everything</h4>
   <ul class="content">
@@ -49,9 +49,8 @@ layout: default
     <br />
     <li>everything is built on bindings</li>
     <li>every object manages itself</li>
-    <li>no extra work or loops are ever done</li>
   </ul>
-          
+
   <a name="developers"></a>
   <h4>Developer Happiness</h4>
   <ul class="content">
@@ -60,20 +59,21 @@ layout: default
     <li>but it works like javascript</li>
     <li>less trivial code; just write your app</li>
     <li>consistent conventions and the path of least resistence</li>
-    <li>sit down at any new code and immediately know how it works</li>
+    <li>built in handiness like model associations and pagination</li>
   </ul>
-  
+
   <a name="designers"></a>
   <h4>Designer Happiness</h4>
   <ul class="content">
     <li>decoupling design and development</li>
-    <li>designers just write the html and css they're used to</li>
+    <li>designers write the html and css they're used to</li>
+    <li>developers and designers can add liquid style filters to DRY up or enchance their views</li>
     <li>write less javascript for complex interactions</li>
     <li>mostly logicless views to maximize designer productivity</li>
     <li>the path of least resistance</li>
-    <li>sit down at any new code and immediately know how it works</li>
+    <li>whole view system is built on top of bindings, so the data in memory is the data on screen, guaranteed.</li>
   </ul>
-  
+
   <a name="conventions"></a>
   <h4>Convention over Configuration</h4>
   <ul class="content">
@@ -82,19 +82,17 @@ layout: default
     <li>fewer options to configure</li>
     <li>easier to make advances internally</li>
     <li>most codebases will work in a similar way</li>
-    <li>the path of least resistance</li>
-    <li>sit down at any new code and immediately know how it works</li>
   </ul>
-  
+
   <a name="bindings"></a>
   <h4>Robust Bindings</h4>
   <ul class="content">
     <li>any property on any object is observable</li>
     <li>know when any piece of your app changes from anywhere else in your app</li>
-    <li>fast and robust</li>
+    <li>fast, robust, but observer notification is guaranteed</li>
     <li>highly integrated: entire framework built around bindings</li>
   </ul>
-  
+
   <a name="views"></a>
   <h4>Template-less Views</h4>
   <ul class="content">
@@ -107,7 +105,7 @@ layout: default
     <li>use mixins or views to easily turn a node into a more advanced object</li>
     <li><strong>optionally plug in any ui framework to build powerful javascript ui's</strong></li>
   </ul>
-  
+
   <a name="toolchain"></a>
   <h4>Toolchain</h4>
   <ul class="content">
@@ -116,7 +114,7 @@ layout: default
     <li>management tasks are taken care off</li>
     <li>easy install via npm</li>
   </ul>
-  
+
   <a name="server"></a>
   <h4>Node Server</h4>
   <ul class="content">
@@ -126,7 +124,7 @@ layout: default
     <li>can do extra things like compile and minimize your code</li>
     <li>zero setup</li>
   </ul>
-  
+
   <a name="persistence"></a>
   <h4>Push Persistence*</h4>
   <ul class="content">
