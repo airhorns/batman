@@ -415,6 +415,80 @@ class Product extends Batman.Model
   url: -> "/admin/products/#{@id}"
 {% endhighlight %}
 
++#### Associations
+#### Associations
+
+Batman models support `belongsTo`, `hasOne`, and `hasMany` associations. Here's a simple example:
+
+{% highlight coffeescript %}
+class App.Store extends Batman.Model
+  @hasMany 'products', options
+
+class App.Product extends Batman.Model
+  @belongsTo 'store', options
+{% endhighlight %}
+
+The following options are available:
+
+*  _namespace_: Tells Batman to look for the associated model under the provided namespace. (Defaults to `Batman.currentApp`.)
+*  _name_: Tells Batman to use the given model name instead. (Defaults to an interpretation of the association's label.)
+*  _saveInline_: Tells Batman whether to encode associations as inline JSON when the base model is saved. (Defaults to `false` for `belongsTo`, and `true` for `hasOne` and `hasMany`.)
+*  _autoload_: Tells Batman whether to make a request to the server the first time the association is `get`ted. Defaults to true.
+
+Associations can be loaded via foreign keys or inline JSON:
+
+{% highlight coffeescript %}
+localStorage =
+  stores1:
+    id: 1
+    name: "JSON Store"
+    product: {id: 1, store_id: 1, name: "JSON Product"}
+
+  stores2:
+    id: 2
+    name: "Foreign Key Store"
+  products3:
+    id: 3
+    store_id: 2
+    name: "Foreign Key Product Product"
+{% endhighlight %}
+
+Association saving is done inline:
+
+{% highlight coffeescript %}
+store = new Store name: "Angry Birds"
+product1 = new Product name: "Foo"
+product2 = new Product name: "Bar"
+
+store.set 'products', new Batman.Set(product1, product2)
+store.save (error, record) ->
+  throw error if error
+  console.log localStorage["stores#{record.get('id')}"]
+  # => {
+  #   id: ...
+  #   name: "Angry Birds"
+  #   products: [{name: "Foo", store_id: ...}, {name: "Bar", store_id: ...}]
+  # }
+{% endhighlight %}
+
+(Notice that the products did not receive IDs. This is because association saving is non-cascading, meaning that each model needs to be saved individually to fully persist. You can always call `toJSON` on a model instance to see what will be stored.)
+
+Associations also support reloading and loaded introspection:
+
+{% highlight coffeescript %}
+store = new Store name: "Angry Birds"
+store.get('products.loaded') #=> false
+store.get('products').load (err, products) ->
+  throw err if err
+  store.get('products.loaded') #=> true
+{% endhighlight %}
+
+Associations can be rendered via keypaths, using the same labels you use to create the association:
+
+{% highlight html %}
+<div data-foreach-product="store.products" data-bind="product.name"></div>
+{% endhighlight %}
+
 # Contributing
 
 [![Build Status](https://secure.travis-ci.org/Shopify/batman.png)](http://travis-ci.org/Shopify/batman)
