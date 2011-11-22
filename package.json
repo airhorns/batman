@@ -8,7 +8,7 @@
     "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/ktusznio)"
   ],
 
-  "version": "0.7.5",
+  "version": "0.8.0",
   "homepage": "http://batmanjs.org",
   "repository": {
     "type": "git",
@@ -25,6 +25,9 @@
   "dependencies": {
     "connect": "~1.6.1",
     "coffee-script": "1.1.2"
+  },
+  "engines": {
+    "node": "0.4.x"
   },
   "devDependencies": {
     "daemon": "~0.3.0",
