@@ -1,3 +1,53 @@
+## 0.8.0 (November 22, 2011)
+
+Major Release
+
+ - Add `Batman.StateHistory` for pushState navigation support
+ - View source html can be prefetched via `View.viewSourceCache.prefetch`
+ - Major refactoring of view bindings into class based heirarchy
+ - Add `data-defineview` to allow view sources to be declared inline
+ - Add Association support to Model via `Model.hasOne`, `Model.hasMany`, `Model.belongsTo`
+ - Add smart AssociationProxy objects which support reloading
+ - Add support for loading associations with inline JSON
+ - Add support for `?` and `!` in property names and keypaths
+ - Store the current `params` on the `Batman.currentApp` for introspection.
+ - Add `ParamsReplacer` and `ParamsPusher` as smart objects which when set, update the global params, pushState or replaceState, and redirect.
+ - Add `Hash::update`, `Hash::replace`, and `Set::update`
+ - Add `Set::indexedByUnique`
+ - Add `Batman.contains` for membership testing and accompanying `has` filter
+ - Add support for JSONP requests in `batman.solo`
+ - Add `final` property support to optimize observing properties which will never change
+ - Add `Batman.version`
+ - Add support for customizable render targets in `Controller::render`
+
+Bugfixes:
+
+ - `Hash::clear` now fires observers for cleared keys
+ - Properties are no longer retained if they aren't being observed for mega memory usage efficency
+ - `IteratorBinding` can have it's sibling node changed without erroring
+ - Filter arguments can be keypaths which start on or descend through POJOs
+ - `data-context` now correctly only takes effect for its child nodes
+ - `data-event-*` has a catchall to attach event listeners for any event
+ - Made `Batman.data` work in IE7
+ - Made `Batman.Model` properly inherit storage adapters
+ - Made `data-bind-style` bindings camelize keys
+ - Fixed major memory leaks around Bindings never being garbage collected via Batman.data
+ - Made `Renderer::stop` work if called before the renderer started
+ - Stop mixing `Observable` into `window` to error earlier when accidental sets and gets are done on `window`
+ - Fix memory leaks around View instances never being garbage collected
+ - Fix memory leaks around IteratorBinding instances growing with time
+ - Fix memory leaks around SetIndex observing all items forever
+ - Fix sets on POJOs from keypaths
+ - Fix `batman.solo` to properly encode GET params
+ - Fix `Model::toJSON` and `Model::fromJSON` to deal with falsey values like any other
+ - Remove ability for `View` instances to have either `context` or `contexts`, and unify on `context`.
+ - Fix error thrown if the `main` yield didn't exist
+ - Made the extras files requirable in node
+ - Fix an invalid data bug when receiving large responses using `batman.node`
+ - Fix JSON de-serialization when receiving collection responses using `batman.node`
+ - Fix support for non numeric model IDs
+ - Fix `data-partial` and `data-yield` to stop introducing superfluous divs.
+
 ## 0.7.5 (October 25, 2011)
 
 Major Maintenance Release
