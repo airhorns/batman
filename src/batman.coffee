@@ -4157,9 +4157,9 @@ class Batman.DOM.MixinBinding extends Batman.DOM.AbstractBinding
 
 class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
   bindImmediately: false
+  firstBind: true
   constructor: ->
     super
-
     # wait for the select to render before binding to it
     @renderer.on 'rendered', =>
       if @node?
@@ -4185,7 +4185,11 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
           match.selected = yes
     # For a regular select box, update the value.
     else
-      Batman.DOM.valueForNode(@node, newValue)
+      if typeof newValue is 'undefined' && @firstBind
+        @firstBind = false
+        @set('unfilteredValue', @node.value)
+      else
+        Batman.DOM.valueForNode(@node, newValue)
 
     # Finally, update the options' `selected` bindings
     @updateOptionBindings()
