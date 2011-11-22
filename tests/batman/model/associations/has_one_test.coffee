@@ -122,6 +122,21 @@ asyncTest "hasOne associations make the load method available", 3, ->
       equal loadedProduct.get('name'), "Product 404"
       QUnit.start()
 
+asyncTest "hasOne supports custom foreign keys", 1, ->
+  ns = @
+  class Shop extends Batman.Model
+    @encode 'id', 'name'
+    @hasOne 'product', namespace: ns, foreignKey: 'store_id'
+  shopAdapter = createStorageAdapter Shop, AsyncTestStorageAdapter,
+    'shops1':
+      id: 1
+      name: 'Shop One'
+
+  Shop.find 1, (err, shop) ->
+    product = shop.get('product')
+    equal product.get('name'), 'Product One'
+    QUnit.start()
+
 QUnit.module "Batman.Model hasOne Associations with inverseOf"
   setup: ->
     namespace = {}

@@ -228,6 +228,21 @@ asyncTest "hasMany loads after an instance of the related model is saved locally
       equal products.length, 4
       QUnit.start()
 
+asyncTest "hasMany supports custom foreign keys", 1, ->
+  ns = @
+  class Shop extends Batman.Model
+    @encode 'id', 'name'
+    @hasMany 'products', namespace: ns, foreignKey: 'store_id'
+  shopAdapter = createStorageAdapter Shop, AsyncTestStorageAdapter,
+    'shops1':
+      id: 1
+      name: 'Shop One'
+
+  Shop.find 1, (err, shop) ->
+    products = shop.get('products')
+    equal products.length, 3
+    QUnit.start()
+
 QUnit.module "Batman.Model hasMany Associations with inverse of"
   setup: ->
     namespace = {}

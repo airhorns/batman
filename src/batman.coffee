@@ -2577,8 +2577,8 @@ class Batman.BelongsToAssociation extends Batman.Association
 
   constructor: ->
     super
-    @localKey = "#{@label}_id"
-    @foreignKey = 'id'
+    @localKey = @options.localKey or "#{@label}_id"
+    @foreignKey = @options.foreignKey or "id"
     @model.encode @localKey
 
   encoder: ->
@@ -2613,8 +2613,8 @@ class Batman.HasOneAssociation extends Batman.Association
 
   constructor: ->
     super
-    @localKey = "id"
-    @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
+    @localKey = @options.localKey or "id"
+    @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   apply: (baseSaveError, base) ->
     if relation = base.constructor.defaultAccessor.get.call(base, @label)
@@ -2642,8 +2642,8 @@ class Batman.HasManyAssociation extends Batman.Association
   associationType: 'hasMany'
   constructor: ->
     super
-    @localKey = "id"
-    @foreignKey = "#{helpers.underscore($functionName(@model))}_id"
+    @localKey = @options.localKey or "id"
+    @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   getAccessor: (self, model, label) ->
     return if @amSetting

@@ -122,6 +122,22 @@ asyncTest "belongsTo supports inline saving", 1, ->
       store: {name: "Inline Store"}
     QUnit.start()
 
+asyncTest "belongsTo supports custom local keys", 1, ->
+  ns = @
+  class Shirt extends Batman.Model
+    @encode 'id', 'name'
+    @belongsTo 'store', namespace: ns, localKey: 'shop_id'
+  shirtAdapter = createStorageAdapter Shirt, AsyncTestStorageAdapter,
+    'shirts1':
+      id: 1
+      name: 'Shirt One'
+      shop_id: 1
+
+  Shirt.find 1, (err, shirt) ->
+    store = shirt.get('store')
+    equal store.get('name'), 'Store One'
+    QUnit.start()
+
 QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasMany"
   setup: ->
     namespace = @namespace = this
@@ -169,7 +185,7 @@ asyncTest "belongsTo sets the foreign key on itself so the parent relation SetIn
       delay ->
         ok customer.get('orders').has(order)
 
-asyncTest "belongsTo sets the foreign key foreign key on itsself such that many loads are picked up by the parent", 3, ->
+asyncTest "belongsTo sets the foreign key foreign key on itself such that many loads are picked up by the parent", 3, ->
   @Customer.find 1, (err, customer) =>
     throw err if err
     @Order.find 1, (err, order) =>
@@ -180,7 +196,6 @@ asyncTest "belongsTo sets the foreign key foreign key on itsself such that many 
         equal customer.get('orders').length, 2
         equal @Customer.get('loaded').length, 1, 'Only one parent record should be created'
         QUnit.start()
-
 
 QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasOne"
   setup: ->
