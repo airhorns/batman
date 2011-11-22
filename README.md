@@ -425,12 +425,13 @@ The following options are available:
 *  _namespace_: Tells Batman to look for the associated model under the provided namespace. (Defaults to `Batman.currentApp`.)
 *  _name_: Tells Batman to use the given model name instead. (Defaults to an interpretation of the association's label.)
 *  _saveInline_: Tells Batman whether to encode associations as inline JSON when the base model is saved. (Defaults to `false` for `belongsTo`, and `true` for `hasOne` and `hasMany`.)
+*  _autoload_: Tells Batman whether to make a request to the server the first time the association is `get`ted. Defaults to true.
 
 Associations can be loaded via foreign keys or inline JSON:
 
 ```coffeescript
 localStorage =
-  stores1: 
+  stores1:
     id: 1
     name: "JSON Store"
     product: {id: 1, store_id: 1, name: "JSON Product"}
@@ -463,6 +464,16 @@ store.save (error, record) ->
 ```
 
 (Notice that the products did not receive IDs. This is because association saving is non-cascading, meaning that each model needs to be saved individually to fully persist. You can always call `toJSON` on a model instance to see what will be stored.)
+
+Associations also support reloading and loaded introspection:
+
+```coffeescript
+store = new Store name: "Angry Birds"
+store.get('products.loaded') #=> false
+store.get('products').load (err, products) ->
+  throw err if err
+  store.get('products.loaded') #=> true
+```
 
 Associations can be rendered via keypaths, using the same labels you use to create the association:
 
