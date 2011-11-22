@@ -415,7 +415,6 @@ class Product extends Batman.Model
   url: -> "/admin/products/#{@id}"
 {% endhighlight %}
 
-+#### Associations
 #### Associations
 
 Batman models support `belongsTo`, `hasOne`, and `hasMany` associations. Here's a simple example:
