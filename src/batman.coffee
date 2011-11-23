@@ -1625,7 +1625,7 @@ class Batman.Dispatcher extends Batman.Object
     name = helpers.underscore($functionName(controller).replace('Controller', ''))
     return unless name
 
-    getter = -> @[name] = controller.get 'sharedController'
+    getter = -> controller.get 'sharedController'
     @accessor name, getter
     @app.controllers.accessor name, getter
 
