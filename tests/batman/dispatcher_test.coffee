@@ -6,7 +6,7 @@ QUnit.module 'Batman.Dispatcher defining routes',
       @test: (url) ->
         @run() if not @hasRun
         {controller, action} = @dispatcher.findRoute(url).get('action')
-        @dispatcher.get controller + '.' + action
+        @controllers.get("#{controller}.#{action}")
 
     class @App.TestController extends Batman.Controller
       index: -> @render false
@@ -25,7 +25,6 @@ QUnit.module 'Batman.Dispatcher defining routes',
 
 test 'controller aliases', ->
   @App.dispatcher = new Batman.Dispatcher @App
-  equal @App.dispatcher.get('products'), @App.ProductsController.get('sharedController')
   equal @App.get('controllers.products'), @App.ProductsController.get('sharedController')
 
 test 'simple route match', ->

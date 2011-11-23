@@ -1574,7 +1574,7 @@ class Batman.Route extends Batman.Object
           result.controller = components[0]
           result.action = components[1] || 'index'
 
-        result.target = @dispatcher.get result.controller
+        result.target = @dispatcher.app.controllers.get(result.controller)
         @set 'action', result
     set: (key, action) ->
       @action = action
@@ -1626,7 +1626,6 @@ class Batman.Dispatcher extends Batman.Object
     return unless name
 
     getter = -> controller.get 'sharedController'
-    @accessor name, getter
     @app.controllers.accessor name, getter
 
   register: (url, options) ->
