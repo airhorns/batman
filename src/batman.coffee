@@ -2947,6 +2947,14 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
     callback(@_filterData('after', 'destroy', err, record, options)...)
 
+class Batman.SessionStorage extends Batman.LocalStorage
+  constructor: ->
+    if typeof window.sessionStorage is 'undefined'
+      return null
+    super
+    @storage = sessionStorage
+    return
+
 class Batman.RestStorage extends Batman.StorageAdapter
   defaultOptions:
     type: 'json'
