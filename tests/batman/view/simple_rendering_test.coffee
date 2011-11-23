@@ -142,6 +142,11 @@ asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
     equal $(node[0]).attr('bar'), "qux"
     QUnit.start()
 
+asyncTest 'it should bind undefined values as empty strings on attributes', 1, ->
+  helpers.render '<div data-bind-src="foo"></div>', {}, (node) ->
+    equal node[0].src, ""
+    QUnit.start()
+
 QUnit.module 'Batman.View value bindings'
 
 asyncTest 'it should allow input values to be bound', 1, ->

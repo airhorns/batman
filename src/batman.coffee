@@ -3975,7 +3975,7 @@ class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
   nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName))
 
 class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBinding
-  dataChange: (value) -> @node[@attributeName] = value
+  dataChange: (value = "") -> @node[@attributeName] = value
   nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node[@attributeName])
 
 class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
