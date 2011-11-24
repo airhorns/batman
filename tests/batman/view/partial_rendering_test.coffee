@@ -46,13 +46,13 @@ asyncTest "unloaded partials should only load once", ->
     objects: new Batman.Set(1,2,3,4)
 
   node = helpers.render source, context, (node) ->
-    equal node.children(0).children(0).html(), "Hello from a partial"
-    QUnit.start()
+    delay ->
+      equal node.children(0).children(0).html(), "Hello from a partial"
 
   setTimeout ->
     equal MockRequest.instanceCount, 1
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
-  , ASYNC_TEST_DELAY
+  , 100
 
 asyncTest "data-defineview bindings can be used to embed view contents", ->
   source = '<div data-defineview="test/view">
