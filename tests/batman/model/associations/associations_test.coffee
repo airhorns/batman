@@ -22,6 +22,28 @@ asyncTest "support custom model namespaces and class names", 2, ->
     equal store.get('id'), 3
     QUnit.start()
 
+asyncTest "associations can be inherited", 2, ->
+  namespace = {}
+  class namespace.Store extends Batman.Model
+    @encode 'name', 'id'
+    @hasMany 'products', {namespace: namespace, autoload: false}
+
+  class namespace.TestModel extends Batman.Model
+    @belongsTo 'store', {namespace: namespace}
+
+  class namespace.Product extends namespace.TestModel
+    @encode 'name', 'id'
+
+  productAdapter = createStorageAdapter namespace.Product, AsyncTestStorageAdapter,
+    'products2': {name: "Product Two", id: 2, store_id: 3}
+
+  store = new namespace.Store({id:3, name:"JSON Store"})
+  store.get('products').load (err, products) ->
+    product = products.get('toArray.0')
+    equal product.get('id'), 2
+    ok product instanceof namespace.Product
+    QUnit.start()
+
 asyncTest "support model classes that haven't been loaded yet", 2, ->
   namespace = this
   class @Blog extends Batman.Model
