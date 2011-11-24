@@ -762,14 +762,15 @@ Batman._Batman = class _Batman
       results.push(val) if val?
 
       # Use a recursive call to `_batman.ancestors` on the ancestor, which will take the next step up the chain.
-      results = results.concat(parent._batman.ancestors(getter)) if parent._batman?
+      if parent._batman?
+        results = results.concat(parent._batman.ancestors(getter))
     results
 
   set: (key, value) ->
     @[key] = value
 
 # `Batman.Object` is the base class for all other Batman objects. It is not abstract.
-class BatmanObject
+class BatmanObject extends Object
   Batman.initializeObject(this)
   Batman.initializeObject(@prototype)
   # Setting `isGlobal` to true will cause the class name to be defined on the
@@ -2418,7 +2419,7 @@ class Batman.AssociationCollection
   getAllByType: ->
     # Traverse the class heirarchy to get all the AssociationCollection objects
     @model._batman.check(@model)
-    ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman.get('associations'))
+    ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman?.get('associations'))
     newStorage = new Batman.SimpleHash
 
     # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.

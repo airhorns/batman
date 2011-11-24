@@ -24,7 +24,7 @@ test "correct ancestors are returned for objects", ->
   deepEqual [@Snake::, @Animal::, Batman.Object::, Object.prototype], @snake._batman.ancestors()
 
 test "correct ancestors are returned for classes", ->
-  deepEqual [@Snake, @Animal, Batman.Object], @BlackMamba._batman.ancestors()
+  deepEqual [@Snake, @Animal, Batman.Object, Object], @BlackMamba._batman.ancestors()
 
 test "correct ancestors are returned for classes as long as the first one's _batman has been checked", ->
   # Recreate classes without the initializeObject calls so the _batmans are copied by CoffeeScript,
@@ -37,7 +37,7 @@ test "correct ancestors are returned for classes as long as the first one's _bat
   @BlackMamba._batman.check(@BlackMamba)
 
   # Test
-  deepEqual [@Snake, @Animal, Batman.Object], @BlackMamba._batman.ancestors()
+  deepEqual [@Snake, @Animal, Batman.Object, Object], @BlackMamba._batman.ancestors()
 
 test "primitives are traversed in _batman lookups", ->
   @Animal::_batman.set 'primitive_key', 1
