@@ -17,6 +17,13 @@ QUnit.module 'Batman.SetSort',
     @byJill = Batman author: @jill
     @anotherByZeke = Batman author: @zeke
 
+assertSorted = (array, compareFunction) ->
+  last = null
+  for item, i in array
+    if last
+      ok compareFunction(last, item) < 1
+    last = item
+
 test "new Batman.SetSort(set, key) constructs a sort on the set for that keypath", ->
   equal @authorNameSort.base, @base
   equal @authorNameSort.key, 'author.name'
@@ -28,7 +35,7 @@ test "new Batman.SetSort(set, key, 'desc') constructs a reversed sort", ->
   equal reversedSort.key, 'author.name'
   equal reversedSort.descending, yes
 
-test "items with null or undefined values for the sorted key come last and in that order. values of different types are grouped. NaN comes immediately after other numbers.", ->
+test "toArray() returns the sorted items", ->
   noName = Batman()
   anotherNoName = Batman()
   nullName = Batman
@@ -58,9 +65,8 @@ test "items with null or undefined values for the sorted key come last and in th
   @base.add trueName
   @base.add falseName
   @base.remove @anotherByFred
-
-  expected = [falseName, trueName, numberedName, anotherNumberedName, naNName, @byFred, @byMary, @byZeke, nullName, noName, anotherNoName]
-  deepEqual @authorNameSort.toArray(), expected
+  
+  assertSorted(@authorNameSort.toArray(), Batman.SetSort::compare)
 
 test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
   noName = Batman()
@@ -92,10 +98,12 @@ test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
   @base.remove @anotherByFred
 
   descendingAuthorNameSort = new Batman.SetSort(@base, 'author.name', 'desc')
-  expected = [noName, nullName, @byZeke, @byMary, @byFred, naNName, anotherNumberedName, numberedName, trueName, falseName]
-  deepEqual descendingAuthorNameSort.toArray(), expected
-  descendingAuthorNameSort.forEach (item, i) ->
-    ok item is expected[i]
+  sorted = descendingAuthorNameSort.toArray()
+  assertSorted(sorted, (a,b) -> Batman.SetSort::compare(b,a))
+  
+  collector = []
+  descendingAuthorNameSort.forEach (item) -> collector.push(item)
+  deepEqual sorted, collector
 
 test "forEach(iterator) loops in the correct order", ->
   expect 4

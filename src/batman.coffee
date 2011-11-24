@@ -1239,11 +1239,16 @@ class Batman.SetSort extends Batman.SetProxy
     return -1 if b is undefined
     return 1 if a is null
     return -1 if b is null
-    return 0 if a.isEqual?(b) and b.isEqual?(a)
-    typeComparison = Batman.SetSort::compare($typeOf(a), $typeOf(b))
-    return typeComparison if typeComparison isnt 0
-    return 1 if a isnt a # means a is NaN
-    return -1 if b isnt b # means b is NaN
+    return 1 if a is false
+    return -1 if b is false
+    return 1 if a is true
+    return -1 if b is true
+    if a isnt a
+      if b isnt b
+        return 0 # both are NaN
+      else
+        return 1 # a is NaN
+    return -1 if b isnt b # b is NaN
     return 1 if a > b
     return -1 if a < b
     return 0
