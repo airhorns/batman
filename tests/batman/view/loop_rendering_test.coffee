@@ -145,11 +145,12 @@ asyncTest 'it should render consecutive loops bound to the same collection when 
   helpers.render source, false, {objects}, (node, view) ->
     equal $('p', node).length, 0
     objects.add 'foo', 'bar', 'baz'
-    delay ->
+    setTimeout (->
       deepEqual getPs(view), ['foo', 'bar', 'baz', 'foo', 'bar', 'baz']
       objects.remove 'bar'
       delay ->
         deepEqual getPs(view), ['foo', 'baz', 'foo', 'baz']
+    ), 50
 
 asyncTest 'it should update the whole set of nodes if the collection changes', ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'

@@ -52,11 +52,11 @@ asyncTest 'it binds the value of a multi-select box and updates the options when
     selected: new Batman.Object(name: ['crono', 'link'])
   helpers.render '<select multiple="multiple" size="2" data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
-      selections = (c.selected for c in node[0].children)
+      selections = (c.selected for c in node[0].children when c.nodeType is 1)
       deepEqual selections, [no, yes, yes, no]
       context.set 'selected.name', ['mario', 'kirby']
       delay =>
-        selections = (c.selected for c in node[0].children)
+        selections = (c.selected for c in node[0].children when c.nodeType is 1)
         deepEqual selections, [yes, no, no, yes]
 
 asyncTest 'it binds the value of a multi-select box and updates the value when the selected options change', ->
