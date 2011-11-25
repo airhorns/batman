@@ -37,7 +37,7 @@ asyncTest 'it shouldn\'t go nuts if the content is already inside the yield', 1,
               <span data-contentfor="baz">chunky bacon</span>
             </div>'
   node = helpers.render source, {}, (node) ->
-    delay =>
+    delay ->
       equals node.children(0).html(), "chunky bacon"
 
 asyncTest 'it should render content even if the yield doesn\'t exist yet', 1, ->
