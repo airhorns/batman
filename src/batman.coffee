@@ -3085,37 +3085,40 @@ class Batman.LocalStorage extends Batman.StorageAdapter
       @getRecordFromData(recordAttributes, data.proto.constructor)
     next()
 
-  read: (record, options, callback) ->
-    @runBeforeFilter 'read', {record, options}, ({error, record, key}) ->
-      unless error?
-        recordAttributes = @storage.getItem(key)
-        if !recordAttributes
-          error = new @constructor.NotFoundError()
-      @runAfterFilter 'read', {recordAttributes, record, error, key}, callback
+  for key in ['read', 'create', 'update', 'destroy']
+    do (key) =>
+      @::[key] = (record, options, callback) ->
+        @runBeforeFilter key, {record, options}, (data) ->
+          data = @['_do'+key](data)
+          @runAfterFilter key, data, callback
 
-  create: (record, options, callback) ->
-    @runBeforeFilter 'create', {record, options}, ({error, key, recordAttributes}) ->
-      unless error?
-        if @storage.getItem(key)
-          error = new @constructor.RecordExistsError
-        else
-          @storage.setItem(key, recordAttributes)
-      @runAfterFilter 'create', {record, error}, callback
+  _doread: ({error, record, key}) ->
+    unless error?
+      recordAttributes = @storage.getItem(key)
+      if !recordAttributes
+        error = new @constructor.NotFoundError()
+    {recordAttributes, record, error, key}
 
-  update: (record, options, callback) ->
-    @runBeforeFilter 'update', {record, options}, ({error, key, recordAttributes}) ->
-      unless error?
+  _docreate: ({error, record, key, recordAttributes}) ->
+    unless error?
+      if @storage.getItem(key)
+        error = new @constructor.RecordExistsError
+      else
         @storage.setItem(key, recordAttributes)
-      @runAfterFilter 'update', {record, error}, callback
+    {record, error}
 
-  destroy: (record, options, callback) ->
-    @runBeforeFilter 'destroy', {record, options}, ({error, key, recordAttributes}) ->
-      unless error?
-        @storage.removeItem(key)
-      @runAfterFilter 'destroy', {record, error}, callback
+  _doupdate: ({error, record, key, recordAttributes}) ->
+    unless error?
+      @storage.setItem(key, recordAttributes)
+    {record, error}
+
+  _dodestroy: ({error, record, key, recordAttributes}) ->
+    unless error?
+      @storage.removeItem(key)
+    {record, error}
 
   readAll: (proto, options, callback) ->
-    @runBeforeFilter 'readAll', {proto, options}, ({error, options}) ->
+    @runBeforeFilter 'readAll', {proto, options}, ({proto, error, options}) ->
       unless error?
         [error, recordsAttributes] = @_storageEntriesMatching(proto, options)
       @runAfterFilter 'readAll', {error, recordsAttributes, proto}, callback
@@ -3227,29 +3230,23 @@ class Batman.RestStorage extends Batman.StorageAdapter
       @getRecordFromData(jsonRecordAttributes, data.proto.constructor)
     next()
 
-  create: (record, options, callback) ->
-    @runBeforeFilter 'create', {record, options}, (data) ->
-      data.method = 'POST'
-      @request(data, callback)
+  @HTTPMethods =
+    create: 'POST'
+    update: 'PUT'
+    read: 'GET'
+    readAll: 'GET'
+    destroy: 'DELETE'
 
-  update: (record, options, callback) ->
-    @runBeforeFilter 'update', {record, options}, (data) ->
-      data.method = 'PUT'
-      @request(data, callback)
-
-  read: (record, options, callback) ->
-    @runBeforeFilter 'read', {record, options}, (data) ->
-      data.method = 'GET'
-      @request(data, callback)
-
-  destroy: (record, options, callback) ->
-    @runBeforeFilter 'read', {record, options}, (data) ->
-      data.method = 'DELETE'
-      @request(data, callback)
+  for key in ['create', 'read', 'update', 'destroy']
+    do (key) =>
+      @::[key] = (record, options, callback) ->
+        @runBeforeFilter key, {record, options}, (data) ->
+          data.method = @constructor.HTTPMethods[key]
+          @request(data, callback)
 
   readAll: (proto, options, callback) ->
     @runBeforeFilter 'readAll', {proto, options}, (data) ->
-      data.method = 'GET'
+      data.method = @constructor.HTTPMethods['readAll']
       @request(data, callback)
 
 # Views
