@@ -4446,7 +4446,6 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     oldActionNumber = @actionMap.get(item)
     # Only remove actions which haven't been completed yet.
     if oldActionNumber? && oldActionNumber >= @currentActionNumber
-      @actionMap.unset(item)
       @actions[oldActionNumber] = false
 
     @actionMap.unset item

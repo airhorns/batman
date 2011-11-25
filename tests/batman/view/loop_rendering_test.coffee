@@ -347,9 +347,11 @@ asyncTest 'it shouldn\'t become desynchronized if the collection adds and remove
     x.remove 'c'
     x.remove 'f'
     x.add 'c'
-    delay ->
-      deepEqual getPs(view), ['a', 'b', 'd', 'e', 'c']
+    setTimeout (->
+      deepEqual getPs(view).sort(), ['a', 'b', 'c', 'd', 'e']
       deepEqual getPs(view), x.get('toArray')
+      QUnit.start()
+    ), 80
 
 asyncTest 'it shouldn\'t become desynchronized with a fancy filtered style set', ->
   x = Batman(all: new Batman.Set("a", "b", "c", "d", "e"))
