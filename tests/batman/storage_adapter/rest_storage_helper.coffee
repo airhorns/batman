@@ -80,9 +80,9 @@ restStorageTestSuite = ->
           cost: 10
         ]
 
-    @adapter.after 'readAll', ([err, records, data, options]) ->
-      equal data.someMetaData, "foo"
-      [err, records, data, options]
+    @adapter.after 'readAll', (data, next) ->
+      equal data.data.someMetaData, "foo"
+      next()
 
     @adapter.readAll @Product::, {}, (err, readProducts) ->
       ok !err
@@ -107,55 +107,49 @@ restStorageTestSuite = ->
   sharedStorageTestSuite(restStorageTestSuite.sharedSuiteHooks)
 
 restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
-  asyncTest 'string record urls should be gotten in the options', 1, ->
+  test 'string record urls should be gotten in the options', 1, ->
     product = new @Product
     product.url = '/some/url'
-    @adapter.optionsForRecord product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    [error, url] = @adapter.urlForRecord product, {}
+    throw error if error
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function record urls should be executed in the options', 1, ->
+  test 'function record urls should be executed in the options', 1, ->
     product = new @Product
     product.url = -> '/some/url'
-    @adapter.optionsForRecord product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    [err, url] = @adapter.urlForRecord product, {}
+    throw err if err
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function record urls should be given the options for the storage operation', 1, ->
+  test 'function record urls should be given the options for the storage operation', 1, ->
     product = new @Product
     opts = {foo: true}
     product.url = (passedOpts) ->
       equal passedOpts, opts
       '/some/url'
 
-    @adapter.optionsForRecord product, opts, (err, options) ->
-      throw err if err
-      QUnit.start()
+    [err, url] = @adapter.urlForRecord product, {options: opts}
+    throw err if err
 
-  asyncTest 'string model urls should be gotten in the options', 1, ->
+  test 'string model urls should be gotten in the options', 1, ->
     @Product.url = '/some/url'
-    @adapter.optionsForCollection @Product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    [err, url] = @adapter.urlForCollection @Product, {}
+    throw err if err
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function model urls should be executed in the options', 1, ->
+  test 'function model urls should be executed in the options', 1, ->
     @Product.url = -> '/some/url'
-    @adapter.optionsForCollection @Product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    [err, url] = @adapter.urlForCollection @Product, {}
+    throw err if err
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function model urls should be given the options for the storage operation', 1, ->
+  test 'function model urls should be given the options for the storage operation', 1, ->
     opts = {foo: true}
     @Product.url = (passedOpts) ->
       equal passedOpts, opts
       '/some/url'
-    @adapter.optionsForCollection @Product, opts, (err, options) ->
-      throw err if err
-      QUnit.start()
+    [err, url] = @adapter.urlForCollection @Product, {options: opts}
+    throw err if err
 
 restStorageTestSuite.sharedSuiteHooks =
   'creating in storage: should succeed if the record doesn\'t already exist': ->
