@@ -275,5 +275,16 @@ delay = (time, fn) ->
 
       setTimeout(defer, time)
 
-for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay}
+doWhen = (conditionFunction, actionFunction, timeout=2000) ->
+  t = new Date
+  f = ->
+    if conditionFunction() or (new Date) - t > timeout
+      try
+        actionFunction()
+      finally
+        clearInterval interval
+  interval = setInterval f, 20
+  
+
+for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay, doWhen}
   exports[k] = v

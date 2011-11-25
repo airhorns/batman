@@ -48,11 +48,10 @@ asyncTest "unloaded partials should only load once", ->
   node = helpers.render source, context, (node) ->
     delay ->
       equal node.children(0).children(0).html(), "Hello from a partial"
-
-  setTimeout ->
+  
+  doWhen (-> MockRequest.instanceCount > 0), ->
     equal MockRequest.instanceCount, 1
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
-  , 100
 
 asyncTest "data-defineview bindings can be used to embed view contents", ->
   source = '<div data-defineview="test/view">

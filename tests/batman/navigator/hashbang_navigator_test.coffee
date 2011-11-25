@@ -24,14 +24,10 @@ unless IN_NODE #jsdom doesn't like window.location.replace
     
     window.history.back()
     
-    # window.history.back() is incredibly unpredictable with how much time it takes:
-    count = 0
-    assertHash = ->
-      if window.location.hash is "#!/one" or count++ > 500
-        equal window.location.hash, "#!/one"
-        clearInterval interval
-        QUnit.start()
-    interval = setInterval assertHash, 20
+    
+    doWhen (-> window.location.hash is "#!/one"), ->
+      equal window.location.hash, "#!/one"
+      QUnit.start()
     
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @nav.handleLocation
