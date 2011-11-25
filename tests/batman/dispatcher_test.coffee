@@ -73,7 +73,7 @@ asyncTest 'splat matching', ->
 asyncTest 'query params', 7, ->
   hasCalledRoute = no
   @App.root (params) ->
-    
+
     equal params.url, '/'
     equal params.foo, 'bar'
     equal params.x, 'true'
@@ -157,7 +157,7 @@ if Batman.PushStateNavigator.isSupported()
       ok true, 'routes called'
       QUnit.start()
     @App.run()
-    
+
     Batman.redirect '/test'
 
 asyncTest '404', 1, ->
