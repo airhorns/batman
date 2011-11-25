@@ -11,9 +11,9 @@ sharedStorageTestSuite = (hooks = {}) ->
       @storageKey: "custom_key"
 
     adapter = new klass(Overridden)
-    equal adapter.modelKey(), "custom_key"
+    equal adapter.storageKey(), "custom_key"
 
-  test 'instantiating: should use the `storageKey` on the model from a record passed to modelKey', ->
+  test 'instantiating: should use the `storageKey` on the model from a record passed to storageKey', ->
     klass = @adapter.constructor
     class Overridden extends Batman.Model
       @storageKey: "custom_key"
@@ -23,14 +23,14 @@ sharedStorageTestSuite = (hooks = {}) ->
 
     record = new Subclass
     adapter = new klass(Overridden)
-    equal adapter.modelKey(record), "even_more_custom"
+    equal adapter.storageKey(record), "even_more_custom"
 
   test 'instantiating: should use pluralized underscored model name as a namespace if storageKey doesn\'t exist', ->
     klass = @adapter.constructor
     class NotOverridden extends Batman.Model
 
     adapter = new klass(NotOverridden)
-    equal adapter.modelKey(), "not_overriddens"
+    equal adapter.storageKey(), "not_overriddens"
 
   test 'instantiating: should use pluralized underscored model name as a namespace if storageKey doesn\'t exist on a passed in record', ->
     klass = @adapter.constructor
@@ -39,7 +39,7 @@ sharedStorageTestSuite = (hooks = {}) ->
     record = new NotOverriddenChild
     adapter = new klass(NotOverridden)
 
-    equal adapter.modelKey(record), "not_overridden_children"
+    equal adapter.storageKey(record), "not_overridden_children"
 
   asyncTestWithHooks 'creating in storage: should succeed if the record doesn\'t already exist', 1, ->
     product = new @Product(name: "test")

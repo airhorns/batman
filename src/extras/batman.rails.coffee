@@ -12,27 +12,22 @@ applyExtra = (Batman) ->
 
   class Batman.RailsStorage extends Batman.RestStorage
 
-    _addJsonExtension: (options) ->
-      options.url += '.json'
+    _addJsonExtension: ([err, url]) ->
+      url += '.json' unless err
+      [err, url]
 
-    optionsForRecord: (args..., callback) ->
-      super args..., (err, options) ->
-        @_addJsonExtension(options) unless err
-        callback.call @, err, options
+    urlForRecord: -> @_addJsonExtension(super)
+    urlForCollection: -> @_addJsonExtension(super)
 
-    optionsForCollection: (args..., callback) ->
-      super args..., (err, options) ->
-        @_addJsonExtension(options) unless err
-        callback.call @, err, options
-
-    @::after 'update', 'create', ([err, record, response, recordOptions]) ->
+    @::after 'update', 'create', ({error, record, response}, next) ->
       # Rails validation errors
-      if err
-        if err.request.get('status') is 422
-          for key, validationErrors of JSON.parse(err.request.get('response'))
+      if error
+        if error.request?.get('status') == 422
+          for key, validationErrors of JSON.parse(response)
             record.get('errors').add(key, "#{key} #{validationError}") for validationError in validationErrors
-          return [record.get('errors'), record, response, recordOptions]
-      return arguments[0]
+          arguments[0].result = record
+          return next(record.get('errors'))
+      next()
 
 if (module? && require?)
   module.exports = applyExtra
