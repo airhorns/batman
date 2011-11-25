@@ -487,7 +487,7 @@ class Batman.Property
 
   isCached: -> @isCachable() and @cached
 
-  isFinal: -> !!@accessor().final
+  isFinal: -> !!@accessor()['final']
 
   refresh: ->
     @cached = no
@@ -1440,21 +1440,21 @@ class Batman.Request extends Batman.Object
 class Batman.App extends Batman.Object
   @classAccessor 'currentParams',
     get: -> new Batman.Hash
-    final: true
+    'final': true
 
   @classAccessor 'paramsManager',
     get: ->
       return unless nav = @get('navigator')
       params = @get('currentParams')
       params.replacer = new Batman.ParamsReplacer(nav, params)
-    final: true
+    'final': true
 
   @classAccessor 'paramsPusher',
     get: ->
       return unless nav = @get('navigator')
       params = @get('currentParams')
       params.pusher = new Batman.ParamsPusher(nav, params)
-    final: true
+    'final': true
 
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
@@ -2620,7 +2620,7 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
       encode: (val) ->
         return unless association.options.saveInline
         val.toJSON()
-      decode: (data, _, _, _, childRecord) ->
+      decode: (data, _, __, ___, childRecord) ->
         relatedModel = association.getRelatedModel()
         record = new relatedModel()
         record.fromJSON(data)
@@ -2661,7 +2661,7 @@ class Batman.HasOneAssociation extends Batman.SingularAssociation
         if json = val.toJSON()
           json[association.foreignKey] = record.get(association.localKey)
         json
-      decode: (data, _, _, _, parentRecord) ->
+      decode: (data, _, __, ___, parentRecord) ->
         relatedModel = association.getRelatedModel()
         record = new (relatedModel)()
         record.fromJSON(data)
@@ -2706,7 +2706,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
   encoder: ->
     association = @
     return {
-      encode: (relationSet, _, _, record) ->
+      encode: (relationSet, _, __, record) ->
         return if association._beingEncoded
         association._beingEncoded = true
 
@@ -2721,7 +2721,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
         delete association._beingEncoded
         jsonArray
 
-      decode: (data, _, _, _, parentRecord) ->
+      decode: (data, _, __, ___, parentRecord) ->
         relations = new Batman.Set
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
@@ -3178,7 +3178,7 @@ class Batman.ViewSourceCache extends Batman.Object
           error: (response) -> throw new Error("Could not load view from #{path}")
       return undefined
     set: (k,v) -> @sources[k] = v
-    final: true
+    'final': true
 
   prefetch: (path) ->
     @get(path)
