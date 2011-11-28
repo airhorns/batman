@@ -54,8 +54,10 @@ Batman.mixin Batman.Request::,
     if auth
       options.headers["Authorization"] = "Basic #{new Buffer(auth).toString('base64')}"
 
-    if options.method in ["PUT", "POST"]
+    if @get('method') in ["PUT", "POST"]
       options.headers["Content-type"] = @get 'contentType'
+      body = @get 'data'
+      options.headers["Content-length"] = Buffer.byteLength(body)
 
     request = requestModule.request options, (response) =>
 
@@ -78,14 +80,15 @@ Batman.mixin Batman.Request::,
           @fire 'error', request
         @fire 'loaded'
 
-    if @get 'method' is 'POST'
-      request.write JSON.stringify(@get 'data')
-    request.end()
-
-    request.on 'error', (e) ->
+    request.on 'error', (error) =>
       @set 'response', error
       @fire 'error', error
       @fire 'loaded'
+
+    if @get('method') in ['POST', 'PUT']
+      request.write body
+
+    request.end()
 
     request
 
