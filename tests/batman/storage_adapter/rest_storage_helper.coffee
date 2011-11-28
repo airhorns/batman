@@ -110,15 +110,13 @@ restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
   test 'string record urls should be gotten in the options', 1, ->
     product = new @Product
     product.url = '/some/url'
-    [error, url] = @adapter.urlForRecord product, {}
-    throw error if error
+    url = @adapter.urlForRecord product, {}
     equal url, "/some/url#{urlSuffix}"
 
   test 'function record urls should be executed in the options', 1, ->
     product = new @Product
     product.url = -> '/some/url'
-    [err, url] = @adapter.urlForRecord product, {}
-    throw err if err
+    url = @adapter.urlForRecord product, {}
     equal url, "/some/url#{urlSuffix}"
 
   test 'function record urls should be given the options for the storage operation', 1, ->
@@ -128,19 +126,16 @@ restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
       equal passedOpts, opts
       '/some/url'
 
-    [err, url] = @adapter.urlForRecord product, {options: opts}
-    throw err if err
+    @adapter.urlForRecord product, {options: opts}
 
   test 'string model urls should be gotten in the options', 1, ->
     @Product.url = '/some/url'
-    [err, url] = @adapter.urlForCollection @Product, {}
-    throw err if err
+    url = @adapter.urlForCollection @Product, {}
     equal url, "/some/url#{urlSuffix}"
 
   test 'function model urls should be executed in the options', 1, ->
     @Product.url = -> '/some/url'
-    [err, url] = @adapter.urlForCollection @Product, {}
-    throw err if err
+    url = @adapter.urlForCollection @Product, {}
     equal url, "/some/url#{urlSuffix}"
 
   test 'function model urls should be given the options for the storage operation', 1, ->
@@ -148,8 +143,7 @@ restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
     @Product.url = (passedOpts) ->
       equal passedOpts, opts
       '/some/url'
-    [err, url] = @adapter.urlForCollection @Product, {options: opts}
-    throw err if err
+    @adapter.urlForCollection @Product, {options: opts}
 
 restStorageTestSuite.sharedSuiteHooks =
   'creating in storage: should succeed if the record doesn\'t already exist': ->
