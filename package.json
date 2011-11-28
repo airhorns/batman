@@ -23,23 +23,23 @@
     "build": "cake build"
   },
   "dependencies": {
-    "connect": ">= 1.6.1",
-    "coffee-script": ">= 1.1.2"
+    "connect": "~1.6.1",
+    "coffee-script": "1.1.2"
   },
   "engines": {
-    "node": ">= 0.4.0"
+    "node": "0.4.x"
   },
   "devDependencies": {
-    "daemon": ">= 0.3.0",
-    "docco": ">= 0.3.0",
-    "now": ">= 0.5",
-    "glob": ">= 2.0",
-    "jsdom": ">= 0.2.5",
-    "qunit": ">= 0.1.5",
-    "q": ">= 0.6.0",
-    "muffin": ">= 0.2.4",
-    "uglify-js": ">= 1.1.0",
-    "temp": ">= 0.2.0"
+    "daemon": "~0.3.0",
+    "docco": "~0.3.0",
+    "now": "~0.5",
+    "glob": "~2.0",
+    "jsdom": "0.2.5",
+    "qunit": "0.1.5",
+    "q": "~>0.6.0",
+    "muffin": "0.2.4",
+    "uglify-js": "1.1.0",
+    "temp": "~>0.2.0"
   },
   "batman": {
     "build": false
