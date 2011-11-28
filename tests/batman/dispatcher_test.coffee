@@ -127,6 +127,17 @@ asyncTest 'resources', ->
 
   $redirect 'products/1/images'
 
+test 'multiple resources', 2, ->
+  tracker =
+    products: false
+    images: false
+
+  @App.resources ['products', 'images'], ->
+    tracker[@resource] = true
+
+  ok tracker.products
+  ok tracker.images
+
 asyncTest 'hash history', 1, ->
   Batman.config.usePushState = false
   @App.route 'test', ->

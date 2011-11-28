@@ -1866,30 +1866,49 @@ Batman.App.classMixin
   root: (signature, options) ->
     @route '/', signature, options
 
-  resources: (resource, options={}, callback) ->
+  resource: (resource, options = {}, callback) ->
     (callback = options; options = {}) if typeof options is 'function'
     resource = helpers.pluralize(resource)
     controller = options.controller || resource
-    resource = "#{options.parentResource}/:#{helpers.singularize(options.parentResource)}Id/#{resource}" if options.parentResource
 
-    @route(resource, "#{controller}#index", resource: controller, action: 'index') unless options.index is false
-    @route("#{resource}/new", "#{controller}#new", resource: controller, action: 'new') unless options.new is false
-    @route("#{resource}/:id", "#{controller}#show", resource: controller, action: 'show') unless options.show is false
-    @route("#{resource}/:id/edit", "#{controller}#edit", resource: controller, action: 'edit') unless options.edit is false
+    _route = (url, signature, action) =>
+      @route url, signature, resource: controller, action: action
+
+    if options.parentResource
+      resource = "#{options.parentResource}/:#{helpers.singularize(options.parentResource)}Id/#{resource}"
+
+    if options.index isnt false
+      _route resource, "#{controller}#index", 'index'
+    if options.new isnt false
+      _route "#{resource}/new", "#{controller}#new", 'new'
+    if options.show isnt false
+      _route "#{resource}/:id", "#{controller}#show", 'show'
+    if options.edit isnt false
+      _route "#{resource}/:id/edit", "#{controller}#edit", 'edit'
 
     if callback
       app = @
       ops =
+        resource: resource
         collection: (collectionCallback) ->
-          collectionCallback?.call route: (url, methodName) -> app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
+          collectionCallback?.call route: (url, methodName) ->
+            app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
         member: (memberCallback) ->
-          memberCallback?.call route: (url, methodName) -> app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
-        resources: (childResource, options={}, callback) =>
+          memberCallback?.call route: (url, methodName) ->
+            app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
+        resources: (childResources, options = {}, callback) =>
           (callback = options; options = {}) if typeof options is 'function'
           options.parentResource = resource
-          @resources childResource, options, callback
+          @resources childResources, options, callback
 
       callback.call ops
+
+  resources: (resources, options, callback) ->
+    if resources instanceof Array
+      for resource in resources
+        @resource resource, options, callback
+    else
+      @resource resources, options, callback
 
   redirect: $redirect
 

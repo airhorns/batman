@@ -19,8 +19,7 @@ asyncTest 'should set hash href for URL fragment when using HashbangNavigator', 
 asyncTest 'should set corresponding href for model and action', 1, ->
   app = class @App extends Batman.App
     @layout: null
-    @resources 'tweets'
-    @resources 'users'
+    @resources ['tweets', 'users']
 
   class @App.User extends Batman.Model
   class @App.Tweet extends Batman.Model
