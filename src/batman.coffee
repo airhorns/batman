@@ -4921,6 +4921,10 @@ else
   window.Batman = Batman
   window
 
+# Support AMD loaders
+if typeof define is 'function'
+  define 'batman', [], -> Batman
+
 # Optionally export global sugar. Not sure what to do with this.
 Batman.exportHelpers = (onto) ->
   for k in ['mixin', 'unmixin', 'route', 'redirect', 'typeOf', 'redirect', 'setImmediate']
