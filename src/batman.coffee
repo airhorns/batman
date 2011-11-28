@@ -3172,10 +3172,10 @@ class Batman.RestStorage extends Batman.StorageAdapter
   request: (options, callback) ->
     options = $mixin options,
       success: (data) =>
-        data = {data, record: options.record, proto: options.proto}
+        data = $mixin options, {data, error: undefined}
         @runAfterFilter options.action, data, callback
       error: (error) =>
-        data = {error, response: error.request.get('response'), record: options.record}
+        data = $mixin options, {error, response: error.request?.get('response')}
         @runAfterFilter options.action, data, callback
     new Batman.Request(options)
 
