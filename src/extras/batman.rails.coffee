@@ -12,9 +12,7 @@ applyExtra = (Batman) ->
 
   class Batman.RailsStorage extends Batman.RestStorage
 
-    _addJsonExtension: ([err, url]) ->
-      url += '.json' unless err
-      [err, url]
+    _addJsonExtension: (url) -> url + '.json'
 
     urlForRecord: -> @_addJsonExtension(super)
     urlForCollection: -> @_addJsonExtension(super)

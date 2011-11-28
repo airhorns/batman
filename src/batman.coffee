@@ -3151,17 +3151,19 @@ class Batman.RestStorage extends Batman.StorageAdapter
         if (id = record.get('id'))?
           url = url + "/" + id
         else
-          error = new @constructor.StorageError("Couldn't get/set record primary key on #{data.action}!")
-    [error, url]
+          throw new @constructor.StorageError("Couldn't get/set record primary key on #{data.action}!")
+    url
 
   urlForCollection: (model, data) ->
-    url = if model.url
+    if model.url
       @_execWithOptions(model, 'url', data.options)
     else
       @_defaultCollectionUrl(model::, data.options)
-    [undefined, url]
 
   request: (options, callback) ->
+    if options.error?
+      return @runAfterFilter(options.action, options, callback)
+
     options = $mixin options,
       success: (data) =>
         data = $mixin options, {data, error: undefined}
@@ -3176,12 +3178,18 @@ class Batman.RestStorage extends Batman.StorageAdapter
     next()
 
   @::before 'create', 'read', 'update', 'destroy', @skipIfError (data, next) ->
-    [error, data.url] = @urlForRecord(data.record, data)
-    next(error)
+    try
+      data.url = @urlForRecord(data.record, data)
+    catch error
+      return next(error)
+    next()
 
   @::before 'readAll', @skipIfError (data, next) ->
-    [error, data.url] = @urlForCollection(data.proto.constructor, data)
-    next(error)
+    try
+      data.url = @urlForCollection(data.proto.constructor, data)
+    catch error
+      return next(error)
+    next()
 
   @::before 'create', 'update', @skipIfError (data, next) ->
     json = data.record.toJSON()
