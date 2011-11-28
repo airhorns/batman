@@ -239,6 +239,12 @@ The `@resources` macro takes a resource name which should ideally be the undersc
 @route 'gadgets/:id/edit', 'gadgets#edit'
 ```
 
+`@resources` can also take an array of labels to set up routing for multiple models at once:
+
+```coffeescript
+@resources ['stores', 'products', 'customers']
+```
+
 In addition to setting up these routes, the call to `@resources` keeps track of the fact that the `Gadget` model can be accessed in these ways. This lets you load these routes in your controllers or views by using model instances and classes on their own:
 
 ```coffeescript
