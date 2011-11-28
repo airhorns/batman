@@ -199,7 +199,7 @@ The MVC architecture of batman.js fits together like this:
 * Views are written in pure HTML, and use `data-*` attributes to create bindings with model data and event handlers exposed by the controllers.
 * Models have validations, lifecycle events, a built-in identity map, and can use arbitrary storage backends (`Batman.LocalStorage`, `Batman.RestStorage`, and `Batman.RailsStorage` are included).
 
-A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app is handled via [hash-bang fragment identifers](http://www.w3.org/QA/2011/05/hash_uris.html), with [pushState](https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries) support forthcoming.
+A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app uses [pushState](https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries) where supported, otherwise falling back to [hash-bang fragment identifers](http://www.w3.org/QA/2011/05/hash_uris.html).
 
 
 ### The App Class
