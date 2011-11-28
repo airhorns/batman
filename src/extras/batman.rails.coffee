@@ -19,12 +19,21 @@ applyExtra = (Batman) ->
     urlForRecord: -> @_addJsonExtension(super)
     urlForCollection: -> @_addJsonExtension(super)
 
+    _errorsFrom422Response: (response) -> JSON.parse(response)
+
     @::after 'update', 'create', ({error, record, response}, next) ->
-      # Rails validation errors
       if error
+        # Rails validation errors
         if error.request?.get('status') == 422
-          for key, validationErrors of JSON.parse(response)
-            record.get('errors').add(key, "#{key} #{validationError}") for validationError in validationErrors
+          try
+            validationErrors = @_errorsFrom422Response(response)
+          catch extractionError
+            return next(extractionError)
+
+          for key, errorsArray of validationErrors
+            for validationError in errorsArray
+              record.get('errors').add(key, "#{key} #{validationError}")
+
           arguments[0].result = record
           return next(record.get('errors'))
       next()
