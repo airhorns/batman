@@ -346,10 +346,14 @@ underscore_rx1 = /([A-Z]+)([A-Z][a-z])/g
 underscore_rx2 = /([a-z\d])([A-Z])/g
 
 helpers = Batman.helpers =
-  inflector: new Batman.Inflector()
-  singularize: (string) -> helpers.inflector.singularize(string)
-  pluralize: (string) -> helpers.inflector.pluralize(string)
-  ordinalize: (number) -> helpers.ordinalize(number)
+  inflector: new Batman.Inflector
+  ordinalize: -> helpers.inflector.ordinalize helpers.inflector, arguments
+  singularize: -> helpers.inflector.singularize.apply helpers.inflector, arguments
+  pluralize: (count, singular, plural) ->
+    if arguments.length < 2
+      helpers.inflector.pluralize count
+    else
+      "#{count || 0} " + if +count is 1 then singular else (plural || helpers.inflector.pluralize(singular))
 
   camelize: (string, firstLetterLower) ->
     string = string.replace camelize_rx, (str, p1) -> p1.toUpperCase()
