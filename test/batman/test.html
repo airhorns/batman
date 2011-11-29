@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batman Test Suite</title>
+
+    <link rel="stylesheet" href="../../node_modules/mocha/mocha.css" type="text/css" media="screen" />
+
+    <script type="text/javascript" src="../lib/json2.js"></script>
+    <script type="text/javascript" src="../lib/jquery.js"></script>
+    <script type="text/javascript" src="../../lib/es5-shim.js"></script>
+    <script type="text/javascript" src="../lib/assert.js"></script>
+    <script type="text/javascript" src="../../node_modules/mocha/mocha.js"></script>
+    <script type="text/javascript">mocha.setup('tdd');</script>
+    <script type="text/javascript" src="../../lib/coffee-script.js"></script>
+
+    <script type="text/coffeescript" src="test_helper.coffee"></script>
+    <script type="text/coffeescript" src="../../src/batman.coffee"></script>
+    <script type="text/coffeescript" src="../../src/extras/batman.rails.coffee"></script>
+    <script type="text/coffeescript" src="../../src/extras/batman.i18n.coffee"></script>
+    <script type="text/coffeescript">Batman.exportGlobals(); </script>
+    <script type="text/coffeescript" src="model/model_helper.coffee"></script>
+    <!--<script type="text/coffeescript" src="storage_adapter/storage_adapter_helper.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="storage_adapter/rest_storage_helper.coffee"></script>-->
+    <script type="text/coffeescript" src="view/view_helper.coffee"></script>
+
+    <script type="text/coffeescript" src="accessible_test.coffee"></script>
+    <script type="text/coffeescript" src="app_test.coffee"></script>
+    <script type="text/coffeescript" src="controller_test.coffee"></script>
+    <script type="text/coffeescript" src="data_test.coffee"></script>
+    <script type="text/coffeescript" src="dispatcher_test.coffee"></script>
+    <script type="text/coffeescript" src="enumerable_test.coffee"></script>
+    <script type="text/coffeescript" src="events/event_emitter_test.coffee"></script>
+    <script type="text/coffeescript" src="events/event_test.coffee"></script>
+    <script type="text/coffeescript" src="hash_test.coffee"></script>
+    <script type="text/coffeescript" src="i18n_test.coffee"></script>
+    <script type="text/coffeescript" src="model/associations/associations_test.coffee"></script>
+    <script type="text/coffeescript" src="model/associations/association_collection_test.coffee"></script>
+    <script type="text/coffeescript" src="model/associations/belongs_to_test.coffee"></script>
+    <script type="text/coffeescript" src="model/associations/has_many_test.coffee"></script>
+    <script type="text/coffeescript" src="model/associations/has_one_test.coffee"></script>
+    <script type="text/coffeescript" src="model/class_querying_test.coffee"></script>
+    <script type="text/coffeescript" src="model/dirty_keys_test.coffee"></script>
+    <script type="text/coffeescript" src="model/encoders_test.coffee"></script>
+    <script type="text/coffeescript" src="model/instance_manipulation_test.coffee"></script>
+    <script type="text/coffeescript" src="model/model_test.coffee"></script>
+    <script type="text/coffeescript" src="model/record_lifecycle_test.coffee"></script>
+    <script type="text/coffeescript" src="model/state_transitions_test.coffee"></script>
+    <script type="text/coffeescript" src="model/validations_test.coffee"></script>
+    <!--<script type="text/coffeescript" src="model_paginator_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="navigator/hashbang_navigator_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="navigator/navigator_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="navigator/push_state_navigator_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="object/class_dsl_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="object/integration_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="object/subclass_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="observable/class_and_instance_observable_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="observable/observable_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="paginator_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="params_replacer_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="property/keypath_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="property/property_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="request_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="set/set_index_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="set/set_sort_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="set/set_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="set/unique_set_index_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="storage_adapter/local_storage_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="storage_adapter/session_storage_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="storage_adapter/rails_storage_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="storage_adapter/rest_storage_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/function_name_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/get_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/inflector_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/interpolation_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/mixin_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/polymorphic_object_access_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/set_immediate_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/state_machine_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="utilities/_batman_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/class_binding_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/event_binding_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/filter_execution_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/filter_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/formfor_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/loop_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/nested_loop_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/oneway_binding_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/partial_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/route_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/select_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/simple_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/style_binding_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/unbinding_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/view_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/view_instance_rendering_test.coffee"></script>-->
+    <!--<script type="text/coffeescript" src="view/yield_and_contentfor_test.coffee"></script>-->
+    <script type="text/coffeescript">mocha.run()</script>
+</head>
+
+<body>
+  <h1 id="qunit-header">Batman Test Suite</h1>
+  <div id="mocha"></div>
+</body>
+</html>
