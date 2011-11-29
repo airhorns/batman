@@ -347,7 +347,7 @@ underscore_rx2 = /([a-z\d])([A-Z])/g
 
 helpers = Batman.helpers =
   inflector: new Batman.Inflector
-  ordinalize: -> helpers.inflector.ordinalize helpers.inflector, arguments
+  ordinalize: -> helpers.inflector.ordinalize.apply helpers.inflector, arguments
   singularize: -> helpers.inflector.singularize.apply helpers.inflector, arguments
   pluralize: (count, singular, plural) ->
     if arguments.length < 2
