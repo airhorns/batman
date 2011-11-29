@@ -2599,7 +2599,11 @@ class Batman.Association
   getRelatedModel: ->
     scope = @options.namespace or Batman.currentApp
     modelName = @options.name
-    scope?[modelName]
+    relatedModel = scope?[modelName]
+    developer.do ->
+      if Batman.currentApp? and not relatedModel
+        developer.warn "Related model #{modelName} hasn't loaded yet."
+    relatedModel
 
   getFromAttributes: (record) ->
     record.constructor.defaultAccessor.get.call(record, @label)
