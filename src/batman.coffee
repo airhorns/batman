@@ -4148,7 +4148,9 @@ class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBindin
 
 class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
   constructor: (node, className, key, context, parentRenderer, @invert = false) ->
-    @originalDisplay = node.style.display || ''
+    display = node.style.display
+    display = '' if not display or display is 'none'
+    @originalDisplay = display
     super
 
   dataChange: (value) ->
