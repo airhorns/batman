@@ -2,9 +2,10 @@
 
 suite "Batman.Model", ->
   suite "state transitions", ->
+    Product = false
     setup ->
-        class Product extends Batman.Model
-          @persist TestStorageAdapter
+      class Product extends Batman.Model
+        @persist TestStorageAdapter
 
     test "new instances start 'empty'",  ->
       product = new Product

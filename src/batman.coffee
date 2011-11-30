@@ -4670,7 +4670,8 @@ filters = Batman.Filters =
     for k, v of interpolationKeypaths
       values[k] = @findKey(v)[0]
       if !values[k]?
-        Batman.developer.warn "Warning! Undefined interpolation key #{k} for interpolation", string
+        Batman.developer.warn "Warnin
+        g! Undefined interpolation key #{k} for interpolation", string
         values[k] = ''
 
     Batman.helpers.interpolate(string, values)
