@@ -4416,13 +4416,12 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
     @prototypeNode = sourceNode.cloneNode(true)
     @prototypeNode.removeAttribute "data-foreach-#{@iteratorName}"
-
-    @parentNode = sourceNode.parentNode
+    @pNode = sourceNode.parentNode
     previousSiblingNode = sourceNode.nextSibling
     @siblingNode = document.createComment "end #{@iteratorName}"
     @siblingNode[Batman.expando] = sourceNode[Batman.expando]
     delete sourceNode[Batman.expando] if Batman.canDeleteExpando
-    $insertBefore @parentNode, @siblingNode, previousSiblingNode
+    $insertBefore sourceNode.parentNode, @siblingNode, previousSiblingNode
     # Remove the original node once the parent has moved past it.
     @parentRenderer.on 'parsed', =>
       # Move any Batman._data from the sourceNode to the sibling; we need to
@@ -4439,6 +4438,8 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     super(@siblingNode, @iteratorName, @key, @context, @parentRenderer)
 
     @fragment = document.createDocumentFragment()
+
+  parentNode: -> @siblingNode.parentNode
 
   destroy: ->
     super
@@ -4481,7 +4482,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   addOrInsertItem: (item, options = {}) ->
     existingNode = @nodeMap.get(item)
     if existingNode
-      @insertItem(item, existingNode, $mixin(options, {actionNumber: @queuedActionNumber++}))
+      @insertItem(item, existingNode)
     else
       @addItem(item, options)
 
@@ -4529,6 +4530,9 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
   insertItem: (item, node, options = {}) ->
     return if @destroyed
+    if !options.actionNumber?
+      options.actionNumber = @queuedActionNumber++
+
     existingActionNumber = @actionMap.get(item)
     if existingActionNumber > options.actionNumber
       # Another action for this item is scheduled for the future, do it then instead of now. Actions
@@ -4550,7 +4554,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
           if options.fragment
             @fragment.appendChild node
           else
-            $insertBefore @parentNode, node, @siblingNode
+            $insertBefore @parentNode(), node, @siblingNode
 
       @actions[options.actionNumber].item = item
     @processActionQueue()
@@ -4594,7 +4598,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
-          $insertBefore @parentNode, @fragment, @siblingNode
+          $insertBefore @parentNode(), @fragment, @siblingNode
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber

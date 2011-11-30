@@ -425,3 +425,29 @@ asyncTest 'it should stop previous ongoing renders if collection changes, but in
       context.set('all', getSet(4))
       delay ->
         deepEqual getVals(node), [4,5,6]
+
+asyncTest 'it shouldn\'t become desynchronized if the collection originates from a partial', ->
+  context = Batman
+    parent: Batman
+      children: new Batman.Set("a", "b", "c", "d", "e")
+
+  source = '''
+    <div data-defineview="objview">
+      <div data-foreach-object="parent.children">
+        <p data-bind="object"></p>
+      </div>
+    </div>
+    <div data-partial="objview"></div>
+  '''
+
+  helpers.render source, context, (node, view) ->
+    deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+    delay ->
+      deepEqual getPs(view), ['a', 'b', 'c', 'd', 'e']
+      context.get('parent.children').remove('b')
+      delay ->
+        deepEqual getPs(view), ['a', 'c', 'd', 'e']
+        for k in ['c', 'e']
+          context.get('parent.children').remove(k)
+        delay ->
+          deepEqual getPs(view), ['a','d']
