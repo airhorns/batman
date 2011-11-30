@@ -3723,9 +3723,9 @@ Batman.DOM = {
 
       node
 
-    doubleclick: (node, callback) ->
+    doubleclick: (node, callback, context) ->
       # The actual DOM event is called `dblclick`
-      Batman.DOM.events.click node, callback, 'dblclick'
+      Batman.DOM.events.click node, callback, context, 'dblclick'
 
     change: (node, callback) ->
       eventNames = switch node.nodeName.toUpperCase()

@@ -2,28 +2,32 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module 'Batman.View event bindings'
 
-asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 2, ->
+asyncTest 'it should allow events to be bound and execute them in the context as specified on a multi key keypath', 3, ->
   context = Batman
     foo: Batman
       bar: Batman
-        doSomething: (node, renderContext) ->
-          equal @findKey('foo')[0], context.get('foo')
-          equal renderContext.findKey('foo')[0], context.get('foo')
-          QUnit.start()
+        doSomething: spy = createSpy()
 
   source = '<button data-event-click="foo.bar.doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
+    delay ->
+      equal spy.lastCallArguments[0], node[0]
+      equal spy.lastCallContext.findKey('foo')[0], context.get('foo')
+      equal spy.lastCallArguments[1].findKey('foo')[0], context.get('foo')
 
-asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 1, ->
+asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 3, ->
   context = Batman
+    foo: 'bar'
     doSomething: spy = createSpy()
 
   source = '<button data-event-click="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
     delay ->
-      equal spy.lastCallContext, context
+      equal spy.lastCallArguments[0], node[0]
+      equal spy.lastCallContext.findKey('foo')[0], 'bar'
+      equal spy.lastCallArguments[1].findKey('foo')[0], 'bar'
 
 asyncTest 'it should allow click events to be bound', 2, ->
   context =
