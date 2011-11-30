@@ -6,14 +6,14 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   context = Batman
     foo: Batman
       bar: Batman
-        doSomething: spy = createSpy()
+        doSomething: (node, renderContext) ->
+          equal @findKey('foo')[0], context.get('foo')
+          equal renderContext.findKey('foo')[0], context.get('foo')
+          QUnit.start()
 
   source = '<button data-event-click="foo.bar.doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallContext, context.get('foo.bar')
 
 asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 1, ->
   context = Batman

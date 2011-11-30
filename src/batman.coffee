@@ -3713,9 +3713,9 @@ Batman.DOM = {
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
   # DOM directives, but are used to handle specific events by the `data-event-#{name}` helper.
   events: {
-    click: (node, callback, eventName = 'click') ->
+    click: (node, callback, context, eventName = 'click') ->
       $addEventListener node, eventName, (args...) ->
-        callback node, args...
+        callback node, context, args...
         $preventDefault args[0]
 
       if node.nodeName.toUpperCase() is 'A' and not node.href
@@ -4239,25 +4239,17 @@ class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
 
 class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
   bindImmediately: false
-  constructor: ->
+  constructor: (node, eventName, key, context) ->
     super
     confirmText = @node.getAttribute('data-confirm')
     callback = =>
       return if confirmText and not confirm(confirmText)
-      @get('filteredValue')?.apply @get('callbackContext'), arguments
+      @get('filteredValue')?.apply context, arguments
 
     if attacher = Batman.DOM.events[@attributeName]
-      attacher @node, callback
+      attacher @node, callback, context
     else
       Batman.DOM.events.other @node, @attributeName, callback
-
-  @accessor 'callbackContext', ->
-    contextKeySegments = @key.split('.')
-    contextKeySegments.pop()
-    context = if contextKeySegments.length > 0
-      @get('keyContext').get(contextKeySegments.join('.'))
-    else
-      @get('keyContext')
 
 class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) ->
