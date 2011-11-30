@@ -1,7 +1,7 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if IN_NODE then require '../model_helper' else window
 helpers = if !IN_NODE then window.viewHelpers else require '../../view/view_helper'
 
-suite "Batman.Model Associations", ->
+suite "Batman Model Associations", ->
   suite "hasMany", ->
     namespace = false
     Store = false
@@ -92,10 +92,9 @@ suite "Batman.Model Associations", ->
         done()
 
     test "hasMany associations are not loaded when autoload is false", (done) ->
-      ns = @namespace
       class Store extends Batman.Model
         @encode 'id', 'name'
-        @hasMany 'products', {namespace: ns, autoload: false}
+        @hasMany 'products', {namespace: namespace, autoload: false}
 
       storeAdapter = createStorageAdapter Store, AsyncTestStorageAdapter,
         stores1:

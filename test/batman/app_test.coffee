@@ -1,4 +1,5 @@
-suite "Batman.App", ->
-  suite "requiring", ->
+suite "Batman", ->
+  suite "App", ->
+    suite "requiring", ->
 
-  suite "running", ->
+    suite "running", ->

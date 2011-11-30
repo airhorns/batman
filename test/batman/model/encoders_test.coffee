@@ -1,4 +1,4 @@
-suite "Batman.Model", ->
+suite "Batman Model", ->
   suite "encoding/decoding", ->
     Product = false
     FlakyProduct = false

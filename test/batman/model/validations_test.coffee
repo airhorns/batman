@@ -72,7 +72,7 @@ validationsTestSuite = ->
         assert.ok !result
         done()
 
-suite "Batman.Model", ->
+suite "Batman Model", ->
   suite "Validations", ->
     validationsTestSuite()
 

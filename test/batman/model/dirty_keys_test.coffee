@@ -1,6 +1,6 @@
 {TestStorageAdapter} = if IN_NODE then require './model_helper' else window
 
-suite "Batman.Model", ->
+suite "Batman Model", ->
   suite "dirty key tracking", ->
     Product = false
     setup ->

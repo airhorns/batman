@@ -1,7 +1,7 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if IN_NODE then require '../model_helper' else window
 helpers = if !IN_NODE then window.viewHelpers else require '../../view/view_helper'
 
-suite "Batman.Model Associations", ->
+suite "Batman Model Associations", ->
   suite "belongsTo", ->
     namespace = false
     Store = false

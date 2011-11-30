@@ -92,54 +92,55 @@ dataTests = (elem) ->
     Batman.removeData elem, "foo", true
     actual = elem[Batman.expando]
 
-suite 'Batman.Data', ->
+suite 'Batman', ->
+  suite 'Data', ->
 
-  test "expando", ->
-    assert.equal "expando" of Batman, true, "Batman is exposing the expando"
+    test "expando", ->
+      assert.equal "expando" of Batman, true, "Batman is exposing the expando"
 
-  test "Batman.data", ->
-    div = document.createElement("div")
-    dataTests div
-    dataTests document
+    test "Batman.data", ->
+      div = document.createElement("div")
+      dataTests div
+      dataTests document
 
-  test "Batman.acceptData", ->
-    assert.ok Batman.acceptData(document), "document"
-    assert.ok Batman.acceptData(document.documentElement), "documentElement"
-    assert.ok Batman.acceptData({}), "object"
-    assert.ok not Batman.acceptData(document.createElement("embed")), "embed"
-    assert.ok not Batman.acceptData(document.createElement("applet")), "applet"
-    flash = document.createElement("object")
-    flash.setAttribute "classid", "clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
-    assert.ok Batman.acceptData(flash), "flash"
-    applet = document.createElement("object")
-    applet.setAttribute "classid", "clsid:8AD9C840-044E-11D1-B3E9-00805F499D93"
-    assert.ok not Batman.acceptData(applet), "applet"
+    test "Batman.acceptData", ->
+      assert.ok Batman.acceptData(document), "document"
+      assert.ok Batman.acceptData(document.documentElement), "documentElement"
+      assert.ok Batman.acceptData({}), "object"
+      assert.ok not Batman.acceptData(document.createElement("embed")), "embed"
+      assert.ok not Batman.acceptData(document.createElement("applet")), "applet"
+      flash = document.createElement("object")
+      flash.setAttribute "classid", "clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
+      assert.ok Batman.acceptData(flash), "flash"
+      applet = document.createElement("object")
+      applet.setAttribute "classid", "clsid:8AD9C840-044E-11D1-B3E9-00805F499D93"
+      assert.ok not Batman.acceptData(applet), "applet"
 
-  test "Batman.removeData", ->
-    div = document.createElement("div")
-    Batman.data div, "test", "testing"
-    Batman.removeData div, "test"
-    assert.equal Batman.data(div, "test"), undefined, "Check removal of data"
-    Batman.data div, "test2", "testing"
-    Batman.removeData div
-    assert.ok not Batman.data(div, "test2"), "Make sure that the data property no longer exists."
-    assert.ok not div[Batman.expando], "Make sure the expando no longer exists, as well."
-    obj = {}
-    Batman.data obj, "test", "testing"
-    assert.equal Batman.data(obj, "test"), "testing", "verify data on plain object"
-    Batman.removeData obj, "test"
-    assert.equal Batman.data(obj, "test"), undefined, "Check removal of data on plain object"
-    Batman.data window, "BAD", true
-    Batman.removeData window, "BAD"
-    assert.ok not Batman.data(window, "BAD"), "Make sure that the value was not still set."
+    test "Batman.removeData", ->
+      div = document.createElement("div")
+      Batman.data div, "test", "testing"
+      Batman.removeData div, "test"
+      assert.equal Batman.data(div, "test"), undefined, "Check removal of data"
+      Batman.data div, "test2", "testing"
+      Batman.removeData div
+      assert.ok not Batman.data(div, "test2"), "Make sure that the data property no longer exists."
+      assert.ok not div[Batman.expando], "Make sure the expando no longer exists, as well."
+      obj = {}
+      Batman.data obj, "test", "testing"
+      assert.equal Batman.data(obj, "test"), "testing", "verify data on plain object"
+      Batman.removeData obj, "test"
+      assert.equal Batman.data(obj, "test"), undefined, "Check removal of data on plain object"
+      Batman.data window, "BAD", true
+      Batman.removeData window, "BAD"
+      assert.ok not Batman.data(window, "BAD"), "Make sure that the value was not still set."
 
-  test "Batman.data should not miss data with preset hyphenated property names", ->
-    div = document.createElement 'div'
-    div.id = 'hyphened'
-    test =
-      camelBar: "camelBar"
-      "hyphen-foo": "hyphen-foo"
+    test "Batman.data should not miss data with preset hyphenated property names", ->
+      div = document.createElement 'div'
+      div.id = 'hyphened'
+      test =
+        camelBar: "camelBar"
+        "hyphen-foo": "hyphen-foo"
 
-    Batman.data div, test
-    for k, v of test
-      assert.equal Batman.data(div, k), k, "data with property '" + k + "' was correctly found"
+      Batman.data div, test
+      for k, v of test
+        assert.equal Batman.data(div, k), k, "data with property '" + k + "' was correctly found"
