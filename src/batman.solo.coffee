@@ -75,25 +75,19 @@ function(context, win) {
         }
 
         // Store the data returned by the most recent callback
-
-
-        function generalCallback(data) {
-            lastValue = data
-        }
-
         function getRequest(o, fn, err) {
-            function onload() {
-                // Call the user callback with the last value stored
-                // and clean up values and scripts.
-                o.success && o.success(lastValue)
-                lastValue = undefined
-                head.removeChild(script);
-            }
             if (o.type == 'jsonp') {
+                var result;
+                function onload() {
+                    // Call the user callback with the last value stored
+                    // and clean up values and scripts.
+                    o.success && o.success(result)
+                    result = undefined
+                    head.removeChild(script);
+                }
                 var script = doc.createElement('script')
 
-                // Add the global callback
-                win[getCallbackName(o)] = generalCallback;
+                win[getCallbackName(o)] = function(data) { result = data; }
 
                 // Setup our script element
                 script.type = 'text/javascript'
