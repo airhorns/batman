@@ -4244,12 +4244,20 @@ class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
     confirmText = @node.getAttribute('data-confirm')
     callback = =>
       return if confirmText and not confirm(confirmText)
-      @get('filteredValue')?.apply context, arguments
+      @get('filteredValue')?.apply @get('callbackContext'), arguments
 
     if attacher = Batman.DOM.events[@attributeName]
       attacher @node, callback, context
     else
       Batman.DOM.events.other @node, @attributeName, callback
+
+  @accessor 'callbackContext', ->
+    contextKeySegments = @key.split('.')
+    contextKeySegments.pop()
+    if contextKeySegments.length > 0
+      @get('keyContext').get(contextKeySegments.join('.'))
+    else
+      @get('keyContext')
 
 class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) ->

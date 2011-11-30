@@ -12,8 +12,8 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
     delay ->
+      equal spy.lastCallContext, context.get('foo.bar')
       equal spy.lastCallArguments[0], node[0]
-      equal spy.lastCallContext.findKey('foo')[0], context.get('foo')
       equal spy.lastCallArguments[2].findKey('foo')[0], context.get('foo')
 
 asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 3, ->
@@ -25,8 +25,8 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
     delay ->
+      equal spy.lastCallContext, context
       equal spy.lastCallArguments[0], node[0]
-      equal spy.lastCallContext.findKey('foo')[0], 'bar'
       equal spy.lastCallArguments[2].findKey('foo')[0], 'bar'
 
 asyncTest 'it should allow click events to be bound', 2, ->
