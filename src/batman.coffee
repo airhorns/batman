@@ -3715,7 +3715,7 @@ Batman.DOM = {
   events: {
     click: (node, callback, context, eventName = 'click') ->
       $addEventListener node, eventName, (args...) ->
-        callback node, context, args...
+        callback node, args..., context
         $preventDefault args[0]
 
       if node.nodeName.toUpperCase() is 'A' and not node.href

@@ -14,7 +14,7 @@ asyncTest 'it should allow events to be bound and execute them in the context as
     delay ->
       equal spy.lastCallArguments[0], node[0]
       equal spy.lastCallContext.findKey('foo')[0], context.get('foo')
-      equal spy.lastCallArguments[1].findKey('foo')[0], context.get('foo')
+      equal spy.lastCallArguments[2].findKey('foo')[0], context.get('foo')
 
 asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 3, ->
   context = Batman
@@ -27,7 +27,7 @@ asyncTest 'it should allow events to be bound and execute them in the context as
     delay ->
       equal spy.lastCallArguments[0], node[0]
       equal spy.lastCallContext.findKey('foo')[0], 'bar'
-      equal spy.lastCallArguments[1].findKey('foo')[0], 'bar'
+      equal spy.lastCallArguments[2].findKey('foo')[0], 'bar'
 
 asyncTest 'it should allow click events to be bound', 2, ->
   context =
