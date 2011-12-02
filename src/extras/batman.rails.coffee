@@ -32,8 +32,10 @@ applyExtra = (Batman) ->
             for validationError in errorsArray
               record.get('errors').add(key, "#{key} #{validationError}")
 
-          arguments[0].result = record
-          return next(record.get('errors'))
+          env = arguments[0]
+          env.result = record
+          env.error = record.get('errors')
+          return next()
       next()
 
 if (module? && require?)

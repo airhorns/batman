@@ -2958,11 +2958,11 @@ class Batman.StorageAdapter extends Batman.Object
     record
 
   @skipIfError: (f) ->
-    return (data, next) ->
-      if data.error?
+    return (env, next) ->
+      if env.error?
         next()
       else
-        f.call(@, data, next)
+        f.call(@, env, next)
 
   before: -> @_addFilter('before', arguments...)
   after: -> @_addFilter('after', arguments...)
@@ -2983,26 +2983,26 @@ class Batman.StorageAdapter extends Batman.Object
       @_batman.filters[position][key].push filter
     true
 
-  runFilter: (position, action, data, callback) ->
+  runFilter: (position, action, env, callback) ->
     @_inheritFilters()
     allFilters = @_batman.filters[position].all || []
     actionFilters = @_batman.filters[position][action] || []
-    data.action = action
+    env.action = action
 
     # Action specific filters execute first, and then the `all` filters.
     filters = actionFilters.concat(allFilters)
-    next = (error) =>
-      data.error = error if error?
+    next = (newEnv) =>
+      env = newEnv if newEnv?
       if (nextFilter = filters.shift())?
-        nextFilter.call @, data, next
+        nextFilter.call @, env, next
       else
-        callback.call @, data
+        callback.call @, env
 
     next()
 
   runBeforeFilter: -> @runFilter 'before', arguments...
-  runAfterFilter: (action, data, callback) -> @runFilter 'after', action, data, @exportResult(callback)
-  exportResult: (callback) -> (data) -> callback(data.error, data.result, data)
+  runAfterFilter: (action, env, callback) -> @runFilter 'after', action, env, @exportResult(callback)
+  exportResult: (callback) -> (env) -> callback(env.error, env.result, env)
 
   _jsonToAttributes: (json) ->
     try
@@ -3036,15 +3036,15 @@ class Batman.LocalStorage extends Batman.StorageAdapter
   _storageEntriesMatching: (proto, options) ->
     re = @storageRegExpForRecord(proto)
     records = []
-    @_forAllStorageEntries (storageKey, data) ->
+    @_forAllStorageEntries (storageKey, env) ->
       if keyMatches = re.exec(storageKey)
-        [error, data] = @_jsonToAttributes(data)
+        [error, data] = @_jsonToAttributes(env)
         return [error, []] if error?
         data[proto.constructor.primaryKey] = keyMatches[1]
-        records.push data if @_dataMatches(options, data)
+        records.push data if @_dataMatches(options, env)
     [undefined, records]
 
-  _dataMatches: (conditions, data) ->
+  _dataMatches: (conditions, env) ->
     match = true
     for k, v of conditions
       if data[k] != v
@@ -3052,45 +3052,47 @@ class Batman.LocalStorage extends Batman.StorageAdapter
         break
     match
 
-  @::before 'read', 'create', 'update', 'destroy', @skipIfError (data, next) ->
-    if data.action == 'create'
-      data.id = data.record.get('id') || data.record.set('id', @nextIdForRecord(data.record))
+  @::before 'read', 'create', 'update', 'destroy', @skipIfError (env, next) ->
+    if env.action == 'create'
+      env.id = env.record.get('id') || env.record.set('id', @nextIdForRecord(env.record))
     else
-      data.id = data.record.get('id')
+      env.id = env.record.get('id')
 
-    unless data.id?
-      error = new @constructor.StorageError("Couldn't get/set record primary key on #{data.action}!")
+    unless env.id?
+      env.error = new @constructor.StorageError("Couldn't get/set record primary key on #{env.action}!")
     else
-      data.key = @storageKey(data.record) + data.id
+      env.key = @storageKey(env.record) + env.id
 
-    next(error)
-
-  @::before 'create', 'update', @skipIfError (data, next) ->
-    data.recordAttributes = JSON.stringify(data.record)
     next()
 
-  @::after 'read', @skipIfError (data, next) ->
-    if typeof data.recordAttributes is 'string'
-      [error, data.recordAttributes] = @_jsonToAttributes(data.recordAttributes)
-      return next(error) if error?
-    data.record.fromJSON data.recordAttributes
+  @::before 'create', 'update', @skipIfError (env, next) ->
+    env.recordAttributes = JSON.stringify(env.record)
     next()
 
-  @::after 'read', 'create', 'update', 'destroy', @skipIfError (data, next) ->
-    data.result = data.record
+  @::after 'read', @skipIfError (env, next) ->
+    if typeof env.recordAttributes is 'string'
+      [error, env.recordAttributes] = @_jsonToAttributes(env.recordAttributes)
+      if error?
+        env.error = error
+        return next()
+    env.record.fromJSON env.recordAttributes
     next()
 
-  @::after 'readAll', @skipIfError (data, next) ->
-    data.result = data.records = for recordAttributes in data.recordsAttributes
-      @getRecordFromData(recordAttributes, data.proto.constructor)
+  @::after 'read', 'create', 'update', 'destroy', @skipIfError (env, next) ->
+    env.result = env.record
+    next()
+
+  @::after 'readAll', @skipIfError (env, next) ->
+    env.result = env.records = for recordAttributes in env.recordsAttributes
+      @getRecordFromData(recordAttributes, env.proto.constructor)
     next()
 
   for key in ['read', 'create', 'update', 'destroy']
     do (key) =>
       @::[key] = (record, options, callback) ->
-        @runBeforeFilter key, {record, options}, (data) ->
-          data = @['_do'+key](data)
-          @runAfterFilter key, data, callback
+        @runBeforeFilter key, {record, options}, (env) ->
+          env = @['_do'+key](env)
+          @runAfterFilter key, env, callback
 
   _doread: ({error, record, key}) ->
     unless error?
@@ -3149,27 +3151,27 @@ class Batman.RestStorage extends Batman.StorageAdapter
   _execWithOptions: (object, key, options) -> if typeof object[key] is 'function' then object[key](options) else object[key]
   _defaultCollectionUrl: (record) -> "/#{@storageKey(record)}"
 
-  urlForRecord: (record, data) ->
+  urlForRecord: (record, env) ->
     if record.url
-      url = @_execWithOptions(record, 'url', data.options)
+      url = @_execWithOptions(record, 'url', env.options)
     else
       url = if record.constructor.url
-        @_execWithOptions(record.constructor, 'url', data.options)
+        @_execWithOptions(record.constructor, 'url', env.options)
       else
         @_defaultCollectionUrl(record)
 
-      if data.action != 'create'
+      if env.action != 'create'
         if (id = record.get('id'))?
           url = url + "/" + id
         else
-          throw new @constructor.StorageError("Couldn't get/set record primary key on #{data.action}!")
+          throw new @constructor.StorageError("Couldn't get/set record primary key on #{env.action}!")
     url
 
-  urlForCollection: (model, data) ->
+  urlForCollection: (model, env) ->
     if model.url
-      @_execWithOptions(model, 'url', data.options)
+      @_execWithOptions(model, 'url', env.options)
     else
-      @_defaultCollectionUrl(model::, data.options)
+      @_defaultCollectionUrl(model::, env.options)
 
   request: (options, callback) ->
     if options.error?
@@ -3177,75 +3179,77 @@ class Batman.RestStorage extends Batman.StorageAdapter
 
     options = $mixin options,
       success: (data) =>
-        data = $mixin options, {data, error: undefined}
-        @runAfterFilter options.action, data, callback
+        env = $mixin options, {data, error: undefined}
+        @runAfterFilter env.action, env, callback
       error: (error) =>
-        data = $mixin options, {error, response: error.request?.get('response')}
-        @runAfterFilter options.action, data, callback
+        env = $mixin options, {error, response: error.request?.get('response')}
+        @runAfterFilter env.action, env, callback
     new Batman.Request(options)
 
-  @::before 'all', @skipIfError (data, next) ->
-    $mixin data, @defaultOptions
+  @::before 'all', @skipIfError (env, next) ->
+    $mixin env, @defaultOptions
     next()
 
-  @::before 'create', 'read', 'update', 'destroy', @skipIfError (data, next) ->
+  @::before 'create', 'read', 'update', 'destroy', @skipIfError (env, next) ->
     try
-      data.url = @urlForRecord(data.record, data)
+      env.url = @urlForRecord(env.record, env)
     catch error
-      return next(error)
+      env.error = error
     next()
 
-  @::before 'readAll', @skipIfError (data, next) ->
+  @::before 'readAll', @skipIfError (env, next) ->
     try
-      data.url = @urlForCollection(data.proto.constructor, data)
+      env.url = @urlForCollection(env.proto.constructor, env)
     catch error
-      return next(error)
+      env.error = error
     next()
 
-  @::before 'create', 'update', @skipIfError (data, next) ->
-    json = data.record.toJSON()
-    if namespace = @recordJsonNamespace(data.record)
-      data.data = {}
-      data.data[namespace] = json
+  @::before 'create', 'update', @skipIfError (env, next) ->
+    json = env.record.toJSON()
+    if namespace = @recordJsonNamespace(env.record)
+      env.data = {}
+      env.data[namespace] = json
     else
-      data.data = json
+      env.data = json
 
     if @serializeAsForm
       # Leave the POJO in the data for the request adapter to serialize to a body
-      data.contentType = @constructor.PostBodyContentType
+      env.contentType = @constructor.PostBodyContentType
     else
-      data.data = JSON.stringify(data.data)
-      data.contentType = @constructor.JSONContentType
+      env.data = JSON.stringify(env.data)
+      env.contentType = @constructor.JSONContentType
 
     next()
 
-  @::after 'create', 'read', 'update', @skipIfError (data, next) ->
-    if typeof data.data is 'string'
-      [error, json] = @_jsonToAttributes(data.data)
-      return next(error) if error?
+  @::after 'create', 'read', 'update', @skipIfError (env, next) ->
+    if typeof env.data is 'string'
+      [error, json] = @_jsonToAttributes(env.env)
+      env.error = error
+      return next()
     else
-      json = data.data
-    namespace = @recordJsonNamespace(data.record)
+      json = env.data
+    namespace = @recordJsonNamespace(env.record)
     json = json[namespace] if namespace && json[namespace]?
-    data.record.fromJSON(json)
-    data.result = data.record
+    env.record.fromJSON(json)
+    env.result = env.record
     next()
 
-  @::after 'readAll', @skipIfError (data, next) ->
-    if typeof data.data is 'string'
+  @::after 'readAll', @skipIfError (env, next) ->
+    if typeof env.data is 'string'
       try
-        data.data = JSON.parse(data.data)
+        env.data = JSON.parse(env.env)
       catch jsonError
-        return next(jsonError)
+        env.error = jsonError
+        return next()
 
-    namespace = @collectionJsonNamespace(data.proto)
-    data.recordsAttributes = if namespace && data.data[namespace]?
-      data.data[namespace]
+    namespace = @collectionJsonNamespace(env.proto)
+    env.recordsAttributes = if namespace && env.data[namespace]?
+      env.data[namespace]
     else
-      data.data
+      env.data
 
-    data.result = data.records = for jsonRecordAttributes in data.recordsAttributes
-      @getRecordFromData(jsonRecordAttributes, data.proto.constructor)
+    env.result = env.records = for jsonRecordAttributes in env.recordsAttributes
+      @getRecordFromData(jsonRecordAttributes, env.proto.constructor)
     next()
 
   @HTTPMethods =
@@ -3258,14 +3262,14 @@ class Batman.RestStorage extends Batman.StorageAdapter
   for key in ['create', 'read', 'update', 'destroy']
     do (key) =>
       @::[key] = (record, options, callback) ->
-        @runBeforeFilter key, {record, options}, (data) ->
-          data.method = @constructor.HTTPMethods[key]
-          @request(data, callback)
+        @runBeforeFilter key, {record, options}, (env) ->
+          env.method = @constructor.HTTPMethods[key]
+          @request(env, callback)
 
   readAll: (proto, options, callback) ->
-    @runBeforeFilter 'readAll', {proto, options}, (data) ->
-      data.method = @constructor.HTTPMethods['readAll']
-      @request(data, callback)
+    @runBeforeFilter 'readAll', {proto, options}, (env) ->
+      env.method = @constructor.HTTPMethods['readAll']
+      @request(env, callback)
 
 # Views
 # -----------
