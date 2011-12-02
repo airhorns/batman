@@ -3173,33 +3173,36 @@ class Batman.RestStorage extends Batman.StorageAdapter
     else
       @_defaultCollectionUrl(model::, env.options)
 
-  request: (options, callback) ->
-    if options.error?
-      return @runAfterFilter(options.action, options, callback)
+  request: (env, callback) ->
+    if env.error?
+      return @runAfterFilter(env.action, env, callback)
 
-    options = $mixin options,
+    options = $mixin env.options,
       success: (data) =>
-        env = $mixin options, {data, error: undefined}
+        env.data = data
+        env.response = req.get('response')
         @runAfterFilter env.action, env, callback
       error: (error) =>
-        env = $mixin options, {error, response: error.request?.get('response')}
+        env.error = error
+        env.response = req.get('response')
         @runAfterFilter env.action, env, callback
-    new Batman.Request(options)
+
+    req = new Batman.Request(options)
 
   @::before 'all', @skipIfError (env, next) ->
-    $mixin env, @defaultOptions
+    $mixin (env.options ||= {}), @defaultOptions
     next()
 
   @::before 'create', 'read', 'update', 'destroy', @skipIfError (env, next) ->
     try
-      env.url = @urlForRecord(env.record, env)
+      env.options.url = @urlForRecord(env.record, env)
     catch error
       env.error = error
     next()
 
   @::before 'readAll', @skipIfError (env, next) ->
     try
-      env.url = @urlForCollection(env.proto.constructor, env)
+      env.options.url = @urlForCollection(env.proto.constructor, env)
     catch error
       env.error = error
     next()
@@ -3207,18 +3210,19 @@ class Batman.RestStorage extends Batman.StorageAdapter
   @::before 'create', 'update', @skipIfError (env, next) ->
     json = env.record.toJSON()
     if namespace = @recordJsonNamespace(env.record)
-      env.data = {}
-      env.data[namespace] = json
+      data = {}
+      data[namespace] = json
     else
-      env.data = json
+      data = json
 
     if @serializeAsForm
       # Leave the POJO in the data for the request adapter to serialize to a body
-      env.contentType = @constructor.PostBodyContentType
+      env.options.contentType = @constructor.PostBodyContentType
     else
-      env.data = JSON.stringify(env.data)
-      env.contentType = @constructor.JSONContentType
+      data = JSON.stringify(data)
+      env.options.contentType = @constructor.JSONContentType
 
+    env.options.data = data
     next()
 
   @::after 'create', 'read', 'update', @skipIfError (env, next) ->
@@ -3263,12 +3267,12 @@ class Batman.RestStorage extends Batman.StorageAdapter
     do (key) =>
       @::[key] = (record, options, callback) ->
         @runBeforeFilter key, {record, options}, (env) ->
-          env.method = @constructor.HTTPMethods[key]
+          env.options.method = @constructor.HTTPMethods[key]
           @request(env, callback)
 
   readAll: (proto, options, callback) ->
     @runBeforeFilter 'readAll', {proto, options}, (env) ->
-      env.method = @constructor.HTTPMethods['readAll']
+      env.options.method = @constructor.HTTPMethods['readAll']
       @request(env, callback)
 
 # Views
