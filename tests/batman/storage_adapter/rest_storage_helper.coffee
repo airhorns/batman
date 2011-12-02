@@ -65,7 +65,7 @@ class MockRequest extends MockClass
 restStorageTestSuite = ->
   test 'default options should be independent', ->
     otherAdapter = new @adapter.constructor(@Product)
-    notEqual otherAdapter.defaultOptions, @adapter.defaultOptions
+    notEqual otherAdapter.defaultRequestOptions, @adapter.defaultRequestOptions
 
   asyncTest 'response metadata should be available in the after read callbacks', 3, ->
     MockRequest.expect

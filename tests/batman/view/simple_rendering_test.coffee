@@ -305,23 +305,23 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
 
   asyncTest 'it should bind the value of file type inputs', 2, ->
     [context, adapter] = getMockModel()
-    ok !adapter.defaultOptions.formData
+    ok !adapter.defaultRequestOptions.formData
 
     helpers.render '<input type="file" data-bind="fileAttributes"></input>', false, context, (node) ->
       helpers.triggerChange(node.childNodes[0])
       delay ->
-        ok adapter.defaultOptions.formData
+        ok adapter.defaultRequestOptions.formData
 
   asyncTest 'it should bind the value of file type inputs when they are proxied', 2, ->
     [context, adapter] = getMockModel()
-    ok !adapter.defaultOptions.formData
+    ok !adapter.defaultRequestOptions.formData
 
     source = '<form data-formfor-foo="proxied"><input type="file" data-bind="foo.fileAttributes"></input></form>'
 
     helpers.render source, false, {proxied: context}, (node) ->
       helpers.triggerChange(node.childNodes[0].childNodes[0])
       delay ->
-        ok adapter.defaultOptions.formData
+        ok adapter.defaultRequestOptions.formData
 
 
 asyncTest 'should bind radio buttons to a value', ->

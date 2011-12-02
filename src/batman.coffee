@@ -3136,14 +3136,14 @@ class Batman.RestStorage extends Batman.StorageAdapter
   @JSONContentType: 'application/json'
   @PostBodyContentType: 'application/x-www-form-urlencoded'
 
-  defaultOptions:
+  defaultRequestOptions:
     type: 'json'
 
   serializeAsForm: true
 
   constructor: ->
     super
-    @defaultOptions = $mixin {}, @defaultOptions
+    @defaultRequestOptions = $mixin {}, @defaultRequestOptions
 
   recordJsonNamespace: (record) -> helpers.singularize(@storageKey(record))
   collectionJsonNamespace: (proto) -> helpers.pluralize(@storageKey(proto))
@@ -4293,7 +4293,7 @@ class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
 
     if actualObject.hasStorage && actualObject.hasStorage()
       for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
-        adapter.defaultOptions.formData = true
+        adapter.defaultRequestOptions.formData = true
 
     if node.hasAttribute('multiple')
       @set 'filteredValue', Array::slice.call(node.files)
