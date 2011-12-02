@@ -2270,6 +2270,17 @@ class Batman.Model extends Batman.Object
     proxies = @_batman.associationProxies ||= new Batman.SimpleHash
     proxies.get(association.label) or proxies.set(association.label, new association.proxyClass(association, @))
 
+  relationURL: (keypath) ->
+    url = Batman.RestStorage::urlForRecord(@)
+    base = @
+    for key in keypath.split('.')
+      base = base.get(key)
+      url += if typeof base.url is 'function'
+        base.url()
+      else
+        Batman.RestStorage::urlForRecord(base)
+    url
+
   # ### Record API
 
   # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
@@ -2631,6 +2642,10 @@ class Batman.AssociationProxy extends Batman.Object
       @set('target', relation)
       callback?(undefined, relation)
     @get('target')
+
+  url: ->
+    record = @get('target')
+    Batman.RestStorage::urlForRecord(record)
 
   @accessor 'loaded'
     get: -> @loaded
@@ -3138,7 +3153,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
   _execWithOptions: (object, key, options) -> if typeof object[key] is 'function' then object[key](options) else object[key]
   _defaultCollectionUrl: (record) -> "/#{@storageKey(record)}"
 
-  urlForRecord: (record, data) ->
+  urlForRecord: (record, data = {}) ->
     if record.url
       url = @_execWithOptions(record, 'url', data.options)
     else
