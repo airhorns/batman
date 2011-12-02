@@ -3131,6 +3131,9 @@ class Batman.SessionStorage extends Batman.LocalStorage
     @storage = sessionStorage
 
 class Batman.RestStorage extends Batman.StorageAdapter
+  @JSONContentType: 'application/json'
+  @PostBodyContentType: 'application/x-www-form-urlencoded'
+
   defaultOptions:
     type: 'json'
 
@@ -3206,7 +3209,14 @@ class Batman.RestStorage extends Batman.StorageAdapter
       data.data[namespace] = json
     else
       data.data = json
-    data.data = JSON.stringify(data.data) unless @serializeAsForm
+
+    if @serializeAsForm
+      # Leave the POJO in the data for the request adapter to serialize to a body
+      data.contentType = @constructor.PostBodyContentType
+    else
+      data.data = JSON.stringify(data.data)
+      data.contentType = @constructor.JSONContentType
+
     next()
 
   @::after 'create', 'read', 'update', @skipIfError (data, next) ->

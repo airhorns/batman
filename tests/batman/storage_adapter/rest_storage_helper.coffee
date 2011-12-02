@@ -40,10 +40,11 @@ class MockRequest extends MockClass
     else
       setTimeout =>
         {request, response} = expected
-        if request.method != requestOptions.method
-          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
-        if request.data
-          throw "Wrong request data" unless requestOptions.data == request.data
+
+        for k in ['method', 'data', 'contentType']
+          if request[k]? && request[k] != requestOptions[k]
+            throw "Wrong #{k} for expected request! Expected #{request[k]}, got #{requestOptions[k]}."
+
         if response.error
           if typeof response.error is 'string'
             @fireError {message: response.error, request: @}
@@ -96,6 +97,7 @@ restStorageTestSuite = ->
       url: '/products'
       method: 'POST'
       data: '{"product":{"name":"test"}}'
+      contentType: 'application/json'
     , productJSON
 
     product = new @Product(name: "test")
