@@ -3746,11 +3746,17 @@ Batman.DOM = {
           callback node, args...
 
     submit: (node, callback) ->
+      isEnter = (ev) -> ev.keyCode is 13 || ev.which is 13 || ev.keyIdentifier is 'Enter' || ev.key is 'Enter'
       if Batman.DOM.nodeIsEditable(node)
+        $addEventListener node, 'keydown', (args...) ->
+          if isEnter(args[0])
+            Batman.DOM._keyCapturingNode = node
         $addEventListener node, 'keyup', (args...) ->
-          if args[0].keyCode is 13 || args[0].which is 13 || args[0].keyIdentifier is 'Enter' || args[0].key is 'Enter'
-            $preventDefault args[0]
-            callback node, args...
+          if isEnter(args[0])
+            if Batman.DOM._keyCapturingNode is node
+              $preventDefault args[0]
+              callback node, args...
+            Batman.DOM._keyCapturingNode = null
       else
         $addEventListener node, 'submit', (args...) ->
           $preventDefault args[0]

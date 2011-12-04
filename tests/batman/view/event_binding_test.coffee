@@ -98,6 +98,20 @@ asyncTest 'it should allow submit events on inputs to be bound', 2, ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0].childNodes[0]
 
+asyncTest 'it should ignore keyup events with no associated keydown events', 2, ->
+  # This can happen when we move the focus between nodes while handling some of these events.
+  context =
+    doSomething: aSpy = createSpy()
+    doAnother: anotherSpy = createSpy()
+
+  source = '<form><input data-event-submit="doSomething" /><input data-event-submit="doAnother"></form>'
+  helpers.render source, context, (node) ->
+    helpers.triggerKey(node[0].childNodes[1], 13, ["keydown", "keypress"])
+    helpers.triggerKey(node[0].childNodes[0], 13, ["keyup"])
+    delay ->
+      ok !aSpy.called
+      ok !anotherSpy.called
+
 asyncTest 'it should allow form submit events to be bound', 1, ->
   context =
     doSomething: spy = createSpy()
