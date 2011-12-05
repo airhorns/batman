@@ -23,22 +23,24 @@ class MockRequest extends MockClass
     responses = @expects[request.url] ||= []
     responses.push {request, response}
 
-  @chainedCallback 'success'
-  @chainedCallback 'error'
+  CALLBACKS = ['success', 'loaded', 'loading', 'error']
+  for key in CALLBACKS
+    @chainedCallback key
 
   @getExpectedForUrl: (url) ->
     @expects[url] || []
 
   constructor: (requestOptions) ->
     super()
-    @success(requestOptions.success) if requestOptions.success?
-    @error(requestOptions.error) if requestOptions.error?
+    for key in CALLBACKS
+      @[key](requestOptions[key]) if requestOptions[key]?
+    @fireLoading()
     allExpected = @constructor.getExpectedForUrl(requestOptions.url)
     expected = allExpected.shift()
-    if ! expected?
-      @fireError {message: "Unrecognized mocked request!", request: @}
-    else
-      setTimeout =>
+    setTimeout =>
+      if ! expected?
+        @fireError {message: "Unrecognized mocked request!", request: @}
+      else
         {request, response} = expected
 
         for k in ['method', 'data', 'contentType']
@@ -56,7 +58,8 @@ class MockRequest extends MockClass
         else
           @response = response
           @fireSuccess response
-      , 1
+      @fireLoaded response
+    , 1
 
   get: (k) ->
     throw "Can't get anything other than 'response' and 'status' on the Requests" unless k in ['response', 'status']
@@ -82,10 +85,11 @@ restStorageTestSuite = ->
         ]
 
     @adapter.after 'readAll', (data, next) ->
+      throw data.error if data.error
       equal data.data.someMetaData, "foo"
       next()
 
-    @adapter.readAll @Product::, {}, (err, readProducts) ->
+    @adapter.perform 'readAll', @Product::, {}, (err, readProducts) ->
       ok !err
       ok readProducts
       QUnit.start()
@@ -101,7 +105,7 @@ restStorageTestSuite = ->
     , productJSON
 
     product = new @Product(name: "test")
-    @adapter.create product, {}, (err, record) =>
+    @adapter.perform 'create', product, {}, (err, record) =>
       throw err if err
       ok record
       QUnit.start()
