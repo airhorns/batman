@@ -63,8 +63,8 @@ window.getKeyEvent = _getKeyEvent = (eventName, keyCode) ->
 
   evt
 
-exports.triggerKey = (domNode, keyCode) ->
-  for eventName in ["keydown", "keypress", "keyup"]
+exports.triggerKey = (domNode, keyCode, eventNames = ["keydown", "keypress", "keyup"]) ->
+  for eventName in eventNames
     event = _getKeyEvent(eventName, keyCode)
     if document.createEvent
       domNode.dispatchEvent event
