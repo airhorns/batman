@@ -4857,32 +4857,49 @@ mixins = Batman.mixins = new Batman.Object()
 Batman.Encoders = {}
 
 class Batman.Paginator extends Batman.Object
-  class @Cache
-    constructor: (@offset, @limit, @items) ->
-      @length = items.length
+  class @Range
+    constructor: (@offset, @limit) ->
       @reach = offset + limit
-    containsItemsForOffsetAndLimit: (offset, limit) ->
+    coversOffsetAndLimit: (offset, limit) ->
       offset >= @offset and (offset + limit) <= @reach
+
+  class @Cache extends @Range
+    constructor: (@offset, @limit, @items) ->
+      super
+      @length = items.length
     itemsForOffsetAndLimit: (offset, limit) ->
-      return unless @containsItemsForOffsetAndLimit(offset, limit)
       begin = offset-@offset
       end = begin + limit
-      @items.slice(begin, end)
+      if begin < 0
+        padding = new Array(-begin)
+        begin = 0
+      slice = @items.slice(begin, end)
+      if padding
+        padding.concat(slice)
+      else
+        slice
 
   offset: 0
   limit: 10
   totalCount: 0
+  
+  markAsLoadingOffsetAndLimit: (offset, limit) -> @loadingRange = new Batman.Paginator.Range(offset, limit)
+  markAsFinishedLoading: -> delete @loadingRange
 
   offsetFromPageAndLimit: (page, limit) -> Math.round((+page - 1) * limit)
   pageFromOffsetAndLimit: (offset, limit) -> offset / limit + 1
+
+  _load: (offset, limit) ->
+    return if @loadingRange?.coversOffsetAndLimit(offset, limit)
+    @markAsLoadingOffsetAndLimit(offset, limit)
+    @loadItemsForOffsetAndLimit(offset, limit)
 
   toArray: ->
     cache = @get('cache')
     offset = @get('offset')
     limit = @get('limit')
-    items = cache?.itemsForOffsetAndLimit(offset, limit)
-    @loadItemsForOffsetAndLimit(offset, limit) unless items
-    items or []
+    @_load(offset, limit) unless cache?.coversOffsetAndLimit(offset, limit)
+    cache?.itemsForOffsetAndLimit(offset, limit) or []
   page: ->
     @pageFromOffsetAndLimit(@get('offset'), @get('limit'))
   pageCount: ->
@@ -4893,7 +4910,10 @@ class Batman.Paginator extends Batman.Object
 
   loadItemsForOffsetAndLimit: (offset, limit) -> # override on subclasses or instances
   updateCache: (offset, limit, items) ->
-    @set('cache', new Batman.Paginator.Cache(offset, limit, items))
+    cache = new Batman.Paginator.Cache(offset, limit, items)
+    return if @loadingRange? and not cache.coversOffsetAndLimit(@loadingRange.offset, @loadingRange.limit)
+    @markAsFinishedLoading()
+    @set('cache', cache)
   @accessor 'toArray', @::toArray
   @accessor 'offset', 'limit', 'totalCount'
     get: Batman.Property.defaultAccessor.get
@@ -4918,7 +4938,10 @@ class Batman.ModelPaginator extends Batman.Paginator
     params = @paramsForOffsetAndLimit(offset, limit)
     params[k] = v for k,v of @params
     @model.load params, (err, records) =>
-      unless err?
+      if err?
+        @markAsFinishedLoading()
+        @fire('error', err)
+      else
         @updateCache(@offsetFromParams(params), @limitFromParams(params), records)
 
   # override these to fetch records however you like:
