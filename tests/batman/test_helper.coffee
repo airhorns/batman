@@ -200,7 +200,7 @@ class MockClass
       (@callbackStacks[name] ||= []).push f
       @
     @::["fire#{name.charAt(0).toUpperCase() + name.slice(1)}"] = () ->
-      f.apply(@, arguments) for f in @callbackStacks[name]
+      f.apply(@, arguments) for f in @callbackStacks[name] || []
 
   on: (event, callback) ->
     (@callbackStacks[event] ||= []).push(callback)
@@ -208,7 +208,7 @@ class MockClass
   fire: (event) ->
     return unless @callbackStacks[event]
     f.apply(@, arguments) for f in @callbackStacks[event]
-  
+
   _callbackStacks: {}
 
   constructor: (options = {}) ->
@@ -284,7 +284,7 @@ doWhen = (conditionFunction, actionFunction, timeout=2000) ->
       finally
         clearInterval interval
   interval = setInterval f, 20
-  
+
 
 for k, v of {Spy, MockClass, createSpy, spyOn, spyOnDuring, mockClassDuring, delay, doWhen}
   exports[k] = v

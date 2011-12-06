@@ -23,27 +23,30 @@ class MockRequest extends MockClass
     responses = @expects[request.url] ||= []
     responses.push {request, response}
 
-  @chainedCallback 'success'
-  @chainedCallback 'error'
+  CALLBACKS = ['success', 'loaded', 'loading', 'error']
+  for key in CALLBACKS
+    @chainedCallback key
 
   @getExpectedForUrl: (url) ->
     @expects[url] || []
 
   constructor: (requestOptions) ->
     super()
-    @success(requestOptions.success) if requestOptions.success?
-    @error(requestOptions.error) if requestOptions.error?
+    for key in CALLBACKS
+      @[key](requestOptions[key]) if requestOptions[key]?
+    @fireLoading()
     allExpected = @constructor.getExpectedForUrl(requestOptions.url)
     expected = allExpected.shift()
-    if ! expected?
-      @fireError {message: "Unrecognized mocked request!", request: @}
-    else
-      setTimeout =>
+    setTimeout =>
+      if ! expected?
+        @fireError {message: "Unrecognized mocked request!", request: @}
+      else
         {request, response} = expected
-        if request.method != requestOptions.method
-          throw "Wrong request method for expected request! Expected #{request.method}, got #{requestOptions.method}."
-        if request.data
-          throw "Wrong request data" unless requestOptions.data == request.data
+
+        for k in ['method', 'data', 'contentType']
+          if request[k]? && request[k] != requestOptions[k]
+            throw "Wrong #{k} for expected request! Expected #{request[k]}, got #{requestOptions[k]}."
+
         if response.error
           if typeof response.error is 'string'
             @fireError {message: response.error, request: @}
@@ -55,7 +58,8 @@ class MockRequest extends MockClass
         else
           @response = response
           @fireSuccess response
-      , 1
+      @fireLoaded response
+    , 1
 
   get: (k) ->
     throw "Can't get anything other than 'response' and 'status' on the Requests" unless k in ['response', 'status']
@@ -64,7 +68,7 @@ class MockRequest extends MockClass
 restStorageTestSuite = ->
   test 'default options should be independent', ->
     otherAdapter = new @adapter.constructor(@Product)
-    notEqual otherAdapter.defaultOptions, @adapter.defaultOptions
+    notEqual otherAdapter.defaultRequestOptions, @adapter.defaultRequestOptions
 
   asyncTest 'response metadata should be available in the after read callbacks', 3, ->
     MockRequest.expect
@@ -80,11 +84,12 @@ restStorageTestSuite = ->
           cost: 10
         ]
 
-    @adapter.after 'readAll', ([err, records, data, options]) ->
-      equal data.someMetaData, "foo"
-      [err, records, data, options]
+    @adapter.after 'readAll', (data, next) ->
+      throw data.error if data.error
+      equal data.data.someMetaData, "foo"
+      next()
 
-    @adapter.readAll @Product::, {}, (err, readProducts) ->
+    @adapter.perform 'readAll', @Product::, {}, (err, readProducts) ->
       ok !err
       ok readProducts
       QUnit.start()
@@ -96,10 +101,11 @@ restStorageTestSuite = ->
       url: '/products'
       method: 'POST'
       data: '{"product":{"name":"test"}}'
+      contentType: 'application/json'
     , productJSON
 
     product = new @Product(name: "test")
-    @adapter.create product, {}, (err, record) =>
+    @adapter.perform 'create', product, {}, (err, record) =>
       throw err if err
       ok record
       QUnit.start()
@@ -107,55 +113,43 @@ restStorageTestSuite = ->
   sharedStorageTestSuite(restStorageTestSuite.sharedSuiteHooks)
 
 restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
-  asyncTest 'string record urls should be gotten in the options', 1, ->
+  test 'string record urls should be gotten in the options', 1, ->
     product = new @Product
     product.url = '/some/url'
-    @adapter.optionsForRecord product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    url = @adapter.urlForRecord product, {}
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function record urls should be executed in the options', 1, ->
+  test 'function record urls should be executed in the options', 1, ->
     product = new @Product
     product.url = -> '/some/url'
-    @adapter.optionsForRecord product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    url = @adapter.urlForRecord product, {}
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function record urls should be given the options for the storage operation', 1, ->
+  test 'function record urls should be given the options for the storage operation', 1, ->
     product = new @Product
     opts = {foo: true}
     product.url = (passedOpts) ->
       equal passedOpts, opts
       '/some/url'
 
-    @adapter.optionsForRecord product, opts, (err, options) ->
-      throw err if err
-      QUnit.start()
+    @adapter.urlForRecord product, {options: opts}
 
-  asyncTest 'string model urls should be gotten in the options', 1, ->
+  test 'string model urls should be gotten in the options', 1, ->
     @Product.url = '/some/url'
-    @adapter.optionsForCollection @Product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    url = @adapter.urlForCollection @Product, {}
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function model urls should be executed in the options', 1, ->
+  test 'function model urls should be executed in the options', 1, ->
     @Product.url = -> '/some/url'
-    @adapter.optionsForCollection @Product, {}, (err, options) ->
-      throw err if err
-      equal options.url, "/some/url#{urlSuffix}"
-      QUnit.start()
+    url = @adapter.urlForCollection @Product, {}
+    equal url, "/some/url#{urlSuffix}"
 
-  asyncTest 'function model urls should be given the options for the storage operation', 1, ->
+  test 'function model urls should be given the options for the storage operation', 1, ->
     opts = {foo: true}
     @Product.url = (passedOpts) ->
       equal passedOpts, opts
       '/some/url'
-    @adapter.optionsForCollection @Product, opts, (err, options) ->
-      throw err if err
-      QUnit.start()
+    @adapter.urlForCollection @Product, {options: opts}
 
 restStorageTestSuite.sharedSuiteHooks =
   'creating in storage: should succeed if the record doesn\'t already exist': ->

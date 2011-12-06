@@ -45,7 +45,7 @@ asyncTest 'creating in storage: should callback with the record with errors on i
         name: ["can't be test", "must be valid"]
 
   product = new @Product(name: "test")
-  @productAdapter.create product, {}, (err, record) =>
+  @productAdapter.perform 'create', product, {}, (err, record) =>
     ok err instanceof Batman.ErrorsSet
     ok record
     equal record.get('errors').length, 2

@@ -9,7 +9,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
   update: (record, options, callback) ->
     id = record.get('id')
     if id
-      @storage[@modelKey(record) + id] = record.toJSON()
+      @storage[@storageKey(record) + id] = record.toJSON()
       callback(undefined, record)
     else
       callback(new Error("Couldn't get record primary key."))
@@ -17,7 +17,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
   create: (record, options, callback) ->
     id = record.set('id', @counter++)
     if id
-      @storage[@modelKey(record) + id] = record.toJSON()
+      @storage[@storageKey(record) + id] = record.toJSON()
       callback(undefined, record)
     else
       callback(new Error("Couldn't get record primary key."))
@@ -25,7 +25,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
   read: (record, options, callback) ->
     id = record.get('id')
     if id
-      attrs = @storage[@modelKey(record) + id]
+      attrs = @storage[@storageKey(record) + id]
       if attrs
         record.fromJSON(attrs)
         callback(undefined, record)
@@ -49,7 +49,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
   destroy: (record, options, callback) ->
     id = record.get('id')
     if id
-      key = @modelKey(record) + id
+      key = @storageKey(record) + id
       if @storage[key]
         delete @storage[key]
         callback(undefined, record)
@@ -58,6 +58,8 @@ class TestStorageAdapter extends Batman.StorageAdapter
     else
       callback(new Error("Can't delete record without an primary key!"), record)
 
+  perform: (action, args...) ->
+    @[action](args...)
 class AsyncTestStorageAdapter extends TestStorageAdapter
   for k in ['update', 'create', 'read', 'readAll', 'destroy']
     do (k) =>
