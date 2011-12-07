@@ -1993,13 +1993,26 @@ Batman.App.classMixin
           @resources childResources, options, callback
 
       callback.call ops
+    @
 
   resources: (resources, options, callback) ->
-    if resources instanceof Array
+    if $typeOf(options) is 'String'
+      resources = Array::slice.call arguments
+      options = null
+      callback = null
+      names = []
       for resource in resources
+        if $typeOf(resource) is 'String'
+          names.push resource
+        else if $typeOf(options) is 'String'
+          options = resource
+        else
+          callback = resource
+      for resource in names
         @resource resource, options, callback
     else
       @resource resources, options, callback
+    @
 
   redirect: $redirect
 
