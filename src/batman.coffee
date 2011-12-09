@@ -3319,10 +3319,11 @@ class Batman.View extends Batman.Object
   constructor: ->
     super
     # Start the rendering by asking for the node
-    if node = @get('node')
-      @render node
-    else
-      @observe 'node', (node) => @render(node)
+    Batman.Property.withoutTracking =>
+      if node = @get('node')
+        @render node
+      else
+        @observe 'node', (node) => @render(node)
 
   @sourceCache: new Batman.ViewSourceCache()
 

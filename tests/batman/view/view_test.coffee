@@ -26,6 +26,16 @@ test 'should update its node with the contents of its view', 1, ->
   MockRequest.lastInstance.fireSuccess('view contents')
   equal @view.get('node').innerHTML, 'view contents'
 
+test 'should not add its node property as a source to an enclosing accessor', 1, ->
+  class TestView extends Batman.View
+    render: spy = createSpy().whichReturns(true)
+
+  accessible = new Batman.Accessible -> new TestView()
+  view = accessible.get()
+  view.set('node', {})
+  newView = accessible.get()
+  equal newView, view
+
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.on 'ready', observer = createSpy()
 
