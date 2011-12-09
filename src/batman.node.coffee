@@ -35,7 +35,11 @@ Batman.mixin Batman.Request::,
     path = requestURL.pathname
 
     if @get('method') is 'GET'
-      path += querystring.stringify Batman.mixin({}, requestURL.query, @get 'data')
+      getParams = @get('data')
+      path += if typeof data is 'string'
+        getParams
+      else
+        querystring.stringify Batman.mixin({}, requestURL.query, getParams)
 
     # Make the request and grab the ClientRequest object
     options =

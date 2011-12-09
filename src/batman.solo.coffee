@@ -288,6 +288,7 @@ function(context, win) {
 rbracket = /\[\]$/
 r20 = /%20/g
 param = (a) ->
+  return a if typeof a is 'string'
   s = []
   add = (key, value) ->
     value = value() if typeof value is 'function'
@@ -297,7 +298,7 @@ param = (a) ->
     for value, name of a
       add name, value
   else
-    for k, v of a
+    for own k, v of a
       buildParams k, v, add
   s.join("&").replace r20, "+"
 
@@ -337,10 +338,10 @@ Batman.Request::send = (data) ->
 
     complete: =>
       @fire 'loaded'
-  
+
   unless @get('formData')
     options.headers['Content-type'] = @get('contentType')
-  
+
   if options.method in ['PUT', 'POST']
     if @get('formData')
       options.data = @constructor.objectToFormData(data)
