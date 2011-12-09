@@ -494,10 +494,19 @@ class Batman.Property
       base.property(key)
     else
       new Batman.Keypath(base, key)
-
+  @withoutTracking: (block) ->
+    @pushDummySourceTracker()
+    try
+      block()
+    finally
+      @popSourceTracker()
   @registerSource: (obj) ->
     return unless obj.isEventEmitter
     @sourceTracker()?.add(obj)
+
+  @pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
+  @pushDummySourceTracker: -> Batman.Property._sourceTrackerStack.push(null)
+  @popSourceTracker: -> Batman.Property._sourceTrackerStack.pop()
 
   constructor: (@base, @key) ->
     developer.do =>
@@ -546,11 +555,8 @@ class Batman.Property
     results
   hasObservers: -> @observers().length > 0
 
-  pushSourceTracker: -> Batman.Property._sourceTrackerStack.push(new Batman.SimpleSet)
-  pushDummySourceTracker: -> Batman.Property._sourceTrackerStack.push(null)
-  popSourceTracker: -> Batman.Property._sourceTrackerStack.pop()
   updateSourcesFromTracker: ->
-    newSources = @popSourceTracker()
+    newSources = @constructor.popSourceTracker()
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
     @sources = newSources
@@ -563,7 +569,7 @@ class Batman.Property
   getValue: ->
     @registerAsMutableSource()
     unless @isCached()
-      @pushSourceTracker()
+      @constructor.pushSourceTracker()
       try
         @value = @valueFromAccessor()
         @cached = yes
@@ -612,12 +618,12 @@ class Batman.Property
 
   _changeValue: (block) ->
     @cached = no
-    @pushDummySourceTracker()
+    @constructor.pushDummySourceTracker()
     try
       result = block.apply(this)
       @refresh()
     finally
-      @popSourceTracker()
+      @constructor.popSourceTracker()
     @die() unless @isCached() or @hasObservers()
     result
 
@@ -668,7 +674,6 @@ class Batman.Property
     else if @_isolationCount > 0
       @_isolationCount--
   isIsolated: -> @_isolationCount > 0
-
 
 # Keypaths
 # --------

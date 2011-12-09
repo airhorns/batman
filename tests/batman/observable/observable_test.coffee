@@ -79,6 +79,24 @@ test "get(key) works with cacheable properties with more than one level of acces
   @obj.get('indirectProperty')
   equal @fooPropertyAccessor.get.callCount, 2
 
+test "get(key) works with Batman.Property.withoutTracking", ->
+  callCount = 0
+  @obj.accessor 'withoutTrackingProperty', ->
+    callCount++
+    @get('foo')
+    Batman.Property.withoutTracking =>
+      @get('foo.bar')
+    true
+
+  @obj.get('withoutTrackingProperty')
+  equal callCount, 1
+  @obj.set('foo.bar', true)
+  @obj.get('withoutTrackingProperty')
+  equal callCount, 1
+  @obj.set('foo')
+  @obj.get('withoutTrackingProperty')
+  equal callCount, 2
+
 ###
 # set(key)
 ###

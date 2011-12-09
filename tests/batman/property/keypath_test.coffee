@@ -136,10 +136,10 @@ test "working with Hashes", ->
     hash: new Batman.Hash
       foo: new Batman.Object(bar: 'nested value'),
       "foo.bar": 'flat value'
-  
+
   equal obj.get('hash.foo.bar'), 'nested value'
   equal obj.hash.get('foo.bar'), 'flat value'
-  
+
   property = obj.property('hash.foo.bar')
   ok property instanceof Batman.Keypath
   equal property.getValue(), 'nested value'
@@ -163,10 +163,10 @@ test "working with SimpleHashes", ->
     hash: new Batman.SimpleHash
       foo: new Batman.Object(bar: 'nested value'),
       "foo.bar": 'flat value'
-  
+
   equal obj.get('hash.foo.bar'), 'nested value'
   equal obj.hash.get('foo.bar'), 'flat value'
-  
+
   property = obj.property('hash.foo.bar')
   ok property instanceof Batman.Keypath
   equal property.getValue(), 'nested value'
@@ -179,5 +179,3 @@ test "working with SimpleHashes", ->
   obj.set 'hash.foo.bar', 'new value'
   equal hashFooBarSpy.callCount, 1
   deepEqual hashFooBarSpy.lastCallArguments, ['new value', 'nested value']
-  
-
