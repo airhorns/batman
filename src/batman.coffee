@@ -2228,7 +2228,7 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches records from all sources possible
   @load: (options, callback) ->
-    if $typeOf(options) is 'Function'
+    if typeof options in ['function', 'undefined']
       callback = options
       options = {}
 
@@ -3020,6 +3020,7 @@ class Batman.StorageAdapter extends Batman.Object
   _jsonToAttributes: (json) -> JSON.parse(json)
 
   perform: (key, recordOrProto, options, callback) ->
+    options ||= {}
     env = {options}
     if key == 'readAll'
       env.proto = recordOrProto

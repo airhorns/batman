@@ -58,8 +58,10 @@ class TestStorageAdapter extends Batman.StorageAdapter
     else
       callback(new Error("Can't delete record without an primary key!"), record)
 
-  perform: (action, args...) ->
-    @[action](args...)
+  perform: (action, record, options, callback) ->
+    throw new Error("No options passed to storage adapter!") unless options?
+    @[action](record, options, callback)
+
 class AsyncTestStorageAdapter extends TestStorageAdapter
   for k in ['update', 'create', 'read', 'readAll', 'destroy']
     do (k) =>
