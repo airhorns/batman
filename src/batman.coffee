@@ -2921,6 +2921,14 @@ Validators = Batman.Validators = [
         errors.add key, @format(key, 'wrong_length', {count: options.length})
       callback()
 
+  class Batman.NumericValidator extends Batman.Validator
+    @options 'numeric'
+    validateEach: (errors, record, key, callback) ->
+      value = record.get(key)
+      if @options.numeric and isNaN(parseFloat(value))
+        errors.add key, @format(key, 'not_numeric')
+      callback()
+
   class Batman.PresenceValidator extends Batman.Validator
     @options 'presence'
     validateEach: (errors, record, key, callback) ->
