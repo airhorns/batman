@@ -3842,7 +3842,7 @@ Batman.DOM = {
   unbindNode: $unbindNode = (node) ->
     # break down all bindings
     if bindings = Batman._data node, 'bindings'
-      bindings.forEach (binding) -> binding.destroy()
+      bindings.forEach (binding) -> binding.die()
 
     # remove all event listeners
     if listeners = Batman._data node, 'listeners'
@@ -4058,7 +4058,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
         if shouldSet
           @dataChange?(value, @node)
 
-  destroy: ->
+  die: ->
     @forget()
     @_batman.properties?.forEach (key, property) -> property.die()
 
@@ -4149,7 +4149,7 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
   handleItemsWereRemoved: ->
   handleArrayChanged: ->
 
-  destroy: ->
+  die: ->
     @unbindCollection()
     super
 
@@ -4464,9 +4464,9 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
   parentNode: -> @siblingNode.parentNode
 
-  destroy: ->
+  die: ->
     super
-    @destroyed = true
+    @dead = true
 
   unbindCollection: ->
     if @collection
@@ -4528,19 +4528,19 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @rendererMap.set(item, childRenderer)
 
     finish = =>
-      return if @destroyed
+      return if @dead
       @parentRenderer.allowAndFire 'rendered'
 
     childRenderer.on 'rendered', finish
     childRenderer.on 'stopped', =>
-      return if @destroyed
+      return if @dead
       @actions[options.actionNumber] = false
       finish()
       @processActionQueue()
     item
 
   removeItem: (item) ->
-    return if @destroyed || !item?
+    return if @dead || !item?
     oldNode = @nodeMap.unset(item)
     @cancelExistingItem(item)
     if oldNode
@@ -4552,7 +4552,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   removeAll: -> @nodeMap.forEach (item) => @removeItem(item)
 
   insertItem: (item, node, options = {}) ->
-    return if @destroyed
+    return if @dead
     if !options.actionNumber?
       options.actionNumber = @queuedActionNumber++
 
@@ -4603,11 +4603,11 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @rendererMap.unset item
 
   processActionQueue: ->
-    return if @destroyed
+    return if @dead
     unless @actionQueueTimeout
       # Prevent the parent which will then be allowed when the timeout actually runs
       @actionQueueTimeout = $setImmediate =>
-        return if @destroyed
+        return if @dead
         delete @actionQueueTimeout
         startTime = new Date
 
