@@ -72,8 +72,9 @@ asyncTest 'it should add items in order', ->
   objects = new Batman.Set({id: 1, name: 'foo'}, {id: 2, name: 'bar'})
   helpers.render source, {objects}, (node, view) ->
     objects.add({id: 0, name: 'zero'})
-    delay =>
-      deepEqual getPs(view), ['zero', 'foo', 'bar']
+    delay ->
+      delay ->
+        deepEqual getPs(view), ['zero', 'foo', 'bar']
 
 asyncTest 'it should allow data-context definitions on inner nodes', ->
   source = '<p data-context-object="outer.foo.bar" data-foreach-outer="objects" data-bind="object.name"></p>'
