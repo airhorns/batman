@@ -3310,6 +3310,7 @@ class Batman.ViewSourceCache extends Batman.Object
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
+  isView: true
   constructor: ->
     super
     # Start the rendering by asking for the node
@@ -3633,16 +3634,8 @@ Batman.DOM = {
       Batman.DOM.events.click node, -> $redirect url
       true
 
-    view: (node, key, context, renderer) ->
-      renderer.prevent('rendered')
-      node.removeAttribute "data-view"
-      [viewClass] = context.findKey(key)
-      view = new viewClass
-        node: node
-        context: context
-
-      view.on 'ready', -> renderer.allowAndFire 'rendered'
-
+    view: ->
+      new Batman.DOM.ViewBinding(arguments...)
       false
 
     partial: (node, path, context, renderer) ->
@@ -4425,6 +4418,27 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
   reapplyOldStyles: ->
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
 
+class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
+  constructor: ->
+    super
+    @renderer.prevent('rendered')
+    @node.removeAttribute "data-view"
+
+  dataChange: (viewClassOrInstance) ->
+    return unless viewClassOrInstance?
+    if viewClassOrInstance.isView
+      @view = viewClassOrInstance
+      @view.set 'node', @node
+      @view.set 'context', @renderContext
+    else
+      @view = new viewClassOrInstance
+        node: @node
+        context: @renderContext
+
+    @view.on 'ready', => @renderer.allowAndFire 'rendered'
+
+    @die()
+
 class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   deferEvery: 50
   currentActionNumber: 0
@@ -4896,7 +4910,7 @@ class Batman.Paginator extends Batman.Object
   offset: 0
   limit: 10
   totalCount: 0
-  
+
   markAsLoadingOffsetAndLimit: (offset, limit) -> @loadingRange = new Batman.Paginator.Range(offset, limit)
   markAsFinishedLoading: -> delete @loadingRange
 
