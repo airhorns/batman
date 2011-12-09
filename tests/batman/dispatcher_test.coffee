@@ -132,7 +132,7 @@ test 'multiple resources', 2, ->
     products: false
     images: false
 
-  @App.resources ['products', 'images'], ->
+  @App.resources 'products', 'images', ->
     tracker[@resource] = true
 
   ok tracker.products
