@@ -182,7 +182,7 @@ asyncTest 'it should not fail if the collection is cleared', ->
     delay =>
       equal $('.present', node).length, 0
 
-asyncTest 'it should not fail if the iterator is destroyed', 1, ->
+asyncTest 'it should not fail if the iterator is killed', 1, ->
   source = '<p data-foreach-object="objects" class="present" data-bind="object"></p>'
   context = new Batman.Object
     objects: new Batman.Set([0...100]...)
@@ -200,7 +200,7 @@ asyncTest 'it should not fail if the iterator is destroyed', 1, ->
   # Wait till the first stack pop which will happen after the iterator is instantiated, but its children haven't finished
   Batman.setImmediate ->
     ok instance
-    instance.destroy()
+    instance.die()
 
   delay ->
 
