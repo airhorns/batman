@@ -47,7 +47,7 @@ Batman.mixin Batman.Request::,
       method: @get 'method'
       port: requestURL.port
       host: requestURL.hostname
-      headers: {}
+      headers: @get 'headers'
 
    # Set auth if its given
     auth = if @get 'username'
