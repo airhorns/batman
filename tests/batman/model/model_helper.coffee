@@ -60,7 +60,7 @@ class TestStorageAdapter extends Batman.StorageAdapter
 
   perform: (action, record, options, callback) ->
     throw new Error("No options passed to storage adapter!") unless options?
-    @[action](record, options, callback)
+    @[action](record, options.data, callback)
 
 class AsyncTestStorageAdapter extends TestStorageAdapter
   for k in ['update', 'create', 'read', 'readAll', 'destroy']

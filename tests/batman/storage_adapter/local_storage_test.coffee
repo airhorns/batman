@@ -21,11 +21,11 @@ if typeof window.localStorage isnt 'undefined'
       throw err if err
       @adapter.perform 'create', product2, {}, (err, createdRecord2) =>
         throw err if err
-        @adapter.perform 'readAll', product1.constructor::, {cost: 10}, (err, readProducts) =>
+        @adapter.perform 'readAll', product1.constructor::, {data: {cost: 10}}, (err, readProducts) =>
           throw err if err
           equal readProducts.length, 1
           deepEqual readProducts[0].get('name'), "testB"
-          @adapter.perform 'readAll', product1.constructor::, {cost: 20}, (err, readProducts) ->
+          @adapter.perform 'readAll', product1.constructor::, {data: {cost: 20}}, (err, readProducts) ->
             throw err if err
             equal readProducts.length, 1
             deepEqual readProducts[0].get('name'), "testA"

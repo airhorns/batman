@@ -134,7 +134,7 @@ sharedStorageTestSuite = (hooks = {}) ->
   t = (array) ->
     array.map((p) -> p.get('name')).sort()
 
-  runReadMany = (product1, product2) ->
+  runReadMany = (product1, product2, options = {}) ->
     @adapter.perform 'create', product1, {}, (err, createdRecord1) =>
       throw err if err
       @adapter.perform 'create', product2, {}, (err, createdRecord2) =>
@@ -168,6 +168,18 @@ sharedStorageTestSuite = (hooks = {}) ->
         @adapter.perform 'readAll', @Product::, {}, (err, readProducts) ->
           throw err if err
           deepEqual t(readProducts), ['TESTA', 'TESTB']
+          QUnit.start()
+
+  asyncTestWithHooks 'reading many from storage: when given options should callback with the records if they exist', 1, ->
+    product1 = new @Product(name: "testA", cost: 10)
+    product2 = new @Product(name: "testB", cost: 10)
+    @adapter.perform 'create', product1, {}, (err, createdRecord1) =>
+      throw err if err
+      @adapter.perform 'create', product2, {}, (err, createdRecord2) =>
+        throw err if err
+        @adapter.perform 'readAll', @Product::, {data: {cost: 10}}, (err, readProducts) ->
+          throw err if err
+          deepEqual t(readProducts), ['testA', 'testB']
           QUnit.start()
 
   asyncTestWithHooks 'reading many from storage: should callback with an empty array if no records exist', 1, ->

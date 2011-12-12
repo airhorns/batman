@@ -44,7 +44,7 @@ class MockRequest extends MockClass
         {request, response} = expected
 
         for k in ['method', 'data', 'contentType']
-          if request[k]? && request[k] != requestOptions[k]
+          if request[k]? && !QUnit.equiv(request[k], requestOptions[k])
             throw "Wrong #{k} for expected request! Expected #{request[k]}, got #{requestOptions[k]}."
 
         if response.error
@@ -338,6 +338,36 @@ restStorageTestSuite.sharedSuiteHooks =
         name: "testB"
         cost: 10
       ]
+
+  'reading many from storage: when given options should callback with the records if they exist': ->
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    ,product:
+        name: "testA"
+        cost: 10
+
+    MockRequest.expect
+      url: '/products'
+      method: 'POST'
+    , product:
+        name: "testB"
+        cost: 10
+
+    MockRequest.expect {
+      url: '/products'
+      method: 'GET'
+      data:
+        cost: 10
+    }, {
+      products: [
+        name: "testA"
+        cost: 20
+      ,
+        name: "testB"
+        cost: 10
+      ]
+    }
 
   'reading many from storage: should callback with an empty array if no records exist': ->
     MockRequest.expect

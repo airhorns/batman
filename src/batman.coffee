@@ -2430,7 +2430,7 @@ class Batman.Model extends Batman.Object
     developer.assert @hasStorage(), "Can't #{operation} model #{$functionName(@constructor)} without any storage adapters!"
     adapters = @_batman.get('storage')
     for adapter in adapters
-      adapter.perform operation, @, options, callback
+      adapter.perform operation, @, {data: options}, callback
     true
 
   hasStorage: -> (@_batman.get('storage') || []).length > 0
@@ -2740,7 +2740,7 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
   url: (recordOptions) ->
     if inverse = @inverse()
       root = Batman.helpers.pluralize(@label)
-      id = recordOptions["#{@label}_id"]
+      id = recordOptions.data?["#{@label}_id"]
       helper = if inverse.isSingular then "singularize" else "pluralize"
       ending = Batman.helpers[helper](inverse.label)
 
@@ -3138,7 +3138,7 @@ class Batman.LocalStorage extends Batman.StorageAdapter
 
   readAll: @skipIfError ({proto, options}, next) ->
     try
-      arguments[0].recordsAttributes = @_storageEntriesMatching(proto, options)
+      arguments[0].recordsAttributes = @_storageEntriesMatching(proto, options.data)
     catch error
       arguments[0].error = error
     next()
@@ -3202,7 +3202,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
     req = new Batman.Request(options)
 
   perform: (key, record, options, callback) ->
-    $mixin (options.options ||= {}), @defaultRequestOptions
+    $mixin (options ||= {}), @defaultRequestOptions
     super
 
   @::before 'create', 'read', 'update', 'destroy', @skipIfError (env, next) ->
