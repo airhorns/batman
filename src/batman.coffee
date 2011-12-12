@@ -3745,6 +3745,13 @@ Batman.DOM = {
     formfor: (node, localName, key, context) ->
       Batman.DOM.events.submit node, (node, e) -> $preventDefault e
       context.descendWithKey(key, localName)
+    
+    view: (node, bindKey, contextKey, context) ->
+      [_, parent] = context.findKey contextKey
+      view = null
+      parent.observeAndFire contextKey, (newValue) ->
+        view ||= Batman.data node, 'view'
+        view?.set bindKey, newValue
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
