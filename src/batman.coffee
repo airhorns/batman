@@ -3360,7 +3360,13 @@ class Batman.View extends Batman.Object
         @node = document.createElement 'div'
         $setInnerHTML(@node, html)
       return @node
-    set: (_, node) -> @node = node
+    set: (_, node) ->
+      @node = node
+      updateHTML = (html) =>
+        if html?
+          $setInnerHTML(@get('node'), html)
+          @forget('html', updateHTML)
+      @observeAndFire 'html', updateHTML
 
   render: (node) ->
     @event('ready').resetOneShot()

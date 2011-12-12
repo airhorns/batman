@@ -36,6 +36,18 @@ test 'should not add its node property as a source to an enclosing accessor', 1,
   newView = accessible.get()
   equal newView, view
 
+test 'should update a new, set node with the contents of its view after the source loads', 1, ->
+  node = document.createElement('div')
+  @view.set('node', node)
+  MockRequest.lastInstance.fireSuccess('view contents')
+  equal node.innerHTML, 'view contents'
+
+test 'should update a new, set node node with the contents of its view if the node is set after the source loads', 1, ->
+  node = document.createElement('div')
+  MockRequest.lastInstance.fireSuccess('view contents')
+  @view.set('node', node)
+  equal node.innerHTML, 'view contents'
+
 asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
   @view.on 'ready', observer = createSpy()
 
