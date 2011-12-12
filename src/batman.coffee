@@ -3670,7 +3670,7 @@ Batman.DOM = {
       true
 
     view: ->
-      new Batman.DOM.ViewBinding(arguments...)
+      new Batman.DOM.ViewBinding arguments...
       false
 
     partial: (node, path, context, renderer) ->
@@ -3906,8 +3906,13 @@ Batman.DOM = {
     Batman.DOM.didRemoveNode(node)
 
   appendChild: $appendChild = (parent, child, args...) ->
+    view = Batman.data(child, 'view')
+    view?.viewWillAppear? child
+
     Batman.data(child, 'show')?.apply(child, args)
     parent.appendChild(child)
+
+    view?.viewDidAppear? child
 
   insertBefore: $insertBefore = (parentNode, newNode, referenceNode = null) ->
     if !referenceNode or parentNode.childNodes.length <= 0
@@ -3963,7 +3968,13 @@ Batman.DOM = {
 
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
 
-  didRemoveNode: (node) -> $unbindTree node
+  didRemoveNode: (node) ->
+    view = Batman.data node, 'view'
+    view?.viewWillDisappear? node
+
+    $unbindTree node
+
+    view?.viewDidDisappear? node
 
   onParseExit: $onParseExit = (node, callback) ->
     set = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', new Batman.SimpleSet)
@@ -4205,15 +4216,24 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
     super
 
   dataChange: (value) ->
-    if !!value is !@invert
+    if !!value is not @invert
+      view = Batman.data @node, 'view'
+      view?.viewWillAppear? @node
+
       Batman.data(@node, 'show')?.call(@node)
       @node.style.display = @originalDisplay
+
+      view?.viewDidAppear? @node
     else
-      hide = Batman.data @node, 'hide'
-      if typeof hide == 'function'
+      view = Batman.data @node, 'view'
+      view?.viewWillDisappear? @node
+
+      if typeof (hide = Batman.data(@node, 'hide')) is 'function'
         hide.call @node
       else
         $setStyleProperty(@node, 'display', 'none', 'important')
+      
+      view?.viewDidDisappear? @node
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   dataChange: (value) ->
@@ -4456,8 +4476,8 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
 class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
   constructor: ->
     super
-    @renderer.prevent('rendered')
-    @node.removeAttribute "data-view"
+    @renderer.prevent 'rendered'
+    @node.removeAttribute 'data-view'
 
   dataChange: (viewClassOrInstance) ->
     return unless viewClassOrInstance?
@@ -4470,7 +4490,11 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
         node: @node
         context: @renderContext
 
-    @view.on 'ready', => @renderer.allowAndFire 'rendered'
+    Batman.data @node, 'view', @view
+
+    @view.on 'ready', =>
+      @view.awakeFromHTML? node
+      @renderer.allowAndFire 'rendered'
 
     @die()
 
