@@ -13,19 +13,18 @@ test "associations can be added", 2, ->
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   collection.add association
 
-  associationsObject = collection.getAllByType()
-
-  equal associationsObject.get('belongsTo').get(association), 'products'
+  ok collection.getByType('belongsTo').has(association)
   equal collection.getByLabel('products'), association
 
-test "associations are inherited by subclasses", 1, ->
+test "associations are inherited by subclasses", 2, ->
   @Store._batman.check(@Store)
   @Store._batman.associations = parentCollection = new Batman.AssociationCurator(@Store)
-  subClassCollection = new Batman.AssociationCurator(@ShopifyStore)
+  @ShopifyStore._batman.check(@ShopifyStore)
+  @ShopifyStore._batman.associations = subClassCollection = new Batman.AssociationCurator(@ShopifyStore)
 
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   parentCollection.add association
+  subclassCurator = @ShopifyStore._batman.get('associations')
 
-  associationsObject = subClassCollection.getAllByType()
-
-  equal associationsObject.get('belongsTo').get(association), 'products'
+  ok subclassCurator.getByType('belongsTo').has(association)
+  equal subclassCurator.getByLabel('products'), association

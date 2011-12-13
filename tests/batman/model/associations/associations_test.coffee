@@ -26,22 +26,21 @@ asyncTest "associations can be inherited", 2, ->
   namespace = {}
   class namespace.Store extends Batman.Model
     @encode 'name', 'id'
-    @hasMany 'products', {namespace: namespace, autoload: false}
 
   class namespace.TestModel extends Batman.Model
-    @belongsTo 'store', {namespace: namespace}
+    @belongsTo 'store', {namespace: namespace, autoload: false}
 
   class namespace.Product extends namespace.TestModel
     @encode 'name', 'id'
 
-  productAdapter = createStorageAdapter namespace.Product, AsyncTestStorageAdapter,
-    'products2': {name: "Product Two", id: 2, store_id: 3}
+  storeAdapter = createStorageAdapter namespace.Store, AsyncTestStorageAdapter,
+    'stores2': {name: "Store Two", id: 2}
 
-  store = new namespace.Store({id:3, name:"JSON Store"})
-  store.get('products').load (err, products) ->
-    product = products.get('toArray.0')
-    equal product.get('id'), 2
-    ok product instanceof namespace.Product
+  product = new namespace.Product({id: 2, store_id: 2})
+  product.get('store').load (err, store) ->
+    throw err if err
+    ok store instanceof namespace.Store
+    equal store.get('name'), "Store Two"
     QUnit.start()
 
 asyncTest "support model classes that haven't been loaded yet", 2, ->

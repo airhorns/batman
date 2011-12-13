@@ -2226,7 +2226,7 @@ class Batman.Model extends Batman.Object
   @clear: ->
     Batman.initializeObject(@)
     result = @get('loaded').clear()
-    @_batman.associations?.reset()
+    @_batman.get('associations')?.reset()
     result
 
   @find: (id, callback) ->
@@ -2462,9 +2462,9 @@ class Batman.Model extends Batman.Object
       do @saving
       do @creating if creating
 
-      associations = @constructor._batman.associations?.getAllByType()
+      associations = @constructor._batman.get('associations')
       # Save belongsTo models immediately since we don't need this model's id
-      associations?.get('belongsTo')?.forEach (association, label) => association.apply(@)
+      associations?.getByType('belongsTo')?.forEach (association, label) => association.apply(@)
 
       @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
         unless err
@@ -2473,8 +2473,8 @@ class Batman.Model extends Batman.Object
           do @saved
           @dirtyKeys.clear()
 
-          associations?.get('hasOne')?.forEach (association) -> association.apply(err, record)
-          associations?.get('hasMany')?.forEach (association) -> association.apply(err, record)
+          associations?.getByType('hasOne')?.forEach (association) -> association.apply(err, record)
+          associations?.getByType('hasMany')?.forEach (association) -> association.apply(err, record)
 
           record = @constructor._mapIdentity(record)
         callback?(err, record)
@@ -2524,54 +2524,32 @@ class Batman.Model extends Batman.Object
   isNew: -> typeof @get('id') is 'undefined'
 
 
-class Batman.AssociationCurator
+class Batman.AssociationCurator extends Batman.SimpleHash
   @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
   constructor: (@model) ->
+    super()
     # Contains (association, label) pairs mapped by association type
-    # ie. @storage = {<Association.associationType>: {<Association>: <label>}}
-    @byTypeStorage = new Batman.SimpleHash
-    # Contains (label, association) pairs
-    @byLabelStorage = new Batman.SimpleHash
+    # ie. @storage = {<Association.associationType>: [<Association>, <Association>]}
+    @_byTypeStorage = new Batman.SimpleHash
 
   add: (association) ->
-    @byLabelStorage.set association.label, association
-    unless associationTypeHash = @byTypeStorage.get(association.constructor)
-      associationTypeHash = new Batman.SimpleHash
-      @byTypeStorage.set association.associationType, associationTypeHash
-    associationTypeHash.set association, association.label
+    @set association.label, association
+    unless associationTypeSet = @_byTypeStorage.get(association.associationType)
+      associationTypeSet = new Batman.SimpleSet
+      @_byTypeStorage.set association.associationType, associationTypeSet
+    associationTypeSet.add association
 
-  getByType: (type) -> @byTypeStorage.get(type)
-  getByLabel: (label) -> @byLabelStorage.get(label)
-
-  getAllByType: ->
-    # Traverse the class heirarchy to get all the AssociationCurator objects
-    @model._batman.check(@model)
-    ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman?.get('associations'))
-    newStorage = new Batman.SimpleHash
-
-    # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.
-    for key in @constructor.availableAssociations
-      ancestorValuesAtKey = for ancestorCollection in ancestorCollections when val = ancestorCollection?.getByType(key)
-        val
-      newStorage.set key, (@byTypeStorage.get(key) || new Batman.SimpleHash).merge(ancestorValuesAtKey...)
-
-    @byTypeStorage = newStorage
-    # Gives {hasMany: Hash{<Association>: <label>}, hasOne: Hash{...}, ...}
-    @getAllByType = -> @byTypeStorage
-    @byTypeStorage
-
-  associationForLabel: (searchLabel) ->
-    ret = undefined
-    @getAllByType().forEach (type, associations) ->
-      return if ret
-      associations.forEach (association, label) ->
-        return if ret
-        ret = association if label == searchLabel
-    ret
+  getByType: (type) -> @_byTypeStorage.get(type)
+  getByLabel: (label) -> @get(label)
 
   reset: ->
-    @byLabelStorage.forEach (label, association) -> association.reset()
+    @forEach (label, association) -> association.reset()
     true
+
+  merge: (others...) ->
+    result = super
+    result._byTypeStorage = @_byTypeStorage.merge(others.map (other) -> other._byTypeStorage)
+    result
 
 class Batman.Association
   associationType: ''
@@ -2628,12 +2606,12 @@ class Batman.Association
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
   setIndex: -> developer.error "You must override setIndex in Batman.Association subclasses."
   inverse: ->
-    if relatedAssocs = @getRelatedModel()._batman.associations
+    if relatedAssocs = @getRelatedModel()._batman.get('associations')
       if @options.inverseOf
         return relatedAssocs.getByLabel(@options.inverseOf)
 
       inverse = null
-      relatedAssocs.byLabelStorage.forEach (label, assoc) =>
+      relatedAssocs.forEach (label, assoc) =>
         if assoc.getRelatedModel() is @model
           inverse = assoc
       inverse
