@@ -2279,14 +2279,6 @@ class Batman.Model extends Batman.Object
         @get('loaded').add(record)
         return record
 
-  # ### Associations API
-  for k in ['belongsTo', 'hasOne', 'hasMany']
-    do (k) =>
-      @[k] = (label, scope) ->
-        @_batman.check(@)
-        collection = @_batman.associations ||= new Batman.AssociationCollection(@)
-        collection.add new Batman["#{helpers.capitalize(k)}Association"](@, label, scope)
-
   associationProxy: (association) ->
     Batman.initializeObject(@)
     proxies = @_batman.associationProxies ||= new Batman.SimpleHash
@@ -2526,12 +2518,13 @@ class Batman.Model extends Batman.Object
   isNew: -> typeof @get('id') is 'undefined'
 
 
-class Batman.AssociationCollection
+class Batman.AssociationCurator
   @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
   constructor: (@model) ->
     # Contains (association, label) pairs mapped by association type
     # ie. @storage = {<Association.associationType>: {<Association>: <label>}}
     @byTypeStorage = new Batman.SimpleHash
+    # Contains (label, association) pairs
     @byLabelStorage = new Batman.SimpleHash
 
   add: (association) ->
@@ -2545,13 +2538,13 @@ class Batman.AssociationCollection
   getByLabel: (label) -> @byLabelStorage.get(label)
 
   getAllByType: ->
-    # Traverse the class heirarchy to get all the AssociationCollection objects
+    # Traverse the class heirarchy to get all the AssociationCurator objects
     @model._batman.check(@model)
     ancestorCollections = @model._batman.ancestors((ancestor) -> ancestor._batman?.get('associations'))
     newStorage = new Batman.SimpleHash
 
     # Flatten the deep hashes to merge the ancestors into the final, inherited storage for this model.
-    for key in Batman.AssociationCollection.availableAssociations
+    for key in @constructor.availableAssociations
       ancestorValuesAtKey = for ancestorCollection in ancestorCollections when val = ancestorCollection?.getByType(key)
         val
       newStorage.set key, (@byTypeStorage.get(key) || new Batman.SimpleHash).merge(ancestorValuesAtKey...)
@@ -2598,10 +2591,6 @@ class Batman.Association
       model.url ||= (recordOptions) ->
         return self.url(recordOptions)
 
-  setIndex: ->
-    @index ||= new Batman.AssociationSetIndex(@)
-    @index
-
   getAccessor: (self, model, label) ->
     # Check whether the relation has already been set on this model
     if recordInAttributes = self.getFromAttributes(@)
@@ -2627,6 +2616,7 @@ class Batman.Association
     record.constructor.defaultAccessor.get.call(record, @label)
 
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
+  setIndex: -> developer.error "You must override setIndex in Batman.Association subclasses."
   inverse: ->
     if relatedAssocs = @getRelatedModel()._batman.associations
       if @options.inverseOf
@@ -2641,8 +2631,16 @@ class Batman.Association
 class Batman.SingularAssociation extends Batman.Association
   isSingular: true
 
+  setIndex: ->
+    @index ||= new Batman.UniqueAssociationSetIndex(@)
+    @index
+
 class Batman.PluralAssociation extends Batman.Association
   isPlural: true
+
+  setIndex: ->
+    @index ||= new Batman.AssociationSetIndex(@)
+    @index
 
 class Batman.AssociationProxy extends Batman.Object
   constructor: (@association, @model) ->
@@ -2675,11 +2673,11 @@ class Batman.AssociationProxy extends Batman.Object
 class Batman.BelongsToProxy extends Batman.AssociationProxy
   fetch: (callback) ->
     if relatedID = @model.get(@association.localKey)
-      loadedRecords = @association.setIndex().get(relatedID)
+      loadedRecord = @association.setIndex().get(relatedID)
 
-      unless loadedRecords.isEmpty()
+      if loadedRecord?
         @set 'loaded', true
-        callback undefined, loadedRecords.toArray()[0]
+        callback undefined, loadedRecord
       else
         @association.getRelatedModel().find relatedID, (error, loadedRecord) =>
           throw error if error
@@ -2690,10 +2688,10 @@ class Batman.HasOneProxy extends Batman.AssociationProxy
   fetch: (callback) ->
     if id = @model.get(@association.localKey)
       # Check whether the relatedModel has already loaded the instance we want
-      relatedRecords = @association.setIndex().get(id)
-      unless relatedRecords.isEmpty()
+      relatedRecord = @association.setIndex().get(id)
+      if relatedRecord?
         @set('loaded', true)
-        callback undefined, relatedRecords.toArray()[0]
+        callback undefined, relatedRecord
       else
         loadOptions = {}
         loadOptions[@association.foreignKey] = id
@@ -2715,10 +2713,13 @@ class Batman.AssociationSet extends Batman.Set
       @loaded = true unless err
       callback(err, @)
 
+class Batman.UniqueAssociationSetIndex extends Batman.UniqueSetIndex
+  constructor: (@association) ->
+    super @association.getRelatedModel().get('loaded'), @association.foreignKey
+
 class Batman.AssociationSetIndex extends Batman.SetIndex
   constructor: (@association) ->
-    super @association.getRelatedModel().get('loaded'),
-      @association.foreignKey
+    super @association.getRelatedModel().get('loaded'), @association.foreignKey
 
   _resultSetForKey: (key) ->
     @_storage.getOrSet key, =>
@@ -2869,6 +2870,14 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
         relations
     }
+
+# ### Model Associations API
+for k in Batman.AssociationCurator.availableAssociations
+  do (k) =>
+    Batman.Model[k] = (label, scope) ->
+      Batman.initializeObject(@)
+      collection = @_batman.associations ||= new Batman.AssociationCurator(@)
+      collection.add new Batman["#{helpers.capitalize(k)}Association"](@, label, scope)
 
 class Batman.ValidationError extends Batman.Object
   constructor: (attribute, message) -> super({attribute, message})

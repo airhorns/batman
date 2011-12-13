@@ -1,14 +1,14 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require '../model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../../view/view_helper'
 
-QUnit.module "Batman.Model AssociationCollection",
+QUnit.module "Batman.Model AssociationCurator",
   setup: ->
     class @Store extends Batman.Model
     class @Product extends Batman.Model
     class @ShopifyStore extends @Store
 
 test "associations can be added", 2, ->
-  collection = new Batman.AssociationCollection(@Store)
+  collection = new Batman.AssociationCurator(@Store)
 
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   collection.add association
@@ -20,8 +20,8 @@ test "associations can be added", 2, ->
 
 test "associations are inherited by subclasses", 1, ->
   @Store._batman.check(@Store)
-  @Store._batman.associations = parentCollection = new Batman.AssociationCollection(@Store)
-  subClassCollection = new Batman.AssociationCollection(@ShopifyStore)
+  @Store._batman.associations = parentCollection = new Batman.AssociationCurator(@Store)
+  subClassCollection = new Batman.AssociationCurator(@ShopifyStore)
 
   association = {associationType: 'belongsTo', label: 'products', model: @Product}
   parentCollection.add association
