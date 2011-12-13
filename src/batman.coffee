@@ -3398,7 +3398,7 @@ class Batman.View extends Batman.Object
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
-      @_renderer = new Batman.Renderer(node, null, @context)
+      @_renderer = new Batman.Renderer(node, null, @context, @)
       @_renderer.on 'rendered', => @fire('ready', node)
 
 # DOM Helpers
@@ -3410,10 +3410,12 @@ class Batman.View extends Batman.Object
 class Batman.Renderer extends Batman.Object
   deferEvery: 50
 
-  constructor: (@node, callback, context) ->
+  constructor: (@node, callback, context, view) ->
     super()
     @on('parsed', callback) if callback?
     @context = if context instanceof Batman.RenderContext then context else Batman.RenderContext.start(context)
+    @context = @context.descend(view) if view
+
     @immediate = $setImmediate @start
 
   start: =>
