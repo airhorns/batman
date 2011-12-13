@@ -4225,8 +4225,8 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
     super
 
   dataChange: (value) ->
+    view = Batman.data @node, 'view'
     if !!value is not @invert
-      view = Batman.data @node, 'view'
       view?.viewWillAppear? @node
 
       Batman.data(@node, 'show')?.call(@node)
@@ -4234,14 +4234,13 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
 
       view?.viewDidAppear? @node
     else
-      view = Batman.data @node, 'view'
       view?.viewWillDisappear? @node
 
       if typeof (hide = Batman.data(@node, 'hide')) is 'function'
         hide.call @node
       else
         $setStyleProperty(@node, 'display', 'none', 'important')
-      
+
       view?.viewDidDisappear? @node
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
@@ -4498,12 +4497,15 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
       @view = new viewClassOrInstance
         node: @node
         context: @renderContext
+        parentView: @renderContext.findKey('isView')?[1]
 
     Batman.data @node, 'view', @view
 
     @view.on 'ready', =>
-      @view.awakeFromHTML? node
+      @view.awakeFromHTML? @node
+      @view.viewWillAppear? @node
       @renderer.allowAndFire 'rendered'
+      @view.viewDidAppear? @node
 
     @die()
 
