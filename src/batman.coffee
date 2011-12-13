@@ -2223,6 +2223,12 @@ class Batman.Model extends Batman.Object
   @classAccessor 'first', -> @get('all').toArray()[0]
   @classAccessor 'last', -> x = @get('all').toArray(); x[x.length - 1]
 
+  @clear: ->
+    Batman.initializeObject(@)
+    result = @get('loaded').clear()
+    @_batman.associations?.reset()
+    result
+
   @find: (id, callback) ->
     developer.assert callback, "Must call find with a callback!"
     record = new @()
@@ -2563,6 +2569,10 @@ class Batman.AssociationCurator
         ret = association if label == searchLabel
     ret
 
+  reset: ->
+    @byLabelStorage.forEach (label, association) -> association.reset()
+    true
+
 class Batman.Association
   associationType: ''
   defaultOptions:
@@ -2627,6 +2637,10 @@ class Batman.Association
         if assoc.getRelatedModel() is @model
           inverse = assoc
       inverse
+
+  reset: ->
+    delete @index
+    true
 
 class Batman.SingularAssociation extends Batman.Association
   isSingular: true

@@ -1,3 +1,5 @@
+{TestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
+
 QUnit.module "Batman.Model",
   setup: ->
     class @Product extends Batman.Model
@@ -68,21 +70,39 @@ test 'the \'batmanState\' key should be gettable and report the internal state',
 
 test 'the instantiated storage adapter should be returned when persisting', ->
   returned = false
-  class TestStorageAdapter extends Batman.StorageAdapter
+  class StorageAdapter extends Batman.StorageAdapter
     isTestStorageAdapter: true
 
   class Product extends Batman.Model
-    returned = @persist TestStorageAdapter
+    returned = @persist StorageAdapter
 
   ok returned.isTestStorageAdapter
 
 test 'the array of instantiated storage adapters should be returned when persisting', ->
   [a, b, c] = [false, false, false]
-  class TestStorageAdapter extends Batman.StorageAdapter
+  class StorageAdapter extends Batman.StorageAdapter
     isTestStorageAdapter: true
 
   class Product extends Batman.Model
-    [a,b,c] = @persist TestStorageAdapter, TestStorageAdapter, TestStorageAdapter
+    [a,b,c] = @persist StorageAdapter, StorageAdapter, StorageAdapter
 
   for instance in [a,b,c]
     ok instance.isTestStorageAdapter
+
+QUnit.module "Batman.Model class clearing"
+  setup: ->
+    class @Product extends Batman.Model
+      @encode 'name', 'cost'
+
+    @adapter = new TestStorageAdapter(@Product)
+    @adapter.storage =
+      'products1': {name: "One", cost: 10, id:1}
+
+    @Product.persist @adapter
+
+asyncTest 'clearing the model should remove instances from the identity map', ->
+  @Product.load =>
+    equal @Product.get('loaded.length'), 1
+    @Product.clear()
+    equal @Product.get('loaded.length'), 0
+    QUnit.start()
