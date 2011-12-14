@@ -61,9 +61,9 @@ asyncTest "support model classes that haven't been loaded yet", 2, ->
 
     @Blog.find 1, (err, blog) =>
       customer = blog.get 'customer'
-      equal customer.get('id'), 1
-      equal customer.get('name'), 'Customer One'
-      QUnit.start()
+      delay ->
+        equal customer.get('id'), 1
+        equal customer.get('name'), 'Customer One'
   ), ASYNC_TEST_DELAY
 
 asyncTest "models can save while related records are loading", 1, ->
@@ -101,4 +101,3 @@ asyncTest "inline saving can be disabled", 1, ->
     store.save (err, savedStore) =>
       equal @storeAdapter.storage.stores1["products"], undefined
       QUnit.start()
-

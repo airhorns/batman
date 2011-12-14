@@ -63,10 +63,10 @@ class TestStorageAdapter extends Batman.StorageAdapter
     @[action](record, options.data, callback)
 
 class AsyncTestStorageAdapter extends TestStorageAdapter
-  for k in ['update', 'create', 'read', 'readAll', 'destroy']
-    do (k) =>
-      AsyncTestStorageAdapter[k] = ->
-        setTimeout (=> TestStorageAdapter[k].apply(@, arguments)), 0
+  perform: (args...) ->
+    setTimeout =>
+      TestStorageAdapter::perform.apply(@, args)
+    , 0
 
 createStorageAdapter = (modelClass, adapterClass, data = {}) ->
   adapter = new adapterClass(modelClass)

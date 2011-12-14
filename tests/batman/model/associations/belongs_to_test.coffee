@@ -39,12 +39,12 @@ QUnit.module "Batman.Model belongsTo Associations"
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
   @Product.find 1, (err, product) =>
     store = product.get('store')
-    storeJSON = store.toJSON()
-    # store will encode its product
-    delete storeJSON.product
+    delay =>
+      storeJSON = store.toJSON()
+      # store will encode its product
+      delete storeJSON.product
 
-    deepEqual storeJSON, @storeAdapter.storage["stores1"]
-    QUnit.start()
+      deepEqual storeJSON, @storeAdapter.storage["stores1"]
 
 asyncTest "belongsTo associations are loaded via ID", 1, ->
   @Product.find 1, (err, product) =>
@@ -102,8 +102,8 @@ asyncTest "belongsTo associations render", 1, ->
     source = '<span data-bind="product.store.name"></span>'
     context = Batman(product: product)
     helpers.render source, context, (node) =>
-      equal node[0].innerHTML, 'Store One'
-      QUnit.start()
+      delay ->
+        equal node[0].innerHTML, 'Store One'
 
 asyncTest "belongsTo supports inline saving", 1, ->
   namespace = this
@@ -135,8 +135,8 @@ asyncTest "belongsTo supports custom local keys", 1, ->
 
   Shirt.find 1, (err, shirt) ->
     store = shirt.get('store')
-    equal store.get('name'), 'Store One'
-    QUnit.start()
+    delay ->
+      equal store.get('name'), 'Store One'
 
 QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasMany"
   setup: ->

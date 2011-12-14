@@ -24,8 +24,8 @@ QUnit.module "Batman.Model hasOne Associations"
 asyncTest "hasOne associations are loaded via ID", 2, ->
   @Store.find 1, (err, store) =>
     product = store.get 'product'
-    equal product.get('id'), 1
     delay ->
+      equal product.get('id'), 1
       equal product.get('name'), 'Product One'
 
 asyncTest "hasOne associations are not loaded when autoload is false", 2, ->
@@ -99,8 +99,8 @@ asyncTest "hasOne associations render", 1, ->
     source = '<span data-bind="store.product.name"></span>'
     context = Batman(store: store)
     helpers.render source, context, (node) ->
-      equal node[0].innerHTML, 'Product One'
-      QUnit.start()
+      delay ->
+        equal node[0].innerHTML, 'Product One'
 
 asyncTest "hasOne associations make the load method available", 3, ->
   @storeAdapter.storage["stores200"] =
@@ -126,7 +126,7 @@ asyncTest "hasOne supports custom foreign keys", 1, ->
   ns = @
   class Shop extends Batman.Model
     @encode 'id', 'name'
-    @hasOne 'product', namespace: ns, foreignKey: 'store_id'
+    @hasOne 'product', {namespace: ns, foreignKey: 'store_id'}
   shopAdapter = createStorageAdapter Shop, AsyncTestStorageAdapter,
     'shops1':
       id: 1
@@ -134,8 +134,8 @@ asyncTest "hasOne supports custom foreign keys", 1, ->
 
   Shop.find 1, (err, shop) ->
     product = shop.get('product')
-    equal product.get('name'), 'Product One'
-    QUnit.start()
+    delay ->
+      equal product.get('name'), 'Product One'
 
 QUnit.module "Batman.Model hasOne Associations with inverseOf"
   setup: ->

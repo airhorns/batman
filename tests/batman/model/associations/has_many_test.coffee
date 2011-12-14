@@ -59,6 +59,7 @@ QUnit.module "Batman.Model hasMany Associations"
 
 asyncTest "hasMany associations are loaded", 4, ->
   @Store.find 1, (err, store) =>
+    throw err if err
     products = store.get 'products'
     delay =>
       products.forEach (product) => ok product instanceof @Product
@@ -70,6 +71,7 @@ asyncTest "hasMany associations are loaded using encoders", 1, ->
     decode: (x) -> x.toUpperCase()
 
   @Store.find 1, (err, store) =>
+    throw err if err
     products = store.get 'products'
     delay ->
       deepEqual products.map((x) -> x.get('name')), ["PRODUCT ONE", "PRODUCT TWO", "PRODUCT THREE"]
@@ -80,6 +82,7 @@ asyncTest "embedded hasMany associations are loaded using encoders", 1, ->
     decode: (x) -> x * 100
 
   @Product.find 3, (err, product) =>
+    throw err if err
     variants = product.get('productVariants')
     deepEqual variants.map((x) -> x.get('price')), [5000, 6000]
     QUnit.start()
@@ -96,24 +99,27 @@ asyncTest "hasMany associations are not loaded when autoload is false", 1, ->
       id: 1
 
   Store.find 1, (err, store) =>
-    store
+    throw err if err
     products = store.get 'products'
     delay =>
       equal products.length, 0
 
-asyncTest "hasMany associations can be reloaded", 7, ->
+asyncTest "hasMany associations can be reloaded", 8, ->
   loadSpy = spyOn(@Product, 'load')
   @Store.find 1, (err, store) =>
     products = store.get('products')
-    ok products.loaded
-    equal loadSpy.callCount, 1
+    ok !products.loaded
+    setTimeout =>
+      ok products.loaded
+      equal loadSpy.callCount, 1
 
-    products.load (error, products) =>
-      throw error if error
-      equal loadSpy.callCount, 2
-      products.forEach (product) => ok product instanceof @Product
-      deepEqual products.map((x) -> x.get('id')), [1,2,3]
-      QUnit.start()
+      products.load (err, products) =>
+        throw err if err
+        equal loadSpy.callCount, 2
+        products.forEach (product) => ok product instanceof @Product
+        deepEqual products.map((x) -> x.get('id')), [1,2,3]
+        QUnit.start()
+    , ASYNC_TEST_DELAY
 
 asyncTest "hasMany associations are saved via the parent model", 5, ->
   store = new @Store name: 'Zellers'
@@ -139,6 +145,7 @@ asyncTest "hasMany associations are saved via the parent model", 5, ->
 
 asyncTest "hasMany associations are saved via the child model", 2, ->
   @Store.find 1, (err, store) =>
+    throw err if err
     product = new @Product name: 'Gizmo'
     product.set 'store', store
     product.save (err, savedProduct) ->
@@ -149,6 +156,7 @@ asyncTest "hasMany associations are saved via the child model", 2, ->
 
 asyncTest "hasMany association can be loaded from JSON data", 14, ->
   @Product.find 3, (err, product) =>
+    throw err if err
     variants = product.get('productVariants')
     ok variants instanceof Batman.Set
     equal variants.length, 2
@@ -175,6 +183,7 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
 asyncTest "hasMany associations loaded from JSON should be reloadable", 2, ->
   @Product.find 3, (err, product) =>
+    throw err if err
     variants = product.get('productVariants')
     ok variants instanceof Batman.AssociationSet
     variants.load (err, newVariants) =>
@@ -184,6 +193,7 @@ asyncTest "hasMany associations loaded from JSON should be reloadable", 2, ->
 
 asyncTest "hasMany associations loaded from JSON should index the loaded set like normal associations", 3, ->
   @Product.find 3, (err, product) =>
+    throw err if err
     variants = product.get('productVariants')
     ok variants instanceof Batman.AssociationSet
     equal variants.get('length'), 2
@@ -191,7 +201,7 @@ asyncTest "hasMany associations loaded from JSON should index the loaded set lik
     variant.save (err) ->
       throw err if err
       equal variants.get('length'), 3
-    QUnit.start()
+      QUnit.start()
 
 asyncTest "hasMany child models are added to the identity map", 1, ->
   @Product.find 3, (err, product) =>
@@ -200,20 +210,24 @@ asyncTest "hasMany child models are added to the identity map", 1, ->
 
 asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>
+    throw err if err
     source = '<div><span data-foreach-product="store.products" data-bind="product.name"></span></div>'
     context = Batman(store: store)
     helpers.render source, context, (node, view) =>
-      equal node.children().get(0)?.innerHTML, 'Product One'
-      equal node.children().get(1)?.innerHTML, 'Product Two'
-      equal node.children().get(2)?.innerHTML, 'Product Three'
+      setTimeout =>
+        equal node.children().get(0)?.innerHTML, 'Product One'
+        equal node.children().get(1)?.innerHTML, 'Product Two'
+        equal node.children().get(2)?.innerHTML, 'Product Three'
 
-      addedProduct = new @Product(name: 'Product Four', store_id: store.id)
-      addedProduct.save (err, savedProduct) ->
-        delay ->
-          equal node.children().get(3)?.innerHTML, 'Product Four'
+        addedProduct = new @Product(name: 'Product Four', store_id: store.id)
+        addedProduct.save (err, savedProduct) ->
+          delay ->
+            equal node.children().get(3)?.innerHTML, 'Product Four'
+      , ASYNC_TEST_DELAY * 2
 
 asyncTest "hasMany adds new related model instances to its set", ->
   @Store.find 1, (err, store) =>
+    throw err if err
     addedProduct = new @Product(name: 'Product Four', store_id: store.id)
     addedProduct.save (err, savedProduct) =>
       ok store.get('products').has(savedProduct)
@@ -229,12 +243,16 @@ asyncTest "hasMany loads records for each parent instance", 2, ->
     store_id: 2
 
   @Store.find 1, (err, store) =>
+    throw err if err
     products = store.get('products')
-    equal products.length, 3
-    @Store.find 2, (err, store2) =>
-      products2 = store2.get('products')
-      equal products2.length, 1
-      QUnit.start()
+    setTimeout =>
+      equal products.length, 3
+      @Store.find 2, (err, store2) =>
+        throw err if err
+        products2 = store2.get('products')
+        delay =>
+          equal products2.length, 1
+    , ASYNC_TEST_DELAY
 
 asyncTest "hasMany loads after an instance of the related model is saved locally", 2, ->
   product = new @Product
@@ -242,17 +260,20 @@ asyncTest "hasMany loads after an instance of the related model is saved locally
     store_id: 1
 
   product.save (err, savedProduct) =>
+    throw err if err
     @Store.find 1, (err, store) ->
+      throw err if err
       products = store.get('products')
       ok products.has(savedProduct)
-      equal products.length, 4
-      QUnit.start()
+      delay ->
+        equal products.length, 4
 
 asyncTest "hasMany supports custom foreign keys", 1, ->
-  ns = @
+  namespace = @
   class Shop extends Batman.Model
     @encode 'id', 'name'
-    @hasMany 'products', namespace: ns, foreignKey: 'store_id'
+    @hasMany 'products', {namespace: namespace, foreignKey: 'store_id'}
+
   shopAdapter = createStorageAdapter Shop, AsyncTestStorageAdapter,
     'shops1':
       id: 1
@@ -260,8 +281,8 @@ asyncTest "hasMany supports custom foreign keys", 1, ->
 
   Shop.find 1, (err, shop) ->
     products = shop.get('products')
-    equal products.length, 3
-    QUnit.start()
+    delay ->
+      equal products.length, 3
 
 QUnit.module "Batman.Model hasMany Associations with inverse of"
   setup: ->
@@ -316,4 +337,3 @@ asyncTest "hasMany sets the foreign key on the inverse relation if the children 
         equal variants.length, 2
         equal variants[0].get('product'), product
         equal variants[1].get('product'), product
-
