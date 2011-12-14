@@ -2803,6 +2803,10 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
     @localKey = @options.localKey or "id"
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
+  setForRecord: (record) ->
+    if id = record.get(@localKey)
+      @setIndex().get(id)
+
   getAccessor: (self, model, label) ->
     return if @amSetting
     return unless self.getRelatedModel()
@@ -2811,9 +2815,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
     if recordInAttributes = self.getFromAttributes(@)
       return recordInAttributes
 
-    if id = @get(self.localKey)
-      relatedRecords = self.setIndex().get(id)
-
+    if relatedRecords = self.setForRecord(@)
       @amSetting = true
       @set label, relatedRecords
       @amSetting = false
@@ -2846,8 +2848,8 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
         delete association._beingEncoded
         jsonArray
 
-      decode: (data, _, __, ___, parentRecord) ->
-        relations = new Batman.Set
+      decode: (data, key, _, __, parentRecord) ->
+        relations = association.setForRecord(parentRecord) || new Batman.AssociationSet(undefined, association)
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
             record = new relatedModel

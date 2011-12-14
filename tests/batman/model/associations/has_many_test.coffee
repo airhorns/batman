@@ -173,6 +173,26 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
     QUnit.start()
 
+asyncTest "hasMany associations loaded from JSON should be reloadable", 2, ->
+  @Product.find 3, (err, product) =>
+    variants = product.get('productVariants')
+    ok variants instanceof Batman.AssociationSet
+    variants.load (err, newVariants) =>
+      throw err if err
+      equal newVariants.length, 2
+      QUnit.start()
+
+asyncTest "hasMany associations loaded from JSON should index the loaded set like normal associations", 3, ->
+  @Product.find 3, (err, product) =>
+    variants = product.get('productVariants')
+    ok variants instanceof Batman.AssociationSet
+    equal variants.get('length'), 2
+    variant = new @ProductVariant(product_id: 3, name: "Test Variant")
+    variant.save (err) ->
+      throw err if err
+      equal variants.get('length'), 3
+    QUnit.start()
+
 asyncTest "hasMany child models are added to the identity map", 1, ->
   @Product.find 3, (err, product) =>
     equal @ProductVariant.get('loaded').length, 2
