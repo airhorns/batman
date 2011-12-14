@@ -93,30 +93,3 @@ asyncTest 'data-replace should remove bindings on replaced content', ->
       context.set 'simple', 'updated'
       delay =>
         equal spy.callCount, oldCallCount
-
-
-QUnit.module 'Batman.View rendering with bindings'
-
-asyncTest 'it should update simple bindings when they change', 2, ->
-  context = Batman foo: 'bar'
-  node = helpers.render '<div data-bind="foo"></div>', context, (node) ->
-    equals node.html(), "bar"
-    context.set('foo', 'baz')
-    equals node.html(), "baz"
-    QUnit.start()
-
-asyncTest 'it should allow chained keypaths', 3, ->
-  context = Batman
-    foo: Batman
-      bar: Batman
-        baz: 'wallawalladingdong'
-
-  helpers.render '<div data-bind="foo.bar.baz"></div>', context, (node) ->
-
-    equals node.html(), "wallawalladingdong"
-    context.set('foo.bar.baz', 'kablamo')
-    equals node.html(), "kablamo"
-    context.set('foo.bar', Batman baz: "whammy")
-    equals node.html(), "whammy"
-
-    QUnit.start()
