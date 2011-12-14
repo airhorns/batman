@@ -2587,8 +2587,9 @@ class Batman.Association
     # Make sure the related model has been loaded
     if self.getRelatedModel()
       proxy = @associationProxy(self)
-      if not proxy.get('loaded') and self.options.autoload
-        proxy.load()
+      Batman.Property.withoutTracking ->
+        if not proxy.get('loaded') and self.options.autoload
+          proxy.load()
       proxy
 
   getRelatedModel: ->
@@ -2644,8 +2645,8 @@ class Batman.AssociationProxy extends Batman.Object
 
   load: (callback) ->
     @fetch (err, relation) =>
-      @set('target', relation)
-      callback?(undefined, relation)
+      @set('target', relation) unless err
+      callback?(err, relation)
     @get('target')
 
   @accessor 'loaded'
@@ -2812,18 +2813,15 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
     return unless self.getRelatedModel()
 
     # Check whether the relation has already been set on this model
-    if recordInAttributes = self.getFromAttributes(@)
-      return recordInAttributes
+    if setInAttributes = self.getFromAttributes(@)
+      return setInAttributes
 
     if relatedRecords = self.setForRecord(@)
-      @amSetting = true
-      @set label, relatedRecords
-      @amSetting = false
+      Batman.Property.withoutTracking ->
+        if self.options.autoload and not relatedRecords.loaded
+          relatedRecords.load (error, records) -> throw error if error
 
-      if self.options.autoload and not relatedRecords.loaded
-        relatedRecords.load (error, records) -> throw error if error
-
-      return relatedRecords
+      relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)
