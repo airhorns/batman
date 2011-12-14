@@ -1408,6 +1408,40 @@ class Batman.UniqueSetIndex extends Batman.SetIndex
     else
       @_uniqueIndex.set(key, resultSet.toArray()[0])
 
+class Batman.BinarySetOperation extends Batman.Set
+  constructor: (@left, @right) ->
+    super()
+    @_setup @left, @right
+    @_setup @right, @left
+
+  _setup: (set, opposite) =>
+    set.on 'itemsWereAdded', (items...) =>
+      @_itemsWereAddedToSource(set, opposite, items...)
+    set.on 'itemsWereRemoved', (items...) =>
+      @_itemsWereRemovedFromSource(set, opposite, items...)
+    @_itemsWereAddedToSource set, opposite, set.toArray()...
+
+  merge: (others...) ->
+    merged = new Batman.Set
+    others.unshift(@)
+    for set in others
+      set.forEach (v) -> merged.add v
+    merged
+
+  filter: Batman.SetProxy::filter
+
+class Batman.SetUnion extends Batman.BinarySetOperation
+  _itemsWereAddedToSource: (source, opposite, items...) ->  @add items...
+  _itemsWereRemovedFromSource: (source, opposite, items...) ->
+    itemsToRemove = (item for item in items when !opposite.has(item))
+    @remove itemsToRemove...
+
+class Batman.SetIntersection extends Batman.BinarySetOperation
+  _itemsWereAddedToSource: (source, opposite, items...) ->
+    itemsToAdd = (item for item in items when opposite.has(item))
+    @add itemsToAdd...
+  _itemsWereRemovedFromSource: (source, opposite, items...) -> @remove items...
+
 # State Machines
 # --------------
 
@@ -3725,7 +3759,7 @@ Batman.DOM = {
     formfor: (node, localName, key, context) ->
       Batman.DOM.events.submit node, (node, e) -> $preventDefault e
       context.descendWithKey(key, localName)
-    
+
     view: (node, bindKey, contextKey, context) ->
       [_, parent] = context.findKey contextKey
       view = null

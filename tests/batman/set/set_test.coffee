@@ -202,6 +202,19 @@ QUnit.module 'Batman.Set',
 
 basicSetTestSuite()
 
+QUnit.module 'Batman.SetIntersection',
+  setup: ->
+    @set = new Batman.SetIntersection(new Batman.Set, new Batman.Set)
+
+basicSetTestSuite()
+
+QUnit.module 'Batman.SetUnion',
+  setup: ->
+    @set = new Batman.SetUnion(new Batman.Set, new Batman.Set)
+
+basicSetTestSuite()
+
+
 QUnit.module 'Batman.Set indexedBy and SortedBy' ,
   setup: ->
     @set = new Batman.Set
@@ -217,7 +230,6 @@ QUnit.module 'Batman.Set indexedBy and SortedBy' ,
     @set.add @o2 =
       foo:
         bar: 2
-
 
 test "sortedBy(property, order) returns a cached SetSort", ->
   ascendingFoo = @set.sortedBy('foo')
