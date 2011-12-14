@@ -2557,125 +2557,14 @@ class Batman.Model extends Batman.Object
 
   isNew: -> typeof @get('id') is 'undefined'
 
-
-class Batman.AssociationCurator extends Batman.SimpleHash
-  @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
-  constructor: (@model) ->
-    super()
-    # Contains (association, label) pairs mapped by association type
-    # ie. @storage = {<Association.associationType>: [<Association>, <Association>]}
-    @_byTypeStorage = new Batman.SimpleHash
-
-  add: (association) ->
-    @set association.label, association
-    unless associationTypeSet = @_byTypeStorage.get(association.associationType)
-      associationTypeSet = new Batman.SimpleSet
-      @_byTypeStorage.set association.associationType, associationTypeSet
-    associationTypeSet.add association
-
-  getByType: (type) -> @_byTypeStorage.get(type)
-  getByLabel: (label) -> @get(label)
-
-  reset: ->
-    @forEach (label, association) -> association.reset()
-    true
-
-  merge: (others...) ->
-    result = super
-    result._byTypeStorage = @_byTypeStorage.merge(others.map (other) -> other._byTypeStorage)
-    result
-
-class Batman.Association
-  associationType: ''
-  defaultOptions:
-    saveInline: true
-    autoload: true
-
-  constructor: (@model, @label, options = {}) ->
-    defaultOptions =
-      namespace: Batman.currentApp
-      name: helpers.camelize(helpers.singularize(@label))
-    @options = $mixin defaultOptions, @defaultOptions, options
-
-    # Setup encoders and accessors for this association. The accessor needs reference to this
-    # association object, so curry the association info into the getAccessor, which has the
-    # model applied as the context
-    model.encode label, @encoder()
-
-    self = @
-    getAccessor = -> return self.getAccessor.call(@, self, model, label)
-    model.accessor label,
-      get: getAccessor
-      set: model.defaultAccessor.set
-      unset: model.defaultAccessor.unset
-
-    if @url
-      model.url ||= (recordOptions) ->
-        return self.url(recordOptions)
-
-  getAccessor: (self, model, label) ->
-    # Check whether the relation has already been set on this model
-    if recordInAttributes = self.getFromAttributes(@)
-      return recordInAttributes
-
-    # Make sure the related model has been loaded
-    if self.getRelatedModel()
-      proxy = @associationProxy(self)
-      Batman.Property.withoutTracking ->
-        if not proxy.get('loaded') and self.options.autoload
-          proxy.load()
-      proxy
-
-  getRelatedModel: ->
-    scope = @options.namespace or Batman.currentApp
-    modelName = @options.name
-    relatedModel = scope?[modelName]
-    developer.do ->
-      if Batman.currentApp? and not relatedModel
-        developer.warn "Related model #{modelName} hasn't loaded yet."
-    relatedModel
-
-  getFromAttributes: (record) ->
-    record.constructor.defaultAccessor.get.call(record, @label)
-
-  encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
-  setIndex: -> developer.error "You must override setIndex in Batman.Association subclasses."
-  inverse: ->
-    if relatedAssocs = @getRelatedModel()._batman.get('associations')
-      if @options.inverseOf
-        return relatedAssocs.getByLabel(@options.inverseOf)
-
-      inverse = null
-      relatedAssocs.forEach (label, assoc) =>
-        if assoc.getRelatedModel() is @model
-          inverse = assoc
-      inverse
-
-  reset: ->
-    delete @index
-    true
-
-class Batman.SingularAssociation extends Batman.Association
-  isSingular: true
-
-  setIndex: ->
-    @index ||= new Batman.UniqueAssociationSetIndex(@)
-    @index
-
-class Batman.PluralAssociation extends Batman.Association
-  isPlural: true
-
-  setIndex: ->
-    @index ||= new Batman.AssociationSetIndex(@)
-    @index
-
+# ## Associations
 class Batman.AssociationProxy extends Batman.Object
+  isProxy: true
   constructor: (@association, @model) ->
   loaded: false
 
   toJSON: ->
-    if @loaded
-      @get('target').toJSON()
+    @get('target').toJSON() if @get('loaded')
 
   load: (callback) ->
     @fetch (err, relation) =>
@@ -2683,9 +2572,7 @@ class Batman.AssociationProxy extends Batman.Object
       callback?(err, relation)
     @get('target')
 
-  @accessor 'loaded'
-    get: -> @loaded
-    set: (_, v) -> @loaded = v
+  @accessor 'loaded', Batman.Property.defaultAccessor
 
   @accessor 'target',
     get: ->
@@ -2751,6 +2638,138 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
   _resultSetForKey: (key) ->
     @_storage.getOrSet key, =>
       new Batman.AssociationSet(key, @association)
+
+
+class Batman.AssociationCurator extends Batman.SimpleHash
+  @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
+  constructor: (@model) ->
+    super()
+    # Contains (association, label) pairs mapped by association type
+    # ie. @storage = {<Association.associationType>: [<Association>, <Association>]}
+    @_byTypeStorage = new Batman.SimpleHash
+
+  add: (association) ->
+    @set association.label, association
+    unless associationTypeSet = @_byTypeStorage.get(association.associationType)
+      associationTypeSet = new Batman.SimpleSet
+      @_byTypeStorage.set association.associationType, associationTypeSet
+    associationTypeSet.add association
+
+  getByType: (type) -> @_byTypeStorage.get(type)
+  getByLabel: (label) -> @get(label)
+
+  reset: ->
+    @forEach (label, association) -> association.reset()
+    true
+
+  merge: (others...) ->
+    result = super
+    result._byTypeStorage = @_byTypeStorage.merge(others.map (other) -> other._byTypeStorage)
+    result
+
+class Batman.Association
+  associationType: ''
+  defaultOptions:
+    saveInline: true
+    autoload: true
+
+  constructor: (@model, @label, options = {}) ->
+    defaultOptions =
+      namespace: Batman.currentApp
+      name: helpers.camelize(helpers.singularize(@label))
+    @options = $mixin defaultOptions, @defaultOptions, options
+
+    # Setup encoders and accessors for this association. The accessor needs reference to this
+    # association object, so curry the association info into the getAccessor, which has the
+    # model applied as the context
+    model.encode label, @encoder()
+
+    self = @
+    getAccessor = -> return self.getAccessor.call(@, self, model, label)
+    model.accessor label,
+      get: getAccessor
+      set: model.defaultAccessor.set
+      unset: model.defaultAccessor.unset
+
+    if @url
+      model.url ||= (recordOptions) ->
+        return self.url(recordOptions)
+
+  getRelatedModel: ->
+    scope = @options.namespace or Batman.currentApp
+    modelName = @options.name
+    relatedModel = scope?[modelName]
+    developer.do ->
+      if Batman.currentApp? and not relatedModel
+        developer.warn "Related model #{modelName} hasn't loaded yet."
+    relatedModel
+
+  getFromAttributes: (record) ->
+    record.constructor.defaultAccessor.get.call(record, @label)
+
+  encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
+  setIndex: -> developer.error "You must override setIndex in Batman.Association subclasses."
+  inverse: ->
+    if relatedAssocs = @getRelatedModel()._batman.get('associations')
+      if @options.inverseOf
+        return relatedAssocs.getByLabel(@options.inverseOf)
+
+      inverse = null
+      relatedAssocs.forEach (label, assoc) =>
+        if assoc.getRelatedModel() is @model
+          inverse = assoc
+      inverse
+
+  reset: ->
+    delete @index
+    true
+
+class Batman.SingularAssociation extends Batman.Association
+  isSingular: true
+
+  getAccessor: (self, model, label) ->
+    # Check whether the relation has already been set on this model
+    if recordInAttributes = self.getFromAttributes(@)
+      return recordInAttributes
+
+    # Make sure the related model has been loaded
+    if self.getRelatedModel()
+      proxy = @associationProxy(self)
+      Batman.Property.withoutTracking ->
+        if not proxy.get('loaded') and self.options.autoload
+          proxy.load()
+      proxy
+
+  setIndex: ->
+    @index ||= new Batman.UniqueAssociationSetIndex(@)
+    @index
+
+class Batman.PluralAssociation extends Batman.Association
+  isSingular: false
+
+  setForRecord: (record) ->
+    Batman.Property.withoutTracking =>
+      if id = record.get(@localKey)
+        @setIndex().get(id)
+
+  getAccessor: (self, model, label) ->
+    return if @amSetting
+    return unless self.getRelatedModel()
+
+    # Check whether the relation has already been set on this model
+    if setInAttributes = self.getFromAttributes(@)
+      return setInAttributes
+
+    if relatedRecords = self.setForRecord(@)
+      Batman.Property.withoutTracking ->
+        if self.options.autoload and not relatedRecords.loaded
+          relatedRecords.load (error, records) -> throw error if error
+
+      relatedRecords
+
+  setIndex: ->
+    @index ||= new Batman.AssociationSetIndex(@)
+    @index
 
 class Batman.BelongsToAssociation extends Batman.SingularAssociation
   associationType: 'belongsTo'
@@ -2837,25 +2856,6 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
     super
     @localKey = @options.localKey or "id"
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
-
-  setForRecord: (record) ->
-    if id = record.get(@localKey)
-      @setIndex().get(id)
-
-  getAccessor: (self, model, label) ->
-    return if @amSetting
-    return unless self.getRelatedModel()
-
-    # Check whether the relation has already been set on this model
-    if setInAttributes = self.getFromAttributes(@)
-      return setInAttributes
-
-    if relatedRecords = self.setForRecord(@)
-      Batman.Property.withoutTracking ->
-        if self.options.autoload and not relatedRecords.loaded
-          relatedRecords.load (error, records) -> throw error if error
-
-      relatedRecords
 
   apply: (baseSaveError, base) ->
     if relations = base.constructor.defaultAccessor.get.call(base, @label)
@@ -3660,7 +3660,8 @@ Batman.DOM = {
         [key, action] = if isHash then key.split('#') else key.split('/')
         [dispatcher, app] = context.findKey 'dispatcher'
         [model, _] = context.findKey key if not isHash
-        model = model.get('target') if model instanceof Batman.AssociationProxy
+        if model && model.isProxy
+          model = model.get('target')
 
         dispatcher ||= Batman.currentApp.dispatcher
 

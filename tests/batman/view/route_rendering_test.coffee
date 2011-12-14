@@ -1,4 +1,5 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
+{TestStorageAdapter} = if typeof require isnt 'undefined' then require '../model/model_helper' else window
 
 QUnit.module 'Batman.View route rendering',
   setup: ->
@@ -22,6 +23,8 @@ asyncTest 'should set corresponding href for model and action', 1, ->
     @resources 'tweets', 'users'
 
   class @App.User extends Batman.Model
+    @persist TestStorageAdapter
+
   class @App.Tweet extends Batman.Model
     @belongsTo 'user', {namespace: app}
 
@@ -31,31 +34,36 @@ asyncTest 'should set corresponding href for model and action', 1, ->
   @App.run()
 
   user = new @App.User(id: 2)
-  @App.User._mapIdentity(user)
-  tweet = new @App.Tweet(id: 1, user_id: user.get('id'))
-  @App.set 'tweet', tweet
+  user.save (err) =>
+    throw err if err
 
-  source = '<a data-route="Tweet">index</a>' +
-    '<a data-route="Tweet/new">new</a>' +
-    '<a data-route="tweet">show</a>' +
-    '<a data-route="tweet/edit">edit</a>' +
-    '<a data-route="tweet.user">user</a>' +
-    '<a data-route="tweet.user/edit">edit user</a>'
+    tweet = new @App.Tweet(id: 1, user_id: user.get('id'))
+    tweet.get('user').load (err, user) =>
+      throw err if err
 
-  node = document.createElement 'div'
-  node.innerHTML = source
+      @App.set 'tweet', tweet
 
-  view = new Batman.View
-    contexts: []
-    node: node
+      source = '<a data-route="Tweet">index</a>' +
+        '<a data-route="Tweet/new">new</a>' +
+        '<a data-route="tweet">show</a>' +
+        '<a data-route="tweet/edit">edit</a>' +
+        '<a data-route="tweet.user">user</a>' +
+        '<a data-route="tweet.user/edit">edit user</a>'
 
-  view.on 'ready', ->
-    urls = ($(a).attr('href') for a in view.get('node').childNodes)
-    expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit', '/users/2', '/users/2/edit'].map (path) -> Batman.Navigator.defaultClass()::linkTo(path)
-    deepEqual urls, expected
-    QUnit.start()
+      node = document.createElement 'div'
+      node.innerHTML = source
 
-  view.get 'node'
+      view = new Batman.View
+        contexts: []
+        node: node
+
+      view.on 'ready', ->
+        urls = ($(a).attr('href') for a in view.get('node').childNodes)
+        expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit', '/users/2', '/users/2/edit'].map (path) -> Batman.Navigator.defaultClass()::linkTo(path)
+        deepEqual urls, expected
+        QUnit.start()
+
+      view.get 'node'
 
 asyncTest 'should allow you to use controller#action routes, if they are defined', 1, ->
   class @App extends Batman.App
