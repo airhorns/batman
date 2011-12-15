@@ -4797,7 +4797,7 @@ filters = Batman.Filters =
     value.meta.get(keypath)
 
   interpolate: (string, interpolationKeypaths) ->
-    return undefined unless string?
+    return if not string
     values = {}
     for k, v of interpolationKeypaths
       values[k] = @findKey(v)[0]
@@ -4806,6 +4806,11 @@ filters = Batman.Filters =
         values[k] = ''
 
     Batman.helpers.interpolate(string, values)
+
+  # allows you to curry arguments to a function via a filter
+  withArguments: (block, curryArgs...) ->
+    return if not block
+    return (regularArgs...) -> block.call @, curryArgs..., regularArgs...
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
