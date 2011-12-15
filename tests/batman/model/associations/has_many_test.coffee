@@ -107,6 +107,7 @@ asyncTest "hasMany associations are not loaded when autoload is false", 1, ->
 asyncTest "hasMany associations can be reloaded", 8, ->
   loadSpy = spyOn(@Product, 'load')
   @Store.find 1, (err, store) =>
+    throw err if err
     products = store.get('products')
     ok !products.loaded
     setTimeout =>
@@ -129,17 +130,19 @@ asyncTest "hasMany associations are saved via the parent model", 5, ->
 
   storeSaveSpy = spyOn store, 'save'
   store.save (err, record) =>
+    throw err if err
     equal storeSaveSpy.callCount, 1
     equal product1.get('store_id'), record.id
     equal product2.get('store_id'), record.id
 
     @Store.find record.id, (err, store2) =>
+      throw err if err
       storedJSON = @storeAdapter.storage["stores#{record.id}"]
       deepEqual store2.toJSON(), storedJSON
       # hasMany saves inline by default
       deepEqual storedJSON.products, [
-        {name: "Gizmo", store_id: record.id}
-        {name: "Gadget", store_id: record.id}
+        {name: "Gizmo", store_id: record.id, productVariants: []}
+        {name: "Gadget", store_id: record.id, productVariants: []}
       ]
       QUnit.start()
 
@@ -206,6 +209,39 @@ asyncTest "hasMany associations loaded from JSON should index the loaded set lik
 asyncTest "hasMany child models are added to the identity map", 1, ->
   @Product.find 3, (err, product) =>
     equal @ProductVariant.get('loaded').length, 2
+    QUnit.start()
+
+asyncTest "unsaved hasMany models should accept associated children", 2, ->
+  product = new @Product
+  variants = product.get('productVariants')
+  delay =>
+    equal variants.length, 0
+    variant = new @ProductVariant
+    variants.add variant
+    equal variants.length, 1
+
+asyncTest "unsaved hasMany models should save their associated children", 4, ->
+  product = new @Product(name: "Hello!")
+  variants = product.get('productVariants')
+  variant = new @ProductVariant(price: 100)
+  variants.add variant
+  product.save (err, product) =>
+    throw err if err
+    storedJSON = @productAdapter.storage["products#{product.get('id')}"]
+    deepEqual storedJSON,
+      id: 11
+      name: "Hello!"
+      productVariants:[
+        {price: 100, product_id: product.get('id')}
+      ]
+
+    ok !product.isNew()
+
+    # Mock out what a realbackend would do: assign ids to the child records
+    # The TestStorageAdapter is smart enough to do this for the parent, but not the children.
+    variant.fromJSON {price:100, product_id: product.get('id'), id: 11}
+    equal variant.get('product_id'), product.get('id')
+    ok !variant.isNew()
     QUnit.start()
 
 asyncTest "hasMany associations render", 4, ->

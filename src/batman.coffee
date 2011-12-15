@@ -2622,6 +2622,7 @@ class Batman.AssociationSet extends Batman.Set
   constructor: (@key, @association) -> super()
   loaded: false
   load: (callback) ->
+    return callback(undefined, @) unless @key?
     loadOptions = {}
     loadOptions[@association.foreignKey] = @key
     @association.getRelatedModel().load loadOptions, (err, records) =>
@@ -2640,6 +2641,8 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
     @_storage.getOrSet key, =>
       new Batman.AssociationSet(key, @association)
 
+  _setResultSet: (key, set) ->
+    @_storage.set key, set
 
 class Batman.AssociationCurator extends Batman.SimpleHash
   @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
@@ -2707,6 +2710,8 @@ class Batman.Association
 
   getFromAttributes: (record) ->
     record.constructor.defaultAccessor.get.call(record, @label)
+  setIntoAttributes: (record, value) ->
+    record.constructor.defaultAccessor.set.call(record, @label, value)
 
   encoder: -> developer.error "You must override encoder in Batman.Association subclasses."
   setIndex: -> developer.error "You must override setIndex in Batman.Association subclasses."
@@ -2752,18 +2757,21 @@ class Batman.PluralAssociation extends Batman.Association
     Batman.Property.withoutTracking =>
       if id = record.get(@localKey)
         @setIndex().get(id)
+      else
+        new Batman.AssociationSet(undefined, @)
 
   getAccessor: (self, model, label) ->
-    return if @amSetting
     return unless self.getRelatedModel()
 
     # Check whether the relation has already been set on this model
     if setInAttributes = self.getFromAttributes(@)
-      return setInAttributes
+      setInAttributes
+    else
+      relatedRecords = self.setForRecord(@)
+      self.setIntoAttributes(@, relatedRecords)
 
-    if relatedRecords = self.setForRecord(@)
-      Batman.Property.withoutTracking ->
-        if self.options.autoload and not relatedRecords.loaded
+      Batman.Property.withoutTracking =>
+        if self.options.autoload and not @isNew() and not relatedRecords.loaded
           relatedRecords.load (error, records) -> throw error if error
 
       relatedRecords
@@ -2882,7 +2890,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
         jsonArray
 
       decode: (data, key, _, __, parentRecord) ->
-        relations = association.setForRecord(parentRecord) || new Batman.AssociationSet(undefined, association)
+        relations = association.setForRecord(parentRecord)
         if relatedModel = association.getRelatedModel()
           for jsonObject in data
             record = new relatedModel
