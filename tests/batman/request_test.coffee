@@ -55,6 +55,16 @@ asyncTest 'should call the success callback if the request was successful', 2, -
       deepEqual optionsHashObserver.lastCallArguments, ['some test data']
       deepEqual postInstantiationObserver.lastCallArguments, ['some test data']
 
+asyncTest 'should set headers', 2, ->
+  new Batman.Request
+    url: 'some/test/url.html'
+    headers: {'test_header': 'test-value'}
+
+  delay =>
+    req = @send.lastCallContext
+    notEqual req.headers.test_header, undefined
+    equal req.headers.test_header, 'test-value'
+
 if typeof FormData isnt 'undefined'
   oldFormData = FormData
 else

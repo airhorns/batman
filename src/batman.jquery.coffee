@@ -19,6 +19,7 @@ Batman.Request::send = (data) ->
     data: data || @get 'data'
     username: @get 'username'
     password: @get 'password'
+    headers: @get 'headers'
     beforeSend: =>
       @fire 'loading'
 

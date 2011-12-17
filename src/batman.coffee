@@ -1536,6 +1536,7 @@ class Batman.Request extends Batman.Object
   formData: false
   response: null
   status: null
+  headers: {}
 
   @accessor 'method', $mixin {}, Batman.Property.defaultAccessor,
     set: (k,val) -> @[k] = val?.toUpperCase?()

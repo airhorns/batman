@@ -323,7 +323,7 @@ Batman.Request::send = (data) ->
     url: @get 'url'
     method: @get 'method'
     type: @get 'type'
-    headers: {}
+    headers: @get 'headers'
 
     success: (response) =>
       @set 'response', response
