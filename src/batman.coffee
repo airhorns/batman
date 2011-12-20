@@ -2274,26 +2274,20 @@ class Batman.Model extends Batman.Object
 
   # `load` fetches records from all sources possible
   @load: (options, callback) ->
-    if $typeOf(options) is 'Function'
+    if typeof options in ['function', 'undefined']
       callback = options
-      options = undefined
+      options = {}
 
     developer.assert @::_batman.getAll('storage').length, "Can't load model #{$functionName(@)} without any storage adapters!"
-    mappedRecords = new Batman.Set
-    mappedRecords.fire 'loading', options
-    @loading mappedRecords, options
 
-    @::_doStorageOperation 'readAll', options || {}, (err, records) =>
+    @loading()
+    @::_doStorageOperation 'readAll', options, (err, records) =>
       if err?
         callback?(err, [])
       else
-        mappedRecords.add(@_mapIdentity(record)) for record in records
-        mappedRecords.fire 'loaded', options
-        @loaded mappedRecords, options
-
+        mappedRecords = (@_mapIdentity(record) for record in records)
+        @loaded()
         callback?(err, mappedRecords)
-
-    mappedRecords
 
   # `create` takes an attributes hash, creates a record from it, and saves it given the callback.
   @create: (attrs, callback) ->
@@ -2618,11 +2612,11 @@ class Batman.HasOneProxy extends Batman.AssociationProxy
         loadOptions[@association.foreignKey] = id
         @association.getRelatedModel().load loadOptions, (error, loadedRecords) =>
           throw error if error
-          if !loadedRecords or loadedRecords.length < 1
+          if !loadedRecords or loadedRecords.length <= 0
             callback new Error("Couldn't find related record!"), undefined
           else
             @set('loaded', true)
-            callback undefined, loadedRecords.get('first')
+            callback undefined, loadedRecords[0]
 
 class Batman.AssociationSet extends Batman.Set
   constructor: (@key, @association) -> super()
@@ -2778,7 +2772,7 @@ class Batman.PluralAssociation extends Batman.Association
 
       Batman.Property.withoutTracking =>
         if self.options.autoload and not @isNew() and not relatedRecords.loaded
-          relatedRecords.load (error) -> throw error if error
+          relatedRecords.load (error, records) -> throw error if error
 
       relatedRecords
 
