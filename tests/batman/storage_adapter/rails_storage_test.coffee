@@ -113,3 +113,40 @@ asyncTest 'hasMany formats the URL to /roots/id/plural', 1, ->
   delay ->
     deepEqual (products.map (product) -> product.toJSON()), productsJSON
 
+productJSON =
+  product:
+    name: 'test'
+    id: 10
+
+asyncTest 'updating in storage: should serialize array data without indicies', 1, ->
+  MockRequest.expect
+    url: '/products'
+    method: 'POST'
+    data: "product%5Bname%5D%5B%5D=a&product%5Bname%5D%5B%5D=b"
+  , productJSON
+
+  MockRequest.expect
+    url: '/products/10'
+    method: 'PUT'
+    data: "product%5Bid%5D=10&product%5Bname%5D=test&product%5Bcost%5D=10"
+  , product:
+      name: 'test'
+      cost: 10
+
+  MockRequest.expect
+    url: '/products/10'
+    method: 'GET'
+  , product:
+      name: 'test'
+      cost: 10
+
+  product = new @Product(name: ["a", "b"])
+  @adapter.perform 'create', product, {}, (err, createdRecord) =>
+    throw err if err
+    product.set('cost', 10)
+    @adapter.perform 'update', product, {}, (err, updatedProduct) =>
+      throw err if err
+      @adapter.perform 'read', product, {}, (err, readProduct) ->
+        throw err if err
+        equal readProduct.get('cost', 10), 10
+        QUnit.start()

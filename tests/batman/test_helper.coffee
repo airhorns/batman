@@ -9,6 +9,10 @@ else
   exports.IN_NODE = true
 
 originalPathname = window.location.pathname
+__begin = QUnit.begin
+QUnit.begin = ->
+  Batman.exportGlobals(global) if IN_NODE
+  __begin.apply(@, arguments)
 
 # set Batman.config:
 QUnit.__start = QUnit.start
