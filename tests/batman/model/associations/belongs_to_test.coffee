@@ -21,9 +21,14 @@ QUnit.module "Batman.Model belongsTo Associations"
         name: "Store Three"
         id: 3
 
+    class @Collection extends Batman.Model
+      @encode 'id', 'name'
+    @collectionAdapter = createStorageAdapter @Collection, AsyncTestStorageAdapter
+
     class @Product extends Batman.Model
       @encode 'id', 'name'
       @belongsTo 'store', namespace: namespace
+      @belongsTo 'collection', namespace: namespace
     @productAdapter = createStorageAdapter @Product, AsyncTestStorageAdapter,
       'products1':
         name: "Product One"
@@ -33,7 +38,7 @@ QUnit.module "Batman.Model belongsTo Associations"
         name: "Product One"
         id: 1
         store:
-          name: "Store Three",
+          name: "Store Three"
           id: 3
 
 asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
@@ -65,20 +70,24 @@ asyncTest "belongsTo associations are not loaded when autoload is off", 1, ->
     equal (typeof store), 'undefined'
     QUnit.start()
 
-asyncTest "belongsTo associations are saved", 5, ->
-  store = new @Store name: 'Zellers'
+asyncTest "belongsTo associations are saved", 7, ->
+  store = new @Store id: 1, name: 'Zellers'
+  collection = new @Collection id: 2, name: 'Awesome Things'
   product = new @Product name: 'Gizmo'
   product.set 'store', store
+  product.set 'collection', collection
 
   productSaveSpy = spyOn product, 'save'
   product.save (err, record) =>
     equal productSaveSpy.callCount, 1
     equal record.get('store_id'), store.id
+    equal record.get('collection_id'), collection.id
     storedJSON = @productAdapter.storage["products#{record.id}"]
     deepEqual storedJSON, product.toJSON()
 
     store = record.get('store')
-    equal storedJSON.store_id, undefined
+    equal storedJSON.store_id, 1
+    equal storedJSON.collection_id, 2
 
     @Product.find record.get('id'), (err, product2) ->
       deepEqual product2.toJSON(), storedJSON
@@ -110,16 +119,20 @@ asyncTest "belongsTo supports inline saving", 1, ->
   class @InlineProduct extends Batman.Model
     @encode 'name'
     @belongsTo 'store', namespace: namespace, saveInline: true
+    @belongsTo 'collection', namespace: namespace, saveInline: true
   storageAdapter = createStorageAdapter @InlineProduct, AsyncTestStorageAdapter
 
   product = new @InlineProduct name: "Inline Product"
   store = new @Store name: "Inline Store"
+  collection = new @Collection name: "Inline Collection"
   product.set 'store', store
+  product.set 'collection', collection
 
   product.save (err, record) =>
     deepEqual storageAdapter.storage["inline_products#{record.get('id')}"],
       name: "Inline Product"
       store: {name: "Inline Store"}
+      collection: {name: "Inline Collection"}
     QUnit.start()
 
 asyncTest "belongsTo supports custom local keys", 1, ->
