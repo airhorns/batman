@@ -44,7 +44,7 @@ QUnit.module "Batman.Model hasMany Associations"
         }]
 
     namespace.ProductVariant = class @ProductVariant extends Batman.Model
-      @encode 'price'
+      @encode 'id', 'price'
       @belongsTo 'product', namespace: namespace
 
     @variantsAdapter = createStorageAdapter @ProductVariant, AsyncTestStorageAdapter,
@@ -161,7 +161,7 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
   @Product.find 3, (err, product) =>
     throw err if err
     variants = product.get('productVariants')
-    ok variants instanceof Batman.Set
+    ok variants instanceof Batman.AssociationSet
     equal variants.length, 2
 
     variant5 = variants.toArray()[0]
@@ -225,6 +225,23 @@ asyncTest "unsaved hasMany models should save their associated children", 4, ->
   variants = product.get('productVariants')
   variant = new @ProductVariant(price: 100)
   variants.add variant
+
+  # Mock out what a realbackend would do: assign ids to the child records
+  # The TestStorageAdapter is smart enough to do this for the parent, but not the children.
+  @productAdapter.create = (record, options, callback) ->
+    id = record.set('id', @counter++)
+    if id
+      @storage[@storageKey(record) + id] = record.toJSON()
+      record.fromJSON
+        id: id
+        productVariants: [{
+          price: 100
+          id: 11
+        }]
+      callback(undefined, record)
+    else
+      callback(new Error("Couldn't get record primary key."))
+
   product.save (err, product) =>
     throw err if err
     storedJSON = @productAdapter.storage["products#{product.get('id')}"]
@@ -236,12 +253,39 @@ asyncTest "unsaved hasMany models should save their associated children", 4, ->
       ]
 
     ok !product.isNew()
+    ok !variant.isNew()
+    equal variant.get('product_id'), product.get('id')
+    QUnit.start()
 
+asyncTest "unsaved hasMany models should reflect their associated children after save", 3, ->
+  product = new @Product(name: "Hello!")
+  variants = product.get('productVariants')
+  variant = new @ProductVariant(price: 100)
+  variants.add variant
+
+  # Mock out what a realbackend would do: assign ids to the child records
+  # The TestStorageAdapter is smart enough to do this for the parent, but not the children.
+  @productAdapter.create = (record, options, callback) ->
+    id = record.set('id', @counter++)
+    if id
+      @storage[@storageKey(record) + id] = record.toJSON()
+      record.fromJSON
+        id: id
+        productVariants: [{
+          price: 100
+          id: 11
+        }]
+      callback(undefined, record)
+    else
+      callback(new Error("Couldn't get record primary key."))
+
+  product.save (err, product) =>
+    throw err if err
     # Mock out what a realbackend would do: assign ids to the child records
     # The TestStorageAdapter is smart enough to do this for the parent, but not the children.
-    variant.fromJSON {price:100, product_id: product.get('id'), id: 11}
-    equal variant.get('product_id'), product.get('id')
-    ok !variant.isNew()
+    equal product.get('productVariants.length'), 1
+    ok product.get('productVariants').has(variant)
+    equal variants.get('length'), 1
     QUnit.start()
 
 asyncTest "hasMany associations render", 4, ->

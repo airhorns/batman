@@ -2640,13 +2640,15 @@ class Batman.HasOneProxy extends Batman.AssociationProxy
             @set('loaded', true)
             callback undefined, loadedRecords[0]
 
-class Batman.AssociationSet extends Batman.Set
-  constructor: (@key, @association) -> super()
+class Batman.AssociationSet extends Batman.SetSort
+  constructor: (@foreignKeyValue, @association) ->
+    base = new Batman.Set
+    super(base, 'hashKey')
   loaded: false
   load: (callback) ->
-    return callback(undefined, @) unless @key?
+    return callback(undefined, @) unless @foreignKeyValue?
     loadOptions = {}
-    loadOptions[@association.foreignKey] = @key
+    loadOptions[@association.foreignKey] = @foreignKeyValue
     @association.getRelatedModel().load loadOptions, (err, records) =>
       @loaded = true unless err
       callback(err, @)
@@ -2860,7 +2862,7 @@ class Batman.HasOneAssociation extends Batman.SingularAssociation
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   apply: (baseSaveError, base) ->
-    if relation = base.constructor.defaultAccessor.get.call(base, @label)
+    if relation = @getFromAttributes(base)
       relation.set @foreignKey, base.get(@localKey)
 
   encoder: ->
@@ -2889,9 +2891,11 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   apply: (baseSaveError, base) ->
-    if relations = base.constructor.defaultAccessor.get.call(base, @label)
-      relations.forEach (model) =>
-        model.set @foreignKey, base.get(@localKey)
+    unless baseSaveError
+      if relations = @getFromAttributes(base)
+        relations.forEach (model) =>
+          model.set @foreignKey, base.get(@localKey)
+      base.set @label, @setForRecord(base)
 
   encoder: ->
     association = @
@@ -2912,20 +2916,26 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
         jsonArray
 
       decode: (data, key, _, __, parentRecord) ->
-        relations = association.setForRecord(parentRecord)
         if relatedModel = association.getRelatedModel()
-          for jsonObject in data
-            record = new relatedModel
+          existingRelations = association.getFromAttributes(parentRecord) || association.setForRecord(parentRecord)
+          existingArray = existingRelations?.toArray()
+          for jsonObject, i in data
+            record = if existingArray && existingArray[i]
+              existing = true
+              existingArray[i]
+            else
+              existing = false
+              new relatedModel()
             record.fromJSON jsonObject
 
             if association.options.inverseOf
               record.set association.options.inverseOf, parentRecord
 
             record = relatedModel._mapIdentity(record)
-            relations.add record
+            existingRelations.add record
         else
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
-        relations
+        existingRelations
     }
 
 # ### Model Associations API
