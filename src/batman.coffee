@@ -3548,24 +3548,25 @@ class Batman.RenderContext
     node = node.descend(context) if context
     node
 
+  @deProxy: (object) -> if object? && object.isContextProxy then object.get('proxiedObject') else object
   constructor: (@object, @parent) ->
 
   findKey: (key) ->
     base = key.split('.')[0].split('|')[0].trim()
     currentNode = @
     while currentNode
-      if currentNode.object.get?
-        val = currentNode.object.get(base)
-      else
-        val = currentNode.object[base]
-
+      # We define the behaviour of the context stack as latching a get when the first key exists,
+      # so we need to check only if the basekey exists, not if all intermediary keys do as well.
+      val = $get(currentNode.object, base)
       if typeof val isnt 'undefined'
-        # we need to pass the check if the basekey exists, even if the intermediary keys do not.
-        return [$get(currentNode.object, key), currentNode.object]
+        val = $get(currentNode.object, key)
+        return [val, currentNode.object].map(@constructor.deProxy)
       currentNode = currentNode.parent
 
     @windowWrapper ||= window: Batman.container
     [$get(@windowWrapper, key), @windowWrapper]
+
+  get: (key) -> @findKey(key)[0]
 
   # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
@@ -4050,7 +4051,6 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   get_dot_rx = /(?:\]\.)(.+?)(?=[\[\.]|\s*\||$)/
   get_rx = /(?!^\s*)\[(.*?)\]/g
 
-  deProxy = (object) -> if object instanceof Batman.RenderContext.ContextProxy then object.get('proxiedObject') else object
   # The `filteredValue` which calculates the final result by reducing the initial value through all the filters.
   @accessor 'filteredValue'
     get: ->
@@ -4069,13 +4069,12 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
           # Apply the filter.
           args.unshift value
-          args = args.map deProxy
           fn.apply(self.renderContext, args)
         , unfilteredValue)
         developer.currentFilterStack = null
         result
       else
-        deProxy(unfilteredValue)
+        unfilteredValue
 
     # We ignore any filters for setting, because they often aren't reversible.
     set: (_, newValue) -> @set('unfilteredValue', newValue)
@@ -4086,7 +4085,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
       # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
       # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
       if k = @get('key')
-        @get("keyContext.#{k}")
+        Batman.RenderContext.deProxy(@get("keyContext.#{k}"))
       else
         @get('value')
     set: (_, value) ->
@@ -4373,10 +4372,7 @@ class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
     else
       keyContext = subContext
 
-    if keyContext instanceof Batman.RenderContext.ContextProxy
-      actualObject = keyContext.get('proxiedObject')
-    else
-      actualObject = keyContext
+    actualObject = Batman.RenderContext.deProxy(keyContext)
 
     if actualObject.hasStorage && actualObject.hasStorage()
       for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage

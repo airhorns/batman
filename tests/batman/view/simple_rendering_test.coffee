@@ -323,7 +323,6 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
       delay ->
         ok adapter.defaultRequestOptions.formData
 
-
 asyncTest 'should bind radio buttons to a value', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
     <input id="free" type="radio" data-bind="ad.sale_type" name="sale_type" value="free"/>

@@ -101,10 +101,14 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
     after: ->
       first = false
+      alltests = glob.globSync("#{tmpdir}/tests/**/*_test.js")
+      tests = alltests.slice(0, 5)
+      tests.push(alltests[7])
+      console.warn tests
       runner.run
         code:  {namespace: "Batman", path: "#{tmpdir}/batman.node.js"}
         deps: ["jsdom", "#{tmpdir}/tests/batman/test_helper.js", "./tests/lib/jquery.js"]
-        tests: glob.globSync("#{tmpdir}/tests/**/*_test.js")
+        tests: tests
         coverage: options.coverage || false
       , (report) ->
         unless options.watch

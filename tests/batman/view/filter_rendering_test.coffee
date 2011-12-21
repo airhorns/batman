@@ -280,15 +280,19 @@ asyncTest 'should allow filtered keypaths as arguments to context', 1, ->
     delay ->
       equals $("#test", node).html(), 'filtered!'
 
-asyncTest 'should allow filtered keypaths as arguments to context and filters to be performed in the context', 1, ->
+asyncTest 'should allow filtered keypaths as arguments to context and filters to be performed in the context', 2, ->
   context = Batman
     foo: Batman
       baz: new Batman.Set({foo: 'bar'}, {foo: 'baz'})
+      qux: new Batman.Set({foo: '1'}, {foo: '2'})
     bar: 'baz'
 
   helpers.render '<div data-context-corge="foo | get bar"><div id="test" data-bind="corge | map \'foo\' | join \', \'"></div></div>', context, (node) ->
     delay ->
       equals $("#test", node).html(), 'bar, baz'
+      context.set 'bar', 'qux'
+      delay ->
+        equals $("#test", node).html(), '1, 2'
 
 asyncTest 'should allow filtered keypaths as arguments to formfor', 1, ->
   class SingletonDooDad extends Batman.Object
