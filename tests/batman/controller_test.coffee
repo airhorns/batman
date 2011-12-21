@@ -94,3 +94,19 @@ test 'redirecting a dispatch prevents implicit render', 2, ->
 
   @controller.dispatch 'test1'
   @controller.dispatch 'test2'
+
+test '[before/after]Filter', 3, ->
+  class FilterController extends Batman.Controller
+    @beforeFilter only: 'withBefore', except: 'withoutBefore', ->
+      ok true, 'beforeFilter called'
+    @afterFilter 'testAfter'
+
+    withBefore: ->
+    withoutBefore: ->
+    testAfter: ->
+      ok true, 'afterFilter called'
+
+  controller = new FilterController
+
+  controller.dispatch 'withoutBefore'
+  controller.dispatch 'withBefore'

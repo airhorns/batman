@@ -2064,15 +2064,41 @@ class Batman.Controller extends Batman.Object
 
   @accessor 'controllerName', -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
 
-  @beforeFilter: (nameOrFunction) ->
-    Batman.initializeObject @
-    filters = @_batman.beforeFilters ||= []
-    filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
+  @beforeFilter: (options, nameOrFunction) ->
+    if not nameOrFunction
+      nameOrFunction = options
+      options = {}
+    else
+      options.only = [options.only] if options.only and $typeOf(options.only) isnt 'Array'
+      options.except = [options.except] if options.except and $typeOf(options.except) isnt 'Array'
 
-  @afterFilter: (nameOrFunction) ->
     Batman.initializeObject @
-    filters = @_batman.afterFilters ||= []
-    filters.push(nameOrFunction) if filters.indexOf(nameOrFunction) is -1
+    options.block = nameOrFunction
+    filters = @_batman.beforeFilters ||= new Batman.Hash
+    filters.set(nameOrFunction, options)
+
+  @afterFilter: (options, nameOrFunction) ->
+    if not nameOrFunction
+      nameOrFunction = options
+      options = {}
+    else
+      options.only = [options.only] if options.only and $typeOf(options.only) isnt 'Array'
+      options.except = [options.except] if options.except and $typeOf(options.except) isnt 'Array'
+
+    Batman.initializeObject @
+    options.block = nameOrFunction
+    filters = @_batman.afterFilters ||= new Batman.Hash
+    filters.set(nameOrFunction, options)
+
+  runFilters: (params, filters) ->
+    action = params.action
+    if filters = @constructor._batman?.get(filters)
+      filters.forEach (_, options) =>
+        return if options.only and action not in options.only
+        return if options.except and action in options.except
+
+        block = options.block
+        if typeof block is 'function' then block.call(@, params) else @[block]?(params)
 
   # You shouldn't call this method directly. It will be called by the dispatcher when a route is called.
   # If you need to call a route manually, use `$redirect()`.
@@ -2089,9 +2115,7 @@ class Batman.Controller extends Batman.Object
     @set 'action', action
     @set 'params', params
 
-    if filters = @constructor._batman?.get('beforeFilters')
-      for filter in filters
-        if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
+    @runFilters params, 'beforeFilters'
 
     developer.assert @[action], "Error! Controller action #{@get 'controllerName'}.#{action} couldn't be found!"
     @[action](params)
@@ -2099,9 +2123,7 @@ class Batman.Controller extends Batman.Object
     if not @_actedDuringAction
       @render()
 
-    if filters = @constructor._batman?.get('afterFilters')
-      for filter in filters
-        if typeof filter is 'function' then filter.call(@, params) else @[filter](params)
+    @runFilters params, 'afterFilters'
 
     delete @_actedDuringAction
     delete @_inAction
