@@ -4416,7 +4416,7 @@ class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
     if node.hasAttribute('multiple')
       @set 'filteredValue', Array::slice.call(node.files)
     else
-      @set 'filteredValue', node.value
+      @set 'filteredValue', node.files[0]
 
 class Batman.DOM.MixinBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) -> $mixin @node, value if value?
