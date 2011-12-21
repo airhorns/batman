@@ -120,7 +120,6 @@ basicSetTestSuite = ->
     @set.clear()
     equal spy.callCount, 1, 'clear() fires itemsWereRemoved handlers'
 
-
   test "replace() doesn't fire length observers if the size didn't change", ->
     spy = createSpy()
     other = new Batman.Set
@@ -227,28 +226,109 @@ basicSetTestSuite = ->
     set.add new Batman.Object bar: 'baz'
     deepEqual set.toJSON(), set.toArray()
 
+sortAndIndexSuite = ->
+  test "sortedBy(property, order) returns a cached SetSort", ->
+    ascendingFoo = @set.sortedBy('foo')
+    strictEqual @set.sortedBy('foo'), ascendingFoo
+    descendingFoo = @set.sortedBy('foo', 'desc')
+    strictEqual @set.sortedBy('foo', 'desc'), descendingFoo
+
+    notEqual ascendingFoo, descendingFoo
+    equal ascendingFoo.base, @base
+    equal ascendingFoo.key, 'foo'
+    equal ascendingFoo.descending, no
+    equal descendingFoo.base, @base
+    equal descendingFoo.key, 'foo'
+    equal descendingFoo.descending, yes
+
+  test "sortedBy(deepProperty, order) returns a cached SetSort", ->
+    ascendingFoo = @set.sortedBy('foo.bar')
+    strictEqual @set.sortedBy('foo.bar'), ascendingFoo
+    descendingFoo = @set.sortedBy('foo.bar', 'desc')
+    strictEqual @set.sortedBy('foo.bar', 'desc'), descendingFoo
+
+    notEqual ascendingFoo, descendingFoo
+    equal ascendingFoo.base, @base
+    equal ascendingFoo.key, 'foo.bar'
+    equal ascendingFoo.descending, no
+    equal descendingFoo.base, @base
+    equal descendingFoo.key, 'foo.bar'
+    equal descendingFoo.descending, yes
+
+  test "get('sortedBy.name') returns .sortedBy('name')", ->
+    strictEqual @set.get('sortedBy.name'), @set.sortedBy('name')
+
+  test "get('sortedByDescending.name') returns .sortedBy('name', 'desc')", ->
+    strictEqual @set.get('sortedByDescending.name'), @set.sortedBy('name', 'desc')
+
+  test "sortedBy(deepProperty) sorts by the deep property instead of traversing the keypath", ->
+    sort = @set.sortedBy('foo.bar')
+    deepEqual sort.toArray(), [@o1, @o2, @o3]
+
+  test "get('sortedBy').get(deepProperty) sorts by the deep property instead of traversing the keypath", ->
+    sort = @set.get('sortedBy').get('foo.bar')
+    deepEqual sort.toArray(), [@o1, @o2, @o3]
+
+  test "sortedBy(deepProperty, 'desc') sorts by the deep property instead of traversing the keypath", ->
+    sort = @set.sortedBy('foo.bar', 'desc')
+    deepEqual sort.toArray(), [@o3, @o2, @o1]
+
+  test "get('sortedByDescending').get(deepProperty) sorts by the deep property instead of traversing the keypath", ->
+    sort = @set.get('sortedByDescending').get('foo.bar')
+    deepEqual sort.toArray(), [@o3, @o2, @o1]
+
+  test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
+    index = @set.indexedBy('length')
+    ok index instanceof Batman.SetIndex
+    equal index.base, @base
+    equal index.key, 'length'
+    strictEqual @set.indexedBy('length'), index
+
+  test "get('indexedBy.someKey') returns the same index as indexedBy(key)", ->
+    strictEqual @set.get('indexedBy.length'), @set.indexedBy('length')
+
+  test "indexedBy(deepProperty) indexes by the deep property instead of traversing the keypath", ->
+    index = @set.indexedBy('foo.bar')
+    deepEqual index.get(2).toArray(), [@o2]
+
+  test "get('indexedBy').get(deepProperty) indexes by the deep property instead of traversing the keypath", ->
+    index = @set.get('indexedBy').get('foo.bar')
+    deepEqual index.get(2).toArray(), [@o2]
+
+  test "indexedByUnique(key) returns a memoized UniqueSetIndex for that key", ->
+    Batman.developer.suppress =>
+      index = @set.indexedByUnique('foo')
+      ok index instanceof Batman.UniqueSetIndex
+      equal index.base, @base
+      equal index.key, 'foo'
+      strictEqual @set.indexedByUnique('foo'), index
+
+  test "get('indexedByUnique.foo') returns a memoized UniqueSetIndex for the key 'foo'", ->
+    Batman.developer.suppress =>
+      strictEqual @set.get('indexedByUnique.foo'), @set.indexedByUnique('foo')
+
+
 QUnit.module 'Batman.Set',
   setup: ->
     @set = new Batman.Set
 
 basicSetTestSuite()
 
-QUnit.module 'Batman.SetIntersection',
+QUnit.module 'Batman.SetIntersection set polymorphism',
   setup: ->
     @set = new Batman.SetIntersection(new Batman.Set, new Batman.Set)
 
 basicSetTestSuite()
 
-QUnit.module 'Batman.SetUnion',
+QUnit.module 'Batman.SetUnion set polymorphism',
   setup: ->
     @set = new Batman.SetUnion(new Batman.Set, new Batman.Set)
 
 basicSetTestSuite()
 
-
 QUnit.module 'Batman.Set indexedBy and SortedBy' ,
   setup: ->
-    @set = new Batman.Set
+    @base = @set = new Batman.Set
 
     @set.add @o3 =
       foo:
@@ -262,89 +342,31 @@ QUnit.module 'Batman.Set indexedBy and SortedBy' ,
       foo:
         bar: 2
 
-test "sortedBy(property, order) returns a cached SetSort", ->
-  ascendingFoo = @set.sortedBy('foo')
-  strictEqual @set.sortedBy('foo'), ascendingFoo
-  descendingFoo = @set.sortedBy('foo', 'desc')
-  strictEqual @set.sortedBy('foo', 'desc'), descendingFoo
+sortAndIndexSuite()
 
-  notEqual ascendingFoo, descendingFoo
-  equal ascendingFoo.base, @set
-  equal ascendingFoo.key, 'foo'
-  equal ascendingFoo.descending, no
-  equal descendingFoo.base, @set
-  equal descendingFoo.key, 'foo'
-  equal descendingFoo.descending, yes
-
-test "sortedBy(deepProperty, order) returns a cached SetSort", ->
-  ascendingFoo = @set.sortedBy('foo.bar')
-  strictEqual @set.sortedBy('foo.bar'), ascendingFoo
-  descendingFoo = @set.sortedBy('foo.bar', 'desc')
-  strictEqual @set.sortedBy('foo.bar', 'desc'), descendingFoo
-
-  notEqual ascendingFoo, descendingFoo
-  equal ascendingFoo.base, @set
-  equal ascendingFoo.key, 'foo.bar'
-  equal ascendingFoo.descending, no
-  equal descendingFoo.base, @set
-  equal descendingFoo.key, 'foo.bar'
-  equal descendingFoo.descending, yes
-
-test "get('sortedBy.name') returns .sortedBy('name')", ->
-  strictEqual @set.get('sortedBy.name'), @set.sortedBy('name')
-
-test "get('sortedByDescending.name') returns .sortedBy('name', 'desc')", ->
-  strictEqual @set.get('sortedByDescending.name'), @set.sortedBy('name', 'desc')
-
-test "sortedBy(deepProperty) sorts by the deep property instead of traversing the keypath", ->
-  sort = @set.sortedBy('foo.bar')
-  deepEqual sort.toArray(), [@o1, @o2, @o3]
-
-test "get('sortedBy').get(deepProperty) sorts by the deep property instead of traversing the keypath", ->
-  sort = @set.get('sortedBy').get('foo.bar')
-  deepEqual sort.toArray(), [@o1, @o2, @o3]
-
-test "sortedBy(deepProperty, 'desc') sorts by the deep property instead of traversing the keypath", ->
-  sort = @set.sortedBy('foo.bar', 'desc')
-  deepEqual sort.toArray(), [@o3, @o2, @o1]
-
-test "get('sortedByDescending').get(deepProperty) sorts by the deep property instead of traversing the keypath", ->
-  sort = @set.get('sortedByDescending').get('foo.bar')
-  deepEqual sort.toArray(), [@o3, @o2, @o1]
-
-test "indexedBy(key) returns a memoized Batman.SetIndex for that key", ->
-  index = @set.indexedBy('length')
-  ok index instanceof Batman.SetIndex
-  equal index.base, @set
-  equal index.key, 'length'
-  strictEqual @set.indexedBy('length'), index
-
-test "get('indexedBy.someKey') returns the same index as indexedBy(key)", ->
-  strictEqual @set.get('indexedBy.length'), @set.indexedBy('length')
-
-test "indexedBy(deepProperty) indexes by the deep property instead of traversing the keypath", ->
-  index = @set.indexedBy('foo.bar')
-  deepEqual index.get(2).toArray(), [@o2]
-
-test "get('indexedBy').get(deepProperty) indexes by the deep property instead of traversing the keypath", ->
-  index = @set.get('indexedBy').get('foo.bar')
-  deepEqual index.get(2).toArray(), [@o2]
-
-test "indexedByUnique(key) returns a memoized UniqueSetIndex for that key", ->
-  Batman.developer.suppress =>
-    index = @set.indexedByUnique('foo')
-    ok index instanceof Batman.UniqueSetIndex
-    equal index.base, @set
-    equal index.key, 'foo'
-    strictEqual @set.indexedByUnique('foo'), index
-
-test "get('indexedByUnique.foo') returns a memoized UniqueSetIndex for the key 'foo'", ->
-  Batman.developer.suppress =>
-    strictEqual @set.get('indexedByUnique.foo'), @set.indexedByUnique('foo')
-
-QUnit.module "Batman.SetSort polymorphism"
+QUnit.module "Batman.SetSort set polymorphism"
   setup: ->
     set = new Batman.Set
     @set = set.sortedBy('')
 
 basicSetTestSuite()
+
+QUnit.module 'Batman.SetSort indexedBy and SortedBy' ,
+  setup: ->
+    @base = new Batman.Set
+    @set = @base.sortedBy('')
+
+    @set.add @o3 =
+      foo:
+        bar: 3
+
+    @set.add @o1 =
+      foo:
+        bar: 1
+
+    @set.add @o2 =
+      foo:
+        bar: 2
+
+sortAndIndexSuite()
+

@@ -1228,17 +1228,20 @@ class Batman.Set extends Batman.Object
 
   toJSON: @::toArray
 
-  @accessor 'indexedBy', -> new Batman.TerminalAccessible (key) => @indexedBy(key)
-  @accessor 'indexedByUnique', -> new Batman.TerminalAccessible (key) => @indexedByUnique(key)
-  @accessor 'sortedBy',  -> new Batman.TerminalAccessible (key) => @sortedBy(key)
-  @accessor 'sortedByDescending', -> new Batman.TerminalAccessible (key) => @sortedBy(key, 'desc')
-  @accessor 'isEmpty', -> @isEmpty()
-  @accessor 'toArray', -> @toArray()
-  @accessor 'length', ->
+applySetAccessors = (klass) ->
+  klass.accessor 'first', -> @toArray()[0]
+  klass.accessor 'last',  -> @toArray()[@length - 1]
+  klass.accessor 'indexedBy',          -> new Batman.TerminalAccessible (key) => @indexedBy(key)
+  klass.accessor 'indexedByUnique',    -> new Batman.TerminalAccessible (key) => @indexedByUnique(key)
+  klass.accessor 'sortedBy',           -> new Batman.TerminalAccessible (key) => @sortedBy(key)
+  klass.accessor 'sortedByDescending', -> new Batman.TerminalAccessible (key) => @sortedBy(key, 'desc')
+  klass.accessor 'isEmpty', -> @isEmpty()
+  klass.accessor 'toArray', -> @toArray()
+  klass.accessor 'length',  ->
     @registerAsMutableSource()
     @length
-  @accessor 'first', -> @toArray()[0]
-  @accessor 'last', -> @toArray()[@length - 1]
+
+applySetAccessors(Batman.Set)
 
 class Batman.SetObserver extends Batman.Object
   constructor: (@base) ->
@@ -1299,20 +1302,17 @@ class Batman.SetProxy extends Batman.Object
         @length = @set('length', @base.get 'length')
         results
 
-  for k in ['has', 'merge', 'toArray', 'isEmpty']
+  for k in ['has', 'merge', 'toArray', 'isEmpty', 'indexedBy', 'indexedByUnique', 'sortedBy']
     do (k) =>
       @::[k] = -> @base[k](arguments...)
 
-  for k in ['isEmpty', 'toArray']
-    do (k) =>
-      @accessor k, -> @base.get(k)
+  applySetAccessors(@)
 
-  @accessor 'length'
+  @accessor 'length',
     get: ->
       @registerAsMutableSource()
       @length
-    set: (k, v) ->
-      @length = v
+    set: (_, v) -> @length = v
 
 class Batman.SetSort extends Batman.SetProxy
   constructor: (@base, @key, order="asc") ->
@@ -1330,7 +1330,6 @@ class Batman.SetSort extends Batman.SetProxy
   startObserving: -> @_setObserver?.startObserving()
   stopObserving: -> @_setObserver?.stopObserving()
   toArray: -> @get('_storage')
-  @accessor 'toArray', @::toArray
   forEach: (iterator, ctx) -> iterator.call(ctx,e,i,this) for e,i in @get('_storage')
   compare: (a,b) ->
     return 0 if a is b
