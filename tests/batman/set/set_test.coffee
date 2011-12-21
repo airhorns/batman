@@ -72,6 +72,18 @@ basicSetTestSuite = ->
     @set.add('bar')
     equal spy.callCount, 2
 
+  test "add(items...) fires itemsWereAdded handlers", ->
+    @set.on 'itemsWereAdded', spy = createSpy()
+    @set.add('foo')
+    deepEqual spy.lastCallArguments, ['foo']
+
+    @set.add('baz', 'bar')
+    deepEqual spy.lastCallArguments, ['baz', 'bar']
+
+    equal spy.callCount, 2
+    @set.add('bar')
+    equal spy.callCount, 2
+
   test "remove(items...) fires length observers", ->
     @set.observe 'length', spy = createSpy()
     @set.add('foo')
@@ -82,6 +94,16 @@ basicSetTestSuite = ->
     @set.remove('foo')
     equal spy.callCount, 2
 
+  test "remove(items...) fires itemsWereRemoved handlers", ->
+    @set.on 'itemsWereRemoved', spy = createSpy()
+    @set.add('foo')
+    @set.remove('foo')
+    deepEqual spy.lastCallArguments, ['foo']
+
+    equal spy.callCount, 1
+    @set.remove('foo')
+    equal spy.callCount, 1
+
   test "clear() fires length observers", ->
     spy = createSpy()
     @set.observe('length', spy)
@@ -89,6 +111,15 @@ basicSetTestSuite = ->
     @set.add('foo', 'bar')
     @set.clear()
     equal spy.callCount, 2, 'clear() fires length observers'
+
+  test "clear() fires itemsWereRemoved handlers", ->
+    spy = createSpy()
+    @set.on('itemsWereRemoved', spy)
+
+    @set.add('foo', 'bar')
+    @set.clear()
+    equal spy.callCount, 1, 'clear() fires itemsWereRemoved handlers'
+
 
   test "replace() doesn't fire length observers if the size didn't change", ->
     spy = createSpy()

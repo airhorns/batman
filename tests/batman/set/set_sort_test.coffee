@@ -65,7 +65,7 @@ test "toArray() returns the sorted items", ->
   @base.add trueName
   @base.add falseName
   @base.remove @anotherByFred
-  
+
   assertSorted(@authorNameSort.toArray(), Batman.SetSort::compare)
 
 test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
@@ -100,7 +100,7 @@ test "forEach(iterator) and toArray() go in reverse if sort is descending", ->
   descendingAuthorNameSort = new Batman.SetSort(@base, 'author.name', 'desc')
   sorted = descendingAuthorNameSort.toArray()
   assertSorted(sorted, (a,b) -> Batman.SetSort::compare(b,a))
-  
+
   collector = []
   descendingAuthorNameSort.forEach (item) -> collector.push(item)
   deepEqual sorted, collector
@@ -115,7 +115,6 @@ test "toArray() returns the correct order", ->
   expected = [@byFred, @anotherByFred, @byMary, @byZeke]
   deepEqual @authorNameSort.toArray(), expected
 
-
 test "toArray() includes newly added items in the correct order", ->
   @base.add @byJill
   expected = [@byFred, @anotherByFred, @byJill, @byMary, @byZeke]
@@ -124,7 +123,6 @@ test "toArray() includes newly added items in the correct order", ->
   @base.add @anotherByZeke
   expected = [@byFred, @anotherByFred, @byJill, @byMary, @byZeke, @anotherByZeke]
   deepEqual @authorNameSort.toArray(), expected
-
 
 test "toArray() does not include items which have been removed", ->
   @base.remove @anotherByFred
@@ -137,13 +135,11 @@ test "toArray() does not include items which have been removed", ->
   equal @authorNameSort.toArray().length, 2
   deepEqual @authorNameSort.toArray(), expected
 
-
 test "setting a new value of the sorted property on one of the items triggers an update", ->
   switchedAuthorToMary = @anotherByFred
   switchedAuthorToMary.set('author', @mary)
   expected = [@byFred, @byMary, switchedAuthorToMary, @byZeke]
   deepEqual @authorNameSort.toArray(), expected
-
 
 test "setting a new value of the sorted property on an item which has been removed should not trigger an update", ->
   @base.remove @anotherByFred
@@ -154,7 +150,6 @@ test "setting a new value of the sorted property on an item which has been remov
   equal reIndex.called, false
   expected = [@byFred, @byMary, @byZeke]
   deepEqual @authorNameSort.toArray(), expected
-
 
 test "stopObserving() forgets all observers", ->
   @authorNameSort.stopObserving()

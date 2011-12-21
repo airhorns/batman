@@ -1283,6 +1283,8 @@ class Batman.SetProxy extends Batman.Object
   constructor: () ->
     super()
     @length = 0
+    @base.on 'itemsWereAdded', (items...) => @fire('itemsWereAdded', items...)
+    @base.on 'itemsWereRemoved', (items...) => @fire('itemsWereRemoved', items...)
 
   $extendsEnumerable(@::)
 
