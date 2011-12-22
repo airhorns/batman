@@ -19,10 +19,21 @@ asyncTest "instantiated instances can load their values", ->
     equal product.get('id'), 1
     QUnit.start()
 
-asyncTest "instantiated instances can load their values", ->
+asyncTest "instantiated instances error upon load if they don't exist", ->
   product = new @Product(1110000) # Non existant primary key.
   product.load (err, product) =>
     ok err
+    QUnit.start()
+
+asyncTest "instantiated instances should accept options for load", 1, ->
+  product = new @Product(1)
+  oldRead = @adapter.read
+  @adapter.read = (record, options, callback) ->
+    deepEqual options, {foo: "bar"}
+    oldRead.apply(@, arguments)
+
+  product.load {foo: "bar"}, (err, product) =>
+    throw err if err
     QUnit.start()
 
 asyncTest "loading instances should add them to the all set", ->
@@ -83,6 +94,26 @@ test "existing instances should be updated with incoming attributes", ->
     equal product.get('name'), 'override'
 
 
+test "model instances should accept options for save upon create", 1, ->
+  product = new @Product()
+  oldSave = @adapter.create
+  @adapter.create = (record, options, callback) ->
+    deepEqual options, {neato: true}
+    oldSave.apply(@, arguments)
+
+  product.save {neato: true}, (err, product) =>
+    throw err if err?
+
+test "model instances should accept options for save upon update", 1, ->
+  product = new @Product(10)
+  oldSave = @adapter.update
+  @adapter.update = (record, options, callback) ->
+    deepEqual options, {neato: true}
+    oldSave.apply(@, arguments)
+
+  product.save {neato: true}, (err, product) =>
+    throw err if err?
+
 test "model instances should throw if they can't be saved", ->
   product = new @Product()
   @adapter.create = (record, options, callback) -> callback(new Error("couldn't save for some reason"))
@@ -135,6 +166,17 @@ asyncTest "model instances should be destroyable", ->
       throw err if err
       equal @Product.get('all').length, 0, 'instances should be removed from the identity map upon destruction'
       QUnit.start()
+
+asyncTest "model instances should be accept options for destruction", 1, ->
+  product = new @Product(10)
+  oldDestroy = @adapter.destroy
+  @adapter.destroy = (record, options, callback) ->
+    deepEqual options, paranoid: true
+    oldDestroy.apply(@, arguments)
+
+  product.destroy {paranoid: true}, (err) =>
+    throw err if err
+    QUnit.start()
 
 asyncTest "model instances which don't exist in the store shouldn't be destroyable", ->
   p = new @Product(11000)

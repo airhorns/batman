@@ -2755,13 +2755,16 @@ class Batman.Model extends Batman.Object
   hasStorage: -> (@_batman.get('storage') || []).length > 0
 
   # `load` fetches the record from all sources possible
-  load: (callback) =>
+  load: (options, callback) =>
+    if !callback
+      [options, callback] = [{}, options]
+
     if @state() in ['destroying', 'destroyed']
       callback?(new Error("Can't load a destroyed record!"))
       return
 
     @loading()
-    @_doStorageOperation 'read', {}, (err, record) =>
+    @_doStorageOperation 'read', options, (err, record) =>
       unless err
         @loaded()
         record = @constructor._mapIdentity(record)
@@ -2769,7 +2772,10 @@ class Batman.Model extends Batman.Object
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
-  save: (callback) =>
+  save: (options, callback) =>
+    if !callback
+      [options, callback] = [{}, options]
+
     if @state() in ['destroying', 'destroyed']
       callback?(new Error("Can't save a destroyed record!"))
       return
@@ -2787,7 +2793,7 @@ class Batman.Model extends Batman.Object
       # Save belongsTo models immediately since we don't need this model's id
       associations?.getByType('belongsTo')?.forEach (association, label) => association.apply(@)
 
-      @_doStorageOperation (if creating then 'create' else 'update'), {}, (err, record) =>
+      @_doStorageOperation (if creating then 'create' else 'update'), options, (err, record) =>
         unless err
           if creating
             do @created
@@ -2801,9 +2807,12 @@ class Batman.Model extends Batman.Object
         callback?(err, record)
 
   # `destroy` destroys a record in all the stores.
-  destroy: (callback) =>
+  destroy: (options, callback) =>
+    if !callback
+      [options, callback] = [{}, options]
+
     do @destroying
-    @_doStorageOperation 'destroy', {}, (err, record) =>
+    @_doStorageOperation 'destroy', options, (err, record) =>
       unless err
         @constructor.get('all').remove(@)
         do @destroyed
