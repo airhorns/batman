@@ -2851,7 +2851,8 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
 
   apply: (base) ->
     if model = base.get(@label)
-      base.set @localKey, model.get(@foreignKey)
+      if foreignValue = model.get(@foreignKey) isnt undefined
+        base.set @localKey, foreignValue
 
 class Batman.HasOneAssociation extends Batman.SingularAssociation
   associationType: 'hasOne'
