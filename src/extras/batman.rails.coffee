@@ -61,7 +61,8 @@ applyExtra = (Batman) ->
     _errorsFrom422Response: (response) -> JSON.parse(response)
 
     @::before 'update', 'create', (env, next) ->
-      env.options.data = @_serializeToFormData(env.options.data) if @serializeAsForm
+      if @serializeAsForm && !env.options.formData
+        env.options.data = @_serializeToFormData(env.options.data)
       next()
 
     @::after 'update', 'create', ({error, record, response}, next) ->
