@@ -44,12 +44,13 @@ applyExtra = (Batman) ->
     railsDate:
       encode: (value) -> value
       decode: (value) ->
-        a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(value)
-        if a
-          return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
-        else
-          Batman.developer.warn "Unrecognized rails date #{value}!"
-          return Date.parse(value)
+        if value?
+          a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(value)
+          if a
+            return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
+          else
+            Batman.developer.warn "Unrecognized rails date #{value}!"
+            return Date.parse(value)
 
   class Batman.RailsStorage extends Batman.RestStorage
 
