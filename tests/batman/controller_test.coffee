@@ -102,7 +102,9 @@ test '[before/after]Filter', 3, ->
     @afterFilter 'testAfter'
 
     withBefore: ->
+      @render false
     withoutBefore: ->
+      @render false
     testAfter: ->
       ok true, 'afterFilter called'
 
