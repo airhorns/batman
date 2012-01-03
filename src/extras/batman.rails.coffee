@@ -40,14 +40,50 @@ applyExtra = (Batman) ->
     else
       add prefix, obj
 
+  numericKeys = [1, 2, 3, 4, 5, 6, 7, 10, 11]
+  date_re = ///
+    ^
+    (\d{4}|[+\-]\d{6})  # 1 YYYY
+    (?:-(\d{2})         # 2 MM
+    (?:-(\d{2}))?)?     # 3 DD
+    (?:
+      T(\d{2}):         # 4 HH
+      (\d{2})           # 5 mm
+      (?::(\d{2})       # 6 ss
+      (?:\.(\d{3}))?)?  # 7 msec
+      (?:(Z)|           # 8 Z
+        ([+\-])         # 9 ±
+        (\d{2})         # 10 tzHH
+        (?::(\d{2}))?   # 11 tzmm
+      )?
+    )?
+    $
+  ///
+
   Batman.mixin Batman.Encoders,
     railsDate:
+      defaultTimezoneOffset: (new Date()).getTimezoneOffset()
       encode: (value) -> value
       decode: (value) ->
+        # Thanks to https://github.com/csnover/js-iso8601 for the majority of this algorithm.
+        # MIT Licensed
         if value?
-          a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(value)
-          if a
-            return new Date(Date.UTC(+a[1], +a[2] - 1, +a[3], +a[4], +a[5], +a[6]))
+          if (obj = date_re.exec(value))
+            # avoid NaN timestamps caused by “undefined” values being passed to Date.UTC
+            for key in numericKeys
+              obj[key] = +obj[key] or 0
+
+            # allow undefined days and months
+            obj[2] = (+obj[2] || 1) - 1;
+            obj[3] = +obj[3] || 1;
+
+            # process timezone by adjusting minutes
+            if obj[8] != "Z" and obj[9] != undefined
+              minutesOffset = obj[10] * 60 + obj[11]
+              minutesOffset = 0 - minutesOffset  if obj[9] == "+"
+            else
+              minutesOffset = Batman.Encoders.railsDate.defaultTimezoneOffset
+            return new Date(Date.UTC(obj[1], obj[2], obj[3], obj[4], obj[5] + minutesOffset, obj[6], obj[7]))
           else
             Batman.developer.warn "Unrecognized rails date #{value}!"
             return Date.parse(value)
