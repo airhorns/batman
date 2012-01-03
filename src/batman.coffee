@@ -1565,7 +1565,7 @@ class Batman.Request extends Batman.Object
   send: () -> developer.error "Please source a dependency file for a request implementation"
 
   cancel: ->
-    clearTimeout(@_autosendTimeout) if @_autosendTimeout
+    $clearImmediate(@_autosendTimeout) if @_autosendTimeout
 
 # `Batman.App` manages requiring files and acts as a namespace for all code subclassing
 # Batman objects.
