@@ -90,10 +90,13 @@ applyExtra = (Batman) ->
 
   class Batman.RailsStorage extends Batman.RestStorage
 
-    _addJsonExtension: (url) -> url + '.json'
     _serializeToFormData: (data) -> param(data)
     urlForRecord: -> @_addJsonExtension(super)
     urlForCollection: -> @_addJsonExtension(super)
+    _addJsonExtension: (url) ->
+      if url.indexOf('?') isnt -1 or url.substr(-5, 5) is '.json'
+        return url
+      url + '.json'
 
     _errorsFrom422Response: (response) -> JSON.parse(response)
 
