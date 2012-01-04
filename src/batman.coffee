@@ -1647,9 +1647,16 @@ class Batman.App extends Batman.Object
       delete @wantsToRun
 
     Batman.currentApp = @
+    Batman.App.set('current', @)
 
-    if typeof @dispatcher is 'undefined'
-      @dispatcher ||= new Batman.Dispatcher @
+    unless @get('dispatcher')?
+      @set 'dispatcher', new Batman.Dispatcher(@)
+
+    unless @get('navigator')?
+      @set('navigator', Batman.Navigator.forApp(@))
+      @on 'run', =>
+        Batman.navigator = @get('navigator')
+        Batman.navigator.start() if Object.keys(@get('dispatcher').routeMap).length > 0
 
     @observe 'layout', (layout) =>
       layout?.on 'ready', => @fire 'ready'
@@ -1658,20 +1665,17 @@ class Batman.App extends Batman.Object
       @set 'layout', new Batman.View
         context: @
         node: document
+
     else if typeof @layout is 'string'
       @set 'layout', new @[helpers.camelize(@layout) + 'View']
-
-    if typeof @navigator is 'undefined' and @dispatcher.routeMap
-      @on 'run', =>
-        @set('navigator', Batman.navigator = Batman.Navigator.forApp(this)).start()
 
     @hasRun = yes
     @fire('run')
     @
 
   @event('ready').oneShot = true
-
   @event('stop').oneShot = true
+
   @stop: ->
     @navigator?.stop()
     Batman.navigator = null
@@ -1691,8 +1695,8 @@ class Batman.Route extends Batman.Object
   escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
 
   constructor: ->
+    @options = {}
     super
-
     @pattern = @url.replace(escapeRegExp, '\\$&')
     @regexp = new RegExp('^' + @pattern.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
 
@@ -1749,11 +1753,32 @@ class Batman.Route extends Batman.Object
     return params.target.dispatch(action, params) if params.target?.dispatch
     return params.target?[action](params)
 
-
 class Batman.Dispatcher extends Batman.Object
-  constructor: (@app) ->
-    @app.route @
+  @paramsFromArgument: (argument) ->
+    resourceNameFromModel = (model) ->
+      helpers.underscore(helpers.pluralize($functionName(model)))
 
+    if argument instanceof Batman.Model || argument instanceof Batman.AssociationProxy
+      argument = argument.get('target') if argument.isProxy
+      return if argument?
+        {
+          resource: resourceNameFromModel(argument.constructor)
+          action: 'show'
+          id: argument.get('id')
+        }
+      else
+        {}
+    else if argument.prototype instanceof Batman.Model
+      return {
+        resource: resourceNameFromModel(argument)
+        action: 'index'
+      }
+    else
+      return argument
+
+  constructor: (@app) ->
+    @routeMap = {}
+    @app.route @
     @app.controllers = new Batman.Object
     for key, controller of @app
       continue unless controller?.prototype instanceof Batman.Controller
@@ -1772,8 +1797,6 @@ class Batman.Dispatcher extends Batman.Object
       new Batman.Route url: url, action: options, dispatcher: @
     else
       new Batman.Route url: url, options: options, dispatcher: @
-
-    @routeMap ||= {}
     @routeMap[url] = route
 
   findRoute: (url) ->
@@ -1799,8 +1822,9 @@ class Batman.Dispatcher extends Batman.Object
             matches = yes
 
       continue if not matches
-      $mixin paramsCopy = {}, params
-      $unmixin paramsCopy, {controller:null, action:null, resource:null, url:null, signature:null, target:null}
+      paramsCopy = $mixin {}, params
+      for k in ['controller', 'action', 'resource', 'url', 'signature', 'target']
+        delete paramsCopy[k]
 
       for key, value of params
         regex = new RegExp('[:|\*]' + key)
@@ -1817,7 +1841,8 @@ class Batman.Dispatcher extends Batman.Object
 
       return url + queryString
 
-  pathFromParams: (params) ->
+  pathFromParams: (argument) ->
+    params = @constructor.paramsFromArgument(argument)
     if $typeOf(params) is 'String'
       Batman.Navigator.normalizePath(params)
     else
@@ -1825,15 +1850,18 @@ class Batman.Dispatcher extends Batman.Object
 
   dispatch: (params) ->
     url = @pathFromParams(params)
-    route = @findRoute(url)
+    route = @findRoute(url) if url?
     if route
       route.dispatch(url)
     else
       if $typeOf(params) is 'Object'
-        @app.get('currentParams').replace(params)
+        newParams = @constructor.paramsFromArgument(params)
+        if newParams == params
+          return @app.get('currentParams').replace(params)
       else
         @app.get('currentParams').clear()
-      $redirect('/404') if url isnt '/404'
+
+      return $redirect('/404') if url isnt '/404'
 
     @app.set 'currentURL', url
     @app.set 'currentRoute', route
@@ -1970,7 +1998,6 @@ class Batman.ParamsReplacer extends Batman.Object
 class Batman.ParamsPusher extends Batman.ParamsReplacer
   redirect: -> @navigator.push(@toObject())
 
-
 # Route Declarators
 # -----------------
 
@@ -1985,7 +2012,7 @@ Batman.App.classMixin
       @_dispatcherCache = null
       return dispatcher
 
-    if $typeOf(signature) is 'String'
+    if typeof signature is 'string'
       options.signature = signature
     else if $typeOf(signature) is 'Function'
       options = signature
@@ -2023,11 +2050,11 @@ Batman.App.classMixin
       ops =
         resource: resource
         collection: (collectionCallback) ->
-          collectionCallback?.call route: (url, methodName) ->
-            app.route "#{resource}/#{url}", "#{controller}##{methodName || url}"
+          collectionCallback?.call route: (url, action = url) ->
+            app.route "#{resource}/#{url}", "#{controller}##{action}", {action, resource, controller}
         member: (memberCallback) ->
-          memberCallback?.call route: (url, methodName) ->
-            app.route "#{resource}/:id/#{url}", "#{controller}##{methodName || url}"
+          memberCallback?.call route: (url, action = url) ->
+            app.route "#{resource}/:id/#{url}", "#{controller}##{action}", {action, resource, controller}
         resources: (childResources, options = {}, callback) =>
           (callback = options; options = {}) if typeof options is 'function'
           options.parentResource = resource
@@ -3696,37 +3723,8 @@ Batman.DOM = {
 
     hideif: -> Batman.DOM.readers.showif(arguments..., yes)
 
-    route: (node, key, context) ->
-      # you must specify the / in front to route directly to hash route
-      if key.substr(0, 1) is '/'
-        url = key
-      else
-        isHash = key.indexOf('#') > 1
-        [key, action] = if isHash then key.split('#') else key.split('/')
-        [dispatcher, app] = context.findKey 'dispatcher'
-        [model, _] = context.findKey key if not isHash
-        if model && model.isProxy
-          model = model.get('target')
-
-        dispatcher ||= Batman.currentApp.dispatcher
-
-        if isHash
-          url = dispatcher.findUrl controller: key, action: action
-        else if model instanceof Batman.Model
-          action ||= 'show'
-          name = helpers.underscore(helpers.pluralize($functionName(model.constructor)))
-          url = dispatcher.findUrl({resource: name, id: model.get('id'), action: action})
-        else if model?.prototype # TODO write test for else case
-          action ||= 'index'
-          name = helpers.underscore(helpers.pluralize($functionName(model)))
-          url = dispatcher.findUrl({resource: name, action: action})
-
-      return unless url
-
-      if node.nodeName.toUpperCase() is 'A'
-        node.href = Batman.Navigator.defaultClass()::linkTo(url)
-
-      Batman.DOM.events.click node, -> $redirect url
+    route: ->
+      new Batman.DOM.RouteBinding(arguments...)
       true
 
     view: ->
@@ -4098,7 +4096,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
           # Get any argument keypaths from the context stored at parse time.
           args = self.filterArguments[i].map (argument) ->
             if argument._keypath
-              self.renderContext.findKey(argument._keypath)[0]
+              self.renderContext.get(argument._keypath)
             else
               argument
 
@@ -4536,6 +4534,24 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
   reapplyOldStyles: ->
     @setStyle(cssName, cssValue) for own cssName, cssValue of @oldStyles
 
+class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
+  onATag: false
+
+  @accessor 'dispatcher', ->
+    @renderContext.get('dispatcher') || Batman.App.get('current.dispatcher')
+
+  bind: ->
+    if @node.nodeName.toUpperCase() is 'A'
+      @onATag = true
+    super
+    Batman.DOM.events.click @node, =>
+      $redirect @get('filteredValue')
+
+  dataChange: (value) ->
+    path = @set 'path', @get('dispatcher')?.pathFromParams(value)
+    if path? && @onATag
+      @node.href = Batman.navigator.linkTo path
+
 class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
   constructor: ->
     super
@@ -4853,6 +4869,11 @@ filters = Batman.Filters =
   withArguments: (block, curryArgs...) ->
     return if not block
     return (regularArgs...) -> block.call @, curryArgs..., regularArgs...
+
+  routeToAction: (model, action) ->
+    params = Batman.Dispatcher.paramsFromArgument(model)
+    params.action = action
+    params
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]

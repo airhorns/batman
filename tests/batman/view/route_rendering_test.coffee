@@ -3,87 +3,150 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module 'Batman.View route rendering',
   setup: ->
+    class @App extends Batman.App
+      @layout: null
+  teardown: ->
+    @App.stop()
 
 asyncTest 'should set href for URL fragment', 1, ->
-  helpers.render '<a data-route="/test">click</a>', {},
-  (node) =>
-    equal node.attr('href'), Batman.Navigator.defaultClass()::linkTo("/test")
-    QUnit.start()
+  @App.on 'run', ->
+    helpers.render '<a data-route="\'/test\'">click</a>', {}, (node) =>
+      equal node.attr('href'), Batman.Navigator.defaultClass()::linkTo("/test")
+      QUnit.start()
+  @App.run()
 
 asyncTest 'should set hash href for URL fragment when using HashbangNavigator', 1, ->
   Batman.config.usePushState = false
-  helpers.render '<a data-route="/test">click</a>', {},
-  (node) =>
-    equal node.attr('href'), "#!/test"
-    QUnit.start()
+  @App.on 'run', ->
+    helpers.render '<a data-route="\'/test\'">click</a>', {}, (node) =>
+      equal node.attr('href'), "#!/test"
+      QUnit.start()
+  @App.run()
 
 asyncTest 'should set corresponding href for model and action', 1, ->
-  app = class @App extends Batman.App
-    @layout: null
-    @resources 'tweets', 'users'
+  @App.resources 'tweets', 'users'
 
   class @App.User extends Batman.Model
     @persist TestStorageAdapter
 
+  app = @App
   class @App.Tweet extends Batman.Model
     @belongsTo 'user', {namespace: app}
 
   class @App.TweetsController extends Batman.Controller
     show: (params) ->
 
-  @App.run()
-
-  user = new @App.User(id: 2)
-  user.save (err) =>
-    throw err if err
-
-    tweet = new @App.Tweet(id: 1, user_id: user.get('id'))
-    tweet.get('user').load (err, user) =>
+  @App.on 'run', =>
+    user = new @App.User(id: 2)
+    user.save (err) =>
       throw err if err
 
-      @App.set 'tweet', tweet
+      tweet = new @App.Tweet(id: 1, user_id: user.get('id'))
+      tweet.get('user').load (err, user) =>
+        throw err if err
 
-      source = '<a data-route="Tweet">index</a>' +
-        '<a data-route="Tweet/new">new</a>' +
-        '<a data-route="tweet">show</a>' +
-        '<a data-route="tweet/edit">edit</a>' +
-        '<a data-route="tweet.user">user</a>' +
-        '<a data-route="tweet.user/edit">edit user</a>'
+        @App.set 'tweet', tweet
 
-      node = document.createElement 'div'
-      node.innerHTML = source
+        source = '''
+          <a data-route="Tweet">index</a>
+          <a data-route="Tweet | routeToAction 'new'">new</a>
+          <a data-route="tweet">show</a>
+          <a data-route="tweet | routeToAction 'edit'">edit</a>
+          <a data-route="tweet.user">user</a>
+          <a data-route="tweet.user | routeToAction 'edit'">edit user</a>
+        '''
 
-      view = new Batman.View
-        contexts: []
-        node: node
+        helpers.render source, {}, (node, view) ->
+          urls = ($(a).attr('href') for a in $('a', view.get('node')))
+          expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit', '/users/2', '/users/2/edit']
+          expected = expected.map (path) -> Batman.navigator.linkTo(path)
+          deepEqual urls, expected
+          QUnit.start()
 
-      view.on 'ready', ->
-        urls = ($(a).attr('href') for a in view.get('node').childNodes)
-        expected = ['/tweets', '/tweets/new', '/tweets/1', '/tweets/1/edit', '/users/2', '/users/2/edit'].map (path) -> Batman.Navigator.defaultClass()::linkTo(path)
+  @App.run()
+
+asyncTest 'should bind to models when routing to them', 2, ->
+  @App.resources 'tweets', ->
+    @member ->
+      @route 'duplicate', 'duplicate'
+
+  class @App.Tweet extends Batman.Model
+
+  class @App.TweetsController extends Batman.Controller
+    show: (params) ->
+    duplicate: (params) ->
+
+  tweetA = new @App.Tweet(id: 1)
+  tweetB = new @App.Tweet(id: 2)
+
+  @App.on 'run', =>
+    source = '''
+      <a data-route="tweet">index</a>
+      <a data-route="tweet | routeToAction 'duplicate'">duplicate</a>
+    '''
+
+    context = Batman
+      tweet: tweetA
+
+
+    helpers.render source, context, (node, view) ->
+      checkUrls = (expected) ->
+        urls = ($(a).attr('href') for a in $('a', view.get('node')))
+        expected = expected.map (path) -> Batman.navigator.linkTo(path)
         deepEqual urls, expected
-        QUnit.start()
 
-      view.get 'node'
+      checkUrls ['/tweets/1', '/tweets/1/duplicate']
+      context.set 'tweet', tweetB
 
-asyncTest 'should allow you to use controller#action routes, if they are defined', 1, ->
-  class @App extends Batman.App
-    @layout: null
-    @route 'foo/bar', 'foo#bar'
+      delay ->
+        checkUrls ['/tweets/2', '/tweets/2/duplicate']
+
+  @App.run()
+
+asyncTest 'should allow you to use {controller, action} routes, if they are defined', 1, ->
+  @App.route 'foo/bar', 'foo#bar'
   class @App.FooController extends Batman.Controller
     bar: ->
 
+  @App.on 'run', ->
+    source = '''
+      <a data-route="{'controller': 'foo', 'action': 'bar'}">bar</a>
+      <a data-route="{'controller': 'foo', 'action': 'baz'}">baz</a>
+    '''
+
+    viewHelpers.render source, {}, (node, view) ->
+      urls = ($(a).attr('href') for a in $('a', view.get('node')))
+      urls[i] = url || '' for url, i in urls
+      deepEqual urls, [Batman.navigator.linkTo('/foo/bar'), '#']
+      QUnit.start()
+
   @App.run()
 
-  source = '<a data-route="foo#bar">bar</a><a data-route="foo#baz">baz</a>'
-  node = document.createElement 'div'
-  node.innerHTML = source
+asyncTest 'should allow you to bind to objects in the context stack', 2, ->
+  @App.route 'foo/bar', 'foo#bar'
+  @App.route 'baz/qux', 'baz#qux'
+  class @App.FooController extends Batman.Controller
+    bar: ->
+  class @App.BazController extends Batman.Controller
+    qux: ->
 
-  view = new Batman.View
-    contexts: []
-    node: node
-  view.on 'ready', ->
-    urls = ($(a).attr('href') for a in view.get('node').children)
-    urls[i] = url || '' for url, i in urls
-    deepEqual urls, [Batman.Navigator.defaultClass()::linkTo('/foo/bar'), '']
-    QUnit.start()
-  view.get 'node'
+  @App.on 'run', ->
+    source = '''
+      <a data-route="whereToRedirect">bar</a>
+    '''
+
+    context = Batman
+      whereToRedirect:
+        controller: 'foo'
+        action: 'bar'
+
+    viewHelpers.render source, false, context, (node, view) ->
+      a = $(node.childNodes[0])
+      deepEqual a.attr('href'), Batman.navigator.linkTo('/foo/bar')
+      context.set 'whereToRedirect',
+        controller: 'baz'
+        action: 'qux'
+      delay ->
+        deepEqual a.attr('href'), Batman.navigator.linkTo('/baz/qux')
+
+  @App.run()

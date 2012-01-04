@@ -1,6 +1,33 @@
+QUnit.module 'Batman.Dispatcher getting paths'
+  setup: ->
+    class @App extends Batman.App
+      @resources 'products'
+      @route 'foo/bar/:id'
+
+    class @App.Product extends Batman.Model
+
+    @dispatcher = new Batman.Dispatcher(@App)
+
+test "paramsFromArgument gets record params", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument(new @App.Product(id: 1)), {resource: 'products', action: 'show', id: 1}
+
+test "paramsFromArgument gets model params", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument(@App.Product), {resource: 'products', action: 'index'}
+
+test "paramsFromArgument gets record proxy params", ->
+  proxy = new Batman.AssociationProxy({}, @App.Product)
+  proxy.accessor 'target', => new @App.Product(id: 2)
+  proxy.set 'loaded', true
+  deepEqual Batman.Dispatcher.paramsFromArgument(proxy), {resource: 'products', action: 'show', id: 2}
+
+test "paramsFromArgument leaves strings alone", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument("/products/1"), "/products/1"
+
+test "paramsFromArgument leaves objects alone", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument({controller: "products", action: "new"}), {controller: "products", action: "new"}
+
 QUnit.module 'Batman.Dispatcher defining routes',
   setup: ->
-    Batman.START = new Date()
     class @App extends Batman.App
       @layout: null
       @test: (url) ->
@@ -17,8 +44,8 @@ QUnit.module 'Batman.Dispatcher defining routes',
       index: -> @render false
       show: (params) ->
         equal params.id, 1, 'id is correct'
-        QUnit.start()
         @render false
+        QUnit.start()
       edit: -> @render false
   teardown: ->
     @App.stop()
@@ -52,6 +79,24 @@ asyncTest 'redirecting with params', ->
   @App.route 'products/:id', 'products#show'
   @App.run()
   $redirect controller: 'products', action: 'show', id: '1'
+
+asyncTest 'redirecting to a record', 1, ->
+  @App.resources 'products'
+  @App.run()
+  @product = new @App.Product(id: 1)
+
+  $redirect @product
+
+asyncTest 'redirecting to a model class', 1, ->
+  @App.resources 'products'
+  @App.run()
+
+  @App.ProductsController::index = ->
+    @render false
+    ok 'index redirected to'
+    QUnit.start()
+
+  $redirect @App.Product
 
 asyncTest 'param matching', ->
   @App.route 'test/:id', 'products#show'
@@ -140,11 +185,13 @@ test 'multiple resources', 2, ->
 
 asyncTest 'hash history', 1, ->
   Batman.config.usePushState = false
+  class @App extends Batman.App
   @App.route 'test', ->
     window.location.hash = '#!/test2'
   @App.route 'test2', ->
     ok true, 'routes called'
     QUnit.start()
+
   @App.run()
 
   window.location.hash = '#!/test'
@@ -167,3 +214,11 @@ asyncTest '404', 1, ->
   @App.run()
 
   $redirect 'something/random'
+
+asyncTest '404 when redirecting to a record', 1, ->
+  @App.route '404', ->
+    ok true, '404 called'
+    QUnit.start()
+  @App.run()
+  @product = new @App.Product(id: 1)
+  $redirect @product
