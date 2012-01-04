@@ -250,7 +250,8 @@ In addition to setting up these routes, the call to `@resources` keeps track of 
 ```coffeescript
 class BatBelt.GadgetsController extends Batman.Controller
   someEventHandler: (node, event) ->
-    @redirect BatBelt.Gadget.find(1) # redirects to "/gadgets/1"
+    BatBelt.Gadget.find 1, (err, gadget) =>
+      @redirect gadget unless err? # redirects to "/gadgets/1"
   someOtherHandler: (node, event) ->
     @redirect BatBelt.Gadget # redirects to "/gadgets"
 ```
