@@ -4268,9 +4268,6 @@ class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
   nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName))
 
 class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBinding
-  consturctor: ->
-    super
-    developer.warn "You should use a data-route binding instead of a data-bind-href on #{@keyPath}" if @attributeName is 'href'
   dataChange: (value = "") -> @node[@attributeName] = value
   nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node[@attributeName])
 
