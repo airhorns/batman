@@ -22,6 +22,11 @@ test "map should return an array of the results", ->
   f = (x) -> x * 10
   deepEqual @enumerable.map(f), @array.map(f)
 
+test "mapToProperty should return an array of properties", ->
+  array = [Batman(a:1), Batman(a:'2'), Batman(foo:null), Batman(a:null)]
+  enumerable = getEnumerable(array)
+  deepEqual enumerable.mapToProperty('a'), [1, '2', undefined, null]
+
 test "every should test every element", ->
   @array = [true, true, true]
   @enumerable = getEnumerable(@array)
