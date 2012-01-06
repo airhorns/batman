@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BatMap</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+    <script type="text/javascript" src="../lib/es5-shim.js"></script>
+    <script type="text/javascript" src="../lib/batman.js"></script>
+    <script type="text/javascript" src="../lib/batman.solo.js"></script>
+    <script type="text/javascript" src="../lib/coffee-script.js"></script>
+</head>
+
+<body>
+    <div id="container">
+        <h1>BatMap</h1>
+        <form data-formfor-char="controllers.app.emptyChar" data-event-submit="controllers.app.create">
+          <input class="new-item" placeholder="Name" data-bind="char.name" />
+          <input class="new-item" placeholder="Address" data-bind="char.address" />
+          <input type="checkbox" class="new-item" data-bind="char.isBatman" /> is batman
+          <button type="submit">Add</button>
+        </form>
+        <ul id="items">
+            <li data-foreach-char="Character.all">
+                <span data-bind="char.name"></span> <span data-bind="char.isBatman"></span>
+                <a data-event-click="char.destroy">Delete</a>
+                <div data-view="GoogleMapsView" data-bind-data-address="char.address"></div>
+            </li>
+            <li><span data-bind="'characters' | pluralize Character.all.length"></span></li>
+        </ul>                
+    </div>
+
+    <script type="text/coffeescript">
+                
+    # Create our application and namespace.
+    class BatMap extends Batman.App
+      @global yes
+
+      # setup our root route. When the app starts up, it will automatically call AppController::index
+      @root 'app#index'
+
+      @on 'ready', ->
+        console.log "BatMap ready"
+
+    class BatMap.GoogleMapsView extends Batman.View
+      html: '<div style="width: 200px; height: 200px;"></div>'
+      address: '' 
+      zoom: 12
+
+      render: ->
+        @node = $(@get('node'))
+        @address = @node.data('address')
+        @geocoder = new google.maps.Geocoder();
+        
+        @geocoder.geocode {'address': @address}, (results, status) =>
+
+          if status is google.maps.GeocoderStatus.OK
+            myOptions = 
+              zoom: @zoom
+              center: results[0].geometry.location
+              mapTypeId: google.maps.MapTypeId.ROADMAP
+              disableDefaultUI: true
+
+            map = new google.maps.Map(@node.children("div")[0], myOptions)
+            map.setCenter(results[0].geometry.location)
+            new google.maps.Marker position: results[0].geometry.location, map: map
+
+        super
+
+
+    class BatMap.Character extends Batman.Model
+      @global yes
+
+      @persist Batman.LocalStorage
+      @encode 'name', 'isBatman', 'address'
+
+      name: ''
+      isBatman: false
+      address: ''
+
+    class BatMap.AppController extends Batman.Controller
+      emptyChar: null
+
+      index: ->
+        @set 'emptyChar', new Character
+
+        # add some example characters to show off.
+        Character.load (error, characters) ->
+          # you always want to make sure you handle errors (more elegantly than this) when writing connection code
+          throw error if error
+          unless characters and characters.length
+            callback = (error) -> throw error if error
+            new Character(name: 'Bruce Wayne', isBatman: true, address: "11 Wall Street New York, NY").save(callback)
+            new Character(name: 'Dick Grayson', address: "Alcatraz").save(callback)
+            new Character(name: 'Alfred Pennyworth', address: "Sydney, NSW").save(callback)
+        @render false
+
+      create: =>
+        @emptyChar.save (error, record) =>
+          throw error if error
+          @set 'emptyChar', new Character
+
+    # Start the app. This will start up the dispatcher and a number of other mechanisms.
+    BatMap.run()
+    </script>
+</body>
+</html>
