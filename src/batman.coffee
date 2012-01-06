@@ -4546,12 +4546,19 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
       @onATag = true
     super
     Batman.DOM.events.click @node, =>
-      $redirect @get('filteredValue')
+      params = @get('filteredValue')
+      $redirect params if params?
 
   dataChange: (value) ->
-    path = @set 'path', @get('dispatcher')?.pathFromParams(value)
-    if path? && @onATag
-      @node.href = Batman.navigator.linkTo path
+    if value?
+      path = @set 'path', @get('dispatcher')?.pathFromParams(value)
+
+    if @onATag
+      if path?
+        path = Batman.navigator.linkTo path
+      else
+        path = "#"
+      @node.href = path
 
 class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
   constructor: ->

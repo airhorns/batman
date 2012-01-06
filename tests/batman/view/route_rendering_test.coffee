@@ -15,6 +15,13 @@ asyncTest 'should set href for URL fragment', 1, ->
       QUnit.start()
   @App.run()
 
+asyncTest 'should set "#" href for undefined keypath', 1, ->
+  @App.on 'run', ->
+    helpers.render '<a data-route="not.defined">click</a>', {}, (node) =>
+      equal node.attr('href'), "#"
+      QUnit.start()
+  @App.run()
+
 asyncTest 'should set hash href for URL fragment when using HashbangNavigator', 1, ->
   Batman.config.usePushState = false
   @App.on 'run', ->
