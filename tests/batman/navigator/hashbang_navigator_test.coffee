@@ -1,6 +1,6 @@
 QUnit.module 'Batman.HashbangNavigator',
   setup: ->
-    @app =
+    @app = Batman
       dispatcher:
         dispatch: @dispatchSpy = createSpy()
     @nav = new Batman.HashbangNavigator(@app)
@@ -21,14 +21,14 @@ unless IN_NODE #jsdom doesn't like window.location.replace
     window.location.hash = '#!/two'
     @nav.replaceState(null, '', '/three')
     equal window.location.hash, "#!/three"
-    
+
     window.history.back()
-    
-    
+
+
     doWhen (-> window.location.hash is "#!/one"), ->
       equal window.location.hash, "#!/one"
       QUnit.start()
-    
+
 test "handleLocation(window.location) dispatches based on pathFromLocation", ->
   @nav.handleLocation
     pathname: Batman.config.pathPrefix
@@ -47,9 +47,9 @@ test "handleLocation(window.location) handles the real non-hashbang path if pres
   @nav.handleLocation(location)
   equal location.replace.callCount, 1
   deepEqual location.replace.lastCallArguments, ["#{Batman.config.pathPrefix}#!/baz?q=buzz"]
-  
+
   Batman.config.usePushState = no
   @nav.handleLocation(location)
   equal location.replace.callCount, 1
-  
+
 

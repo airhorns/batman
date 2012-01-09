@@ -1568,306 +1568,366 @@ class Batman.Request extends Batman.Object
   cancel: ->
     $clearImmediate(@_autosendTimeout) if @_autosendTimeout
 
-# `Batman.App` manages requiring files and acts as a namespace for all code subclassing
-# Batman objects.
-class Batman.App extends Batman.Object
-  @classAccessor 'currentParams',
-    get: -> new Batman.Hash
-    'final': true
-
-  @classAccessor 'paramsManager',
-    get: ->
-      return unless nav = @get('navigator')
-      params = @get('currentParams')
-      params.replacer = new Batman.ParamsReplacer(nav, params)
-    'final': true
-
-  @classAccessor 'paramsPusher',
-    get: ->
-      return unless nav = @get('navigator')
-      params = @get('currentParams')
-      params.pusher = new Batman.ParamsPusher(nav, params)
-    'final': true
-
-  # Require path tells the require methods which base directory to look in.
-  @requirePath: ''
-
-  # The require class methods (`controller`, `model`, `view`) simply tells
-  # your app where to look for coffeescript source files. This
-  # implementation may change in the future.
-  developer.do =>
-    App.require = (path, names...) ->
-      base = @requirePath + path
-      for name in names
-        @prevent 'run'
-
-        path = base + '/' + name + '.coffee'
-        new Batman.Request
-          url: path
-          type: 'html'
-          success: (response) =>
-            CoffeeScript.eval response
-            @allow 'run'
-            if not @isPrevented 'run'
-              @fire 'loaded'
-
-            @run() if @wantsToRun
-      @
-
-    @controller = (names...) ->
-      names = names.map (n) -> n + '_controller'
-      @require 'controllers', names...
-
-    @model = ->
-      @require 'models', arguments...
-
-    @view = ->
-      @require 'views', arguments...
-
-  # Layout is the base view that other views can be yielded into. The
-  # default behavior is that when `app.run()` is called, a new view will
-  # be created for the layout using the `document` node as its content.
-  # Use `MyApp.layout = null` to turn off the default behavior.
-  @layout: undefined
-
-  # Call `MyApp.run()` to start up an app. Batman level initializers will
-  # be run to bootstrap the application.
-  @event('ready').oneShot = true
-  @event('run').oneShot = true
-  @run: ->
-    if Batman.currentApp
-      return if Batman.currentApp is @
-      Batman.currentApp.stop()
-
-    return false if @hasRun
-
-    if @isPrevented 'run'
-      @wantsToRun = true
-      return false
-    else
-      delete @wantsToRun
-
-    Batman.currentApp = @
-    Batman.App.set('current', @)
-
-    unless @get('dispatcher')?
-      @set 'dispatcher', new Batman.Dispatcher(@)
-
-    unless @get('navigator')?
-      @set('navigator', Batman.Navigator.forApp(@))
-      @on 'run', =>
-        Batman.navigator = @get('navigator')
-        Batman.navigator.start() if Object.keys(@get('dispatcher').routeMap).length > 0
-
-    @observe 'layout', (layout) =>
-      layout?.on 'ready', => @fire 'ready'
-
-    if typeof @layout is 'undefined'
-      @set 'layout', new Batman.View
-        context: @
-        node: document
-
-    else if typeof @layout is 'string'
-      @set 'layout', new @[helpers.camelize(@layout) + 'View']
-
-    @hasRun = yes
-    @fire('run')
-    @
-
-  @event('ready').oneShot = true
-  @event('stop').oneShot = true
-
-  @stop: ->
-    @navigator?.stop()
-    Batman.navigator = null
-    @hasRun = no
-    @fire('stop')
-    @
-
-# Dispatcher
-# ----------
+## Routes
 
 class Batman.Route extends Batman.Object
   # Route regexes courtesy of Backbone
-  namedParam = /:([\w\d]+)/g
-  splatParam = /\*([\w\d]+)/g
-  queryParam = '(?:\\?.+)?'
-  namedOrSplat = /[:|\*]([\w\d]+)/g
-  escapeRegExp = /[-[\]{}()+?.,\\^$|#\s]/g
+  @regexps =
+    namedParam: /:([\w\d]+)/g
+    splatParam: /\*([\w\d]+)/g
+    queryParam: '(?:\\?.+)?'
+    namedOrSplat: /[:|\*]([\w\d]+)/g
+    namePrefix: '[:|\*]'
+    escapeRegExp: /[-[\]{}()+?.,\\^$|#\s]/g
 
-  constructor: ->
-    @options = {}
-    super
-    @pattern = @url.replace(escapeRegExp, '\\$&')
-    @regexp = new RegExp('^' + @pattern.replace(namedParam, '([^\/]*)').replace(splatParam, '(.*?)') + queryParam + '$')
+  optionKeys: ['member', 'collection']
+  testKeys: ['controller', 'action']
+  isRoute: true
+  constructor: (templatePath, baseParams) ->
+    regexps = @constructor.regexps
+    templatePath = "/#{templatePath}" if templatePath.indexOf('/') isnt 0
+    pattern = templatePath.replace(regexps.escapeRegExp, '\\$&')
 
-    @namedArguments = []
-    while (array = namedOrSplat.exec(@pattern))?
-      @namedArguments.push(array[1]) if array[1]
+    regexp = ///
+      ^
+      #{pattern
+          .replace(regexps.namedParam, '([^\/]+)')
+          .replace(regexps.splatParam, '(.*?)') }
+      #{regexps.queryParam}
+      $
+    ///
 
-  @accessor 'action',
-    get: ->
-      return @action if @action
+    namedArguments = (matches[1] while matches = regexps.namedOrSplat.exec(pattern))
 
-      if @options
-        result = $mixin {}, @options
+    properties = {templatePath, pattern, regexp, namedArguments, baseParams}
+    for k in @optionKeys
+      properties[k] = baseParams[k]
+      delete baseParams[k]
 
-        if signature = result.signature
-          components = signature.split('#')
-          result.controller = components[0]
-          result.action = components[1] || 'index'
+    super(properties)
 
-        result.target = @dispatcher.app.controllers.get(result.controller)
-        @set 'action', result
-    set: (key, action) ->
-      @action = action
+  paramsFromPath: (path) ->
+    [path, query] = path.split '?'
+    namedArguments = @get('namedArguments')
+    params = $mixin {path}, @get('baseParams')
 
-  parameterize: (url) ->
-    [url, query] = url.split '?'
-    array = @regexp.exec(url)?.slice(1)
-    params = url: url
-
-    action = @get 'action'
-    if typeof action is 'function'
-      params.action = action
-    else
-      $mixin params, action
-
-    if array
-      for param, index in array
-        params[@namedArguments[index]] = param
+    matches = @get('regexp').exec(path).slice(1)
+    for match, index in matches
+      name = namedArguments[index]
+      params[name] = match
 
     if query
-      for s in query.split '&'
-        [key, value] = s.split '='
+      for pair in query.split('&')
+        [key, value] = pair.split '='
         params[key] = value
 
     params
 
-  dispatch: (url) ->
-    params = @parameterize url
+  pathFromParams: (argumentParams) ->
+    params = $mixin {}, argumentParams
+    path = @get('templatePath')
 
-    @dispatcher.app.get('currentParams').replace(params)
+    # Replace the names in the template with their values from params
+    for name in @get('namedArguments')
+      regexp = ///#{@constructor.regexps.namePrefix}#{name}///
+      newPath = path.replace regexp, (if params[name]? then params[name] else '')
+      if newPath != path
+        delete params[name]
+        path = newPath
 
-    $redirect('/404') if not (action = params.action) and url isnt '/404'
-    return action(params) if typeof action is 'function'
-    return params.target.dispatch(action, params) if params.target?.dispatch
-    return params.target?[action](params)
+    for key in @testKeys
+      delete params[key]
+    # Append the rest of the params as a query string
+    queryParams = ("#{key}=#{value}" for key, value of params)
+    if queryParams.length > 0
+      path += "?" + queryParams.join("&")
+
+    path
+
+  test: (pathOrParams) ->
+    if typeof pathOrParams is 'string'
+      path = pathOrParams
+    else if pathOrParams.path?
+      path = pathOrParams.path
+    else
+      path = @pathFromParams(pathOrParams)
+      for key in @testKeys
+        if (value = @get(key))?
+          return false unless pathOrParams[key] == value
+
+    @get('regexp').test(path)
+
+  dispatch: (pathOrParams) ->
+    return false unless @test(pathOrParams)
+    if typeof pathOrParams is 'string'
+      params = @paramsFromPath(pathOrParams)
+      path = pathOrParams
+    else
+      params = pathOrParams
+      path = @pathFromParams(pathOrParams)
+    @get('callback')(params)
+    return path
+
+  callback: -> throw new Batman.DevelopmentError "Override callback in a Route subclass"
+
+class Batman.CallbackActionRoute extends Batman.Route
+  optionKeys: ['member', 'collection', 'callback', 'app']
+  controller: false
+  action: false
+
+class Batman.ControllerActionRoute extends Batman.Route
+  optionKeys: ['member', 'collection', 'app', 'controller', 'action']
+  constructor: (templatePath, options) ->
+    if options.signature
+      [controller, action] = options.signature.split('#')
+      action ||= 'index'
+      options.controller = controller
+      options.action = action
+      delete options.signature
+
+    super(templatePath, options)
+
+  callback: (params) =>
+    controller = @get("app.dispatcher.controllers.#{@get('controller')}")
+    controller.dispatch(@get('action'), params)
 
 class Batman.Dispatcher extends Batman.Object
+  @canInferRoute: (argument) ->
+    argument instanceof Batman.Model ||
+    argument instanceof Batman.AssociationProxy ||
+    argument.prototype instanceof Batman.Model
+
   @paramsFromArgument: (argument) ->
     resourceNameFromModel = (model) ->
       helpers.underscore(helpers.pluralize($functionName(model)))
 
+    return argument unless @canInferRoute(argument)
+
     if argument instanceof Batman.Model || argument instanceof Batman.AssociationProxy
       argument = argument.get('target') if argument.isProxy
-      return if argument?
+      if argument?
         {
-          resource: resourceNameFromModel(argument.constructor)
+          controller: resourceNameFromModel(argument.constructor)
           action: 'show'
           id: argument.get('id')
         }
       else
         {}
     else if argument.prototype instanceof Batman.Model
-      return {
-        resource: resourceNameFromModel(argument)
+      {
+        controller: resourceNameFromModel(argument)
         action: 'index'
       }
     else
-      return argument
+      argument
 
-  constructor: (@app) ->
-    @routeMap = {}
-    @app.route @
-    @app.controllers = new Batman.Object
-    for key, controller of @app
-      continue unless controller?.prototype instanceof Batman.Controller
-      @prepareController controller
+  class ControllerDirectory extends Batman.Object
+    @accessor 'app', Batman.Property.defaultAccessor
+    @accessor (key) -> @get("app.#{helpers.capitalize(key)}Controller.sharedController")
 
-  prepareController: (controller) ->
-    name = helpers.underscore($functionName(controller).replace('Controller', ''))
-    return unless name
+  @accessor 'controllers', -> new ControllerDirectory(app: @get('app'))
 
-    getter = -> controller.get 'sharedController'
-    @app.controllers.accessor name, getter
+  constructor: (app, routeMap) ->
+    super({app, routeMap})
 
-  register: (url, options) ->
-    url = "/#{url}" if url.indexOf('/') isnt 0
-    route = if $typeOf(options) is 'Function'
-      new Batman.Route url: url, action: options, dispatcher: @
-    else
-      new Batman.Route url: url, options: options, dispatcher: @
-    @routeMap[url] = route
+  routeForParams: (params) ->
+    params = @constructor.paramsFromArgument(params)
+    @get('routeMap').routeForParams(params)
 
-  findRoute: (url) ->
-    url = "/#{url}" if url.indexOf('/') isnt 0
-    return route if (route = @routeMap[url])
-    for routeUrl, route of @routeMap
-      return route if route.regexp.test(url)
-
-  findUrl: (params) ->
-    for url, route of @routeMap
-      matches = no
-      options = route.options
-      if params.resource
-        matches = options.resource is params.resource and
-          options.action is params.action
-      else
-        action = route.get 'action'
-        if typeof action is 'function'
-          matches = yes
-        else
-          {controller, action} = action
-          if controller is params.controller and action is (params.action || 'index')
-            matches = yes
-
-      continue if not matches
-      paramsCopy = $mixin {}, params
-      for k in ['controller', 'action', 'resource', 'url', 'signature', 'target']
-        delete paramsCopy[k]
-
-      for key, value of params
-        regex = new RegExp('[:|\*]' + key)
-        continue if not regex.test url
-
-        url = url.replace regex, value
-        paramsCopy[key] = null
-        delete paramsCopy[key]
-
-      queryString = ''
-      for key, value of paramsCopy
-        queryString += if not queryString then '?' else '&'
-        queryString += key + '=' + value
-
-      return url + queryString
-
-  pathFromParams: (argument) ->
-    params = @constructor.paramsFromArgument(argument)
-    if $typeOf(params) is 'String'
-      Batman.Navigator.normalizePath(params)
-    else
-      @findUrl(params)
+  pathFromParams: (params) ->
+    params = @constructor.paramsFromArgument(params)
+    @routeForParams(params)?.pathFromParams(params)
 
   dispatch: (params) ->
-    url = @pathFromParams(params)
-    route = @findRoute(url) if url?
+    inferredParams = @constructor.paramsFromArgument(params)
+    route = @routeForParams(inferredParams)
     if route
-      route.dispatch(url)
+      path = route.dispatch(inferredParams)
     else
-      if $typeOf(params) is 'Object'
-        newParams = @constructor.paramsFromArgument(params)
-        if newParams == params
-          return @app.get('currentParams').replace(params)
+      # No route matching the parameters was found, but an object which might be for
+      # use with the params replacer has been passed. If its an object like a model
+      # or a record we could have inferred a route for it (but didn't), so we make
+      # sure that it isn't by running it through canInferRoute.
+      if $typeOf(params) is 'Object' && !@constructor.canInferRoute(params)
+        return @get('app.currentParams').replace(params)
       else
-        @app.get('currentParams').clear()
+        @get('app.currentParams').clear()
 
-      return $redirect('/404') if url isnt '/404'
+      return Batman.redirect('/404') unless path is '/404' or params is '/404'
 
-    @app.set 'currentURL', url
-    @app.set 'currentRoute', route
+    @set 'app.currentURL', path
+    @set 'app.currentRoute', route
 
-    url
+    path
+
+class Batman.RouteMap
+  constructor: ->
+    @childrenByName = {}
+    @childrenByOrder = []
+
+  routeForParams: (params) ->
+    for routeOrMap in @childrenByOrder
+      if routeOrMap.isRoute
+        return routeOrMap if routeOrMap.test(params)
+      else
+        return route if route = routeOrMap.routeForParams(params)
+
+    return undefined
+
+  addRoute: (name, route) ->
+    developer.do =>
+      Batman.developer.error("Route with name #{name} already exists!") if @childrenByName[name]
+    @childrenByName[name] = route
+    @childrenByOrder.push route
+
+class Batman.RouteMapBuilder
+  @BUILDER_FUNCTIONS = ['resources', 'member', 'collection', 'route', 'root']
+  @ROUTES =
+    index:
+      cardinality: 'collection'
+      path: (resource) -> resource
+      name: (resource) -> resource
+    new:
+      cardinality: 'collection'
+      path: (resource) -> "#{resource}/new"
+      name: (resource) -> "#{resource}.new"
+    show:
+      cardinality: 'member'
+      path: (resource) -> "#{resource}/:id"
+      name: (resource) -> helpers.singularize(resource)
+    edit:
+      cardinality: 'member'
+      path: (resource) -> "#{resource}/:id/edit"
+      name: (resource) -> "#{helpers.singularize(resource)}.edit"
+    collection:
+      cardinality: 'collection'
+      path: (resource, name) -> "#{resource}/#{name}"
+      name: (resource, name) -> "#{resource}.#{name}"
+    member:
+      cardinality: 'member'
+      path: (resource, name) -> "#{resource}/:id/#{name}"
+      name: (resource, name) -> "#{helpers.singularize(resource)}.#{name}"
+
+  constructor: (@app, @routeMap, @parent, @baseOptions = {}) ->
+    if @parent
+      @rootPath = @parent._nestingPath()
+      @rootName = @parent._nestingName()
+    else
+      @rootPath = ''
+      @rootName = ''
+
+  resources: (args...) ->
+    resourceNames = (arg for arg in args when typeof arg is 'string')
+    callback = args.pop() if typeof args[args.length - 1] is 'function'
+    if typeof args[args.length - 1] is 'object'
+      options = args.pop()
+    else
+      options = {}
+
+    actions = {index: true, new: true, show: true, edit: true}
+
+    if options.except
+      actions[k] = false for k in options.except
+      delete options.except
+    else if options.only
+      actions[k] = false for k, v of actions
+      actions[k] = true for k in options.only
+      delete options.only
+
+    for resourceName in resourceNames
+      controller = resourceRoot = helpers.pluralize(resourceName)
+      childBuilder = @_childBuilder({controller})
+
+      # Call the callback so that routes defined within it are matched
+      # before the standard routes defined by `resources`.
+      callback?.call(childBuilder)
+
+      for action, included of actions when included
+        route = @constructor.ROUTES[action]
+        as = route.name(resourceRoot)
+        path = route.path(resourceRoot)
+        routeOptions = $mixin {controller, action, path, as}, options
+        childBuilder[route.cardinality](action, routeOptions)
+
+    true
+
+  member: -> @_addRoutesWithCardinality('member', arguments...)
+  collection: -> @_addRoutesWithCardinality('collection', arguments...)
+
+  root: (signature, options) -> @route '/', signature, options
+
+  route: (path, signature, options, callback) ->
+    if !callback
+      if typeof options is 'function'
+        callback = options
+        options = undefined
+      else if typeof signature is 'function'
+        callback = signature
+        signature = undefined
+
+    if !options
+      if typeof signature is 'string'
+        options = {signature}
+      else
+        options = signature
+      options ||= {}
+    else
+      options.signature = signature if signature
+    options.callback = callback if callback
+    options.as ||= @_nameFromPath(path)
+    options.path = path
+    @_addRoute(options)
+
+  _addRoutesWithCardinality: (cardinality, names..., options) ->
+    if typeof options is 'string'
+      names.push options
+      options = {}
+    options = $mixin {}, @baseOptions, options
+    options[cardinality] = true
+    route = @constructor.ROUTES[cardinality]
+    resourceRoot = options.controller
+    for name in names
+      routeOptions = $mixin {action: name}, options
+      unless routeOptions.path?
+        routeOptions.path = route.path(resourceRoot, name)
+      unless routeOptions.as?
+        routeOptions.as = route.name(resourceRoot, name)
+      @_addRoute(routeOptions)
+    true
+
+  _addRoute: (options = {}) ->
+    path = @rootPath + options.path
+    name = @rootName + options.as
+    delete options.as
+    delete options.path
+    klass = if options.callback then Batman.CallbackActionRoute else Batman.ControllerActionRoute
+    options.app = @app
+    route = new klass(path, options)
+    @routeMap.addRoute(name, route)
+
+  _nameFromPath: (path) ->
+    underscored = path
+      .replace(Batman.Route.regexps.namedOrSplat, '')
+      .replace(/\/+/g, '_')
+      .replace(/(^_)|(_$)/g, '')
+
+    name = helpers.camelize(underscored)
+    name.charAt(0).toLowerCase() + name.slice(1)
+
+  _nestingPath: ->
+    unless @parent
+      ""
+    else
+      nestingParam = ":" + helpers.singularize(@baseOptions.controller) + "Id"
+      "#{@parent._nestingPath()}/#{@baseOptions.controller}/#{nestingParam}/"
+
+  _nestingName: ->
+    unless @parent
+      ""
+    else
+      @baseOptions.controller + "."
+
+  _childBuilder: (baseOptions = {}) -> new Batman.RouteMapBuilder(@app, @routeMap, @, baseOptions)
 
 class Batman.Navigator
   @defaultClass: ->
@@ -1895,7 +1955,7 @@ class Batman.Navigator
     @dispatch(path)
   handleCurrentLocation: => @handleLocation(window.location)
   dispatch: (params) ->
-    @cachedPath = @app.dispatcher.dispatch(params)
+    @cachedPath = @app.get('dispatcher').dispatch(params)
   push: (params) ->
     path = @dispatch(params)
     @pushState(null, '', path)
@@ -1966,7 +2026,6 @@ class Batman.HashbangNavigator extends Batman.Navigator
     else
       location.replace(@normalizePath("#{Batman.config.pathPrefix}#{@linkTo(realPath)}"))
 
-
 Batman.redirect = $redirect = (url) ->
   Batman.navigator?.redirect url
 
@@ -1999,91 +2058,133 @@ class Batman.ParamsReplacer extends Batman.Object
 class Batman.ParamsPusher extends Batman.ParamsReplacer
   redirect: -> @navigator.push(@toObject())
 
-# Route Declarators
-# -----------------
+# `Batman.App` manages requiring files and acts as a namespace for all code subclassing
+# Batman objects.
+class Batman.App extends Batman.Object
+  @classAccessor 'currentParams',
+    get: -> new Batman.Hash
+    'final': true
 
-Batman.App.classMixin
-  route: (url, signature, options={}) ->
-    return if not url
-    if url instanceof Batman.Dispatcher
-      dispatcher = url
-      for key, value of @_dispatcherCache
-        dispatcher.register key, value
+  @classAccessor 'paramsManager',
+    get: ->
+      return unless nav = @get('navigator')
+      params = @get('currentParams')
+      params.replacer = new Batman.ParamsReplacer(nav, params)
+    'final': true
 
-      @_dispatcherCache = null
-      return dispatcher
+  @classAccessor 'paramsPusher',
+    get: ->
+      return unless nav = @get('navigator')
+      params = @get('currentParams')
+      params.pusher = new Batman.ParamsPusher(nav, params)
+    'final': true
 
-    if typeof signature is 'string'
-      options.signature = signature
-    else if $typeOf(signature) is 'Function'
-      options = signature
-    else if signature
-      $mixin options, signature
+  @classAccessor 'routeMap', -> new Batman.RouteMap
+  @classAccessor 'routeMapBuilder', -> new Batman.RouteMapBuilder(@, @get('routeMap'))
+  @classAccessor 'dispatcher', -> new Batman.Dispatcher(@, @get('routeMap'))
+  @classAccessor 'controllers', -> @get('dispatcher.controllers')
 
-    @_dispatcherCache ||= {}
-    @_dispatcherCache[url] = options
+  # Require path tells the require methods which base directory to look in.
+  @requirePath: ''
 
-  root: (signature, options) ->
-    @route '/', signature, options
+  # The require class methods (`controller`, `model`, `view`) simply tells
+  # your app where to look for coffeescript source files. This
+  # implementation may change in the future.
+  developer.do =>
+    App.require = (path, names...) ->
+      base = @requirePath + path
+      for name in names
+        @prevent 'run'
 
-  resource: (resource, options = {}, callback) ->
-    (callback = options; options = {}) if typeof options is 'function'
-    resource = helpers.pluralize(resource)
-    controller = options.controller || resource
+        path = base + '/' + name + '.coffee'
+        new Batman.Request
+          url: path
+          type: 'html'
+          success: (response) =>
+            CoffeeScript.eval response
+            @allow 'run'
+            if not @isPrevented 'run'
+              @fire 'loaded'
 
-    _route = (url, signature, action) =>
-      @route url, signature, resource: controller, action: action
+            @run() if @wantsToRun
+      @
 
-    if options.parentResource
-      resource = "#{options.parentResource}/:#{helpers.singularize(options.parentResource)}Id/#{resource}"
+    @controller = (names...) ->
+      names = names.map (n) -> n + '_controller'
+      @require 'controllers', names...
 
-    if options.index isnt false
-      _route resource, "#{controller}#index", 'index'
-    if options.new isnt false
-      _route "#{resource}/new", "#{controller}#new", 'new'
-    if options.show isnt false
-      _route "#{resource}/:id", "#{controller}#show", 'show'
-    if options.edit isnt false
-      _route "#{resource}/:id/edit", "#{controller}#edit", 'edit'
+    @model = ->
+      @require 'models', arguments...
 
-    if callback
-      app = @
-      ops =
-        resource: resource
-        collection: (collectionCallback) ->
-          collectionCallback?.call route: (url, action = url) ->
-            app.route "#{resource}/#{url}", "#{controller}##{action}", {action, resource, controller}
-        member: (memberCallback) ->
-          memberCallback?.call route: (url, action = url) ->
-            app.route "#{resource}/:id/#{url}", "#{controller}##{action}", {action, resource, controller}
-        resources: (childResources, options = {}, callback) =>
-          (callback = options; options = {}) if typeof options is 'function'
-          options.parentResource = resource
-          @resources childResources, options, callback
+    @view = ->
+      @require 'views', arguments...
 
-      callback.call ops
-    @
+  # Layout is the base view that other views can be yielded into. The
+  # default behavior is that when `app.run()` is called, a new view will
+  # be created for the layout using the `document` node as its content.
+  # Use `MyApp.layout = null` to turn off the default behavior.
+  @layout: undefined
 
-  resources: (resources, options, callback) ->
-    if $typeOf(options) is 'String'
-      resources = Array::slice.call arguments
-      options = null
-      callback = null
-      names = []
-      for resource in resources
-        if $typeOf(resource) is 'String'
-          names.push resource
-        else if $typeOf(options) is 'String'
-          options = resource
-        else
-          callback = resource
-      for resource in names
-        @resource resource, options, callback
+  # Routes for the app are built using a RouteMapBuilder, so delegate the
+  # functions used to build routes to it.
+  for name in Batman.RouteMapBuilder.BUILDER_FUNCTIONS
+    do (name) =>
+      @[name] = -> @get('routeMapBuilder')[name](arguments...)
+
+  # Call `MyApp.run()` to start up an app. Batman level initializers will
+  # be run to bootstrap the application.
+  @event('ready').oneShot = true
+  @event('run').oneShot = true
+  @run: ->
+    if Batman.currentApp
+      return if Batman.currentApp is @
+      Batman.currentApp.stop()
+
+    return false if @hasRun
+
+    if @isPrevented 'run'
+      @wantsToRun = true
+      return false
     else
-      @resource resources, options, callback
+      delete @wantsToRun
+
+    Batman.currentApp = @
+    Batman.App.set('current', @)
+
+    unless @get('dispatcher')?
+      @set 'dispatcher', new Batman.Dispatcher(@, @get('routeMap'))
+      @set 'controllers', @get('dispatcher.controllers')
+
+    unless @get('navigator')?
+      @set('navigator', Batman.Navigator.forApp(@))
+      @on 'run', =>
+        Batman.navigator = @get('navigator')
+        Batman.navigator.start() if Object.keys(@get('dispatcher').routeMap).length > 0
+
+    @observe 'layout', (layout) =>
+      layout?.on 'ready', => @fire 'ready'
+
+    if typeof @layout is 'undefined'
+      @set 'layout', new Batman.View
+        context: @
+        node: document
+
+    else if typeof @layout is 'string'
+      @set 'layout', new @[helpers.camelize(@layout) + 'View']
+
+    @hasRun = yes
+    @fire('run')
     @
 
-  redirect: $redirect
+  @event('ready').oneShot = true
+  @event('stop').oneShot = true
+
+  @stop: ->
+    @navigator?.stop()
+    Batman.navigator = null
+    @hasRun = no
+    @fire('stop')
+    @
 
 # Controllers
 # -----------
@@ -4585,7 +4686,7 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
     super
     Batman.DOM.events.click @node, =>
       params = @get('filteredValue')
-      $redirect params if params?
+      Batman.redirect params if params?
 
   dataChange: (value) ->
     if value?

@@ -5,6 +5,7 @@ QUnit.module 'Batman.View route rendering',
   setup: ->
     class @App extends Batman.App
       @layout: null
+      @route '/test', ->
   teardown: ->
     @App.stop()
 
@@ -74,8 +75,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
 
 asyncTest 'should bind to models when routing to them', 2, ->
   @App.resources 'tweets', ->
-    @member ->
-      @route 'duplicate', 'duplicate'
+    @member 'duplicate'
 
   class @App.Tweet extends Batman.Model
 

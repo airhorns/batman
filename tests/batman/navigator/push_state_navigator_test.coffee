@@ -1,6 +1,6 @@
 QUnit.module 'Batman.PushStateNavigator',
   setup: ->
-    @app =
+    @app = Batman
       dispatcher:
         dispatch: @dispatchSpy = createSpy()
     @nav = new Batman.PushStateNavigator(@app)
