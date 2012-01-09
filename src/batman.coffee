@@ -4152,7 +4152,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     if @node? && @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
       Batman.DOM.events.change @node, =>
         shouldSet = no
-        @nodeChange?(@node, @get('keyContext') || @value)
+        @nodeChange?(@node, @value || @get('keyContext'))
         shouldSet = yes
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
