@@ -1,6 +1,6 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 
-QUnit.module 'Batman.View: one-way bindings:'
+QUnit.module 'Batman.View: one-way bindings'
 
 asyncTest 'target should update only the javascript value', 3, ->
   source = '<input type="text" data-target="foo" value="start"/>'
@@ -15,6 +15,14 @@ asyncTest 'target should update only the javascript value', 3, ->
       context.set 'foo', 'baz'
       delay =>
         equal node.value, 'bar'
+
+asyncTest 'target should get the value from the node upon binding', 1, ->
+  source = '<input type="text" data-target="foo" value="start"/>'
+  context = Batman foo: null
+  helpers.render source, context, (node) ->
+    node = node[0]
+    equal context.get('foo'), 'start'
+    QUnit.start()
 
 asyncTest 'source should update only the bound node', 3, ->
   source = '<input type="text" data-source="foo" value="start"/>'
@@ -52,7 +60,7 @@ asyncTest 'data-source and data-target work correctly on the same node', ->
   helpers.render source, context, (node) ->
     node = node[0]
     equal node.value, 'here'
-    equal context.get('there'), ''
+    equal context.get('there'), 'here'
     node.value = 'there'
     helpers.triggerChange node
     delay =>

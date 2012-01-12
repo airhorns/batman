@@ -4136,6 +4136,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
 
   bindImmediately: true
+  shouldSet: true
 
   constructor: (@node, @keyPath, @renderContext, @renderer, @only = false) ->
     Batman.DOM.trackBinding(@, @node) if @node?
@@ -4149,19 +4150,28 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   isTwoWay: -> @key? && @filterFunctions.length is 0
 
   bind: ->
-    shouldSet = yes
     # Attach the observers.
     if @node? && @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
-      Batman.DOM.events.change @node, =>
-        shouldSet = no
-        @nodeChange?(@node, @value || @get('keyContext'))
-        shouldSet = yes
+      Batman.DOM.events.change @node, @_fireNodeChange
+
+      # Usually, we let the HTML value get updated upon binding by `observeAndFire`ing the dataChange
+      # function below. When dataChange isn't attached, we update the JS land value such that the
+      # sync between DOM and JS is maintained.
+      if @only is 'nodeChange'
+        @_fireNodeChange()
 
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     if @only in [false, 'dataChange']
-      @observeAndFire 'filteredValue', (value) =>
-        if shouldSet
-          @dataChange?(value, @node)
+      @observeAndFire 'filteredValue', @_fireDataChange
+
+  _fireNodeChange: =>
+    @shouldSet = false
+    @nodeChange?(@node, @value || @get('keyContext'))
+    @shouldSet = true
+
+  _fireDataChange: (value) =>
+    if @shouldSet
+      @dataChange?(value, @node)
 
   die: ->
     @forget()
