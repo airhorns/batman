@@ -3527,7 +3527,7 @@ class Batman.Renderer extends Batman.Object
 
   bindingRegexp = /^data\-(.*)/
 
-  bindingSortOrder = ["renderif", "foreach", "formfor", "context", "bind"]
+  bindingSortOrder = ["renderif", "foreach", "formfor", "context", "bind", "source", "target"]
 
   bindingSortPositions = {}
   bindingSortPositions[name] = pos for name, pos in bindingSortOrder
@@ -4146,6 +4146,8 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     # Observe the node and the data.
     @bind() if @bindImmediately
 
+  isTwoWay: -> @key? && @filterFunctions.length is 0
+
   bind: ->
     shouldSet = yes
     # Attach the observers.
@@ -4258,7 +4260,7 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
 
 class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
   nodeChange: (node, context) ->
-    if @key && @filterFunctions.length == 0
+    if @isTwoWay()
       @set 'filteredValue', @node.value
 
   dataChange: (value, node) ->
@@ -4266,11 +4268,15 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
 
 class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
   dataChange: (value) -> @node.setAttribute(@attributeName, value)
-  nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName))
+  nodeChange: (node) ->
+    if @isTwoWay()
+      @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node.getAttribute(@attributeName))
 
 class Batman.DOM.NodeAttributeBinding extends Batman.DOM.AbstractAttributeBinding
   dataChange: (value = "") -> @node[@attributeName] = value
-  nodeChange: (node) -> @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node[@attributeName])
+  nodeChange: (node) ->
+    if @isTwoWay()
+      @set 'filteredValue', Batman.DOM.attrReaders._parseAttribute(node[@attributeName])
 
 class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
   constructor: (node, className, key, context, parentRenderer, @invert = false) ->
@@ -4396,10 +4402,13 @@ class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
       @set 'filteredValue', @node.value
 
   nodeChange: (node) ->
-    @set('filteredValue', Batman.DOM.attrReaders._parseAttribute(node.value))
+    if @isTwoWay()
+      @set('filteredValue', Batman.DOM.attrReaders._parseAttribute(node.value))
 
 class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
   nodeChange: (node, subContext) ->
+    return if !@isTwoWay()
+
     segments = @key.split('.')
     if segments.length > 1
       keyContext = subContext.get(segments.slice(0, -1).join('.'))
@@ -4462,8 +4471,9 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     @updateOptionBindings()
 
   nodeChange: =>
-    @updateSelectBinding()
-    @updateOptionBindings()
+    if @isTwoWay()
+      @updateSelectBinding()
+      @updateOptionBindings()
 
   updateSelectBinding: =>
     # Gather the selected options and update the binding

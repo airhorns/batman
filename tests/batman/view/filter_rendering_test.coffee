@@ -357,3 +357,12 @@ asyncTest 'should bind to things under window only when the keypath specifies it
       equal node.html(), "bar"
       QUnit.start()
 
+asyncTest 'should not write to the bound value if binding has filters', ->
+  context = Batman(foo: false)
+  helpers.render '<input type="checkbox" data-bind-checked="foo | not | not"></div>', context, (node) ->
+    equal node[0].checked, false
+    node[0].checked = true
+    helpers.triggerChange node[0]
+    delay ->
+      equal context.get('foo'), false
+
