@@ -4367,7 +4367,7 @@ class Batman.DOM.DeferredRenderingBinding extends Batman.DOM.AbstractBinding
 
 class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
   constructor: (node, className, keyPath, renderContext, renderer, only, @invert = false) ->
-    @className = className.replace(/\|/g, ' ')
+    @className = " #{className.replace(/\|/g, ' ')} "
     super
     delete @attributeName
 
@@ -4375,7 +4375,7 @@ class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
     currentName = @node.className
     includesClassName = currentName.indexOf(@className) isnt -1
     if !!value is !@invert
-      @node.className = "#{currentName} #{@className}" if !includesClassName
+      @node.className = " #{currentName} #{@className} " if !includesClassName
     else
       @node.className = currentName.replace(@className, '') if includesClassName
 
