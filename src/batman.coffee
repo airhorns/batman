@@ -3393,27 +3393,38 @@ class Batman.RestStorage extends Batman.StorageAdapter
 # Views
 # -----------
 
-class Batman.ViewSourceCache extends Batman.Object
+class Batman.ViewStore extends Batman.Object
+  @prefix: 'views'
+
   constructor: ->
     super
-    @sources = {}
-    @requests = {}
+    @_viewContents = {}
+    @_requestedPaths = new Batman.SimpleSet
 
   propertyClass: Batman.Property
 
+  fetchView: (path) ->
+    developer.do ->
+      unless typeof Batman.View::prefix is 'undefined'
+        developer.warn "Batman.View.prototype.prefix has been removed, please use Batman.ViewStore.prefix instead."
+    new Batman.Request
+      url: Batman.Navigator.normalizePath(@constructor.prefix, "#{path}.html")
+      type: 'html'
+      success: (response) => @set(path, response)
+      error: (response) -> throw new Error("Could not load view from #{path}")
+
   @accessor
-    get: (path) ->
-      path = Batman.Navigator.normalizePath(path)
-      return @sources[path] if @sources[path]?
-      unless @requests[path]?
-        @requests = new Batman.Request
-          url: path + '.html'
-          type: 'html'
-          success: (response) => @set(path, response)
-          error: (response) -> throw new Error("Could not load view from #{path}")
-      return undefined
-    set: (k,v) -> @sources[k] = v
     'final': true
+    get: (path) ->
+      return @get("/#{path}") unless path[0] is '/'
+      return @_viewContents[path] if @_viewContents[path]
+      return if @_requestedPaths.has(path)
+      @fetchView(path)
+      return
+    set: (path, content) ->
+      return @set("/#{path}", content) unless path[0] is '/'
+      @_requestedPaths.add(path)
+      @_viewContents[path] = content
 
   prefetch: (path) ->
     @get(path)
@@ -3432,7 +3443,7 @@ class Batman.View extends Batman.Object
       else
         @observe 'node', (node) => @render(node)
 
-  @sourceCache: new Batman.ViewSourceCache()
+  @store: new Batman.ViewStore()
 
   # Set the source attribute to an html file to have that file loaded.
   source: ''
@@ -3446,16 +3457,12 @@ class Batman.View extends Batman.Object
   # Fires once a node is parsed.
   @::event('ready').oneShot = true
 
-  # Where to look for views on the server
-  prefix: 'views'
-
   @accessor 'html',
     get: ->
       return @html if @html && @html.length > 0
-      source = @get 'source'
-      return if not source
-      path = Batman.Navigator.normalizePath(@prefix, source)
-      @html = @constructor.sourceCache.get(path)
+      return unless source = @get 'source'
+      source = Batman.Navigator.normalizePath(source)
+      @html = @constructor.store.get(source)
     set: (_, html) -> @html = html
 
   @accessor 'node'
@@ -3738,7 +3745,7 @@ Batman.DOM = {
 
     defineview: (node, name, context, renderer) ->
       $onParseExit(node, -> $removeNode(node))
-      Batman.View.sourceCache.set(Batman.Navigator.normalizePath(Batman.View::prefix, name), node.innerHTML)
+      Batman.View.store.set(Batman.Navigator.normalizePath(name), node.innerHTML)
       false
 
     renderif: (node, key, context, renderer) ->

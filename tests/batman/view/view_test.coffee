@@ -11,7 +11,6 @@ QUnit.module 'Batman.View'
     MockRequest.reset()
     @options =
       source: "test_path#{++count}"
-      prefix: "some_other_prefix"
 
     Batman.Request = MockRequest
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
@@ -19,8 +18,8 @@ QUnit.module 'Batman.View'
   teardown: ->
     Batman.Request = oldRequest
 
-test 'should pull in the source for a view from a path, prepending the prefix', 1, ->
-  equal MockRequest.lastConstructorArguments[0].url, "/some_other_prefix/#{@options.source}.html"
+test 'should pull in the source for a view from a path', 1, ->
+  equal MockRequest.lastConstructorArguments[0].url, "/views/#{@options.source}.html"
 
 test 'should update its node with the contents of its view', 1, ->
   MockRequest.lastInstance.fireSuccess('view contents')
@@ -56,9 +55,9 @@ asyncTest 'should fire the ready event once its contents have been loaded', 1, -
     ok observer.called
 
 asyncTest 'should allow prefetching of view sources', 2, ->
-  Batman.View.sourceCache.prefetch('a/prefetched/view')
-  equal MockRequest.lastConstructorArguments[0].url, "/a/prefetched/view.html"
+  Batman.View.store.prefetch('view')
+  equal MockRequest.lastConstructorArguments[0].url, "/views/view.html"
   delay =>
     MockRequest.lastInstance.fireSuccess('prefetched contents')
-    view = new Batman.View({source: 'view', prefix: 'a/prefetched'})
+    view = new Batman.View({source: 'view'})
     equal view.get('html'), 'prefetched contents'

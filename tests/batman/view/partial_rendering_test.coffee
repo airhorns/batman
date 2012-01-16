@@ -10,13 +10,13 @@ QUnit.module 'Batman.View partial rendering'
     Batman.Request = MockRequest
 
   teardown: ->
-    Batman.View.sourceCache = new Batman.ViewSourceCache
+    Batman.View.store = new Batman.ViewStore
     Batman.Request = oldRequest
 
 asyncTest "preloaded/already rendered partials should render", ->
-  Batman.View.sourceCache =
+  Batman.View.store =
     get: (k) ->
-      equal k, '/views/test/one'
+      equal k, '/test/one'
       "<div>Hello from a partial</div>"
 
   source = '<div data-partial="test/one"></div>'
