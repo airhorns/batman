@@ -124,7 +124,7 @@ test "show routes route to the show action", 4, ->
   @builder.resources 'products', {only: ['show']}
 
   [name, route] = @routeMap.addRoute.lastCallArguments
-  equal name, 'product'
+  equal name, 'products'
   equal route.get('action'), 'show'
   ok route.get('member')
   equal route.get('templatePath'), '/products/:id'
@@ -133,7 +133,7 @@ test "edit routes route to the edit action", 4, ->
   @builder.resources 'products', {only: ['edit']}
 
   [name, route] = @routeMap.addRoute.lastCallArguments
-  equal name, 'product.edit'
+  equal name, 'products.edit'
   equal route.get('action'), 'edit'
   ok route.get('member')
   equal route.get('templatePath'), '/products/:id/edit'
@@ -162,7 +162,7 @@ test "can define nonstandard member routes", ->
 
   equal @routeMap.addRoute.callCount, 2
   [name, route] = @routeMap.addRoute.calls[0].arguments
-  equal name, 'product.duplicate'
+  equal name, 'products.duplicate'
   equal route.get('action'), 'duplicate'
   equal route.get('controller'), 'products'
   ok route.get('member')
@@ -242,7 +242,7 @@ test "show routes route to the show action", 4, ->
     @resources 'images', {only: ['show']}
 
   [name, route] = @routeMap.addRoute.lastCallArguments
-  equal name, 'products.image'
+  equal name, 'products.images'
   equal route.get('action'), 'show'
   ok route.get('member')
   equal route.get('templatePath'), '/products/:productId/images/:id'
@@ -252,7 +252,7 @@ test "edit routes route to the edit action", 4, ->
     @resources 'images', {only: ['edit']}
 
   [name, route] = @routeMap.addRoute.lastCallArguments
-  equal name, 'products.image.edit'
+  equal name, 'products.images.edit'
   equal route.get('action'), 'edit'
   ok route.get('member')
   equal route.get('templatePath'), '/products/:productId/images/:id/edit'
@@ -284,7 +284,7 @@ test "can define nonstandard member routes", ->
 
   equal @routeMap.addRoute.callCount, 3
   [name, route] = @routeMap.addRoute.calls[0].arguments
-  equal name, 'products.image.duplicate'
+  equal name, 'products.images.duplicate'
   equal route.get('action'), 'duplicate'
   equal route.get('controller'), 'images'
   equal route.get('templatePath'), '/products/:productId/images/:id/duplicate'

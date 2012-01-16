@@ -1761,24 +1761,36 @@ class Batman.Dispatcher extends Batman.Object
     path
 
 class Batman.RouteMap
+  memberRoute: null
+  collectionRoute: null
+
   constructor: ->
-    @childrenByName = {}
     @childrenByOrder = []
+    @childrenByName = {}
 
   routeForParams: (params) ->
-    for routeOrMap in @childrenByOrder
-      if routeOrMap.isRoute
-        return routeOrMap if routeOrMap.test(params)
-      else
-        return route if route = routeOrMap.routeForParams(params)
+    for route in @childrenByOrder
+      return route if route.test(params)
 
     return undefined
 
   addRoute: (name, route) ->
-    developer.do =>
-      Batman.developer.error("Route with name #{name} already exists!") if @childrenByName[name]
-    @childrenByName[name] = route
-    @childrenByOrder.push route
+    @childrenByOrder.push(route)
+    if name.length > 0 && (names = name.split('.')).length > 0
+      base = names.shift()
+      unless @childrenByName[base]
+        @childrenByName[base] = new Batman.RouteMap
+      @childrenByName[base].addRoute(names.join('.'), route)
+    else
+      if route.get('member')
+        developer.do =>
+          Batman.developer.error("Member route with name #{name} already exists!") if @memberRoute
+        @memberRoute = route
+      else
+        developer.do =>
+          Batman.developer.error("Collection route with name #{name} already exists!") if @collectionRoute
+        @collectionRoute = route
+    true
 
 class Batman.RouteMapBuilder
   @BUILDER_FUNCTIONS = ['resources', 'member', 'collection', 'route', 'root']
@@ -1794,11 +1806,11 @@ class Batman.RouteMapBuilder
     show:
       cardinality: 'member'
       path: (resource) -> "#{resource}/:id"
-      name: (resource) -> helpers.singularize(resource)
+      name: (resource) -> resource
     edit:
       cardinality: 'member'
       path: (resource) -> "#{resource}/:id/edit"
-      name: (resource) -> "#{helpers.singularize(resource)}.edit"
+      name: (resource) -> "#{resource}.edit"
     collection:
       cardinality: 'collection'
       path: (resource, name) -> "#{resource}/#{name}"
@@ -1806,7 +1818,7 @@ class Batman.RouteMapBuilder
     member:
       cardinality: 'member'
       path: (resource, name) -> "#{resource}/:id/#{name}"
-      name: (resource, name) -> "#{helpers.singularize(resource)}.#{name}"
+      name: (resource, name) -> "#{resource}.#{name}"
 
   constructor: (@app, @routeMap, @parent, @baseOptions = {}) ->
     if @parent

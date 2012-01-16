@@ -24,7 +24,6 @@ unless IN_NODE #jsdom doesn't like window.location.replace
 
     window.history.back()
 
-
     doWhen (-> window.location.hash is "#!/one"), ->
       equal window.location.hash, "#!/one"
       QUnit.start()
