@@ -1792,6 +1792,55 @@ class Batman.RouteMap
         @collectionRoute = route
     true
 
+class Batman.NamedRouteQuery extends Batman.Object
+  constructor: (routeMap, args = []) ->
+    super({routeMap, args})
+
+  @accessor 'route', ->
+    {memberRoute, collectionRoute} = @get('routeMap')
+    for route in [memberRoute, collectionRoute] when route?
+      return route if route.namedArguments.length == @get('args').length
+    return collectionRoute || memberRoute
+
+  @accessor 'path', ->
+    params = {}
+    namedArguments = @get('route.namedArguments')
+    for argumentName, index in namedArguments
+      if (argumentValue = @get('args')[index])?
+        params[argumentName] = @_toParam(argumentValue)
+
+    @get('route').pathFromParams(params)
+
+  @accessor 'routeMap', 'args', 'cardinality', Batman.Property.defaultAccessor
+
+  @accessor
+    get: (key) ->
+      if typeof key is 'string'
+        @nextQueryForName(key)
+      else
+        @nextQueryWithArgument(key)
+    set: ->
+    cacheable: false
+
+  nextQueryForName: (key) ->
+    if map = @get('routeMap').childrenByName[key]
+      return new Batman.NamedRouteQuery(map, @args)
+    else
+      Batman.developer.error "Couldn't find a route for the name #{key}!"
+
+  nextQueryWithArgument: (arg) ->
+    args = @args.slice(0)
+    args.push arg
+    @clone(args)
+
+  _toParam: (arg) ->
+    if arg.toParam isnt 'undefined' then arg.toParam() else arg
+  _paramName: (arg) ->
+    string = helpers.singularize($functionName(arg)) + "Id"
+    string.charAt(0).toLowerCase() + string.slice(1)
+
+  clone: (args = @args) -> new Batman.NamedRouteQuery(@routeMap, args)
+
 class Batman.RouteMapBuilder
   @BUILDER_FUNCTIONS = ['resources', 'member', 'collection', 'route', 'root']
   @ROUTES =
@@ -2602,6 +2651,8 @@ class Batman.Model extends Batman.Object
 
     # Mixin the buffer object to use optimized and event-preventing sets used by `mixin`.
     @mixin obj
+
+  toParam: -> @get('id')
 
   # Each model instance (each record) can be in one of many states throughout its lifetime. Since various
   # operations on the model are asynchronous, these states are used to indicate exactly what point the
