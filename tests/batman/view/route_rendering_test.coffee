@@ -157,3 +157,40 @@ asyncTest 'should allow you to bind to objects in the context stack', 2, ->
         deepEqual a.attr('href'), Batman.navigator.linkTo('/baz/qux')
 
   @App.run()
+
+asyncTest 'should allow you to use named route queries', 2, ->
+  @App.resources 'products', ->
+    @resources 'images', ->
+      @member 'duplicate'
+
+  @App.on 'run', ->
+    source = '''
+      <a data-route="routes.products">products index</a>
+      <a data-route="routes.products.new">products new</a>
+      <a data-route="routes.products[product]">product show</a>
+      <a data-route="routes.products[product].images">images index</a>
+      <a data-route="routes.products[product].images[image]">images show</a>
+      <a data-route="routes.products[product].images[image].duplicate">image member</a>
+    '''
+
+    context = Batman
+      product: Batman
+        toParam: -> 10
+      image: Batman
+        toParam: -> 20
+
+    viewHelpers.render source, false, context, (node, view) ->
+      checkUrls = (expected) ->
+        urls = ($(a).attr('href') for a in $('a', view.get('node')))
+        expected = expected.map (path) -> Batman.navigator.linkTo(path)
+        deepEqual urls, expected
+
+      expected = ['/products', '/products/new', '/products/10', '/products/10/images', '/products/10/images/20', '/products/10/images/20/duplicate']
+      checkUrls(expected)
+
+      context.set 'product', Batman(toParam: -> 30)
+      delay ->
+        expected = ['/products', '/products/new', '/products/30', '/products/30/images', '/products/30/images/20', '/products/30/images/20/duplicate']
+        checkUrls(expected)
+
+  @App.run()

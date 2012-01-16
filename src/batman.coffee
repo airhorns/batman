@@ -1793,6 +1793,7 @@ class Batman.RouteMap
     true
 
 class Batman.NamedRouteQuery extends Batman.Object
+  isNamedRouteQuery: true
   constructor: (routeMap, args = []) ->
     super({routeMap, args})
 
@@ -2140,6 +2141,7 @@ class Batman.App extends Batman.Object
       params.pusher = new Batman.ParamsPusher(nav, params)
     'final': true
 
+  @classAccessor 'routes', -> new Batman.NamedRouteQuery(@get('routeMap'))
   @classAccessor 'routeMap', -> new Batman.RouteMap
   @classAccessor 'routeMapBuilder', -> new Batman.RouteMapBuilder(@, @get('routeMap'))
   @classAccessor 'dispatcher', -> new Batman.Dispatcher(@, @get('routeMap'))
@@ -4753,7 +4755,10 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
 
   dataChange: (value) ->
     if value?
-      path = @set 'path', @get('dispatcher')?.pathFromParams(value)
+      path = if value.isNamedRouteQuery
+        value.get('path')
+      else
+        @get('dispatcher')?.pathFromParams(value)
 
     if @onATag
       if path?
