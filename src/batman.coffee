@@ -4115,6 +4115,9 @@ Batman.DOM = {
     else
       Batman._data node, 'bindings', new Batman.SimpleSet(binding)
 
+    Batman.DOM.fire('bindingAdded', binding)
+    true
+
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
   # or removed without leaking memory
   unbindNode: $unbindNode = (node) ->
@@ -4233,6 +4236,9 @@ Batman.DOM = {
 
   forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 }
+
+$mixin Batman.DOM, Batman.EventEmitter, Batman.Observable
+Batman.DOM.event('bindingAdded')
 
 # Bindings are shortlived objects which manage the observation of any keypaths a `data` attribute depends on.
 # Bindings parse any keypaths which are filtered and use an accessor to apply the filters, and thus enjoy

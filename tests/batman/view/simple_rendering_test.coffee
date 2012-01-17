@@ -24,6 +24,16 @@ asyncTest 'it should allow the inner value to be bound', 1, ->
     equals node.html(), "bar"
     QUnit.start()
 
+asyncTest 'it should track added bindings', 2, ->
+  Batman.DOM.on 'bindingAdded', spy = createSpy()
+  helpers.render '<div data-bind="foo"></div>',
+    foo: 'bar'
+  , (node) =>
+    ok spy.called
+    ok spy.lastCallArguments[0] instanceof Batman.DOM.AbstractBinding
+    Batman.DOM.forget 'bindingAdded', spy
+    QUnit.start()
+
 asyncTest 'it should bind undefined values as empty strings', 1, ->
   helpers.render '<div data-bind="foo"></div>',
     foo: undefined
