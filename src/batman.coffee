@@ -3465,9 +3465,11 @@ class Batman.View extends Batman.Object
         @hasContainer = true
         @node = document.createElement 'div'
         $setInnerHTML(@node, html)
+        Batman.data(@node.children[0], 'view', @)
       return @node
     set: (_, node) ->
       @node = node
+      Batman.data(@node, 'view', @)
       updateHTML = (html) =>
         if html?
           $setInnerHTML(@get('node'), html)
@@ -3888,13 +3890,25 @@ Batman.DOM = {
 
     yieldFn = (yieldingNode) ->
       if _replaceContent || !Batman._data(yieldingNode, 'yielded')
+        Batman.DOM.didRemoveNode(child) for child in yieldingNode.children
         $setInnerHTML yieldingNode, '', true
 
       if _yieldChildren
         while node.childNodes.length > 0
+          child = node.childNodes[0]
+          view = Batman.data(child, 'view')
+          view?.viewWillAppear?(child)
+
           $appendChild yieldingNode, node.childNodes[0], true
+
+          view?.viewDidAppear?(child)
       else
+        view = Batman.data(node, 'view')
+        view?.viewWillAppear(child)
+
         $appendChild yieldingNode, node, true
+
+        view?.viewDidAppear(child)
 
       Batman._data node, 'yielded', true
       Batman._data yieldingNode, 'yielded', true
