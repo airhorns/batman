@@ -4327,6 +4327,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
   bindImmediately: true
   shouldSet: true
+  isInputBinding: false
 
   constructor: (@node, @keyPath, @renderContext, @renderer, @only = false) ->
     Batman.DOM.trackBinding(@, @node) if @node?
@@ -4459,6 +4460,10 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
     super
 
 class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
+  constructor: ->
+    super
+    @isInputBinding = @get('node').nodeName.toLowerCase() in ['input', 'textarea']
+
   nodeChange: (node, context) ->
     if @isTwoWay()
       @set 'filteredValue', @node.value
@@ -4505,6 +4510,7 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
       view?.viewDidDisappear? @node
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
+  isInputBinding: true
   dataChange: (value) ->
     @node[@attributeName] = !!value
     # Update the parent's binding if necessary
@@ -4592,6 +4598,7 @@ class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
       @get('keyContext')
 
 class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
+  isInputBinding: true
   dataChange: (value) ->
     # don't overwrite `checked` attributes in the HTML unless a bound
     # value is defined in the context. if no bound value is found, bind
@@ -4606,6 +4613,7 @@ class Batman.DOM.RadioBinding extends Batman.DOM.AbstractBinding
       @set('filteredValue', Batman.DOM.attrReaders._parseAttribute(node.value))
 
 class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
+  isInputBinding: true
   nodeChange: (node, subContext) ->
     return if !@isTwoWay()
 
@@ -4632,8 +4640,10 @@ class Batman.DOM.MixinBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) -> $mixin @node, value if value?
 
 class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
+  isInputBinding: true
   bindImmediately: false
   firstBind: true
+
   constructor: ->
     super
     # wait for the select to render before binding to it
