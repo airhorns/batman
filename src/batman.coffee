@@ -5066,7 +5066,7 @@ filters = Batman.Filters =
     value.sort()
 
   map: buntUndefined (value, key) ->
-    value.map((x) -> x[key])
+    value.map((x) -> $get(x, key))
 
   has: (set, item) ->
     return false unless set?

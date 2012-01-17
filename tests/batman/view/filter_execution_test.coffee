@@ -200,6 +200,16 @@ asyncTest 'map over a set', 1, ->
     equals node.html(), "one, two"
     QUnit.start()
 
+asyncTest 'map over batman objects', 1, ->
+  class Silly extends Batman.Object
+    @accessor 'foo', -> 'bar'
+
+  helpers.render '<div data-bind="posts | map \'foo\' | join \', \'"></div>',
+    {posts: new Batman.Set(new Silly, new Silly)}
+  , (node) ->
+    equals node.html(), "bar, bar"
+    QUnit.start()
+
 asyncTest 'has in a set', 3, ->
   posts = new Batman.Set(
     Batman
