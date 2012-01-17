@@ -3754,8 +3754,8 @@ Batman.DOM = {
       $setImmediate -> Batman.DOM.replace key, node
       true
   }
-  _yieldContents: {}  # name/content pairs of content to be yielded
-  _yields: {}         # name/container pairs of yielding nodes
+  _yielders: {} # name/fn pairs of yielding functions
+  _yields: {}   # name/container pairs of yielding nodes
 
   # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the
   # `data-dosomething-argument="keypath"` style. This means things like foreach, binding attributes like
@@ -3872,30 +3872,12 @@ Batman.DOM = {
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # `replace` is used to replace yielded content.
   # This can be used for abstraction as well as repetition.
-  yield: (name, node, _replaceContent = !Batman._data(node, 'yielded')) ->
+  yield: (name, node) ->
     Batman.DOM._yields[name] = node
 
     # render any content for this yield
-    if contents = Batman.DOM._yieldContents[name]
-      if _replaceContent
-        $setInnerHTML node, '', true
-
-      for content in contents when !Batman._data(content.node, 'yielded')
-        yieldChildren = content.yieldChildren
-
-        if $isChildOf(node, content.node)
-          content.node = content.node.cloneNode(true)
-
-        if yieldChildren
-          while content.node.childNodes.length > 0
-            $appendChild node, content.node.childNodes[0], true
-        else
-          $appendChild node, content.node, true
-
-        Batman._data(content.node, 'yielded', true)
-      # delete references to the rendered content nodes and mark the node as yielded
-      delete Batman.DOM._yieldContents[name]
-      Batman._data(node, 'yielded', true)
+    if yielders = Batman.DOM._yielders[name]
+      fn(node) for fn in yielders
 
   contentFor: (name, node, _replaceContent, _yieldChildren) ->
     yieldingNode = Batman.DOM._yields[name]
@@ -3904,14 +3886,27 @@ Batman.DOM = {
     if yieldingNode and $isChildOf(yieldingNode, node)
       node = node.cloneNode(true)
 
-    data = {node: node, yieldChildren: _yieldChildren}
-    if contents = Batman.DOM._yieldContents[name]
-      contents.push data
+    yieldFn = (yieldingNode) ->
+      if _replaceContent || !Batman._data(yieldingNode, 'yielded')
+        $setInnerHTML yieldingNode, '', true
+
+      if _yieldChildren
+        while node.childNodes.length > 0
+          $appendChild yieldingNode, node.childNodes[0], true
+      else
+        $appendChild yieldingNode, node, true
+
+      Batman._data node, 'yielded', true
+      Batman._data yieldingNode, 'yielded', true
+      delete Batman.DOM._yielders[name]
+
+    if contents = Batman.DOM._yielders[name]
+      contents.push yieldFn
     else
-      Batman.DOM._yieldContents[name] = [data]
+      Batman.DOM._yielders[name] = [yieldFn]
 
     if yieldingNode
-      Batman.DOM.yield name, yieldingNode, _replaceContent
+      Batman.DOM.yield name, yieldingNode
 
   replace: (name, node, _yieldChildren) ->
     Batman.DOM.contentFor name, node, true, _yieldChildren

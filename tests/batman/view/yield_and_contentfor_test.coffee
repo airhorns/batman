@@ -19,7 +19,7 @@ asyncTest 'it should insert content into yields when the content comes after the
   node = helpers.render source, {}, (node) ->
     delay =>
       equals node.children(0).html(), "chunky bacon"
-      equal Batman.DOM._yieldContents["baz"], undefined, "_yieldContents was cleared"
+      equal Batman.DOM._yielders["baz"], undefined, "_yielders was cleared"
 
 asyncTest 'it should yield multiple contentfors that render into the same yield', ->
   source = '''
