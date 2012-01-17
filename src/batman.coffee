@@ -3969,7 +3969,7 @@ Batman.DOM = {
       false # Return false so the Renderer doesn't descend into this node's children.
 
     formfor: (node, localName, key, context) ->
-      Batman.DOM.events.submit node, (node, e) -> $preventDefault e
+      new Batman.DOM.FormBinding(arguments...)
       context.descendWithKey(key, localName)
 
     view: (node, bindKey, contextKey, context) ->
@@ -4330,7 +4330,6 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   isInputBinding: false
 
   constructor: (@node, @keyPath, @renderContext, @renderer, @only = false) ->
-    Batman.DOM.trackBinding(@, @node) if @node?
 
     # Pull out the `@key` and filter from the `@keyPath`.
     @parseFilter()
@@ -4354,6 +4353,8 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     # Observe the value of this binding's `filteredValue` and fire it immediately to update the node.
     if @only in [false, 'dataChange']
       @observeAndFire 'filteredValue', @_fireDataChange
+
+    Batman.DOM.trackBinding(@, @node) if @node?
 
   _fireNodeChange: =>
     @shouldSet = false
@@ -4460,9 +4461,9 @@ class Batman.DOM.AbstractCollectionBinding extends Batman.DOM.AbstractAttributeB
     super
 
 class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
-  constructor: ->
+  constructor: (node) ->
+    @isInputBinding = node.nodeName.toLowerCase() in ['input', 'textarea']
     super
-    @isInputBinding = @get('node').nodeName.toLowerCase() in ['input', 'textarea']
 
   nodeChange: (node, context) ->
     if @isTwoWay()
@@ -4810,6 +4811,29 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
       @view.viewDidAppear? @node
 
     @die()
+
+class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
+  @current: null
+  errorClass: 'error'
+
+  constructor: (node, contextName, keyPath, renderContext, renderer, only) ->
+    super
+    @contextName = contextName
+    delete @attributeName
+
+    Batman.DOM.events.submit @get('node'), (node, e) -> $preventDefault e
+    Batman.DOM.on 'bindingAdded', @bindingWasAdded
+
+  bindingWasAdded: (binding) =>
+    if binding.isInputBinding && $isChildOf(@get('node'), binding.get('node'))
+      if ~(index = binding.get('key').indexOf(@contextName)) # If the binding is to a key on the thing passed to formfor
+        node = binding.get('node')
+        field = binding.get('key').slice(index + @contextName.length + 1) # Slice off up until the context and the following dot
+        new Batman.DOM.AddClassBinding(node, @errorClass, @get('keyPath') + " | get 'errors.#{field}.length'", @renderContext, @renderer)
+
+  die: ->
+    Batman.DOM.forget 'bindingAdded', @bindingWasAdded
+    super
 
 class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
   deferEvery: 50

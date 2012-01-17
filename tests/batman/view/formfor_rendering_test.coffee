@@ -35,18 +35,36 @@ asyncTest 'it should update objects when form rendering', 1, ->
     delay =>
       equals @User.lastInstance.name, "new name"
 
-
 asyncTest 'it should update the context for the form if the context changes', 2, ->
   source = '''
   <form data-formfor-user="instanceOfUser">
     <input type="text" data-bind="user.name">
   </form>
   '''
-  context = new Batman.Object
-    instanceOfUser: null
+  context = Batman()
 
   node = helpers.render source, context, (node) =>
     equals $('input', node).val(), ""
     context.set 'instanceOfUser', new @User
     delay =>
       equals $('input', node).val(), "default name"
+
+asyncTest 'it should add the errors class to an input bound to a field on the subject', 2, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+
+  context = Batman
+    instanceOfUser: Batman
+      name: ''
+
+  node = helpers.render source, context, (node) =>
+    ok !$('input', node).hasClass('error')
+
+    errors = new Batman.ErrorsSet
+    errors.add 'name', "can't be blank"
+    context.get('instanceOfUser').set 'errors', errors
+    delay =>
+      ok $('input', node).hasClass('error')
