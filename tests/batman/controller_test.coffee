@@ -18,7 +18,7 @@ test 'it should render views if given in the options', ->
   spyOnDuring Batman.DOM, 'replace', (replace) ->
     testView.fireReady()
     deepEqual testView.get.lastCallArguments, ['node']
-    deepEqual replace.lastCallArguments, ['main', 'view contents']
+    deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
 
 test 'it should pull in views if not present already', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
@@ -29,7 +29,7 @@ test 'it should pull in views if not present already', ->
     spyOnDuring Batman.DOM, 'replace', (replace) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
-      deepEqual replace.lastCallArguments, ['main', 'view contents']
+      deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
 
 test 'dispatching routes without any actions calls render', 1, ->
   @controller.test = ->

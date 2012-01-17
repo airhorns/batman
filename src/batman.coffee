@@ -2193,15 +2193,7 @@ class Batman.Controller extends Batman.Object
     if view = options.view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
-        node = view.get('node')
-        yieldTo = options.into || 'main'
-        if view.hasContainer
-          if yieldingNode = Batman.DOM._yields[yieldTo]
-            $setInnerHTML yieldingNode, ''
-            while node.childNodes.length > 0
-              $appendChild(yieldingNode, node.childNodes[0])
-        else
-          Batman.DOM.replace yieldTo, node
+        Batman.DOM.replace options.into || 'main', view.get('node'), view.hasContainer
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
@@ -3887,32 +3879,42 @@ Batman.DOM = {
     if contents = Batman.DOM._yieldContents[name]
       if _replaceContent
         $setInnerHTML node, '', true
-      for content in contents when !Batman._data(content, 'yielded')
-        if $isChildOf(node, content)
-          content = content.cloneNode(true)
-        $appendChild node, content, true
-        Batman._data(content, 'yielded', true)
+
+      for content in contents when !Batman._data(content.node, 'yielded')
+        yieldChildren = content.yieldChildren
+
+        if $isChildOf(node, content.node)
+          content.node = content.node.cloneNode(true)
+
+        if yieldChildren
+          while content.node.childNodes.length > 0
+            $appendChild node, content.node.childNodes[0], true
+        else
+          $appendChild node, content.node, true
+
+        Batman._data(content.node, 'yielded', true)
       # delete references to the rendered content nodes and mark the node as yielded
       delete Batman.DOM._yieldContents[name]
       Batman._data(node, 'yielded', true)
 
-  contentFor: (name, node, _replaceContent) ->
+  contentFor: (name, node, _replaceContent, _yieldChildren) ->
     yieldingNode = Batman.DOM._yields[name]
 
     # Clone the node if it's a child in case the parent gets cleared during the yield
     if yieldingNode and $isChildOf(yieldingNode, node)
       node = node.cloneNode(true)
 
+    data = {node: node, yieldChildren: _yieldChildren}
     if contents = Batman.DOM._yieldContents[name]
-      contents.push(node)
+      contents.push data
     else
-      Batman.DOM._yieldContents[name] = [node]
+      Batman.DOM._yieldContents[name] = [data]
 
     if yieldingNode
       Batman.DOM.yield name, yieldingNode, _replaceContent
 
-  replace: (name, node) ->
-    Batman.DOM.contentFor name, node, true
+  replace: (name, node, _yieldChildren) ->
+    Batman.DOM.contentFor name, node, true, _yieldChildren
 
   partial: (container, path, context, renderer) ->
     renderer.prevent 'rendered'
