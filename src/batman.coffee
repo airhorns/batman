@@ -896,7 +896,7 @@ class BatmanObject extends Object
   toJSON: ->
     obj = {}
     for own key, value of @ when key not in ["_batman", "hashKey", "_objectID"]
-      obj[key] = if value.toJSON then value.toJSON() else value
+      obj[key] = if value?.toJSON then value.toJSON() else value
     obj
 
 
