@@ -117,7 +117,7 @@ applyExtra = (Batman) ->
 
           for key, errorsArray of validationErrors
             for validationError in errorsArray
-              record.get('errors').add(key, "#{key} #{validationError}")
+              record.get('errors').add(key, validationError)
 
           env = arguments[0]
           env.result = record
