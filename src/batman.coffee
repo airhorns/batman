@@ -4819,6 +4819,9 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
 class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
   @current: null
   errorClass: 'error'
+  defaultErrorsListSelector: 'div.errors'
+  @accessor 'errorsListSelector', ->
+    @get('node').getAttribute('data-errors-list') || @defaultErrorsListSelector
 
   constructor: (node, contextName, keyPath, renderContext, renderer, only) ->
     super
@@ -4828,12 +4831,22 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
     Batman.DOM.events.submit @get('node'), (node, e) -> $preventDefault e
     Batman.DOM.on 'bindingAdded', @bindingWasAdded
 
+    if @errorsListNode = @get('node').querySelector(@get('errorsListSelector'))
+      $setInnerHTML @errorsListNode, @errorsListHTML()
+
   bindingWasAdded: (binding) =>
     if binding.isInputBinding && $isChildOf(@get('node'), binding.get('node'))
       if ~(index = binding.get('key').indexOf(@contextName)) # If the binding is to a key on the thing passed to formfor
         node = binding.get('node')
         field = binding.get('key').slice(index + @contextName.length + 1) # Slice off up until the context and the following dot
         new Batman.DOM.AddClassBinding(node, @errorClass, @get('keyPath') + " | get 'errors.#{field}.length'", @renderContext, @renderer)
+
+  errorsListHTML: ->
+    """
+    <ul>
+      <li data-foreach-error="#{@contextName}.errors" data-bind="error.attribute | append ' ' | append error.message"></li>
+    </ul>
+    """
 
   die: ->
     Batman.DOM.forget 'bindingAdded', @bindingWasAdded
