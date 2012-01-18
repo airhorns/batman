@@ -1835,7 +1835,10 @@ class Batman.NamedRouteQuery extends Batman.Object
     @clone(args)
 
   _toParam: (arg) ->
+    if arg instanceof Batman.AssociationProxy
+      arg = arg.get('target')
     if arg.toParam isnt 'undefined' then arg.toParam() else arg
+
   _paramName: (arg) ->
     string = helpers.singularize($functionName(arg)) + "Id"
     string.charAt(0).toLowerCase() + string.slice(1)

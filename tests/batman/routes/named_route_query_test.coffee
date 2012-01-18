@@ -57,3 +57,10 @@ test "should find nonstandard nested member routes", ->
 
 test "should find nonstandard nested member routes even if the parent doesn't have a route", ->
   equal @query.get('customers').get(@customer).get('duplicate.path'), '/customers/30/duplicate'
+
+test "should find routes when given association proxies", ->
+  product = @product
+  class MockAssociationProxy extends Batman.AssociationProxy
+    @accessor 'target', -> product
+  @proxy = new MockAssociationProxy({}, {})
+  equal @query.get('products').get(@proxy).get('path'), '/products/10'
