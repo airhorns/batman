@@ -1816,6 +1816,7 @@ class Batman.NamedRouteQuery extends Batman.Object
 
   @accessor
     get: (key) ->
+      return if !key?
       if typeof key is 'string'
         @nextQueryForName(key)
       else

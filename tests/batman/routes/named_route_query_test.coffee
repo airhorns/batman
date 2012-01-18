@@ -64,3 +64,6 @@ test "should find routes when given association proxies", ->
     @accessor 'target', -> product
   @proxy = new MockAssociationProxy({}, {})
   equal @query.get('products').get(@proxy).get('path'), '/products/10'
+
+test "should return undefined when given undefined parameters", ->
+  equal typeof @query.get('products').get(undefined), 'undefined'
