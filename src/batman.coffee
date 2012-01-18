@@ -4820,6 +4820,7 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
   @current: null
   errorClass: 'error'
   defaultErrorsListSelector: 'div.errors'
+
   @accessor 'errorsListSelector', ->
     @get('node').getAttribute('data-errors-list') || @defaultErrorsListSelector
 
@@ -4831,8 +4832,7 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
     Batman.DOM.events.submit @get('node'), (node, e) -> $preventDefault e
     Batman.DOM.on 'bindingAdded', @bindingWasAdded
 
-    if @errorsListNode = @get('node').querySelector(@get('errorsListSelector'))
-      $setInnerHTML @errorsListNode, @errorsListHTML()
+    @setupErrorsList()
 
   bindingWasAdded: (binding) =>
     if binding.isInputBinding && $isChildOf(@get('node'), binding.get('node'))
@@ -4840,6 +4840,13 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
         node = binding.get('node')
         field = binding.get('key').slice(index + @contextName.length + 1) # Slice off up until the context and the following dot
         new Batman.DOM.AddClassBinding(node, @errorClass, @get('keyPath') + " | get 'errors.#{field}.length'", @renderContext, @renderer)
+
+  setupErrorsList: ->
+    if @errorsListNode = @get('node').querySelector(@get('errorsListSelector'))
+      $setInnerHTML @errorsListNode, @errorsListHTML()
+
+      unless @errorsListNode.getAttribute 'data-showif'
+        @errorsListNode.setAttribute 'data-showif', "#{@contextName}.errors.length"
 
   errorsListHTML: ->
     """

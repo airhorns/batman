@@ -88,6 +88,44 @@ asyncTest 'it should add the error list HTML to the default selected node', 3, -
       equal node.find("div.errors li").length, 1
       equal node.find("div.errors li").html(), "name can't be blank"
 
+
+asyncTest 'it should only show the errors list when there are errors', 2, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <div class="errors"></div>
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+  context = Batman
+    instanceOfUser: Batman
+      name: ''
+      errors: new Batman.ErrorsSet
+
+  node = helpers.render source, context, (node) =>
+    equal node.find("div.errors").css('display'), 'none'
+    context.get('instanceOfUser.errors').add 'name', "can't be blank"
+    delay =>
+      equal node.find("div.errors").css('display'), ''
+
+asyncTest 'it shouldn\'t override already existing showif bindings on the errors list', 2, ->
+  source = '''
+  <form data-formfor-user="instanceOfUser">
+    <div class="errors" data-showif="show?"></div>
+    <input type="text" data-bind="user.name">
+  </form>
+  '''
+  context = Batman
+    'show?': true
+    instanceOfUser: Batman
+      name: ''
+      errors: new Batman.ErrorsSet
+
+  node = helpers.render source, context, (node) =>
+    equal node.find("div.errors").css('display'), ''
+    context.get('instanceOfUser.errors').add 'name', "can't be blank"
+    delay =>
+      equal node.find("div.errors").css('display'), ''
+
 asyncTest 'it should add the error list HTML to a specified selected node', 3, ->
   source = '''
   <form data-formfor-user="instanceOfUser" data-errors-list="#testy">
@@ -106,3 +144,4 @@ asyncTest 'it should add the error list HTML to a specified selected node', 3, -
     delay =>
       equal node.find("#testy li").length, 1
       equal node.find("#testy li").html(), "name can't be blank"
+
