@@ -13,20 +13,19 @@ asyncTest 'it should bind the value of a select box and update when the javascri
       delay =>
         equal node[0].value, 'link'
 
-asyncTest 'it should bind the value of a select box and update the javascript land value with the selected option if undefined', 4, ->
+asyncTest 'it should bind the value of a select box and update the javascript land value with the selected option', 3, ->
   context = Batman
-    heros: new Batman.Set('mario', 'crono', 'link')
-    selected: new Batman.Object(name: undefined)
-  helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
+    heros: new Batman.SimpleSet('mario', 'crono', 'link')
+    selected: 'crono'
+  helpers.render '<select data-bind="selected"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
     delay => # wait for select's data-bind listener to receive the rendered event
-      equals node[0].value, 'mario'
-      equals context.get('selected.name'), 'mario'
-      context.set 'selected.name', 'link'
+      equals node[0].value, 'crono'
+      context.set 'selected', 'link'
       delay =>
         equal node[0].value, 'link'
-        context.set 'selected.name', undefined
+        context.set 'selected', 'mario'
         delay =>
-          equal context.get('selected.name'), undefined, 'The undefined value is only populated once at the start'
+          equal node[0].value, 'mario'
 
 asyncTest 'it binds the options of a select box and updates when the select\'s value changes', ->
   context = Batman
