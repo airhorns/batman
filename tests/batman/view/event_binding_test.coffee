@@ -27,7 +27,7 @@ asyncTest 'it should allow events to be bound and execute them in the context as
     delay ->
       equal spy.lastCallContext, context
       equal spy.lastCallArguments[0], node[0]
-      equal spy.lastCallArguments[2].findKey('foo')[0], 'bar'
+      equal spy.lastCallArguments[2].get('foo'), 'bar'
 
 asyncTest 'it should allow click events to be bound', 2, ->
   context =
@@ -76,7 +76,7 @@ asyncTest 'it should allow event handlers to update', 2, ->
       delay ->
         ok newSpy.called
 
-asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
+asyncTest 'it should allow change events on checkboxes to be bound', 2, ->
   context = new Batman.Object
     one: true
     doSomething: createSpy()
@@ -86,8 +86,9 @@ asyncTest 'it should allow change events on checkboxes to be bound', 1, ->
     helpers.triggerChange(node[0])
     delay =>
       ok context.doSomething.called
+      ok context.doSomething.lastCallArguments[2].findKey
 
-asyncTest 'it should allow submit events on inputs to be bound', 2, ->
+asyncTest 'it should allow submit events on inputs to be bound', 3, ->
   context =
     doSomething: spy = createSpy()
 
@@ -97,6 +98,7 @@ asyncTest 'it should allow submit events on inputs to be bound', 2, ->
     delay ->
       ok spy.called
       equal spy.lastCallArguments[0], node[0].childNodes[0]
+      ok spy.lastCallArguments[2].findKey
 
 asyncTest 'it should ignore keyup events with no associated keydown events', 2, ->
   # This can happen when we move the focus between nodes while handling some of these events.
@@ -112,7 +114,7 @@ asyncTest 'it should ignore keyup events with no associated keydown events', 2, 
       ok !aSpy.called
       ok !anotherSpy.called
 
-asyncTest 'it should allow form submit events to be bound', 1, ->
+asyncTest 'it should allow form submit events to be bound', 2, ->
   context =
     doSomething: spy = createSpy()
 
@@ -121,6 +123,7 @@ asyncTest 'it should allow form submit events to be bound', 1, ->
     helpers.triggerSubmit(node[0])
     delay =>
       ok spy.called
+      ok spy.lastCallArguments[2].findKey
 
 asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
   spy = createSpy()
@@ -135,4 +138,15 @@ asyncTest 'allows data-event-click attributes to reference native model properti
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
+asyncTest 'should pass the context to other events without special handlers', 3, ->
+  context =
+    doSomething: spy = createSpy()
+
+  source = '<form><input data-event-keypress="doSomething" /></form>'
+  helpers.render source, context, (node) ->
+    helpers.triggerKey(node[0].childNodes[0], 65)
+    delay ->
+      ok spy.called
+      equal spy.lastCallArguments[0], node[0].childNodes[0]
+      ok spy.lastCallArguments[2].findKey
 

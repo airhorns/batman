@@ -4001,7 +4001,7 @@ Batman.DOM = {
       # The actual DOM event is called `dblclick`
       Batman.DOM.events.click node, callback, context, 'dblclick'
 
-    change: (node, callback) ->
+    change: (node, callback, context) ->
       eventNames = switch node.nodeName.toUpperCase()
         when 'TEXTAREA' then ['keyup', 'change']
         when 'INPUT'
@@ -4017,28 +4017,29 @@ Batman.DOM = {
 
       for eventName in eventNames
         $addEventListener node, eventName, (args...) ->
-          callback node, args...
+          callback node, args..., context
 
-    submit: (node, callback) ->
-      isEnter = (ev) -> ev.keyCode is 13 || ev.which is 13 || ev.keyIdentifier is 'Enter' || ev.key is 'Enter'
+    isEnter: (ev) -> ev.keyCode is 13 || ev.which is 13 || ev.keyIdentifier is 'Enter' || ev.key is 'Enter'
+
+    submit: (node, callback, context) ->
       if Batman.DOM.nodeIsEditable(node)
         $addEventListener node, 'keydown', (args...) ->
-          if isEnter(args[0])
+          if Batman.DOM.events.isEnter(args[0])
             Batman.DOM._keyCapturingNode = node
         $addEventListener node, 'keyup', (args...) ->
-          if isEnter(args[0])
+          if Batman.DOM.events.isEnter(args[0])
             if Batman.DOM._keyCapturingNode is node
               $preventDefault args[0]
-              callback node, args...
+              callback node, args..., context
             Batman.DOM._keyCapturingNode = null
       else
         $addEventListener node, 'submit', (args...) ->
           $preventDefault args[0]
-          callback node, args...
+          callback node, args..., context
 
       node
 
-    other: (node, eventName, callback) -> $addEventListener node, eventName, (args...) -> callback node, args...
+    other: (node, eventName, callback, context) -> $addEventListener node, eventName, (args...) -> callback node, args..., context
   }
 
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
@@ -4346,7 +4347,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   bind: ->
     # Attach the observers.
     if @node? && @only in [false, 'nodeChange'] and Batman.DOM.nodeIsEditable(@node)
-      Batman.DOM.events.change @node, @_fireNodeChange
+      Batman.DOM.events.change @node, @_fireNodeChange, @renderContext
 
       # Usually, we let the HTML value get updated upon binding by `observeAndFire`ing the dataChange
       # function below. When dataChange isn't attached, we update the JS land value such that the
@@ -4592,7 +4593,7 @@ class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
     if attacher = Batman.DOM.events[@attributeName]
       attacher @node, callback, context
     else
-      Batman.DOM.events.other @node, @attributeName, callback
+      Batman.DOM.events.other @node, @attributeName, callback, context
 
   @accessor 'callbackContext', ->
     contextKeySegments = @key.split('.')
