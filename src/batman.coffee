@@ -4520,7 +4520,8 @@ class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   dataChange: (value) ->
     @node[@attributeName] = !!value
     # Update the parent's binding if necessary
-    Batman._data(@node.parentNode, 'updateBinding')?()
+    if @node.parentNode
+      Batman._data(@node.parentNode, 'updateBinding')?()
 
   constructor: ->
     super
