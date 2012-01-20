@@ -3635,7 +3635,8 @@ class Batman.View extends Batman.Object
         @hasContainer = true
         @node = document.createElement 'div'
         $setInnerHTML(@node, html)
-        Batman.data(@node.children[0], 'view', @)
+        if @node.children.length > 0
+          Batman.data(@node.children[0], 'view', @)
       return @node
     set: (_, node) ->
       @node = node
