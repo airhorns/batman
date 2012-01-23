@@ -1,19 +1,29 @@
 (function() {
   var Batman, cli, exec, fs, path, spawn, util, utils, _ref;
-  var __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
   fs = require('fs');
+
   path = require('path');
+
   util = require('util');
+
   cli = require('./cli');
+
   utils = require('./utils');
+
   _ref = require('child_process'), spawn = _ref.spawn, exec = _ref.exec;
+
   Batman = require('../lib/batman.js');
+
   cli.setUsage('batman [OPTIONS] generate app|model|controller|view <name>\n  batman [OPTIONS] new <app_name>');
+
   cli.parse({
     app: ['-n', "The name of your Batman application (if generating an application component). This can also be stored in a .batman file in the project root.", "string"]
   });
+
   cli.main(function(args, options) {
     var TemplateVars, command, count, destinationPath, replaceVars, source, transforms, walk;
+    var _this = this;
     options.appName = options.app;
     command = args.shift();
     if (command === 'new') {
@@ -81,17 +91,13 @@
       return string;
     };
     count = 0;
-    walk = __bind(function(aPath) {
+    walk = function(aPath) {
       var sourcePath;
-      if (aPath == null) {
-        aPath = "/";
-      }
+      if (aPath == null) aPath = "/";
       sourcePath = path.join(source, aPath);
-      return fs.readdirSync(sourcePath).forEach(__bind(function(file) {
+      return fs.readdirSync(sourcePath).forEach(function(file) {
         var destFile, dir, ext, newFile, oldFile, resultName, sourceFile, stat;
-        if (file === '.gitignore') {
-          return;
-        }
+        if (file === '.gitignore') return;
         resultName = replaceVars(file);
         sourceFile = path.join(sourcePath, file);
         destFile = path.join(destinationPath, aPath, resultName);
@@ -99,41 +105,32 @@
         stat = fs.statSync(sourceFile);
         if (stat.isDirectory()) {
           dir = path.join(destinationPath, aPath, resultName);
-          if (!path.existsSync(dir)) {
-            fs.mkdirSync(dir, 0755);
-          }
+          if (!path.existsSync(dir)) fs.mkdirSync(dir, 0755);
           return walk(path.join(aPath, file));
         } else if (ext === 'png' || ext === 'jpg' || ext === 'gif') {
           newFile = fs.createWriteStream(destFile);
           oldFile = fs.createReadStream(sourceFile);
-          this.info("creating " + destFile);
+          _this.info("creating " + destFile);
           return util.pump(oldFile, newFile, function(err) {
-            if (err != null) {
-              throw err;
-            }
+            if (err != null) throw err;
           });
         } else {
-          if (file.charAt(0) === '.') {
-            return;
-          }
+          if (file.charAt(0) === '.') return;
           count++;
-          return fs.readFile(sourceFile, 'utf8', __bind(function(err, fileContents) {
-            if (err != null) {
-              throw err;
-            }
-            this.info("creating " + destFile);
-            return fs.writeFile(destFile, replaceVars(fileContents), __bind(function(err) {
-              if (err != null) {
-                throw err;
-              }
+          return fs.readFile(sourceFile, 'utf8', function(err, fileContents) {
+            if (err != null) throw err;
+            _this.info("creating " + destFile);
+            return fs.writeFile(destFile, replaceVars(fileContents), function(err) {
+              if (err != null) throw err;
               if (--count === 0) {
-                return this.ok("" + options.name + " generated successfully.");
+                return _this.ok("" + options.name + " generated successfully.");
               }
-            }, this));
-          }, this));
+            });
+          });
         }
-      }, this));
-    }, this);
+      });
+    };
     return walk();
   });
+
 }).call(this);

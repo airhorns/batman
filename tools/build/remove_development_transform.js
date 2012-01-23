@@ -1,13 +1,15 @@
 (function() {
   var MAP, REMOVE_NODE, uglify;
+
   uglify = require('uglify-js');
+
   MAP = uglify.uglify.MAP;
+
   REMOVE_NODE = {};
+
   exports.removeDevelopment = function(ast, DEVELOPER_NAMESPACE) {
     var clean, cleanBlock, cleanLambdaBody, cleanupWalker, removalWalker;
-    if (DEVELOPER_NAMESPACE == null) {
-      DEVELOPER_NAMESPACE = 'developer';
-    }
+    if (DEVELOPER_NAMESPACE == null) DEVELOPER_NAMESPACE = 'developer';
     removalWalker = uglify.uglify.ast_walker();
     cleanupWalker = uglify.uglify.ast_walker();
     ast = removalWalker.with_walkers({
@@ -16,9 +18,7 @@
         op = expr[0], upon = expr[1], fn = expr[2];
         if (upon) {
           key = upon[0], objectName = upon[1];
-          if (objectName === DEVELOPER_NAMESPACE) {
-            return REMOVE_NODE;
-          }
+          if (objectName === DEVELOPER_NAMESPACE) return REMOVE_NODE;
         }
         return ['call', removalWalker.walk(expr), MAP(args, removalWalker.walk)];
       },
@@ -34,15 +34,11 @@
           switch (op) {
             case 'dot':
             case 'sub':
-              op = lvalue[0], _ref = lvalue[1], key = _ref[0], objectName = _ref[1], fn = lvalue[2];
-              if (objectName === DEVELOPER_NAMESPACE) {
-                return REMOVE_NODE;
-              }
+              op = lvalue[0], (_ref = lvalue[1], key = _ref[0], objectName = _ref[1]), fn = lvalue[2];
+              if (objectName === DEVELOPER_NAMESPACE) return REMOVE_NODE;
               break;
             case 'name':
-              if (upon === DEVELOPER_NAMESPACE) {
-                return REMOVE_NODE;
-              }
+              if (upon === DEVELOPER_NAMESPACE) return REMOVE_NODE;
           }
         }
         return ['assign', _, removalWalker.walk(lvalue), removalWalker.walk(rvalue)];
@@ -63,9 +59,7 @@
       return removalWalker.walk(ast);
     });
     clean = function(statements) {
-      if (statements == null) {
-        return null;
-      }
+      if (statements == null) return null;
       return statements.filter(function(node) {
         switch (node[0]) {
           case "stat":
@@ -108,4 +102,5 @@
       return cleanupWalker.walk(ast);
     });
   };
+
 }).call(this);

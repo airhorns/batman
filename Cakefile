@@ -16,7 +16,7 @@ option '-m', '--compare', 'compare to git refs (stat task only)'
 option '-s', '--coverage', 'run jscoverage during tests and report coverage (test task only)'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
-  files = glob.globSync('./src/**/*')
+  files = glob.sync('./src/**/*')
   muffin.run
     files: files
     options: options
@@ -68,7 +68,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
             first = false
             return
           # When the the root batman file changes, compile all the platform files.
-          platformFiles = glob.globSync('./src/batman.*.coffee')
+          platformFiles = glob.sync('./src/batman.*.coffee')
           for file in platformFiles
             matches = /src\/batman.(.+).coffee/.exec(file)
             done = q.wait(done, compileDist(matches[1]))
@@ -90,7 +90,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
   first = true
   extras = []
   muffin.run
-    files: glob.globSync('./src/**/*.coffee').concat(glob.globSync('./tests/**/*.coffee'))
+    files: glob.sync('./src/**/*.coffee').concat(glob.sync('./tests/**/*.coffee'))
     options: options
     map:
       'src/batman.coffee'                        : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
@@ -101,7 +101,7 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
         muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
     after: ->
       first = false
-      alltests = glob.globSync("#{tmpdir}/tests/**/*_test.js")
+      alltests = glob.sync("#{tmpdir}/tests/**/*_test.js")
       tests = alltests.slice(0, 5)
       tests.push(alltests[7])
       console.warn tests
@@ -119,4 +119,4 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
             exit
 
 task 'stats', 'compile the files and report on their final size', (options) ->
-  muffin.statFiles(glob.globSync('./src/**/*.coffee').concat(glob.globSync('./lib/**/*.js')), options)
+  muffin.statFiles(glob.sync('./src/**/*.coffee').concat(glob.sync('./lib/**/*.js')), options)

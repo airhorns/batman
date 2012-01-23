@@ -1,6 +1,9 @@
+
 #!/usr/bin/env node
 
-;(function() {
+;
+
+(function() {
   var Batman, Commands, cli, noCommandGiven, oldFatal;
   cli = require('./cli');
   Batman = require('../lib/batman.js');

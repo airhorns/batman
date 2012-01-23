@@ -1,11 +1,18 @@
 (function() {
   var cache, cli, connect, fs, mkdir_p, parse, path;
+
   connect = require('connect');
+
   path = require('path');
+
   fs = require('fs');
+
   cli = require('./cli');
+
   parse = require("url").parse;
+
   cache = {};
+
   exports.mkdir_p = mkdir_p = function(path, mode, callback, position) {
     var directory, parts;
     mode = mode || process.umask();
@@ -37,6 +44,7 @@
       }
     });
   };
+
   exports.CoffeeCompiler = function(options) {
     var destDir, srcDir;
     options = options || {};
@@ -44,9 +52,7 @@
     destDir = options.dest || srcDir;
     return function(req, res, next) {
       var compile, compiler, dest, pathname, send, src;
-      if ("GET" !== req.method) {
-        return next();
-      }
+      if ("GET" !== req.method) return next();
       pathname = parse(req.url).pathname;
       compiler = {
         match: /\.js$/,
@@ -126,6 +132,7 @@
       return next();
     };
   };
+
   exports.getConfig = (function() {
     var json, jsonOptions;
     try {
@@ -140,4 +147,5 @@
       }
     }
   }).bind(cli);
+
 }).call(this);

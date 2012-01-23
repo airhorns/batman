@@ -1,11 +1,18 @@
 (function() {
   var Batman, cli, connect, defaultOptions, fs, getServer, path, utils;
+
   connect = require('connect');
+
   path = require('path');
+
   fs = require('fs');
+
   cli = require('./cli');
+
   utils = require('./utils');
+
   Batman = require('../lib/batman.js');
+
   getServer = function(options) {
     var server;
     server = connect.createServer(connect.favicon(), connect.logger(), connect.static(process.cwd()), connect.directory(process.cwd()));
@@ -19,6 +26,7 @@
     server.listen(options.port, options.host);
     return server;
   };
+
   if (typeof RUNNING_IN_BATMAN !== 'undefined') {
     defaultOptions = utils.getConfig();
     cli.enable('daemon').setUsage('batman server [OPTIONS]').parse({
@@ -33,12 +41,11 @@
       options.buildDir || (options.buildDir = './build');
       server = getServer(options);
       info = "Batman is waiting at http://" + options.host + ":" + options.port;
-      if (options.build) {
-        info += ", and building to " + options.buildDir + ".";
-      }
+      if (options.build) info += ", and building to " + options.buildDir + ".";
       return this.ok(info);
     });
   } else {
     module.exports = getServer;
   }
+
 }).call(this);
