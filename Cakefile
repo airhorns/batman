@@ -24,7 +24,11 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
       'src/batman\.coffee'       : (matches) -> muffin.compileScript(matches[0], 'lib/batman.js', options)
       'src/batman\.(.+)\.coffee' : (matches) -> muffin.compileScript(matches[0], "lib/batman.#{matches[1]}.js", options)
       'src/extras/(.+)\.coffee'  : (matches) -> muffin.compileScript(matches[0], "lib/extras/#{matches[1]}.js", options)
-      'src/tools/batman\.coffee' : (matches) -> muffin.compileScript(matches[0], "tools/batman", muffin.extend({}, options, {mode: 0755, bare: true}))
+      'src/tools/batman\.coffee' : (matches) ->
+        source = muffin.readFile(matches[0], options).then (source) ->
+          compiled = muffin.compileString(source, options)
+          compiled = "#!/usr/bin/env node\n\n" + compiled
+          muffin.writeFile "tools/batman", compiled, muffin.extend({}, options, {mode: 0755})
       'src/tools/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "tools/#{matches[1]}.js", options)
 
   if options.dist

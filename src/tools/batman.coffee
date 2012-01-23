@@ -1,7 +1,3 @@
-`#!/usr/bin/env node
-
-`
-
 #
 # batman.coffee
 # batman.js
