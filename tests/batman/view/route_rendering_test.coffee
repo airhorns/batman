@@ -1,12 +1,15 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 {TestStorageAdapter} = if typeof require isnt 'undefined' then require '../model/model_helper' else window
 
+oldRedirect = Batman.redirect
 QUnit.module 'Batman.View route rendering',
   setup: ->
     class @App extends Batman.App
       @layout: null
       @route '/test', ->
+    Batman.redirect = @redirect = createSpy()
   teardown: ->
+    Batman.redirect = oldRedirect
     @App.stop()
 
 asyncTest 'should set href for URL fragment', 1, ->
@@ -14,6 +17,14 @@ asyncTest 'should set href for URL fragment', 1, ->
     helpers.render '<a data-route="\'/test\'">click</a>', {}, (node) =>
       equal node.attr('href'), Batman.Navigator.defaultClass()::linkTo("/test")
       QUnit.start()
+  @App.run()
+
+asyncTest 'should redirect when clicked', 1, ->
+  @App.on 'run', =>
+    helpers.render '<a data-route="\'/test\'">click</a>', {}, (node) =>
+      helpers.triggerClick(node[0])
+      delay =>
+        deepEqual @redirect.lastCallArguments['/test']
   @App.run()
 
 asyncTest 'should set "#" href for undefined keypath', 1, ->
@@ -192,5 +203,23 @@ asyncTest 'should allow you to use named route queries', 2, ->
       delay ->
         expected = ['/products', '/products/new', '/products/30', '/products/30/images', '/products/30/images/20', '/products/30/images/20/duplicate']
         checkUrls(expected)
+
+  @App.run()
+
+asyncTest 'should redirect to named route queries when clicked', 1, ->
+  @App.resources 'products'
+
+  @App.on 'run', =>
+    source = '<a data-route="routes.products.new">products new</a>'
+
+    context = Batman
+      product: Batman
+        toParam: -> 10
+
+    viewHelpers.render source, context, (node, view) =>
+      delay =>
+        helpers.triggerClick(node[0])
+        delay =>
+          deepEqual @redirect.lastCallArguments, ['/products/new']
 
   @App.run()
