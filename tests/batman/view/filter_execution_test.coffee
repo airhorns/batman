@@ -121,6 +121,13 @@ asyncTest 'append', 1, ->
     equals node.html(), "bar-special"
     QUnit.start()
 
+asyncTest 'replace', 1, ->
+  helpers.render '<div data-bind="foo | replace \'bar\', \'baz\'"></div>',
+    foo: 'bar'
+  , (node) ->
+    equals node.html(), "baz"
+    QUnit.start()
+
 asyncTest 'downcase', 1, ->
   helpers.render '<div data-bind="foo | downcase"></div>',
     foo: 'BAR'

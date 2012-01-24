@@ -5116,6 +5116,9 @@ filters = Batman.Filters =
   append: (value, string) ->
     value + string
 
+  replace: buntUndefined (value, searchFor, replaceWith, flags) ->
+    value.replace searchFor, replaceWith, flags
+
   downcase: buntUndefined (value) ->
     value.toLowerCase()
 
