@@ -4086,11 +4086,11 @@ Batman.DOM = {
           view?.viewDidAppear?(child)
       else
         view = Batman.data(node, 'view')
-        view?.viewWillAppear(child)
+        view?.viewWillAppear?(child)
 
         $appendChild yieldingNode, node, true
 
-        view?.viewDidAppear(child)
+        view?.viewDidAppear?(child)
 
       Batman._data node, 'yielded', true
       Batman._data yieldingNode, 'yielded', true
