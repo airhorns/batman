@@ -41,19 +41,18 @@ test "routeForParams infers arguments before asking for a route", ->
   route = @dispatcher.routeForParams(@App.Product)
   deepEqual @routeMap.routeForParams.lastCallArguments,  [{controller: 'products', action: 'index'}]
 
+test "pathFromParams leaves strings alone", ->
+  @routeMap.routeForParams = createSpy().whichReturns(undefined)
+  path = @dispatcher.pathFromParams(@App.Product)
+  deepEqual @routeMap.routeForParams.lastCallArguments,  [{controller: 'products', action: 'index'}]
+
 test "pathFromParams infers arguments before asking for a route", ->
   @routeMap.routeForParams = createSpy().whichReturns(undefined)
   path = @dispatcher.pathFromParams(@App.Product)
   deepEqual @routeMap.routeForParams.lastCallArguments,  [{controller: 'products', action: 'index'}]
 
 test "pathFromParams infers arguments before passing to the route to construct a path", ->
-  @route = Batman
-    pathFromParams: createSpy().whichReturns '/'
-
-  @routeMap.routeForParams = createSpy().whichReturns(@route)
-
-  path = @dispatcher.pathFromParams(@App.Product)
-  deepEqual @route.pathFromParams.lastCallArguments,  [{controller: 'products', action: 'index'}]
+  equal @dispatcher.pathFromParams('/test?filter=true'), '/test?filter=true'
 
 mockRoute = ->
   return Batman

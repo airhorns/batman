@@ -1735,6 +1735,7 @@ class Batman.Dispatcher extends Batman.Object
     @get('routeMap').routeForParams(params)
 
   pathFromParams: (params) ->
+    return params if typeof params is 'string'
     params = @constructor.paramsFromArgument(params)
     @routeForParams(params)?.pathFromParams(params)
 
