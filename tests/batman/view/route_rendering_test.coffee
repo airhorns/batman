@@ -13,9 +13,9 @@ QUnit.module 'Batman.View route rendering',
     @App.stop()
 
 asyncTest 'should set href for URL fragment', 1, ->
-  @App.on 'run', ->
+  @App.on 'run', =>
     helpers.render '<a data-route="\'/test\'">click</a>', {}, (node) =>
-      equal node.attr('href'), Batman.Navigator.defaultClass()::linkTo("/test")
+      equal node.attr('href'), Batman.navigator.linkTo("/test")
       QUnit.start()
   @App.run()
 
