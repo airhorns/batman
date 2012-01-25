@@ -151,6 +151,32 @@ restStorageTestSuite.testOptionsGeneration = (urlSuffix = '') ->
       '/some/url'
     @adapter.urlForCollection @Product, {options: opts}
 
+  test 'records should take a urlPrefix option', 1, ->
+    product = new @Product
+    product.url = '/some/url'
+    product.urlPrefix = '/admin'
+    url = @adapter.urlForRecord product, {}
+    equal url, "/admin/some/url#{urlSuffix}"
+
+  test 'records should take a urlSuffix option', 1, ->
+    product = new @Product
+    product.url = '/some/url'
+    product.urlSuffix = '.foo'
+    url = @adapter.urlForRecord product, {}
+    equal url, "/some/url.foo#{urlSuffix}"
+
+  test 'models should be able to specify a urlPrefix', 1, ->
+    @Product.url = '/some/url'
+    @Product.urlPrefix = '/admin'
+    url = @adapter.urlForCollection @Product, {}
+    equal url, "/admin/some/url#{urlSuffix}"
+
+  test 'models should be able to specify a urlSuffix', 1, ->
+    @Product.url = '/some/url'
+    @Product.urlSuffix = '.foo'
+    url = @adapter.urlForCollection @Product, {}
+    equal url, "/some/url.foo#{urlSuffix}"
+
 restStorageTestSuite.sharedSuiteHooks =
   'creating in storage: should succeed if the record doesn\'t already exist': ->
     MockRequest.expect

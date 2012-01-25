@@ -3452,13 +3452,22 @@ class Batman.RestStorage extends Batman.StorageAdapter
           url = url + "/" + id
         else
           throw new @constructor.StorageError("Couldn't get/set record primary key on #{env.action}!")
-    url
+
+    @urlPrefix(record, env) + url + @urlSuffix(record, env)
 
   urlForCollection: (model, env) ->
-    if model.url
+    url = if model.url
       @_execWithOptions(model, 'url', env.options)
     else
       @_defaultCollectionUrl(model::, env.options)
+
+    @urlPrefix(model, env) + url + @urlSuffix(model, env)
+
+  urlPrefix: (object, env) ->
+    @_execWithOptions(object, 'urlPrefix', env.options) || ''
+
+  urlSuffix: (object, env) ->
+    @_execWithOptions(object, 'urlSuffix', env.options) || ''
 
   request: (env, next) ->
     options = $mixin env.options,
