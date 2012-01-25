@@ -18,3 +18,4 @@ test "it should parse ISO 8601 dates", ->
 test "it should parse ISO 8601 dates with timezones", ->
   dateEqual Batman.Encoders.railsDate.decode("2012-01-03T13:35:06-05:00"), new Date(1325615706000)
   dateEqual Batman.Encoders.railsDate.decode("2012-01-03T13:35:06-07:00"), new Date(1325622906000)
+

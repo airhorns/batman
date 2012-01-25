@@ -106,3 +106,16 @@ asyncTest 'clearing the model should remove instances from the identity map', ->
     @Product.clear()
     equal @Product.get('loaded.length'), 0
     QUnit.start()
+
+QUnit.module 'Batman.Model.urlNestsUnder',
+  setup: ->
+    class @Product extends Batman.Model
+      @urlNestsUnder 'shop'
+
+test 'urlNestsUnder should nest collection URLs', 1, ->
+  equal @Product.url(data: shop_id: 1), 'shops/1/products'
+
+test 'urlNestsUnder should nest record URLs', ->
+  product = new @Product(id: 1, shop_id: 2)
+  equal product.url(), 'shops/2/products/1'
+
