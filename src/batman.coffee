@@ -1304,7 +1304,7 @@ class Batman.SetProxy extends Batman.Object
     r = new Batman.Set()
     @reduce(((r, e) -> r.add(e) if f(e); r), r)
 
-  for k in ['add', 'remove', 'clear', 'replace']
+  for k in ['add', 'remove', 'find', 'clear', 'replace']
     do (k) =>
       @::[k] = ->
         results = @base[k](arguments...)
