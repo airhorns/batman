@@ -115,7 +115,11 @@ QUnit.module 'Batman.Model.urlNestsUnder',
 test 'urlNestsUnder should nest collection URLs', 1, ->
   equal @Product.url(data: shop_id: 1), 'shops/1/products'
 
-test 'urlNestsUnder should nest record URLs', ->
+test 'urlNestsUnder should nest record URLs', 1, ->
   product = new @Product(id: 1, shop_id: 2)
   equal product.url(), 'shops/2/products/1'
+
+test 'urlNestsUnder should nest new record URLs', 1, ->
+  product = new @Product(shop_id: 2)
+  equal product.url(), 'shops/2/products'
 

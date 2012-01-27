@@ -2465,7 +2465,10 @@ class Batman.Model extends Batman.Object
       "#{parent}/#{parentID}/#{children}"
 
     @::url = ->
-      "#{parent}/#{@get(key + '_id')}/#{children}/#{@get('id')}"
+      url = "#{parent}/#{@get(key + '_id')}/#{children}"
+      if id = @get('id')
+        url += '/' + id
+      url
 
   # ### Query methods
   @classAccessor 'all',
