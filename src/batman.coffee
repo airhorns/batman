@@ -2657,6 +2657,11 @@ class Batman.Model extends Batman.Object
           encodedVal = encoder(val, key, obj, @)
           if typeof encodedVal isnt 'undefined'
             obj[key] = encodedVal
+
+    if @constructor.primaryKey isnt 'id'
+      obj[@constructor.primaryKey] = @get('id')
+      delete obj.id
+
     obj
 
   # `fromJSON` uses the various decoders for each key to generate a record instance from the JSON
@@ -2674,6 +2679,9 @@ class Batman.Model extends Batman.Object
       # If we do have decoders, use them to get the data.
       decoders.forEach (key, decoder) =>
         obj[key] = decoder(data[key], key, data, obj, @) unless typeof data[key] is 'undefined'
+
+    if @constructor.primaryKey isnt 'id'
+      obj.id = data[@constructor.primaryKey]
 
     developer.do =>
       if (!decoders) || decoders.length <= 1
