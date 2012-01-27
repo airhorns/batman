@@ -1175,6 +1175,14 @@ class Batman.SimpleSet
       @fire('change', this, this)
       @fire('itemsWereRemoved', removedItems...)
     removedItems
+
+  find: (f) ->
+    ret = undefined
+    @forEach (item) ->
+      if ret is undefined && f(item) is true
+        ret = item
+    ret
+
   forEach: (iterator, ctx) ->
     container = this
     @_storage.forEach (key) -> iterator.call(ctx, key, null, container)
@@ -1217,7 +1225,7 @@ class Batman.Set extends Batman.Object
 
   $extendsEnumerable(@::)
 
-  for k in ['add', 'remove', 'clear', 'replace', 'indexedBy', 'indexedByUnique', 'sortedBy']
+  for k in ['add', 'remove', 'find', 'clear', 'replace', 'indexedBy', 'indexedByUnique', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
 
   for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']

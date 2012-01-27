@@ -47,6 +47,25 @@ basicSetTestSuite = ->
 
     equal @set.length, 1
 
+  test "find(f) returns the first item for which f is true", 1, ->
+    @set.add(1, 2, 3, 4)
+    result = @set.find (n) -> n % 2 is 0
+    equal result, 2
+
+  test "find(f) returns undefined when f is false for all items", 1, ->
+    @set.add(1, 2)
+    result = @set.find -> false
+    equal result, undefined
+
+  test "find(f) works with booleans", 2, ->
+    @set.add(false, true)
+    result = @set.find (item) -> item is true
+    equal result, true
+    @set.clear()
+    @set.add(true, false)
+    result = @set.find (item) -> item is false
+    equal result, false
+
   test "merge(other) returns a merged set without changing the original", ->
     @set.add('foo', 'bar', 'baz')
     other = new Batman.Set
