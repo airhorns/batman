@@ -4103,8 +4103,8 @@ Batman.DOM = {
 
     yieldFn = (yieldingNode) ->
       if _replaceContent || !Batman._data(yieldingNode, 'yielded')
-        Batman.DOM.didRemoveNode(child) for child in yieldingNode.children
         $setInnerHTML yieldingNode, '', true
+        Batman.DOM.didRemoveNode(child) for child in yieldingNode.children
 
       if _yieldChildren
         while node.childNodes.length > 0
