@@ -108,20 +108,20 @@ applyExtra = (Batman) ->
       next()
 
     @::after 'update', 'create', ({error, record, response}, next) ->
+      env = arguments[0]
       if error
         # Rails validation errors
         if error.request?.get('status') == 422
           try
             validationErrors = @_errorsFrom422Response(response)
           catch extractionError
-            @error = extractionError
+            env.error = extractionError
             return next()
 
           for key, errorsArray of validationErrors
             for validationError in errorsArray
               record.get('errors').add(key, validationError)
 
-          env = arguments[0]
           env.result = record
           env.error = record.get('errors')
           return next()
