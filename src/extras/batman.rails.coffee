@@ -114,7 +114,7 @@ applyExtra = (Batman) ->
           try
             validationErrors = @_errorsFrom422Response(response)
           catch extractionError
-            env.error = extractionError
+            @error = extractionError
             return next()
 
           for key, errorsArray of validationErrors
