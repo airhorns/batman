@@ -168,6 +168,13 @@ asyncTest 'not', 1, ->
     equals node[0].checked, false
     QUnit.start()
 
+asyncTest 'or', 2, ->
+  context = Batman(bar: 'bar')
+  helpers.render '<div data-bind="foo | or bar"></div>', context, (node) ->
+    equals node.html(), 'bar'
+    context.set 'foo', 'foo'
+    delay ->
+      equals node.html(), 'foo'
 
 asyncTest 'map', 1, ->
   helpers.render '<div data-bind="posts | map \'name\' | join \', \'"></div>',
