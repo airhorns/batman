@@ -188,7 +188,7 @@ t = -> Batman.translate(arguments...)
 # Developer Tooling
 # -----------------
 
-developer =
+Batman.developer =
   suppressed: false
   DevelopmentError: (->
     DevelopmentError = (@message) ->
@@ -225,9 +225,9 @@ developer =
         console?.log? developer.currentFilterStack
         value
 
-Batman.developer = developer
-
+developer = Batman.developer
 developer.assert (->).bind, "Error! Batman needs Function.bind to work! Please shim it using something like es5-shim or augmentjs!"
+
 # Helpers
 # -------
 
@@ -4463,6 +4463,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
             @filterArguments.push []
         else
           developer.error "Unrecognized filter '#{filterName}' in key \"#{@keyPath}\"!"
+      true
 
   # Turn a piece of a `data` keypath into a usable javascript object.
   #  + replacing keypaths using the above regular expression

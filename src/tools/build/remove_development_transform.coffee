@@ -1,7 +1,7 @@
 uglify = require 'uglify-js'
 
 MAP = uglify.uglify.MAP
-REMOVE_NODE = {}
+REMOVE_NODE = {remove: true}
 
 exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
   removalWalker = uglify.uglify.ast_walker()
@@ -54,9 +54,7 @@ exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
   , ->
     removalWalker.walk ast
 
-  clean = (statements) ->
-    return null unless statements?
-    statements.filter (node) ->
+  keepNode = (node) ->
       switch node[0]
         # Ensure statements or assignments using developer are removed
         when "stat", "assign"
@@ -70,6 +68,10 @@ exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
         else
           true
 
+  clean = (statements) ->
+    return null unless statements?
+    statements.filter keepNode
+
   cleanLambdaBody = (name, args, body) ->
     [this[0], name, args, MAP(clean(body), cleanupWalker.walk)]
 
@@ -82,6 +84,12 @@ exports.removeDevelopment = (ast, DEVELOPER_NAMESPACE = 'developer') ->
     defun: cleanLambdaBody
     block: cleanBlock
     splice: cleanBlock
+    return: (expr) ->
+      if keepNode(@)
+        return [@[0], cleanupWalker.walk(expr)]
+      else
+        return [@[0], null]
+
     try: (statements, catchBlock, finallyBlock) ->
       [@[0], MAP(clean(statements), cleanupWalker.walk),
         if catchBlock then [catchBlock[0], MAP(clean(catchBlock[1]), cleanupWalker.walk)] else catchBlock,

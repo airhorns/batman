@@ -5,10 +5,12 @@
 
   MAP = uglify.uglify.MAP;
 
-  REMOVE_NODE = {};
+  REMOVE_NODE = {
+    remove: true
+  };
 
   exports.removeDevelopment = function(ast, DEVELOPER_NAMESPACE) {
-    var clean, cleanBlock, cleanLambdaBody, cleanupWalker, removalWalker;
+    var clean, cleanBlock, cleanLambdaBody, cleanupWalker, keepNode, removalWalker;
     if (DEVELOPER_NAMESPACE == null) DEVELOPER_NAMESPACE = 'developer';
     removalWalker = uglify.uglify.ast_walker();
     cleanupWalker = uglify.uglify.ast_walker();
@@ -58,21 +60,22 @@
     }, function() {
       return removalWalker.walk(ast);
     });
+    keepNode = function(node) {
+      switch (node[0]) {
+        case "stat":
+        case "assign":
+          return node[node.length - 1] !== REMOVE_NODE;
+        case "var":
+          return node[1].length !== 0;
+        case "return":
+          return node[1] !== REMOVE_NODE;
+        default:
+          return true;
+      }
+    };
     clean = function(statements) {
       if (statements == null) return null;
-      return statements.filter(function(node) {
-        switch (node[0]) {
-          case "stat":
-          case "assign":
-            return node[node.length - 1] !== REMOVE_NODE;
-          case "var":
-            return node[1].length !== 0;
-          case "return":
-            return node[1] !== REMOVE_NODE;
-          default:
-            return true;
-        }
-      });
+      return statements.filter(keepNode);
     };
     cleanLambdaBody = function(name, args, body) {
       return [this[0], name, args, MAP(clean(body), cleanupWalker.walk)];
@@ -88,6 +91,13 @@
       defun: cleanLambdaBody,
       block: cleanBlock,
       splice: cleanBlock,
+      "return": function(expr) {
+        if (keepNode(this)) {
+          return [this[0], cleanupWalker.walk(expr)];
+        } else {
+          return [this[0], null];
+        }
+      },
       "try": function(statements, catchBlock, finallyBlock) {
         return [this[0], MAP(clean(statements), cleanupWalker.walk), catchBlock ? [catchBlock[0], MAP(clean(catchBlock[1]), cleanupWalker.walk)] : catchBlock, finallyBlock ? MAP(clean(finallyBlock), cleanupWalker.walk) : void 0];
       },
