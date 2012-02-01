@@ -286,6 +286,27 @@ asyncTest 'meta binding to a hash', 2, ->
     delay =>
       equals node.html(), "2"
 
+asyncTest 'escape', 2, ->
+  context = Batman
+    foo: "<script></script>"
+
+  helpers.render '<div data-bind="foo | escape | raw"></div>', context, (node) ->
+    equals node.html(), "&lt;script&gt;&lt;/script&gt;"
+    context.set('foo', '"testing"')
+    delay =>
+      equals node.html(), '"testing"'
+
+asyncTest 'raw', 2, ->
+  context = Batman
+    foo: "<script></script>"
+
+  helpers.render '<div data-bind="foo | raw"></div>', context, (node) ->
+    equals node.html(), "<script></script>"
+    context.set('foo', '"testing"')
+    delay =>
+      equals node.html(), '"testing"'
+
+
 QUnit.module "Batman.Filters: interpolate filter"
 
 asyncTest "it should accept string literals", ->

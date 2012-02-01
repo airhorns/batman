@@ -206,6 +206,13 @@ asyncTest 'it should allow input values to be bound', 1, ->
     equal $(node[0]).val(), 'qux'
     QUnit.start()
 
+asyncTest 'input value bindings should escape their value before inserting', 1, ->
+  helpers.render '<input data-bind="foo"></input>',
+    foo: '<script></script>'
+  , (node) =>
+    equals node.val(), "&lt;script&gt;&lt;/script&gt;"
+    QUnit.start()
+
 asyncTest 'it should bind the input value and update the input when it changes', 2, ->
   context = Batman
     one: "qux"
@@ -276,6 +283,16 @@ asyncTest 'it should bind the value of textareas', 2, ->
     context.set('one', "bar")
     delay =>
       equal node.val(), 'bar'
+
+asyncTest 'textarea value bindings should escape their value before inserting', 1, ->
+  helpers.render '<textarea data-bind="foo"></textarea>',
+    foo: '<script></script>'
+  , (node) =>
+    # jsdom and the browser have different behaviour, so lets just test against a node with the expected contents
+    # to see if they are the same
+    textarea = $('<textarea>').html("&lt;script&gt;&lt;/script&gt;")
+    equals node.html(), textarea.html()
+    QUnit.start()
 
 asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
   context = new Batman.Object

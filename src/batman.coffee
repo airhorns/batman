@@ -4243,8 +4243,10 @@ Batman.DOM = {
     else
       parentNode.insertBefore newNode, referenceNode
 
-  valueForNode: (node, value = '') ->
+  valueForNode: (node, value = '', escapeValue = true) ->
     isSetting = arguments.length > 1
+    if isSetting && escapeValue
+      value = $escapeHTML(value)
     switch node.nodeName.toUpperCase()
       when 'INPUT'
         if isSetting then (node.value = value) else node.value
@@ -4400,6 +4402,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   bindImmediately: true
   shouldSet: true
   isInputBinding: false
+  escapeValue: true
 
   constructor: (@node, @keyPath, @renderContext, @renderer, @only = false) ->
 
@@ -4543,7 +4546,7 @@ class Batman.DOM.Binding extends Batman.DOM.AbstractBinding
       @set 'filteredValue', @node.value
 
   dataChange: (value, node) ->
-    Batman.DOM.valueForNode @node, value
+    Batman.DOM.valueForNode @node, value, @escapeValue
 
 class Batman.DOM.AttributeBinding extends Batman.DOM.AbstractAttributeBinding
   dataChange: (value) -> @node.setAttribute(@attributeName, value)
@@ -4750,7 +4753,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
         @firstBind = false
         @set('unfilteredValue', @node.value)
       else
-        Batman.DOM.valueForNode(@node, newValue)
+        Batman.DOM.valueForNode(@node, newValue, @escapeValue)
 
     # Finally, update the options' `selected` bindings
     @updateOptionBindings()
@@ -5156,6 +5159,10 @@ buntUndefined = (f) ->
       f.apply(@, arguments)
 
 filters = Batman.Filters =
+  raw: buntUndefined (value, binding) ->
+    binding.escapeValue = false
+    value
+
   get: buntUndefined (value, key) ->
     if value.get?
       value.get(key)
@@ -5245,6 +5252,8 @@ filters = Batman.Filters =
     params = Batman.Dispatcher.paramsFromArgument(model)
     params.action = action
     params
+
+  escape: buntUndefined($escapeHTML)
 
 for k in ['capitalize', 'singularize', 'underscore', 'camelize']
   filters[k] = buntUndefined helpers[k]
