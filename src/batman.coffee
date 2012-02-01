@@ -180,6 +180,16 @@ Batman.get = $get = (base, key) ->
   else
     Batman.Property.forBaseAndKey(base, key).getValue()
 
+Batman.escapeHTML = $escapeHTML = do ->
+  replacements =
+    "&": "&amp;"
+    "<": "&lt;"
+    ">": "&gt;"
+    "\"": "&#34;"
+    "'": "&#39;"
+
+  return (s) -> (""+s).replace(/[&<>'"]/g, (c) -> replacements[c])
+
 # `translate` is hook for the i18n extra to override and implemnent. All strings which might
 # be shown to the user pass through this method. `translate` is aliased to `t` internally.
 Batman.translate = (x, values = {}) -> helpers.interpolate($get(Batman.translate.messages, x), values)
