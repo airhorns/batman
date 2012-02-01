@@ -152,7 +152,6 @@ Batman.clearImmediate = $clearImmediate = ->
   _implementImmediates(Batman.container)
   Batman.clearImmediate.apply(@, arguments)
 
-
 Batman.forEach = $forEach = (container, iterator, ctx) ->
   if container.forEach
     container.forEach(iterator, ctx)
@@ -160,11 +159,13 @@ Batman.forEach = $forEach = (container, iterator, ctx) ->
     iterator.call(ctx, e, i, container) for e,i in container
   else
     iterator.call(ctx, k, v, container) for k,v of container
+
 Batman.objectHasKey = $objectHasKey = (object, key) ->
   if typeof object.hasKey is 'function'
     object.hasKey(key)
   else
     key of object
+
 Batman.contains = $contains = (container, item) ->
   if container.indexOf
     item in container
@@ -4339,8 +4340,9 @@ class Batman.DOM.AbstractBinding extends Batman.Object
     get: ->
       unfilteredValue = @get('unfilteredValue')
       self = @
+      renderContext = @get('renderContext')
       if @filterFunctions.length > 0
-        developer.currentFilterStack = @renderContext
+        developer.currentFilterStack = renderContext
 
         result = @filterFunctions.reduce((value, fn, i) ->
           # Get any argument keypaths from the context stored at parse time.
@@ -4352,7 +4354,8 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
           # Apply the filter.
           args.unshift value
-          fn.apply(self.renderContext, args)
+          args.push self
+          fn.apply(renderContext, args)
         , unfilteredValue)
         developer.currentFilterStack = null
         result
@@ -4848,7 +4851,6 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
     else
       @get('dispatcher')?.pathFromParams(value)
 
-
 class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
   constructor: ->
     super
@@ -5156,7 +5158,10 @@ filters = Batman.Filters =
   not: (value) ->
     ! !!value
 
-  truncate: buntUndefined (value, length, end = "...") ->
+  truncate: buntUndefined (value, length, end = "...", binding) ->
+    if !binding
+      binding = end
+      end = "..."
     if value.length > length
       value = value.substr(0, length-end.length) + end
     value
@@ -5170,7 +5175,10 @@ filters = Batman.Filters =
   append: (value, string) ->
     value + string
 
-  replace: buntUndefined (value, searchFor, replaceWith, flags) ->
+  replace: buntUndefined (value, searchFor, replaceWith, flags, binding) ->
+    if !binding
+      binding = flags
+      flags = undefined
     value.replace searchFor, replaceWith, flags
 
   downcase: buntUndefined (value) ->
@@ -5181,8 +5189,11 @@ filters = Batman.Filters =
 
   pluralize: buntUndefined (string, count) -> helpers.pluralize(count, string)
 
-  join: buntUndefined (value, byWhat = '') ->
-    value.join(byWhat)
+  join: buntUndefined (value, withWhat = '', binding) ->
+    if !binding
+      binding = withWhat
+      withWhat = ''
+    value.join(withWhat)
 
   sort: buntUndefined (value) ->
     value.sort()
@@ -5201,7 +5212,10 @@ filters = Batman.Filters =
     developer.assert value.meta, "Error, value doesn't have a meta to filter on!"
     value.meta.get(keypath)
 
-  interpolate: (string, interpolationKeypaths) ->
+  interpolate: (string, interpolationKeypaths, binding) ->
+    if not binding
+      binding = interpolationKeypaths
+      interpolationKeypaths = undefined
     return if not string
     values = {}
     for k, v of interpolationKeypaths
@@ -5213,7 +5227,7 @@ filters = Batman.Filters =
     Batman.helpers.interpolate(string, values)
 
   # allows you to curry arguments to a function via a filter
-  withArguments: (block, curryArgs...) ->
+  withArguments: (block, curryArgs..., binding) ->
     return if not block
     return (regularArgs...) -> block.call @, curryArgs..., regularArgs...
 

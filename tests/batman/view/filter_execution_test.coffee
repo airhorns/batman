@@ -330,7 +330,7 @@ asyncTest "it should interpolate strings with counts", ->
 
 QUnit.module "Batman.View user defined filter execution"
 
-asyncTest 'should render a user defined filter', 3, ->
+asyncTest 'should render a user defined filter', 4, ->
   Batman.Filters['test'] = spy = createSpy().whichReturns("testValue")
   ctx = Batman
     foo: 'bar'
@@ -338,7 +338,8 @@ asyncTest 'should render a user defined filter', 3, ->
   helpers.render '<div data-bind="foo | test 1, \'baz\'"></div>', ctx, (node) ->
     equals node.html(), "testValue"
     equal Batman._functionName(spy.lastCallContext.constructor), 'RenderContext'
-    deepEqual spy.lastCallArguments, ['bar', 1, 'baz']
+    deepEqual spy.lastCallArguments.slice(0,3), ['bar', 1, 'baz']
+    ok spy.lastCallArguments[3] instanceof Batman.DOM.AbstractBinding
     delete Batman.Filters.test
     QUnit.start()
 
