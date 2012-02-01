@@ -2,12 +2,11 @@
 # batman
 # Copyright Shopify, 2011
 
-muffin = require 'muffin'
-fs     = require 'fs'
-q      = require 'q'
-glob   = require 'glob'
-path   = require 'path'
-
+muffin       = require 'muffin'
+path         = require 'path'
+q            = require 'q'
+glob         = require 'glob'
+{exec, fork, spawn} = require 'child_process'
 
 option '-w', '--watch',  'continue to watch the files and rebuild them when they change'
 option '-c', '--commit', 'operate on the git index instead of the working tree'
@@ -16,7 +15,7 @@ option '-m', '--compare', 'compare to git refs (stat task only)'
 option '-s', '--coverage', 'run jscoverage during tests and report coverage (test task only)'
 
 task 'build', 'compile Batman.js and all the tools', (options) ->
-  files = glob.sync('./src/**/*')
+  files = glob.sync('./src/**/*').concat(glob.sync('./tests/lib/*'))
   muffin.run
     files: files
     options: options
@@ -30,6 +29,7 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           compiled = "#!/usr/bin/env node\n\n" + compiled
           muffin.writeFile "tools/batman", compiled, muffin.extend({}, options, {mode: 0755})
       'src/tools/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "tools/#{matches[1]}.js", options)
+      'tests/run\.coffee'     : (matches) -> muffin.compileScript(matches[0], 'tests/run.js', options)
 
   if options.dist
     temp    = require 'temp'
@@ -87,40 +87,31 @@ task 'doc', 'build the Docco documentation', (options) ->
       'src/batman.coffee': (matches) -> muffin.doccoFile(matches[0], options)
 
 task 'test', 'compile Batman.js and the tests and run them on the command line', (options) ->
-  temp    = require 'temp'
-  runner  = require 'qunit'
-  runner.options.coverage = false
-  tmpdir = temp.mkdirSync()
-  first = true
-  extras = []
+  running = false
   muffin.run
     files: glob.sync('./src/**/*.coffee').concat(glob.sync('./tests/**/*.coffee'))
     options: options
     map:
-      'src/batman.coffee'                        : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.js", muffin.extend({notify: !first}, options))
-      'src/batman.node.coffee'                   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/batman.node.js", muffin.extend({notify: !first}, options))
-      'tests/batman/(.+)_(test|helper).coffee'   : (matches) -> muffin.compileScript(matches[0], "#{tmpdir}/tests/batman/#{matches[1]}_#{matches[2]}.js", muffin.extend({notify: !first}, options))
-      'src/extras/(.+).coffee'                   : (matches) ->
-        extras.push destination = "#{tmpdir}/extras/#{matches[1]}.js"
-        muffin.compileScript(matches[0], destination, muffin.extend({notify: !first}, options))
+      'src/batman(.node)?.coffee'                : (matches) -> true
+      'src/extras/(.+).coffee'                   : (matches) -> true
+      'tests/batman/(.+)_(test|helper).coffee'   : (matches) -> true
+      'tests/run.coffee'                         : (matches) -> muffin.compileScript(matches[0], 'tests/run.js', options)
     after: ->
-      first = false
-      alltests = glob.sync("#{tmpdir}/tests/**/*_test.js")
-      tests = alltests.slice(0, 5)
-      tests.push(alltests[7])
-      console.warn tests
-      runner.run
-        code:  {namespace: "Batman", path: "#{tmpdir}/batman.node.js"}
-        deps: ["jsdom", "#{tmpdir}/tests/batman/test_helper.js", "./tests/lib/jquery.js"]
-        tests: tests
-        coverage: options.coverage || false
-      , (report) ->
-        unless options.watch
-          exit = -> process.exit report.errors
-          unless process.stdout.flush()
-            process.stdout.once 'drain', exit
-          else
-            exit
+      # Spawn a run of the tests in a separate process so if watch mode is enabled the globals used by the runner
+      # don't leak over.
+      runPath = path.join(__dirname, 'tests/run.js')
+      if !running
+        running = true
+        child = spawn 'node', ['tests/run.js']
+        process.on 'exit', exitListener = ->
+          child.kill()
+        child.stdout.on 'data', (data) -> process.stdout.write data
+        child.stderr.on 'data', (data) -> process.stderr.write data
+        child.on 'exit', (code) ->
+          process.removeListener 'exit', exitListener
+          running = false
+          if !options.watch
+            process.exit code
 
 task 'stats', 'compile the files and report on their final size', (options) ->
   muffin.statFiles(glob.sync('./src/**/*.coffee').concat(glob.sync('./lib/**/*.js')), options)

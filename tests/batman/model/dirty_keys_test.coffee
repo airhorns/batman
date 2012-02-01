@@ -2,8 +2,11 @@
 
 QUnit.module "Batman.Model dirty key tracking",
   setup: ->
+    Batman.developer.suppress()
     class @Product extends Batman.Model
       @persist TestStorageAdapter
+  teardown: ->
+    Batman.developer.unsuppress()
 
 test "no keys are dirty upon creation", ->
   product = new @Product

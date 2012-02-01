@@ -3,6 +3,7 @@
 QUnit.module "Batman.Model state transitions",
   setup: ->
     class @Product extends Batman.Model
+      @encode 'name'
       @persist TestStorageAdapter
 
 test "new instances start 'empty'", ->
@@ -12,12 +13,11 @@ test "new instances start 'empty'", ->
 
 asyncTest "loaded instances start 'loaded'", 2, ->
   product = new @Product(10)
-  Batman.developer.suppress =>
-    product.load (err, product) ->
-      throw err if err
-      ok !product.isNew()
-      equal product.state(), 'loaded'
-      QUnit.start()
+  product.load (err, product) ->
+    throw err if err
+    ok !product.isNew()
+    equal product.state(), 'loaded'
+    QUnit.start()
 
 test "instances have state transitions for observation", 1, ->
   product = new @Product

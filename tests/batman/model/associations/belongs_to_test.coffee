@@ -103,7 +103,7 @@ asyncTest "belongsTo parent models are passed through the identity map", 2, ->
     throw err if err
     @Product.find 4, (err, product) =>
       equal @Store.get('loaded').length, 1
-      equal product.get('store'), store
+      ok product.get('store') == store
       QUnit.start()
 
 asyncTest "belongsTo associations render", 1, ->
@@ -140,6 +140,7 @@ asyncTest "belongsTo supports custom local keys", 1, ->
   class Shirt extends Batman.Model
     @encode 'id', 'name'
     @belongsTo 'store', namespace: ns, localKey: 'shop_id'
+
   shirtAdapter = createStorageAdapter Shirt, AsyncTestStorageAdapter,
     'shirts1':
       id: 1
@@ -212,7 +213,7 @@ asyncTest "belongsTo sets the foreign key foreign key on itself such that many l
 
 QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasOne"
   setup: ->
-    namespace = @namespace = this
+    namespace = @
 
     class @Order extends Batman.Model
       @encode 'id', 'name'
@@ -228,7 +229,7 @@ QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasOne"
 
     class @Customer extends Batman.Model
       @encode 'id', 'name'
-      @hasOne 'order', namespace: namespace
+      @hasOne 'order', {namespace: namespace}
 
     @customerAdapter = createStorageAdapter @Customer, AsyncTestStorageAdapter,
       'customers1':
@@ -239,7 +240,7 @@ asyncTest "belongsTo sets the inverse relation if the parent hasn't been loaded"
   @Order.find 1, (err, order) =>
     throw err if err
     customer = order.get('customer')
-    equal customer.get('order'), order
+    ok customer.get('order') == order
     QUnit.start()
 
 asyncTest "belongsTo sets the inverse relation if the parent has already been loaded", 1, ->
@@ -248,5 +249,5 @@ asyncTest "belongsTo sets the inverse relation if the parent has already been lo
     @Order.find 1, (err, order) =>
       throw err if err
       customer = order.get('customer')
-      equal customer.get('order'), order
+      ok customer.get('order') == order
       QUnit.start()

@@ -5,13 +5,10 @@ QUnit.module "Batman.RouteMap"
 mockRoute = (props) ->
   return Batman(props)
 
-test "should error if two routes with the same name are added", 1, ->
+test "should error if two routes with the same name are added", 2, ->
   route = mockRoute {isRoute: true}
   @routeMap.addRoute('foo', route)
-  try
-    @routeMap.addRoute('foo', route)
-  catch e
-    ok e
+  raises (-> @routeMap.addRoute('foo', route)), (message) -> ok message; true
 
 test "routeForParams should return undefined if no route's test passes", 1, ->
   routeA = mockRoute {isRoute: true, test: -> false}

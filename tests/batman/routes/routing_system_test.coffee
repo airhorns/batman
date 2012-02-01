@@ -18,6 +18,7 @@ QUnit.module 'Batman.Route: all together now',
         @render false
         QUnit.start()
       edit: -> @render false
+
   teardown: ->
     @App.stop()
 
@@ -144,16 +145,20 @@ asyncTest 'resources', ->
 
 asyncTest 'hash history', 1, ->
   Batman.config.usePushState = false
-  class @App extends Batman.App
-  @App.route 'test', ->
-    window.location.hash = '#!/test2'
-  @App.route 'test2', ->
-    ok true, 'routes called'
-    QUnit.start()
 
-  @App.run()
+  setTimeout =>
+    class @App extends Batman.App
+    @App.route 'test', ->
+      window.location.hash = '#!/test2'
 
-  window.location.hash = '#!/test'
+    @App.route 'test2', ->
+      ok true, 'routes called'
+      QUnit.start()
+
+    window.location.hash = '#!/test'
+
+    @App.run()
+  , ASYNC_TEST_DELAY
 
 if Batman.PushStateNavigator.isSupported()
   asyncTest 'state history', 1, ->

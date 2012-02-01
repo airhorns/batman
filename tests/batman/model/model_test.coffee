@@ -64,10 +64,11 @@ test 'toJSON respects primaryKey', ->
   deepEqual product.toJSON(), uuid: 'abc123'
 
 test 'fromJSON respects primaryKey', ->
-  @Product.primaryKey = 'uuid'
-  product = new @Product
-  product.fromJSON(uuid: 'abc123')
-  deepEqual product.get('id'), 'abc123'
+  Batman.developer.suppress =>
+    @Product.primaryKey = 'uuid'
+    product = new @Product
+    product.fromJSON(uuid: 'abc123')
+    deepEqual product.get('id'), 'abc123'
 
 test 'the \'state\' key should be a valid attribute name', ->
   p = new @Product(state: "silly")

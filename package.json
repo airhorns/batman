@@ -7,7 +7,6 @@
     "James MacAulay <james@shopify.com> (http://github.com/jamesmacaulay)",
     "Kamil Tusznio <kamil.tusznio@shopify.com> (http://github.com/ktusznio)"
   ],
-
   "version": "0.8.0",
   "homepage": "http://batmanjs.org",
   "repository": {
@@ -19,27 +18,25 @@
     "batman" : "./tools/batman"
   },
   "scripts": {
-    "test": "cake test",
+    "test": "node tests/run.js",
     "build": "cake build"
   },
   "dependencies": {
-    "connect": "~1.6.1",
+    "connect": "~1.8.5",
     "coffee-script": "1.1.3"
-  },
-  "engines": {
-    "node": "0.4.x"
   },
   "devDependencies": {
     "daemon": "~0.3.0",
     "docco": "~0.3.0",
-    "now": "~0.5",
-    "glob": "~3.0.1",
-    "jsdom": "0.2.5",
-    "qunit": "0.1.5",
+    "glob": "~>3.0.1",
     "q": "~>0.6.0",
     "muffin": "0.2.7",
     "uglify-js": "1.2.5",
-    "temp": "~>0.2.0"
+    "temp": "~>0.2.0",
+    "qqunit": "0.1.2"
+  },
+  "engines": {
+    "node": "0.4.x || 0.6.x"
   },
   "batman": {
     "build": false

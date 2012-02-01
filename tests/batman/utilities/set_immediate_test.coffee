@@ -10,7 +10,7 @@ asyncTest "should be clearable", 0, ->
     ok false
 
   Batman.clearImmediate handle
-  
+
   delay ->
 
 asyncTest "clearing one should not clear the other", 1, ->
@@ -21,7 +21,7 @@ asyncTest "clearing one should not clear the other", 1, ->
     ok true
 
   Batman.clearImmediate handleA
-  
+
   delay ->
 
 asyncTest "should execute in series", 2, ->

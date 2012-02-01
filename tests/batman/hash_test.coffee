@@ -123,7 +123,7 @@ test "length is maintained over get, set, and unset", ->
     @hash.set 'bar', 'baz'
     @hash.clear()
     equalHashLength @hash, 0
-  
+
     @hash.set o1 = {}, true
     equalHashLength @hash, 1
     @hash.set o2 = {}, true
@@ -340,7 +340,7 @@ test "JSON.stringify(hash) returns the correct object representation for native 
   obj =
     number: 1
     string: "abc"
-    object: 
+    object:
       a: 1
       b: 2
       c: 3
@@ -370,7 +370,7 @@ test "update(pojo) updates the keys and values with those of the given object", 
   @hash.on 'itemsWereAdded', itemsWereAddedHandler = createSpy()
 
   @hash.update foo: 'foo2', size: 'medium'
-  
+
   deepEqual @hash.toObject(), foo: 'foo2', bar: 'bar1', size: 'medium'
 
   equal fooObserver.callCount, 1
@@ -398,7 +398,7 @@ test "replace(pojo) replaces the keys and values with those of the given object"
   @hash.on 'itemsWereRemoved', itemsWereRemovedHandler = createSpy()
 
   @hash.replace foo: 'foo2', material: 'silk', size: 'medium'
-  
+
   deepEqual @hash.toObject(), foo: 'foo2', material: 'silk', size: 'medium'
 
   equal fooObserver.callCount, 1
@@ -429,7 +429,7 @@ test "update(hash) works with other batman hashes as expected", ->
     foo: 'otherFoo'
     baz: 'otherBaz'
   @hash.update(otherHash)
-  
+
   deepEqual @hash.toObject(), foo: 'otherFoo', bar: 'bar', baz: 'otherBaz'
 
 test "replace(hash) works with other batman hashes as expected", ->
@@ -439,6 +439,6 @@ test "replace(hash) works with other batman hashes as expected", ->
     foo: 'otherFoo'
     baz: 'otherBaz'
   @hash.replace(otherHash)
-  
+
   deepEqual @hash.toObject(), foo: 'otherFoo', baz: 'otherBaz'
 
