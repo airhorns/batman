@@ -1821,7 +1821,7 @@ class Batman.NamedRouteQuery extends Batman.Object
       constructor: ->
         developer.suppress()
         super
-        developer.unsuppress
+        developer.unsuppress()
 
     @::propertyClass = NonWarningProperty
 
