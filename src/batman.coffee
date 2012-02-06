@@ -5170,10 +5170,10 @@ filters = Batman.Filters =
     else
       value[key]
 
-  equals: buntUndefined (lhs, rhs) ->
+  equals: buntUndefined (lhs, rhs, binding) ->
     lhs is rhs
 
-  not: (value) ->
+  not: (value, binding) ->
     ! !!value
 
   truncate: buntUndefined (value, length, end = "...", binding) ->
@@ -5184,13 +5184,13 @@ filters = Batman.Filters =
       value = value.substr(0, length-end.length) + end
     value
 
-  default: (value, string) ->
+  default: (value, string, binding) ->
     value || string
 
-  prepend: (value, string) ->
+  prepend: (value, string, binding) ->
     string + value
 
-  append: (value, string) ->
+  append: (value, string, binding) ->
     value + string
 
   replace: buntUndefined (value, searchFor, replaceWith, flags, binding) ->
