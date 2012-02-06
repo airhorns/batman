@@ -65,6 +65,12 @@ asyncTest "hasMany associations are loaded", 4, ->
       products.forEach (product) => ok product instanceof @Product
       deepEqual products.map((x) -> x.get('id')), [1,2,3]
 
+asyncTest "AssociationSet fires loaded event", 1, ->
+  @Store.find 1, (err, store) ->
+    store.get('products').on 'loaded', ->
+      ok true, 'loaded fired'
+      start()
+
 asyncTest "hasMany associations are loaded using encoders", 1, ->
   @Product.encode 'name'
     encode: (x) -> x

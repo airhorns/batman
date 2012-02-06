@@ -2897,6 +2897,7 @@ class Batman.AssociationSet extends Batman.SetSort
     loadOptions[@association.foreignKey] = @foreignKeyValue
     @association.getRelatedModel().load loadOptions, (err, records) =>
       @loaded = true unless err
+      @fire 'loaded'
       callback(err, @)
 
 class Batman.UniqueAssociationSetIndex extends Batman.UniqueSetIndex
