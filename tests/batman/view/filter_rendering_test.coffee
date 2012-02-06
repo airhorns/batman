@@ -229,7 +229,7 @@ asyncTest 'should update bindings when argument keypaths change context', 2, ->
 
   node = document.createElement 'div'
   node.innerHTML = '<div data-bind="array | join foo"></div>'
-  context = Batman.RenderContext.start(context).descend(closer)
+  context = Batman.RenderContext.root().descend(context).descend(closer)
   view = new Batman.View
     context: context
     node: node.childNodes[0]

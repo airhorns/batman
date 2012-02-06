@@ -16,6 +16,13 @@ Batman.config =
   pathPrefix: '/'
   usePushState: no
 
+Batman.container = if exports?
+  module.exports = Batman
+  global
+else
+  window.Batman = Batman
+  window
+
 # Global Helpers
 # -------
 
@@ -2183,6 +2190,8 @@ class Batman.App extends Batman.Object
   @classAccessor 'dispatcher', -> new Batman.Dispatcher(@, @get('routeMap'))
   @classAccessor 'controllers', -> @get('dispatcher.controllers')
 
+  @classAccessor '_renderContext', -> Batman.RenderContext.base.descend(@)
+
   # Require path tells the require methods which base directory to look in.
   @requirePath: ''
 
@@ -2292,6 +2301,7 @@ class Batman.Controller extends Batman.Object
   @singleton 'sharedController'
 
   @accessor 'controllerName', -> @_controllerName ||= helpers.underscore($functionName(@constructor).replace('Controller', ''))
+  @accessor '_renderContext', -> Batman.RenderContext.root().descend(@)
 
   @beforeFilter: (options, nameOrFunction) ->
     if not nameOrFunction
@@ -2386,7 +2396,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
-      options.context ||= @
+      options.context ||= @get('_renderContext')
       options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
       options.view = new (Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View)(options)
 
@@ -3661,8 +3671,16 @@ class Batman.ViewStore extends Batman.Object
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   isView: true
-  constructor: ->
-    super
+  constructor: (options = {}) ->
+    context = options.context
+    if context
+      unless context instanceof Batman.RenderContext
+        context = Batman.RenderContext.root().descend(context)
+    else
+      context = Batman.RenderContext.root()
+    options.context = context.descend(@)
+    super(options)
+
     # Start the rendering by asking for the node
     Batman.Property.withoutTracking =>
       if node = @get('node')
@@ -3731,12 +3749,10 @@ class Batman.View extends Batman.Object
 class Batman.Renderer extends Batman.Object
   deferEvery: 50
 
-  constructor: (@node, callback, context, view) ->
+  constructor: (@node, callback, @context, view) ->
     super()
     @on('parsed', callback) if callback?
-    @context = if context instanceof Batman.RenderContext then context else Batman.RenderContext.start(context)
-    @context = @context.descend(view) if view
-
+    developer.error "Must pass a RenderContext to a renderer for rendering" unless @context instanceof Batman.RenderContext
     @immediate = $setImmediate @start
 
   start: =>
@@ -3841,14 +3857,12 @@ class Batman.Renderer extends Batman.Object
 
 # The RenderContext class manages the stack of contexts accessible to a view during rendering.
 class Batman.RenderContext
-  @start: (context) ->
-    @windowWrapper ||= window: Batman.container
-    node = new @(@windowWrapper)
-    node = node.descend Batman.currentApp if Batman.currentApp
-    node = node.descend(context) if context
-    node
-
   @deProxy: (object) -> if object? && object.isContextProxy then object.get('proxiedObject') else object
+  @root: ->
+    if Batman.currentApp?
+      Batman.currentApp.get('_renderContext')
+    else
+      @base
   constructor: (@object, @parent) ->
 
   findKey: (key) ->
@@ -3918,6 +3932,8 @@ class Batman.RenderContext
 
     constructor: (@renderContext, @keyPath, @localKey) ->
       @binding = new Batman.DOM.AbstractBinding(undefined, @keyPath, @renderContext)
+
+Batman.RenderContext.base = new Batman.RenderContext(window: Batman.container)
 
 Batman.DOM = {
   # `Batman.DOM.readers` contains the functions used for binding a node's value or innerHTML, showing/hiding nodes,
@@ -5509,15 +5525,6 @@ class Batman.ModelPaginator extends Batman.Paginator
     offset: @paddedOffset(offset), limit: @paddedLimit(limit)
   offsetFromParams: (params) -> params.offset
   limitFromParams: (params) -> params.limit
-
-# Export a few globals, and grab a reference to an object accessible from all contexts for use elsewhere.
-# In node, the container is the `global` object, and in the browser, the container is the window object.
-Batman.container = if exports?
-  module.exports = Batman
-  global
-else
-  window.Batman = Batman
-  window
 
 # Support AMD loaders
 if typeof define is 'function'

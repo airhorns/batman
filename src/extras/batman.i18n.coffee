@@ -53,12 +53,10 @@ applyExtra = (Batman) ->
   Batman.I18N.set 'locales', new Batman.I18N.LocalesStorage
 
   Batman.Filters.t = Batman.Filters.translate = Batman.Filters.interpolate
-  oldStart = Batman.RenderContext.start
   translationsAlias = Batman()
   translationsAlias.accessor 't', -> Batman.I18N.get('translations')
 
-  Batman.RenderContext.start = ->
-    oldStart.apply(Batman.RenderContext, arguments).descend(translationsAlias)
+  Batman.RenderContext.base = Batman.RenderContext.base.descend(translationsAlias)
 
 if (module? && require?)
   module.exports = applyExtra
