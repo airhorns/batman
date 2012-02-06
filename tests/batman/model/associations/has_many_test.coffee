@@ -69,7 +69,7 @@ asyncTest "AssociationSet fires loaded event", 1, ->
   @Store.find 1, (err, store) ->
     store.get('products').on 'loaded', ->
       ok true, 'loaded fired'
-      start()
+      QUnit.start()
 
 asyncTest "hasMany associations are loaded using encoders", 1, ->
   @Product.encode 'name'
