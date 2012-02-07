@@ -16,6 +16,7 @@ asyncTest "support custom model namespaces and class names", 2, ->
 
   productAdapter = createStorageAdapter Product, AsyncTestStorageAdapter,
     'products2': {name: "Product Two", id: 2, store: {id:3, name:"JSON Store"}}
+
   Product.find 2, (err, product) ->
     store = product.get('store')
     ok store instanceof namespace.Walmart
@@ -54,6 +55,7 @@ asyncTest "support model classes that haven't been loaded yet", 2, ->
   setTimeout (=>
     class @Customer extends Batman.Model
       @encode 'id', 'name'
+      @belongsTo 'blog'
     customerAdapter = new AsyncTestStorageAdapter @Customer
     customerAdapter.storage =
       'customer1': {name: "Customer One", id: 1, blog_id: 1}

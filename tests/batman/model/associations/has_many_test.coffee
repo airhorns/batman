@@ -16,7 +16,7 @@ QUnit.module "Batman.Model hasMany Associations"
         id: 1
 
     namespace.Product = class @Product extends Batman.Model
-      @encode 'id', 'name', 'store_id'
+      @encode 'id', 'name'
       @belongsTo 'store', namespace: namespace
       @hasMany 'productVariants', namespace: namespace
 
@@ -172,7 +172,7 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
     variant5 = variants.toArray()[0]
     ok variant5 instanceof @ProductVariant
-    equal variant5.id, 5
+    equal variant5.get('id'), 5
     equal variant5.get('price'), 50
     equal variant5.get('product_id'), 3
     proxiedProduct = variant5.get('product')
@@ -181,7 +181,7 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
     variant6 = variants.toArray()[1]
     ok variant6 instanceof @ProductVariant
-    equal variant6.id, 6
+    equal variant6.get('id'), 6
     equal variant6.get('price'), 60
     equal variant6.get('product_id'), 3
     proxiedProduct = variant6.get('product')

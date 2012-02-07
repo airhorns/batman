@@ -41,16 +41,6 @@ QUnit.module "Batman.Model belongsTo Associations"
           name: "Store Three"
           id: 3
 
-asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
-  @Product.find 1, (err, product) =>
-    store = product.get('store')
-    delay =>
-      storeJSON = store.toJSON()
-      # store will encode its product
-      delete storeJSON.product
-
-      deepEqual storeJSON, @storeAdapter.storage["stores1"]
-
 asyncTest "belongsTo associations are loaded via ID", 1, ->
   @Product.find 1, (err, product) =>
     store = product.get 'store'
@@ -70,16 +60,14 @@ asyncTest "belongsTo associations are not loaded when autoload is off", 1, ->
     equal (typeof store), 'undefined'
     QUnit.start()
 
-asyncTest "belongsTo associations are saved", 7, ->
+asyncTest "belongsTo associations are saved", 6, ->
   store = new @Store id: 1, name: 'Zellers'
   collection = new @Collection id: 2, name: 'Awesome Things'
   product = new @Product name: 'Gizmo'
   product.set 'store', store
   product.set 'collection', collection
 
-  productSaveSpy = spyOn product, 'save'
   product.save (err, record) =>
-    equal productSaveSpy.callCount, 1
     equal record.get('store_id'), store.id
     equal record.get('collection_id'), collection.id
     storedJSON = @productAdapter.storage["products#{record.id}"]
@@ -105,6 +93,16 @@ asyncTest "belongsTo parent models are passed through the identity map", 2, ->
       equal @Store.get('loaded').length, 1
       ok product.get('store') == store
       QUnit.start()
+
+asyncTest "belongsTo yields the related model when toJSON is called", 1, ->
+  @Product.find 1, (err, product) =>
+    store = product.get('store')
+    delay =>
+      storeJSON = store.toJSON()
+      # store will encode its product
+      delete storeJSON.product
+
+      deepEqual storeJSON, @storeAdapter.storage["stores1"]
 
 asyncTest "belongsTo associations render", 1, ->
   @Product.find 1, (err, product) ->
@@ -135,11 +133,11 @@ asyncTest "belongsTo supports inline saving", 1, ->
       collection: {name: "Inline Collection"}
     QUnit.start()
 
-asyncTest "belongsTo supports custom local keys", 1, ->
+asyncTest "belongsTo supports custom foreign keys", 1, ->
   ns = @
   class Shirt extends Batman.Model
     @encode 'id', 'name'
-    @belongsTo 'store', namespace: ns, localKey: 'shop_id'
+    @belongsTo 'store', namespace: ns, foreignKey: 'shop_id'
 
   shirtAdapter = createStorageAdapter Shirt, AsyncTestStorageAdapter,
     'shirts1':

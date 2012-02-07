@@ -2843,20 +2843,30 @@ class Batman.AssociationProxy extends Batman.Object
   loaded: false
 
   toJSON: ->
-    @get('target').toJSON() if @get('loaded')
+    target = @get('target')
+    @get('target').toJSON() if target?
 
   load: (callback) ->
-    @fetch (err, relation) =>
-      @set('target', relation) unless err
-      callback?(err, relation)
+    @fetch (err, proxiedRecord) =>
+      unless err
+        @set 'loaded', true
+        @set 'target', proxiedRecord
+      callback?(err, proxiedRecord)
     @get('target')
+
+  fetch: (callback) ->
+    unless (@get('foreignValue') || @get('primaryValue'))?
+      return callback(undefined, undefined)
+    record = @fetchFromLocal()
+    if record
+      return callback(undefined, record)
+    else
+      @fetchFromRemote(callback)
 
   @accessor 'loaded', Batman.Property.defaultAccessor
 
   @accessor 'target',
-    get: ->
-      if id = @model.get(@association.localKey)
-        @association.getRelatedModel().get('loaded').indexedByUnique('id').get(id)
+    get: -> @fetchFromLocal()
     set: (_, v) -> v # This just needs to bust the cache
 
   @accessor
@@ -2864,59 +2874,51 @@ class Batman.AssociationProxy extends Batman.Object
     set: (k, v) -> @get('target')?.set(k, v)
 
 class Batman.BelongsToProxy extends Batman.AssociationProxy
-  fetch: (callback) ->
-    if relatedID = @model.get(@association.localKey)
-      loadedRecord = @association.setIndex().get(relatedID)
+  @accessor 'foreignValue', -> @model.get(@association.foreignKey)
 
-      if loadedRecord?
-        @set 'loaded', true
-        callback undefined, loadedRecord
-      else
-        @association.getRelatedModel().find relatedID, (error, loadedRecord) =>
-          throw error if error
-          @set('loaded', true) if loadedRecord
-          callback undefined, loadedRecord
+  fetchFromLocal: -> @association.setIndex().get(@get('foreignValue'))
+
+  fetchFromRemote: (callback) ->
+    @association.getRelatedModel().find @get('foreignValue'), (error, loadedRecord) =>
+      throw error if error
+      callback undefined, loadedRecord
 
 class Batman.HasOneProxy extends Batman.AssociationProxy
-  fetch: (callback) ->
-    if id = @model.get(@association.localKey)
-      # Check whether the relatedModel has already loaded the instance we want
-      relatedRecord = @association.setIndex().get(id)
-      if relatedRecord?
-        @set('loaded', true)
-        callback undefined, relatedRecord
+  @accessor 'primaryValue', -> @model.get(@association.primaryKey)
+
+  fetchFromLocal: -> @association.setIndex().get(@get('primaryValue'))
+
+  fetchFromRemote: (callback) ->
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @get('primaryValue')
+    @association.getRelatedModel().load loadOptions, (error, loadedRecords) =>
+      throw error if error
+      if !loadedRecords or loadedRecords.length <= 0
+        callback new Error("Couldn't find related record!"), undefined
       else
-        loadOptions = {}
-        loadOptions[@association.foreignKey] = id
-        @association.getRelatedModel().load loadOptions, (error, loadedRecords) =>
-          throw error if error
-          if !loadedRecords or loadedRecords.length <= 0
-            callback new Error("Couldn't find related record!"), undefined
-          else
-            @set('loaded', true)
-            callback undefined, loadedRecords[0]
+        callback undefined, loadedRecords[0]
 
 class Batman.AssociationSet extends Batman.SetSort
-  constructor: (@foreignKeyValue, @association) ->
+  constructor: (@value, @association) ->
     base = new Batman.Set
     super(base, 'hashKey')
   loaded: false
   load: (callback) ->
-    return callback(undefined, @) unless @foreignKeyValue?
+    return callback(undefined, @) unless @value?
     loadOptions = {}
-    loadOptions[@association.foreignKey] = @foreignKeyValue
+    loadOptions[@association.foreignKey] = @value
     @association.getRelatedModel().load loadOptions, (err, records) =>
       @loaded = true unless err
       @fire 'loaded'
       callback(err, @)
 
 class Batman.UniqueAssociationSetIndex extends Batman.UniqueSetIndex
-  constructor: (@association) ->
-    super @association.getRelatedModel().get('loaded'), @association.foreignKey
+  constructor: (@association, key) ->
+    super @association.getRelatedModel().get('loaded'), key
 
 class Batman.AssociationSetIndex extends Batman.SetIndex
-  constructor: (@association) ->
-    super @association.getRelatedModel().get('loaded'), @association.foreignKey
+  constructor: (@association, key) ->
+    super @association.getRelatedModel().get('loaded'), key
 
   _resultSetForKey: (key) ->
     @_storage.getOrSet key, =>
@@ -2967,17 +2969,17 @@ class Batman.Association
     # Setup encoders and accessors for this association. The accessor needs reference to this
     # association object, so curry the association info into the getAccessor, which has the
     # model applied as the context
-    model.encode label, @encoder()
+    @model.encode label, @encoder()
 
     self = @
-    getAccessor = -> return self.getAccessor.call(@, self, model, label)
-    model.accessor label,
+    getAccessor = -> return self.getAccessor.call(@, self, @model, @label)
+    @model.accessor @label,
       get: getAccessor
       set: model.defaultAccessor.set
       unset: model.defaultAccessor.unset
 
     if @url
-      model.url ||= (recordOptions) ->
+      @model.url ||= (recordOptions) ->
         return self.url(recordOptions)
 
   getRelatedModel: ->
@@ -3028,7 +3030,7 @@ class Batman.SingularAssociation extends Batman.Association
       proxy
 
   setIndex: ->
-    @index ||= new Batman.UniqueAssociationSetIndex(@)
+    @index ||= new Batman.UniqueAssociationSetIndex(@, @[@indexRelatedModelOn])
     @index
 
 class Batman.PluralAssociation extends Batman.Association
@@ -3036,7 +3038,7 @@ class Batman.PluralAssociation extends Batman.Association
 
   setForRecord: (record) ->
     Batman.Property.withoutTracking =>
-      if id = record.get(@localKey)
+      if id = record.get(@primaryKey)
         @setIndex().get(id)
       else
         new Batman.AssociationSet(undefined, @)
@@ -3058,21 +3060,22 @@ class Batman.PluralAssociation extends Batman.Association
       relatedRecords
 
   setIndex: ->
-    @index ||= new Batman.AssociationSetIndex(@)
+    @index ||= new Batman.AssociationSetIndex(@, @[@indexRelatedModelOn])
     @index
 
 class Batman.BelongsToAssociation extends Batman.SingularAssociation
   associationType: 'belongsTo'
   proxyClass: Batman.BelongsToProxy
+  indexRelatedModelOn: 'primaryKey'
   defaultOptions:
     saveInline: false
     autoload: true
 
   constructor: ->
     super
-    @localKey = @options.localKey or "#{@label}_id"
-    @foreignKey = @options.foreignKey or "id"
-    @model.encode @localKey
+    @foreignKey = @options.foreignKey or "#{@label}_id"
+    @primaryKey = @options.primaryKey or "id"
+    @model.encode @foreignKey
 
   url: (recordOptions) ->
     if inverse = @inverse()
@@ -3085,10 +3088,8 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
 
   encoder: ->
     association = @
-    return {
-      encode: (val) ->
-        return unless association.options.saveInline
-        val.toJSON()
+    encoder =
+      encode: false
       decode: (data, _, __, ___, childRecord) ->
         relatedModel = association.getRelatedModel()
         record = new relatedModel()
@@ -3098,31 +3099,34 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
           if inverse = association.inverse()
             if inverse instanceof Batman.HasManyAssociation
               # Rely on the parent's set index to get this out.
-              childRecord.set(association.localKey, record.get(association.foreignKey))
+              childRecord.set(association.foreignKey, record.get(association.primaryKey))
             else
               record.set(inverse.label, childRecord)
         childRecord.set(association.label, record)
         record
-    }
+    if @options.saveInline
+      encoder.encode = (val) -> val.toJSON()
+    encoder
 
   apply: (base) ->
     if model = base.get(@label)
-      foreignValue = model.get(@foreignKey)
+      foreignValue = model.get(@primaryKey)
       if foreignValue isnt undefined
-        base.set @localKey, foreignValue
+        base.set @foreignKey, foreignValue
 
 class Batman.HasOneAssociation extends Batman.SingularAssociation
   associationType: 'hasOne'
   proxyClass: Batman.HasOneProxy
+  indexRelatedModelOn: 'foreignKey'
 
   constructor: ->
     super
-    @localKey = @options.localKey or "id"
+    @primaryKey = @options.primaryKey or "id"
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   apply: (baseSaveError, base) ->
     if relation = @getFromAttributes(base)
-      relation.set @foreignKey, base.get(@localKey)
+      relation.set @foreignKey, base.get(@primaryKey)
 
   encoder: ->
     association = @
@@ -3130,7 +3134,7 @@ class Batman.HasOneAssociation extends Batman.SingularAssociation
       encode: (val, key, object, record) ->
         return unless association.options.saveInline
         if json = val.toJSON()
-          json[association.foreignKey] = record.get(association.localKey)
+          json[association.foreignKey] = record.get(association.primaryKey)
         json
       decode: (data, _, __, ___, parentRecord) ->
         relatedModel = association.getRelatedModel()
@@ -3144,16 +3148,18 @@ class Batman.HasOneAssociation extends Batman.SingularAssociation
 
 class Batman.HasManyAssociation extends Batman.PluralAssociation
   associationType: 'hasMany'
+  indexRelatedModelOn: 'foreignKey'
+
   constructor: ->
     super
-    @localKey = @options.localKey or "id"
+    @primaryKey = @options.primaryKey or "id"
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
 
   apply: (baseSaveError, base) ->
     unless baseSaveError
       if relations = @getFromAttributes(base)
         relations.forEach (model) =>
-          model.set @foreignKey, base.get(@localKey)
+          model.set @foreignKey, base.get(@primaryKey)
       base.set @label, @setForRecord(base)
 
   encoder: ->
@@ -3168,7 +3174,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
           jsonArray = []
           relationSet.forEach (relation) ->
             relationJSON = relation.toJSON()
-            relationJSON[association.foreignKey] = record.get(association.localKey)
+            relationJSON[association.foreignKey] = record.get(association.primaryKey)
             jsonArray.push relationJSON
 
         delete association._beingEncoded
