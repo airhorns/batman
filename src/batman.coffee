@@ -2443,21 +2443,26 @@ class Batman.Model extends Batman.Object
     Batman.initializeObject @prototype
     @::_batman.encoders ||= new Batman.SimpleHash
     @::_batman.decoders ||= new Batman.SimpleHash
+    encoder = {}
     switch $typeOf(encoderOrLastKey)
       when 'String'
         keys.push encoderOrLastKey
       when 'Function'
-        encoder = encoderOrLastKey
+        encoder.encode = encoderOrLastKey
       else
-        encoder = encoderOrLastKey.encode
-        decoder = encoderOrLastKey.decode
+        encoder.encode = encoderOrLastKey.encode
+        encoder.decode = encoderOrLastKey.decode
 
-    encoder = @defaultEncoder.encode if typeof encoder is 'undefined'
-    decoder = @defaultEncoder.decode if typeof decoder is 'undefined'
+    encoder = $mixin {}, @defaultEncoder, encoder
 
-    for key in keys
-      @::_batman.encoders.set(key, encoder) if encoder
-      @::_batman.decoders.set(key, decoder) if decoder
+    for operation in ['encode', 'decode']
+      for key in keys
+        hash = @::_batman["#{operation}rs"]
+        if encoder[operation]
+          hash.set(key, encoder[operation])
+        else
+          hash.unset(key)
+    #true
 
   # Set up the unit functions as the default for both
   @defaultEncoder:
