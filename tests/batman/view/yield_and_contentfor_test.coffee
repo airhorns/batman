@@ -93,3 +93,22 @@ asyncTest 'data-replace should remove bindings on replaced content', ->
       context.set 'simple', 'updated'
       delay =>
         equal spy.callCount, oldCallCount
+
+asyncTest 'should propogate event handlers in nested yielded content', ->
+  source = '''
+    <div data-yield="foo"></div>
+    <div data-replace="foo">
+      <form data-replace="foo">
+        <button data-event-click="hmm"></button>
+      </form>
+    </div>
+  '''
+
+  context =
+    hmm: spy = createSpy()
+
+  helpers.render source, context, (node) ->
+    delay =>
+      helpers.triggerClick(node[0].childNodes[0].childNodes[1])
+      delay =>
+        ok spy.called

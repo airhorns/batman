@@ -4139,7 +4139,7 @@ Batman.DOM = {
 
     # Clone the node if it's a child in case the parent gets cleared during the yield
     if yieldingNode and $isChildOf(yieldingNode, node)
-      node = node.cloneNode(true)
+      node = $cloneNode node
 
     yieldFn = (yieldingNode) ->
       if _replaceContent || !Batman._data(yieldingNode, 'yielded')
@@ -4227,6 +4227,30 @@ Batman.DOM = {
   unbindTree: $unbindTree = (node, unbindRoot = true) ->
     $unbindNode node if unbindRoot
     $unbindTree(child) for child in node.childNodes
+
+  # Copy the event handlers from src node to dst node
+  copyNodeEventListeners: $copyNodeEventListeners = (dst, src) ->
+    if listeners = Batman._data src, 'listeners'
+      for eventName, eventListeners of listeners
+        eventListeners.forEach (listener) ->
+          $addEventListener dst, eventName, listener
+
+  # Copy all event handlers from the src tree to the dst tree.  Note that the
+  # trees must have identical structures.
+  copyTreeEventListeners: $copyTreeEventListeners = (dst, src) ->
+    $copyNodeEventListeners dst, src
+    for i in [0...src.childNodes.length]
+      $copyTreeEventListeners dst.childNodes[i], src.childNodes[i]
+
+  # Enhance the base cloneNode method to copy event handlers over to the new
+  # instance
+  cloneNode: $cloneNode = (node, deep=true) ->
+    newNode = node.cloneNode(deep)
+    if deep
+      $copyTreeEventListeners newNode, node
+    else
+      $copyNodeEventListeners newNode, node
+    newNode
 
   # Memory-safe setting of a node's innerHTML property
   setInnerHTML: $setInnerHTML = (node, html, args...) ->
