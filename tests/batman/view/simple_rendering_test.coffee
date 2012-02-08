@@ -24,6 +24,13 @@ asyncTest 'it should allow the inner value to be bound', 1, ->
     equals node.html(), "bar"
     QUnit.start()
 
+asyncTest 'it should allow the inner value to be bound using content containing html', 1, ->
+  helpers.render '<div data-bind="foo"></div>',
+    foo: '<p>bar</p>'
+  , (node) =>
+    equals node.html(), "&lt;p&gt;bar&lt;/p&gt;"
+    QUnit.start()
+
 asyncTest 'it should track added bindings', 2, ->
   Batman.DOM.on 'bindingAdded', spy = createSpy()
   helpers.render '<div data-bind="foo"></div>',
@@ -206,11 +213,11 @@ asyncTest 'it should allow input values to be bound', 1, ->
     equal $(node[0]).val(), 'qux'
     QUnit.start()
 
-asyncTest 'input value bindings should escape their value before inserting', 1, ->
+asyncTest 'input value bindings should not escape their value', 1, ->
   helpers.render '<input data-bind="foo"></input>',
     foo: '<script></script>'
   , (node) =>
-    equals node.val(), "&lt;script&gt;&lt;/script&gt;"
+    equals node.val(), "<script></script>"
     QUnit.start()
 
 asyncTest 'it should bind the input value and update the input when it changes', 2, ->
@@ -284,14 +291,15 @@ asyncTest 'it should bind the value of textareas', 2, ->
     delay =>
       equal node.val(), 'bar'
 
-asyncTest 'textarea value bindings should escape their value before inserting', 1, ->
+asyncTest 'textarea value bindings should not escape their value', 2, ->
   helpers.render '<textarea data-bind="foo"></textarea>',
     foo: '<script></script>'
   , (node) =>
     # jsdom and the browser have different behaviour, so lets just test against a node with the expected contents
     # to see if they are the same
-    textarea = $('<textarea>').html("&lt;script&gt;&lt;/script&gt;")
+    textarea = $('<textarea>').val("<script></script>")
     equals node.html(), textarea.html()
+    equals node.val(), textarea.val()
     QUnit.start()
 
 asyncTest 'it should bind the value of textareas and inputs simulatenously', ->
