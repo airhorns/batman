@@ -1,8 +1,7 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require '../model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../../view/view_helper'
 
-QUnit.module "Batman.Model polymorphic belongsTo and hasMany Associations"
-  setup: ->
+baseSetup = ->
     namespace = @namespace = {}
     namespace.Metafield = class @Metafield extends Batman.Model
       @belongsTo 'subject', {polymorphic: true, namespace}
@@ -27,6 +26,13 @@ QUnit.module "Batman.Model polymorphic belongsTo and hasMany Associations"
       'metafields4':
         id: 4
         key: 'Product metafield 2'
+        subject_type: 'Product'
+        subject:
+          name: "Product 5"
+          id: 5
+      'metafields7':
+        id: 7
+        key: 'Product metafield 2.1'
         subject_type: 'Product'
         subject:
           name: "Product 5"
@@ -67,6 +73,9 @@ QUnit.module "Batman.Model polymorphic belongsTo and hasMany Associations"
       'products5':
         name: "Product 5"
         id: 5
+
+QUnit.module "Batman.Model polymorphic belongsTo associations"
+  setup: baseSetup
 
 asyncTest "belongsTo associations are loaded from remote", 4, ->
   @Metafield.find 1, (err, metafield) =>
@@ -175,6 +184,52 @@ asyncTest "belongsTo supports custom type keys", 2, ->
     delay ->
       equal store.get('id'), 1
       equal store.get('name'), 'Store One'
+
+
+QUnit.module "Batman.Model polymorphic belongsTo associations with inverseof to a hasMany"
+  setup: ->
+    baseSetup.call(@)
+    namespace = @namespace
+    # Redefine models with the inverseof relationship inplace from the start.
+    namespace.Metafield = class @Metafield extends Batman.Model
+      @encode 'key'
+      @belongsTo 'subject', {namespace, polymorphic: true, inverseOf: 'metafields'}
+    @Metafield.persist @metafieldAdapter
+    namespace.Product = class @Product extends Batman.Model
+        @encode 'id', 'name'
+        @hasMany 'metafields', {as: 'subject', namespace}
+    @Product.persist @productAdapter
+
+asyncTest "belongsTo sets the foreign key on itsself so the parent relation SetIndex adds it, if the parent hasn't been loaded", 1, ->
+  @Metafield.find 4, (err, metafield) =>
+    throw err if err
+    product = metafield.get('subject')
+    delay ->
+      ok product.get('metafields').has(metafield)
+
+asyncTest "belongsTo sets the foreign key on itself so the parent relation SetIndex adds it, if the parent has already been loaded", 1, ->
+  @Product.find 5, (err, product) =>
+    throw err if err
+    @Metafield.find 4, (err, metafield) =>
+      throw err if err
+      product = metafield.get('subject')
+      delay ->
+        ok product.get('metafields').has(metafield)
+
+asyncTest "belongsTo sets the foreign key foreign key on itself such that many loads are picked up by the parent", 3, ->
+  @Product.find 5, (err, product) =>
+    throw err if err
+    @Metafield.find 4, (err, metafield) =>
+      throw err if err
+      equal product.get('metafields').length, 1
+      @Metafield.find 7, (err, metafield) =>
+        throw err if err
+        equal product.get('metafields').length, 2
+        equal @Product.get('loaded').length, 1, 'Only one parent record should be created'
+        QUnit.start()
+
+QUnit.module "Batman.Model polymorphic hasMany associations"
+  setup: baseSetup
 
 asyncTest "hasMany associations are loaded from remote", 5, ->
   @Store.find 1, (err, store) =>

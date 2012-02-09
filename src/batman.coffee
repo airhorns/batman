@@ -3168,6 +3168,7 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
 
   getRelatedModel: false
   setIndex: false
+  inverse: false
 
   apply: (base) ->
     super
@@ -3200,6 +3201,17 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
     @typeIndicies[type] ||= new Batman.PolymorphicUniqueAssociationSetIndex(@, type, @primaryKey)
     @typeIndicies[type]
 
+  inverseForType: (type) ->
+    if relatedAssocs = @getRelatedModelForType(type)?._batman.get('associations')
+      if @options.inverseOf
+        return relatedAssocs.getByLabel(@options.inverseOf)
+
+      inverse = null
+      relatedAssocs.forEach (label, assoc) =>
+        if assoc.getRelatedModel() is @model
+          inverse = assoc
+      inverse
+
   encoder: ->
     association = @
     encoder =
@@ -3211,7 +3223,7 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
         record.fromJSON(data)
         record = relatedModel._mapIdentity(record)
         if association.options.inverseOf
-          if inverse = association.inverse()
+          if inverse = association.inverseForType(foreignTypeValue)
             if inverse instanceof Batman.PolymorphicHasManyAssociation
               # Rely on the parent's set index to get this out.
               childRecord.set(association.foreignKey, record.get(association.primaryKey))
