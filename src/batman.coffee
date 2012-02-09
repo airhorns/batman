@@ -4098,7 +4098,7 @@ Batman.DOM = {
       eventNames = switch node.nodeName.toUpperCase()
         when 'TEXTAREA' then ['keyup', 'change']
         when 'INPUT'
-          if node.type.toUpperCase() is 'TEXT'
+          if node.type.toLowerCase() in Batman.DOM.textInputTypes
             oldCallback = callback
             callback = (e) ->
               return if e.type == 'keyup' && 13 <= e.keyCode <= 14
@@ -4134,6 +4134,9 @@ Batman.DOM = {
 
     other: (node, eventName, callback, context) -> $addEventListener node, eventName, (args...) -> callback node, args..., context
   }
+
+  # List of input type="types" for which we can use keyup events to track
+  textInputTypes: ['text', 'search', 'tel', 'url', 'email', 'password']
 
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # `replace` is used to replace yielded content.

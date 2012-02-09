@@ -281,6 +281,30 @@ asyncTest 'it should bind the input value and update the object when it changes'
     delay =>
       equal context.get('one'), 'bar'
 
+asyncTest 'it should bind the input value and update the object when it keyups', 1, ->
+  context = new Batman.Object
+    one: "qux"
+
+  helpers.render '<input data-bind="one" type="text" />', context, (node) ->
+    $(node[0]).val('bar')
+    # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
+    helpers.triggerKey(node[0], 82) # 82 is r from "bar"
+    delay =>
+      equal context.get('one'), 'bar'
+
+for type in ['text', 'search', 'tel', 'url', 'email', 'password']
+  do (type) ->
+    asyncTest "it should bind the input value on HTML5 input #{type} and update the object when it keyups", 1, ->
+      context = new Batman.Object
+        one: "qux"
+
+      helpers.render "<input data-bind=\"one\" type=\"#{type}\"></input>", context, (node) ->
+        $(node[0]).val('bar')
+        # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
+        helpers.triggerKey(node[0], 82) # 82 is r from "bar"
+        delay =>
+          equal context.get('one'), 'bar'
+
 asyncTest 'it should bind the value of textareas', 2, ->
   context = new Batman.Object
     one: "qux"
