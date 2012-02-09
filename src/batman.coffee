@@ -2888,6 +2888,17 @@ class Batman.BelongsToProxy extends Batman.AssociationProxy
       throw error if error
       callback undefined, loadedRecord
 
+class Batman.PolymorphicBelongsToProxy extends Batman.BelongsToProxy
+  @accessor 'foreignTypeValue', -> @model.get(@association.foreignTypeKey)
+
+  fetchFromLocal: ->
+    @association.setIndexForType(@get('foreignTypeValue')).get(@get('foreignValue'))
+
+  fetchFromRemote: (callback) ->
+    @association.getRelatedModelForType(@get('foreignTypeValue')).find @get('foreignValue'), (error, loadedRecord) =>
+      throw error if error
+      callback undefined, loadedRecord
+
 class Batman.HasOneProxy extends Batman.AssociationProxy
   @accessor 'primaryValue', -> @model.get(@association.primaryKey)
 
@@ -2904,18 +2915,19 @@ class Batman.HasOneProxy extends Batman.AssociationProxy
         callback undefined, loadedRecords[0]
 
 class Batman.AssociationSet extends Batman.SetSort
-  constructor: (@value, @association) ->
+  constructor: (@foreignKeyValue, @association) ->
     base = new Batman.Set
     super(base, 'hashKey')
   loaded: false
   load: (callback) ->
-    return callback(undefined, @) unless @value?
-    loadOptions = {}
-    loadOptions[@association.foreignKey] = @value
-    @association.getRelatedModel().load loadOptions, (err, records) =>
+    return callback(undefined, @) unless @foreignKeyValue?
+    @association.getRelatedModel().load @_getLoadOptions(), (err, records) =>
       @loaded = true unless err
       @fire 'loaded'
       callback(err, @)
+  _getLoadOptions: ->
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @foreignKeyValue
 
 class Batman.UniqueAssociationSetIndex extends Batman.UniqueSetIndex
   constructor: (@association, key) ->
@@ -2931,6 +2943,28 @@ class Batman.AssociationSetIndex extends Batman.SetIndex
 
   _setResultSet: (key, set) ->
     @_storage.set key, set
+
+class Batman.PolymorphicUniqueAssociationSetIndex extends Batman.UniqueSetIndex
+  constructor: (@association, @type, key) ->
+    super @association.getRelatedModelForType(type).get('loaded'), key
+
+class Batman.PolymorphicAssociationSetIndex extends Batman.SetIndex
+  constructor: (@association, @type, key) ->
+    super @association.getRelatedModelForType(type).get('loaded'), key
+
+  _resultSetForKey: (key) ->
+    @_storage.getOrSet key, =>
+      new Batman.PolymorphicAssociationSet(key, @type, @association)
+
+class Batman.PolymorphicAssociationSet extends Batman.AssociationSet
+  constructor: (@foreignKeyValue, @foreignTypeKeyValue, @association) ->
+    super(@foreignKeyValue, @association)
+
+  _getLoadOptions: ->
+    loadOptions = {}
+    loadOptions[@association.foreignKey] = @foreignKeyValue
+    loadOptions[@association.foreignTypeKey] = @foreignTypeKeyValue
+    loadOptions
 
 class Batman.AssociationCurator extends Batman.SimpleHash
   @availableAssociations: ['belongsTo', 'hasOne', 'hasMany']
@@ -2961,6 +2995,7 @@ class Batman.AssociationCurator extends Batman.SimpleHash
 
 class Batman.Association
   associationType: ''
+  isPolymorphic: false
   defaultOptions:
     saveInline: true
     autoload: true
@@ -3076,7 +3111,10 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
     saveInline: false
     autoload: true
 
-  constructor: ->
+  constructor: (model, label, options) ->
+    if options? && options.polymorphic
+      delete options.polymorphic
+      return new Batman.PolymorphicBelongsToAssociation(arguments...)
     super
     @foreignKey = @options.foreignKey or "#{@label}_id"
     @primaryKey = @options.primaryKey or "id"
@@ -3119,6 +3157,67 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
       if foreignValue isnt undefined
         base.set @foreignKey, foreignValue
 
+class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
+  isPolymorphic: true
+  proxyClass: Batman.PolymorphicBelongsToProxy
+  constructor: ->
+    super
+    @foreignTypeKey = @options.foreignTypeKey or "#{@label}_type"
+    @model.encode @foreignTypeKey
+    @typeIndicies = {}
+
+  getRelatedModel: false
+  setIndex: false
+
+  getAccessor: (self, model, label) ->
+    # Check whether the relation has already been set on this model
+    if recordInAttributes = self.getFromAttributes(@)
+      return recordInAttributes
+
+    # Make sure the related model has been loaded
+    if self.getRelatedModelForType(@get(self.foreignTypeKey))
+      proxy = @associationProxy(self)
+      Batman.Property.withoutTracking ->
+        if not proxy.get('loaded') and self.options.autoload
+          proxy.load()
+      proxy
+
+  getRelatedModelForType: (type) ->
+      scope = @options.namespace or Batman.currentApp
+      relatedModel = scope?[type]
+      developer.do ->
+        if Batman.currentApp? and not relatedModel
+          developer.warn "Related model #{modelName} for polymorhic association not found."
+      relatedModel
+
+  encoder: ->
+    association = @
+    encoder =
+      encode: false
+      decode: (data, key, response, ___, childRecord) ->
+        foreignTypeValue = response[association.foreignTypeKey] || childRecord.get(association.foreignTypeKey)
+        relatedModel = association.getRelatedModelForType(foreignTypeValue)
+        record = new relatedModel()
+        record.fromJSON(data)
+        record = relatedModel._mapIdentity(record)
+        if association.options.inverseOf
+          if inverse = association.inverse()
+            if inverse instanceof Batman.PolymorphicHasManyAssociation
+              # Rely on the parent's set index to get this out.
+              childRecord.set(association.foreignKey, record.get(association.primaryKey))
+              childRecord.set(association.foreignTypeKey, foreignTypeValue)
+            else
+              record.set(inverse.label, childRecord)
+        childRecord.set(association.label, record)
+        record
+    if @options.saveInline
+      encoder.encode = (val) -> val.toJSON()
+    encoder
+
+  setIndexForType: (type) ->
+    @typeIndicies[type] ||= new Batman.PolymorphicUniqueAssociationSetIndex(@, type, @foreignKey)
+    @typeIndicies[type]
+
 class Batman.HasOneAssociation extends Batman.SingularAssociation
   associationType: 'hasOne'
   proxyClass: Batman.HasOneProxy
@@ -3155,7 +3254,9 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
   associationType: 'hasMany'
   indexRelatedModelOn: 'foreignKey'
 
-  constructor: ->
+  constructor: (model, label, options) ->
+    if options.as
+      return new Batman.PolymorphicHasManyAssociation(arguments...)
     super
     @primaryKey = @options.primaryKey or "id"
     @foreignKey = @options.foreignKey or "#{helpers.underscore($functionName(@model))}_id"
@@ -3207,6 +3308,24 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
         existingRelations
     }
+
+class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
+  isPolymorphic: true
+  constructor: (model, label, options) ->
+    @foreignLabel = options.as
+    delete options.as
+    options.foreignKey ||= "#{@foreignLabel}_id"
+    super(model, label, options)
+
+    @foreignTypeKey = options.foreignTypeKey || "#{@foreignLabel}_type"
+
+  getRelatedModelForType: -> @getRelatedModel()
+
+  setIndex: ->
+    if !@typeIndex
+      type = $functionName(@model)
+      @typeIndex = new Batman.PolymorphicAssociationSetIndex(@, type, @foreignKey)
+    @typeIndex
 
 # ### Model Associations API
 for k in Batman.AssociationCurator.availableAssociations
