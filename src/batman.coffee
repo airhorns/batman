@@ -4273,21 +4273,14 @@ Batman.DOM = {
 
   valueForNode: (node, value = '', escapeValue = true) ->
     isSetting = arguments.length > 1
-    if isSetting && escapeValue
-      value = $escapeHTML(value)
     switch node.nodeName.toUpperCase()
-      when 'INPUT'
+      when 'INPUT', 'TEXTAREA'
         if isSetting then (node.value = value) else node.value
-      when 'TEXTAREA'
-        if isSetting
-          node.innerHTML = node.value = value
-        else
-          node.innerHTML
       when 'SELECT'
-        node.value = value
+        if isSetting then node.value = value
       else
         if isSetting
-          $setInnerHTML node, value
+          $setInnerHTML node, if escapeValue then $escapeHTML(value) else value
         else node.innerHTML
 
   nodeIsEditable: (node) ->
