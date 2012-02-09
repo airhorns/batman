@@ -21,6 +21,26 @@ asyncTest 'it should allow a class to be bound', 6, ->
       ok node.hasClass('two')
       QUnit.start()
 
+asyncTest 'it should allow a multiple similiar class names to be bound', 7, ->
+  source = '<div data-addclass-answered="foo" data-addclass-reanswered="bar" class="unanswered"></div>'
+  helpers.render source,
+    foo: true
+    bar: true
+  , (node) ->
+    ok node.hasClass('unanswered')
+    ok node.hasClass('answered')
+    ok node.hasClass('reanswered')
+
+    helpers.render source,
+      foo: false
+      bar: true
+    , (node) ->
+      ok node.hasClass('unanswered')
+      ok node.hasClass('reanswered')
+      ok !node.hasClass('answered')
+      ok !node.hasClass('un')
+      QUnit.start()
+
 asyncTest 'it should allow multiple class names to be bound and updated', ->
   source = '<div data-bind-class="classes"></div>'
   context = Batman classes: 'foo bar'
@@ -29,6 +49,7 @@ asyncTest 'it should allow multiple class names to be bound and updated', ->
     context.set 'classes', 'bar baz'
     delay =>
       equal node[0].className, 'bar baz'
+
 
 asyncTest 'it should allow multiple class names to be bound and updated via set', ->
   source = '<div data-bind-class="classes"></div>'
