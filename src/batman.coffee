@@ -3169,6 +3169,12 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
   getRelatedModel: false
   setIndex: false
 
+  apply: (base) ->
+    super
+    if model = base.get(@label)
+      foreignTypeValue = $functionName(model.constructor)
+      base.set @foreignTypeKey, foreignTypeValue
+
   getAccessor: (self, model, label) ->
     # Check whether the relation has already been set on this model
     if recordInAttributes = self.getFromAttributes(@)
@@ -3189,6 +3195,10 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
         if Batman.currentApp? and not relatedModel
           developer.warn "Related model #{modelName} for polymorhic association not found."
       relatedModel
+
+  setIndexForType: (type) ->
+    @typeIndicies[type] ||= new Batman.PolymorphicUniqueAssociationSetIndex(@, type, @primaryKey)
+    @typeIndicies[type]
 
   encoder: ->
     association = @
@@ -3214,9 +3224,6 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
       encoder.encode = (val) -> val.toJSON()
     encoder
 
-  setIndexForType: (type) ->
-    @typeIndicies[type] ||= new Batman.PolymorphicUniqueAssociationSetIndex(@, type, @foreignKey)
-    @typeIndicies[type]
 
 class Batman.HasOneAssociation extends Batman.SingularAssociation
   associationType: 'hasOne'

@@ -64,6 +64,9 @@ QUnit.module "Batman.Model polymorphic belongsTo and hasMany Associations"
           id: 6
           key: "SEO Title"
         }]
+      'products5':
+        name: "Product 5"
+        id: 5
 
 asyncTest "belongsTo associations are loaded from remote", 4, ->
   @Metafield.find 1, (err, metafield) =>
@@ -87,6 +90,91 @@ asyncTest "belongsTo associations are loaded from inline json", 2, ->
     equal product.get('name'), "Product 5"
     equal product.get('id'), 5
     QUnit.start()
+
+asyncTest "belongsTo associations are saved", ->
+  metafield = new @Metafield id: 10, key: "SEO Title"
+  store = new @Store id: 11, name: "Store 11"
+  metafield.set 'subject', store
+  metafield.save (err, record) =>
+    throw err if err
+    equal record.get('subject_id'), 11
+    equal record.get('subject_type'), 'Store'
+    storedJSON = @metafieldAdapter.storage["metafields10"]
+    deepEqual storedJSON, metafield.toJSON()
+    QUnit.start()
+
+asyncTest "belongsTo supports inline saving", 1, ->
+  namespace = @namespace
+  class @InlineMetafield extends Batman.Model
+    @encode 'key'
+    @belongsTo 'subject', {namespace, saveInline: true, polymorphic: true}
+
+  namespace.Store = class @Store extends Batman.Model
+    @encode 'name'
+
+  storageAdapter = createStorageAdapter @InlineMetafield, AsyncTestStorageAdapter
+
+  metafield = new @InlineMetafield key: "SEO Title"
+  store = new @Store name: "Inline Store"
+  metafield.set 'subject', store
+  metafield.save (err, record) =>
+    deepEqual storageAdapter.storage["inline_metafields#{record.get('id')}"],
+      key: "SEO Title"
+      subject: {name: "Inline Store"}
+      subject_type: 'Store'
+    QUnit.start()
+
+asyncTest "belongsTo parent models are added to the identity map", 1, ->
+  @Metafield.find 4, (err, metafield) =>
+    throw err if err
+    equal @Product.get('loaded').length, 1
+    QUnit.start()
+
+asyncTest "belongsTo parent models are passed through the identity map", 2, ->
+  @Product.find 5, (err, product) =>
+    throw err if err
+    @Metafield.find 4, (err, metafield) =>
+      equal @Product.get('loaded').length, 1
+      ok metafield.get('subject') == product
+      QUnit.start()
+
+asyncTest "belongsTo supports custom foreign keys", 2, ->
+  namespace = @namespace
+  class SillyMetafield extends Batman.Model
+    @encode 'id', 'key'
+    @belongsTo 'doodad', {namespace, foreignKey: 'subject_id', polymorphic: true}
+
+  sillyMetafieldAdapter = createStorageAdapter SillyMetafield, AsyncTestStorageAdapter,
+    'silly_metafields1':
+      id: 1
+      key: 'SEO Title'
+      subject_id: 1
+      doodad_type: 'Store'
+
+  SillyMetafield.find 1, (err, metafield) ->
+    store = metafield.get('doodad')
+    delay ->
+      equal store.get('id'), 1
+      equal store.get('name'), 'Store One'
+
+asyncTest "belongsTo supports custom type keys", 2, ->
+  namespace = @namespace
+  class SillyMetafield extends Batman.Model
+    @encode 'id', 'key'
+    @belongsTo 'subject', {namespace, foreignTypeKey: 'doodad_type', polymorphic: true}
+
+  sillyMetafieldAdapter = createStorageAdapter SillyMetafield, AsyncTestStorageAdapter,
+    'silly_metafields1':
+      id: 1
+      key: 'SEO Title'
+      subject_id: 1
+      doodad_type: 'Store'
+
+  SillyMetafield.find 1, (err, metafield) ->
+    store = metafield.get('subject')
+    delay ->
+      equal store.get('id'), 1
+      equal store.get('name'), 'Store One'
 
 asyncTest "hasMany associations are loaded from remote", 5, ->
   @Store.find 1, (err, store) =>
