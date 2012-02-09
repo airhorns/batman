@@ -1,11 +1,15 @@
 QUnit.module 'Batman.Dispatcher: getting controller instances'
   setup: ->
     @App = Batman()
-    @App.ProductsController = new Batman.Object({sharedController: @instance = {}})
     @dispatcher = new Batman.Dispatcher(@App, {})
 
 test "can get defined controller's shared instance", ->
+  @App.ProductsController = new Batman.Object({sharedController: @instance = {}})
   equal @dispatcher.get('controllers.products'), @instance
+
+test "safely gets controllers named app", ->
+  @App.AppController = new Batman.Object({sharedController: @instance = {}})
+  equal @dispatcher.get('controllers.app'), @instance
 
 test "safely gets nonexistant controllers", ->
   equal typeof @dispatcher.get('controllers.orders'), 'undefined'

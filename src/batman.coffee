@@ -1749,10 +1749,10 @@ class Batman.Dispatcher extends Batman.Object
       argument
 
   class ControllerDirectory extends Batman.Object
-    @accessor 'app', Batman.Property.defaultAccessor
-    @accessor (key) -> @get("app.#{helpers.capitalize(key)}Controller.sharedController")
+    @accessor '__app', Batman.Property.defaultAccessor
+    @accessor (key) -> @get("__app.#{helpers.capitalize(key)}Controller.sharedController")
 
-  @accessor 'controllers', -> new ControllerDirectory(app: @get('app'))
+  @accessor 'controllers', -> new ControllerDirectory(__app: @get('app'))
 
   constructor: (app, routeMap) ->
     super({app, routeMap})
