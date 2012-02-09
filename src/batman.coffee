@@ -5224,7 +5224,11 @@ filters = Batman.Filters =
     if !binding
       binding = flags
       flags = undefined
-    value.replace searchFor, replaceWith, flags
+    # Work around FF issue, "foo".replace("foo","bar",undefined) throws an error
+    if flags is undefined
+      value.replace searchFor, replaceWith
+    else
+      value.replace searchFor, replaceWith, flags
 
   downcase: buntUndefined (value) ->
     value.toLowerCase()
