@@ -37,6 +37,12 @@ baseSetup = ->
         subject:
           name: "Product 5"
           id: 5
+      'metafields20':
+          id: 20
+          key: "SEO Title"
+      'metafields30':
+          id: 30
+          key: "SEO Title"
 
     namespace.Store = class @Store extends Batman.Model
       @encode 'id', 'name'
@@ -73,6 +79,16 @@ baseSetup = ->
       'products5':
         name: "Product 5"
         id: 5
+      'products6':
+        name: "Product Six"
+        id: 6
+        metafields: [{
+          id: 20
+          key: "SEO Title"
+        },{
+          id: 30
+          key: "SEO Title"
+        }]
 
 QUnit.module "Batman.Model polymorphic belongsTo associations"
   setup: baseSetup
@@ -385,3 +401,26 @@ asyncTest "unsaved hasMany models should reflect their associated children after
     ok product.get('metafields').has(metafield)
     equal metafields.get('length'), 1
     QUnit.start()
+
+asyncTest "hasMany sets the foreign key on the inverse relation if the children haven't been loaded", 3, ->
+  @Product.find 6, (err, product) =>
+    throw err if err
+    metafields = product.get('metafields')
+    delay ->
+      metafields = metafields.toArray()
+      equal metafields.length, 2
+      ok metafields[0].get('subject') == product
+      ok metafields[1].get('subject') == product
+
+asyncTest "hasMany sets the foreign key on the inverse relation if the children have already been loaded", 3, ->
+  @Metafield.load (err, metafields) =>
+    throw err if err
+    @Product.find 6, (err, product) =>
+      throw err if err
+      metafields = product.get('metafields')
+      delay ->
+        metafields = metafields.toArray()
+        equal metafields.length, 2
+        ok metafields[0].get('subject') == product
+        ok metafields[1].get('subject') == product
+

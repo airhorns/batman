@@ -3336,11 +3336,10 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
 class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
   isPolymorphic: true
   constructor: (model, label, options) ->
-    @foreignLabel = options.as
+    options.inverseOf = @foreignLabel = options.as
     delete options.as
     options.foreignKey ||= "#{@foreignLabel}_id"
     super(model, label, options)
-
     @foreignTypeKey = options.foreignTypeKey || "#{@foreignLabel}_type"
     @model.encode @foreignTypeKey
 
