@@ -3276,7 +3276,7 @@ Validators = Batman.Validators = [
     @options 'presence'
     validateEach: (errors, record, key, callback) ->
       value = record.get(key)
-      if @options.presence and !value?
+      if @options.presence && (!value? || value is '')
         errors.add key, @format(key, 'blank')
       callback()
 ]

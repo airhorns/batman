@@ -28,7 +28,7 @@ validationsTestSuite = ->
         equal errors.length, 3
         QUnit.start()
 
-  asyncTest "presence", 2, ->
+  asyncTest "presence", 3, ->
     class Product extends Batman.Model
       @validate 'name', presence: yes
 
@@ -38,7 +38,10 @@ validationsTestSuite = ->
       p.unset 'name'
       p.validate (result, errors) ->
         ok !result
-        QUnit.start()
+        p.set 'name', ''
+        p.validate (result, errors) ->
+          ok !result
+          QUnit.start()
 
   asyncTest "presence and length", 4, ->
     class Product extends Batman.Model
