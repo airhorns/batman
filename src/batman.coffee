@@ -2928,6 +2928,7 @@ class Batman.AssociationSet extends Batman.SetSort
   _getLoadOptions: ->
     loadOptions = {}
     loadOptions[@association.foreignKey] = @foreignKeyValue
+    loadOptions
 
 class Batman.UniqueAssociationSetIndex extends Batman.UniqueSetIndex
   constructor: (@association, key) ->
@@ -3172,8 +3173,12 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
 
   apply: (base) ->
     super
-    if model = base.get(@label)
-      foreignTypeValue = $functionName(model.constructor)
+    if instanceOrProxy = base.get(@label)
+      if instanceOrProxy instanceof Batman.AssociationProxy
+        model = instanceOrProxy.association.model
+      else
+        model = instanceOrProxy.constructor
+      foreignTypeValue = $functionName(model)
       base.set @foreignTypeKey, foreignTypeValue
 
   getAccessor: (self, model, label) ->
@@ -3337,15 +3342,43 @@ class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
     super(model, label, options)
 
     @foreignTypeKey = options.foreignTypeKey || "#{@foreignLabel}_type"
+    @model.encode @foreignTypeKey
+
+  apply: (baseSaveError, base) ->
+    unless baseSaveError
+      if relations = @getFromAttributes(base)
+        super
+        relations.forEach (model) => model.set @foreignTypeKey, @modelType()
+    true
 
   getRelatedModelForType: -> @getRelatedModel()
 
+  modelType: -> $functionName(@model)
+
   setIndex: ->
     if !@typeIndex
-      type = $functionName(@model)
-      @typeIndex = new Batman.PolymorphicAssociationSetIndex(@, type, @foreignKey)
+      @typeIndex = new Batman.PolymorphicAssociationSetIndex(@, @modelType(), @[@indexRelatedModelOn])
     @typeIndex
 
+  encoder: ->
+    association = @
+    encoder = super
+    encoder.encode = (relationSet, _, __, record) ->
+      return if association._beingEncoded
+      association._beingEncoded = true
+
+      return unless association.options.saveInline
+      if relationSet?
+        jsonArray = []
+        relationSet.forEach (relation) ->
+          relationJSON = relation.toJSON()
+          relationJSON[association.foreignKey] = record.get(association.primaryKey)
+          relationJSON[association.foreignTypeKey] = association.modelType()
+          jsonArray.push relationJSON
+
+      delete association._beingEncoded
+      jsonArray
+    encoder
 # ### Model Associations API
 for k in Batman.AssociationCurator.availableAssociations
   do (k) =>
