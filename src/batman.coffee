@@ -3124,7 +3124,7 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
   url: (recordOptions) ->
     if inverse = @inverse()
       root = Batman.helpers.pluralize(@label)
-      id = recordOptions.data?["#{@label}_id"]
+      id = recordOptions.data?[@foreignKey]
       helper = if inverse.isSingular then "singularize" else "pluralize"
       ending = Batman.helpers[helper](inverse.label)
 
@@ -3193,6 +3193,16 @@ class Batman.PolymorphicBelongsToAssociation extends Batman.BelongsToAssociation
         if not proxy.get('loaded') and self.options.autoload
           proxy.load()
       proxy
+
+  url: (recordOptions) ->
+    type = recordOptions.data?[@foreignTypeKey]
+    if type && inverse = @inverseForType(type)
+      root = Batman.helpers.pluralize(type).toLowerCase()
+      id = recordOptions.data?[@foreignKey]
+      helper = if inverse.isSingular then "singularize" else "pluralize"
+      ending = Batman.helpers[helper](inverse.label)
+
+      return "/#{root}/#{id}/#{ending}"
 
   getRelatedModelForType: (type) ->
       scope = @options.namespace or Batman.currentApp
