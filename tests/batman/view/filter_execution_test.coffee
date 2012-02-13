@@ -128,6 +128,13 @@ asyncTest 'replace', 1, ->
     equals node.html(), "baz"
     QUnit.start()
 
+asyncTest 'contains', 1, ->
+  helpers.render '<div data-addclass-hasstring="foo | matches \'string\'"></div>',
+    foo: 'this_has_some_strings'
+  , (node) ->
+    ok node.hasClass 'hasstring'
+    QUnit.start()
+
 asyncTest 'downcase', 1, ->
   helpers.render '<div data-bind="foo | downcase"></div>',
     foo: 'BAR'
