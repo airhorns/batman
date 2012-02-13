@@ -418,3 +418,60 @@ test "observe(key) for a final property with sources calls back with the first d
   equal spy.callCount, 1
   @thing.set('baz', 'something else')
   equal spy.callCount, 1
+
+
+QUnit.module 'Batman.Property promises',
+  setup: ->
+    class @SpecialThing extends Batman.Object
+      @accessor
+        get: @getter = createSpy(Batman.Property.defaultAccessor.get)
+        set: @setter = createSpy(Batman.Property.defaultAccessor.set)
+        unset: @unsetter = createSpy(Batman.Property.defaultAccessor.unset)
+    @thing = new @SpecialThing
+  
+test "passing a promise function to an accessor declaration wraps the class's default accessor", ->
+  @thing.accessor 'foo', promise: (deliver) -> deliver("error", "result")
+
+  equal @SpecialThing.getter.callCount, 0
+  equal @SpecialThing.setter.callCount, 0
+  equal @SpecialThing.unsetter.callCount, 0
+
+  equal @thing.get('foo'), "result"
+  
+  equal @SpecialThing.getter.callCount, 1
+  equal @SpecialThing.setter.callCount, 0
+  equal @SpecialThing.unsetter.callCount, 0
+
+  equal @thing.get('foo'), "result"
+
+  equal @SpecialThing.getter.callCount, 1
+  equal @SpecialThing.setter.callCount, 0
+  equal @SpecialThing.unsetter.callCount, 0
+
+
+
+test "asynchronous delivery calls the wrapped setter", ->
+  deliver = null
+  @thing.accessor 'foo', promise: (d) -> deliver = d
+
+  equal @thing.get('foo'), undefined
+  
+  equal @SpecialThing.getter.callCount, 1
+  equal @SpecialThing.setter.callCount, 0
+  equal @SpecialThing.unsetter.callCount, 0
+
+  deliver(null, "result")
+  equal @thing.get('foo'), "result"
+
+  equal @SpecialThing.getter.callCount, 2
+  equal @SpecialThing.setter.callCount, 1
+  equal @SpecialThing.unsetter.callCount, 0
+
+test "multiple gets before delivery don't call the fetcher multiple times", ->
+  @thing.accessor 'foo', promise: fetcher = createSpy()
+  
+  equal @thing.get('foo'), undefined
+  equal @thing.get('foo'), undefined
+  equal @thing.get('foo'), undefined
+
+  equal fetcher.callCount, 1

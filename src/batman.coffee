@@ -507,6 +507,14 @@ class Batman.Property
     set: (key, val) -> @[key] = val
     unset: (key) -> x = @[key]; delete @[key]; x
     cachable: no
+  @defaultAccessorForBase: (base) ->
+    base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
+  @accessorForBaseAndKey: (base, key) ->
+    keyAccessors = base._batman?.get('keyAccessors')
+    if keyAccessors && (val = keyAccessors.get(key))
+      val
+    else
+      @defaultAccessorForBase(base)
   @forBaseAndKey: (base, key) ->
     if base.isObservable
       base.property(key)
@@ -551,11 +559,7 @@ class Batman.Property
     @changeEvent = -> event
     event
   accessor: ->
-    keyAccessors = @base._batman?.get('keyAccessors')
-    accessor = if keyAccessors && (val = keyAccessors.get(@key))
-      val
-    else
-      @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
+    accessor = @constructor.accessorForBaseAndKey(@base, @key)
     @accessor = -> accessor
     accessor
   eachObserver: (iterator) ->
@@ -937,8 +941,11 @@ class BatmanObject extends Object
   #
   # Note: This function gets called in all sorts of different contexts by various
   # other pointers to it, but it acts the same way on `this` in all cases.
-  getAccessorObject = (accessor) ->
-    accessor = {get: accessor} if !accessor.get && !accessor.set && !accessor.unset
+  getAccessorObject = (base, accessor) ->
+    if typeof accessor is 'function'
+      accessor = {get: accessor}
+    else if typeof accessor.promise is 'function'
+      accessor = new Batman.PromiseAccessor(accessor.promise, Batman.Property.defaultAccessorForBase(base))
     accessor
 
   @classAccessor: (keys..., accessor) ->
@@ -947,11 +954,11 @@ class BatmanObject extends Object
     if keys.length is 0
       # The `accessor` argument is wrapped in `getAccessorObject` which allows functions to be passed in
       # as a shortcut to {get: function}
-      @_batman.defaultAccessor = getAccessorObject(accessor)
+      @_batman.defaultAccessor = getAccessorObject(this, accessor)
     else
       # Otherwise, add key accessors for each key given.
       @_batman.keyAccessors ||= new Batman.SimpleHash
-      @_batman.keyAccessors.set(key, getAccessorObject(accessor)) for key in keys
+      @_batman.keyAccessors.set(key, getAccessorObject(this, accessor)) for key in keys
 
   # Support adding accessors to the prototype from within class defintions or after the class has been created
   # with `KlassExtendingBatmanObject.accessor(keys..., accessorObject)`
@@ -975,6 +982,23 @@ class BatmanObject extends Object
     @classAccessor singletonMethodName,
       get: -> @["_#{singletonMethodName}"] ||= new @
 
+      
+class Batman.PromiseAccessor
+  constructor: (fetcher, wrappedAccessor = Batman.Property.defaultAccessor) ->
+    @[k] = v for k,v of wrappedAccessor
+    @get = (key) ->
+      val = wrappedAccessor.get.apply(this, arguments)
+      return val if (typeof val isnt 'undefined')
+      returned = false
+      deliver = (err, result) =>
+        @set(key, result) if returned
+        val = result
+      fetcher.call(this, deliver, key)
+      returned = true
+      val
+    @cachable = true
+
+    
 Batman.Object = BatmanObject
 
 class Batman.Accessible extends Batman.Object
