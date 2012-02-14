@@ -1,0 +1,13 @@
+# Batman
+
+test `123`
+
+!!!
+QUnit.module "Boners"
+test "something works", ->
+  ok true, "message"
+test "something doesn't work", ->
+  ok true, "message"
+!!!
+
+test 123
