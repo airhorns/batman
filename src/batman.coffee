@@ -3751,6 +3751,11 @@ class Batman.View extends Batman.Object
       @_renderer = new Batman.Renderer(node, null, @context, @)
       @_renderer.on 'rendered', => @fire('ready', node)
 
+  @::on 'appear', -> @viewDidAppear? arguments...
+  @::on 'disappear', -> @viewDidDisappear? arguments...
+  @::on 'beforeAppear', -> @viewWillAppear? arguments...
+  @::on 'beforeDisappear', -> @viewWillDisappear? arguments...
+
 # DOM Helpers
 # -----------
 
@@ -4164,18 +4169,18 @@ Batman.DOM = {
         while node.childNodes.length > 0
           child = node.childNodes[0]
           view = Batman.data(child, 'view')
-          view?.viewWillAppear?(child)
+          view?.fire 'beforeAppear', child
 
           $appendChild yieldingNode, node.childNodes[0], true
 
-          view?.viewDidAppear?(child)
+          view?.fire 'appear', child
       else
         view = Batman.data(node, 'view')
-        view?.viewWillAppear?(child)
+        view?.fire 'beforeAppear', child
 
         $appendChild yieldingNode, node, true
 
-        view?.viewDidAppear?(child)
+        view?.fire 'appear', child
 
       Batman._data node, 'yielded', true
       Batman._data yieldingNode, 'yielded', true
@@ -4285,12 +4290,12 @@ Batman.DOM = {
 
   appendChild: $appendChild = (parent, child, args...) ->
     view = Batman.data(child, 'view')
-    view?.viewWillAppear? child
+    view?.fire 'beforeAppear', child
 
     Batman.data(child, 'show')?.apply(child, args)
     parent.appendChild(child)
 
-    view?.viewDidAppear? child
+    view?.fire 'appear', child
 
   insertBefore: $insertBefore = (parentNode, newNode, referenceNode = null) ->
     if !referenceNode or parentNode.childNodes.length <= 0
@@ -4343,11 +4348,11 @@ Batman.DOM = {
 
   didRemoveNode: (node) ->
     view = Batman.data node, 'view'
-    view?.viewWillDisappear? node
+    view?.fire 'beforeDisappear', node
 
     $unbindTree node
 
-    view?.viewDidDisappear? node
+    view?.fire 'disappear', node
 
   onParseExit: $onParseExit = (node, callback) ->
     set = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', new Batman.SimpleSet)
@@ -4618,21 +4623,21 @@ class Batman.DOM.ShowHideBinding extends Batman.DOM.AbstractBinding
   dataChange: (value) ->
     view = Batman.data @node, 'view'
     if !!value is not @invert
-      view?.viewWillAppear? @node
+      view?.fire 'beforeAppear', @node
 
       Batman.data(@node, 'show')?.call(@node)
       @node.style.display = @originalDisplay
 
-      view?.viewDidAppear? @node
+      view?.fire 'appear', @node
     else
-      view?.viewWillDisappear? @node
+      view?.fire 'beforeDisappear', @node
 
       if typeof (hide = Batman.data(@node, 'hide')) is 'function'
         hide.call @node
       else
         $setStyleProperty(@node, 'display', 'none', 'important')
 
-      view?.viewDidDisappear? @node
+      view?.fire 'disappear', @node
 
 class Batman.DOM.CheckedBinding extends Batman.DOM.NodeAttributeBinding
   isInputBinding: true
@@ -4939,9 +4944,9 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
 
     @view.on 'ready', =>
       @view.awakeFromHTML? @node
-      @view.viewWillAppear? @node
+      @view.fire 'beforeAppear', @node
       @renderer.allowAndFire 'rendered'
-      @view.viewDidAppear? @node
+      @view.fire 'appear', @node
 
     @die()
 
