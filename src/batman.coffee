@@ -4689,17 +4689,24 @@ class Batman.DOM.DeferredRenderingBinding extends Batman.DOM.AbstractBinding
 
 class Batman.DOM.AddClassBinding extends Batman.DOM.AbstractAttributeBinding
   constructor: (node, className, keyPath, renderContext, renderer, only, @invert = false) ->
-    @className = " #{className.replace(/\|/g, ' ')} "
+    names = className.split('|')
+    @classes = for name in names
+      {
+        name: name
+        pattern: new RegExp("(?:^|\\s)#{name}(?:$|\\s)", 'i')
+      }
     super
     delete @attributeName
 
   dataChange: (value) ->
     currentName = @node.className
-    includesClassName = currentName.indexOf(@className) isnt -1
-    if !!value is !@invert
-      @node.className = " #{currentName} #{@className} " if !includesClassName
-    else
-      @node.className = currentName.replace(@className, '') if includesClassName
+    for {name, pattern} in @classes
+      includesClassName = pattern.test(currentName)
+      if !!value is !@invert
+        @node.className = "#{currentName} #{name}" if !includesClassName
+      else
+        @node.className = currentName.replace(pattern, '') if includesClassName
+    true
 
 class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
   bindImmediately: false

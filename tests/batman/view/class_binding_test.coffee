@@ -1,6 +1,6 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 
-QUnit.module 'Batman.View event bindings'
+QUnit.module 'Batman.View class bindings'
 
 asyncTest 'it should allow a class to be bound', 6, ->
   source = '<div data-addclass-one="foo" data-removeclass-two="bar" class="zero"></div>'
@@ -50,6 +50,36 @@ asyncTest 'it should allow multiple class names to be bound and updated', ->
     delay =>
       equal node[0].className, 'bar baz'
 
+
+asyncTest 'it should allow an already present class to be removed', 4, ->
+  source = '<div data-removeclass-two="bar" class="zero two"></div>'
+  context = Batman
+    foo: true
+    bar: false
+  helpers.render source, context, (node) ->
+    ok node.hasClass('zero')
+    ok node.hasClass('two')
+
+    context.set 'bar', true
+    delay ->
+      ok node.hasClass('zero')
+      ok !node.hasClass('two')
+
+asyncTest 'it should not remove an already present similar class name', 6, ->
+  source = '<div data-removeclass-foobar="bar" class="zero bar"></div>'
+  context = Batman
+    foo: true
+    bar: false
+  helpers.render source, context, (node) ->
+    ok node.hasClass('zero')
+    ok node.hasClass('bar')
+    ok node.hasClass('foobar')
+
+    context.set 'bar', true
+    delay ->
+      ok node.hasClass('zero')
+      ok node.hasClass('bar')
+      ok !node.hasClass('foobar')
 
 asyncTest 'it should allow multiple class names to be bound and updated via set', ->
   source = '<div data-bind-class="classes"></div>'
