@@ -76,3 +76,7 @@ test "stopObserving() forgets all observers", ->
   equal @authorNameIndex.get("Fred"), @byFred
   equal @authorNameIndex.get("Mary"), @byMary
 
+test "values with dots (.) in them", ->
+  @zeke.set('name', 'Zeke.txt')
+  equal @authorNameIndex.get('Zeke.txt'), @byZeke
+

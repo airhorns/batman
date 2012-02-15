@@ -1389,6 +1389,7 @@ class Batman.SetSort extends Batman.SetProxy
     @set('_storage', newOrder)
 
 class Batman.SetIndex extends Batman.Object
+  propertyClass: Batman.Property
   constructor: (@base, @key) ->
     super()
     @_storage = new Batman.SimpleHash
