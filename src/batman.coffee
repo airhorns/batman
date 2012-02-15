@@ -5313,7 +5313,7 @@ filters = Batman.Filters =
     return if not block
     return (regularArgs...) -> block.call @, curryArgs..., regularArgs...
 
-  routeToAction: (model, action) ->
+  routeToAction: buntUndefined (model, action) ->
     params = Batman.Dispatcher.paramsFromArgument(model)
     params.action = action
     params

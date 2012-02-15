@@ -84,7 +84,7 @@ asyncTest 'should set corresponding href for model and action', 1, ->
 
   @App.run()
 
-asyncTest 'should bind to models when routing to them', 2, ->
+asyncTest 'should bind to models when routing to them', 3, ->
   @App.resources 'tweets', ->
     @member 'duplicate'
 
@@ -114,10 +114,16 @@ asyncTest 'should bind to models when routing to them', 2, ->
         deepEqual urls, expected
 
       checkUrls ['/tweets/1', '/tweets/1/duplicate']
-      context.set 'tweet', tweetB
+      context.unset 'tweet'
 
       delay ->
-        checkUrls ['/tweets/2', '/tweets/2/duplicate']
+        urls = ($(a).attr('href') for a in $('a', view.get('node')))
+        deepEqual urls, ['#', '#']
+
+        context.set 'tweet', tweetB
+        delay ->
+          checkUrls ['/tweets/2', '/tweets/2/duplicate']
+      
 
   @App.run()
 
