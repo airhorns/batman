@@ -775,14 +775,8 @@ Batman.Observable =
       @_batman.properties?.forEach (key, property) -> property.forget()
     @
 
-# `fire` tells any observers attached to a key to fire, manually.
-# `prevent` stops of a given binding from firing. `prevent` calls can be repeated such that
-# the same number of calls to allow are needed before observers can be fired.
-# `allow` unblocks a property for firing observers. Every call to prevent
-# must have a matching call to allow later if observers are to be fired.
-# `observe` takes a key and a callback. Whenever the value for that key changes, your
-# callback will be called in the context of the original object.
-
+  # `observe` takes a key and a callback. Whenever the value for that key changes, your
+  # callback will be called in the context of the original object.
   observe: (key, args...) ->
     @property(key).observe(args...)
     @
