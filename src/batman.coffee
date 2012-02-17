@@ -4727,6 +4727,7 @@ class Batman.DOM.EventBinding extends Batman.DOM.AbstractAttributeBinding
       attacher @node, callback, context
     else
       Batman.DOM.events.other @node, @attributeName, callback, context
+    @bind()
 
   @accessor 'callbackContext', ->
     contextKeySegments = @key.split('.')
