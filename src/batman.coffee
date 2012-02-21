@@ -551,11 +551,13 @@ class Batman.Property
     @changeEvent = -> event
     event
   accessor: ->
-    keyAccessors = @base._batman?.get('keyAccessors')
-    accessor = if keyAccessors && (val = keyAccessors.get(@key))
-      val
-    else
-      @base._batman?.getFirst('defaultAccessor') or Batman.Property.defaultAccessor
+    if (_bm = @base._batman)?
+      accessor = _bm.keyAccessors?.get(@key)
+      if !accessor
+        _bm.ancestors (ancestor) =>
+          accessor ||= ancestor._batman?.keyAccessors?.get(@key)
+      accessor ||= _bm.getFirst('defaultAccessor')
+    accessor ||= Batman.Property.defaultAccessor
     @accessor = -> accessor
     accessor
   eachObserver: (iterator) ->
