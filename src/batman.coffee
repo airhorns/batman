@@ -467,9 +467,10 @@ Batman.EventEmitter =
     if events.hasKey(key)
       existingEvent = events.get(key)
     else
-      existingEvents = @_batman.get('events')
+      @_batman.ancestors (ancestor) ->
+        existingEvent ||= ancestor._batman?.events?.get(key)
       newEvent = events.set(key, new eventClass(this, key))
-      newEvent.oneShot = existingEvents?.get(key)?.oneShot
+      newEvent.oneShot = existingEvent?.oneShot
       newEvent
   on: (key, handler) ->
     @event(key).addHandler(handler)

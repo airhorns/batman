@@ -1,7 +1,7 @@
 QUnit.module "Batman.EventEmitter"
   setup: ->
     @prototypeRainHandler = prototypeRainHandler = createSpy()
-    class WeatherSystem
+    @WeatherSystem = class WeatherSystem
       Batman.mixin @::, Batman.EventEmitter
       @::on 'rain', prototypeRainHandler
     @ottawaWeather = new WeatherSystem
@@ -24,3 +24,14 @@ test "firing an event calls the prototype's handlers for that event too", ->
   equal @prototypeRainHandler.callCount, 1
   equal @prototypeRainHandler.lastCallContext, @ottawaWeather
   deepEqual @prototypeRainHandler.lastCallArguments, [1,2,3]
+
+
+test "events inherited from ancestors retain oneshot status", ->
+  @WeatherSystem::event('snow').oneShot = true
+
+  ok @ottawaWeather.event('snow').oneShot
+
+  class TestWeatherSystem extends @WeatherSystem
+
+  ok TestWeatherSystem::event('snow').oneShot
+  ok (new TestWeatherSystem).event('snow').oneShot
