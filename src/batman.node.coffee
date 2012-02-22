@@ -36,7 +36,8 @@ Batman.mixin Batman.Request::,
 
     if @get('method') is 'GET'
       getParams = @get('data')
-      path += if typeof data is 'string'
+      path += '?' if getParams
+      path += if typeof getParams is 'string'
         getParams
       else
         querystring.stringify Batman.mixin({}, requestURL.query, getParams)
