@@ -2474,7 +2474,9 @@ class Batman.Model extends Batman.Object
     decode: (x) -> x
 
   # Attach encoders and decoders for the primary key, and update them if the primary key changes.
-  @observeAndFire 'primaryKey', (newPrimaryKey) -> @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
+  @observeAndFire 'primaryKey', (newPrimaryKey, oldPrimaryKey) ->
+    @encode oldPrimaryKey, {encode: false, decode: false} # Remove encoding for the previous primary key
+    @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
 
   # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
   # By validating our data before it gets to the server we can provide immediate feedback to the user about
@@ -2698,10 +2700,6 @@ class Batman.Model extends Batman.Object
           encodedVal = encoder(val, key, obj, @)
           if typeof encodedVal isnt 'undefined'
             obj[key] = encodedVal
-
-    if @constructor.primaryKey isnt 'id'
-      obj[@constructor.primaryKey] = @get('id')
-      delete obj.id
 
     obj
 

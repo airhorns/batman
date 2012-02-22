@@ -82,6 +82,38 @@ test "key ending with ? marked for decoding should be decoded", ->
   p.fromJSON(json)
   ok p.get('broken?'), "Cool Snowboard"
 
+QUnit.module "Batman.Model: encoding/decoding to/from JSON with custom primary Key"
+  setup: ->
+    class @Product extends Batman.Model
+      @set 'primaryKey', '_id'
+
+test "undefined primaryKey shouldn't be encoded", ->
+  p = new @Product
+  deepEqual p.toJSON(), {}
+
+test "defined primaryKey shouldn't be encoded", ->
+  p = new @Product("deadbeef")
+  deepEqual p.toJSON(), {}
+
+test "defined primaryKey should be decoded", ->
+  json = {_id: "deadbeef"}
+  p = new @Product()
+  p.fromJSON(json)
+  equal p.get('id'), "deadbeef"
+  equal p.get('_id'), "deadbeef"
+
+test "the old primaryKey should not be decoded", ->
+  json = {id: 10}
+  p = new @Product()
+  p.fromJSON(json)
+  equal p.get('id'), undefined
+  equal p.get('_id'), undefined
+
+test "primary key encoding can be opted into", ->
+  @Product.encode '_id' # Tell the product to both encode and decode '_id'
+  p = new @Product("deadbeef")
+  deepEqual p.toJSON(), {_id: "deadbeef"}
+
 QUnit.module "Batman.Model: encoding: custom encoders/decoders"
   setup: ->
     class @Product extends Batman.Model

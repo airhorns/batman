@@ -54,21 +54,9 @@ test "updateAttributes will returns the updated record", ->
   equal product, product.updateAttributes {name: "foobar", id: 20}
 
 test "primary key can be changed by setting primary key on the model class", ->
-  @Product.primaryKey = 'uuid'
+  @Product.set 'primaryKey', 'uuid'
   product = new @Product(uuid: "abc123")
   equal product.get('id'), 'abc123'
-
-test 'toJSON respects primaryKey', ->
-  @Product.primaryKey = 'uuid'
-  product = new @Product(id: 'abc123')
-  deepEqual product.toJSON(), uuid: 'abc123'
-
-test 'fromJSON respects primaryKey', ->
-  Batman.developer.suppress =>
-    @Product.primaryKey = 'uuid'
-    product = new @Product
-    product.fromJSON(uuid: 'abc123')
-    deepEqual product.get('id'), 'abc123'
 
 test 'the \'state\' key should be a valid attribute name', ->
   p = new @Product(state: "silly")
