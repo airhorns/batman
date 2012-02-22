@@ -3631,7 +3631,7 @@ class Batman.RestStorage extends Batman.StorageAdapter
   @::after 'readAll', @skipIfError (env, next) ->
     if typeof env.data is 'string'
       try
-        env.data = JSON.parse(env.env)
+        env.data = JSON.parse(env.data)
       catch jsonError
         env.error = jsonError
         return next()
