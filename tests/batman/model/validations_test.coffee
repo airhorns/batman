@@ -75,6 +75,18 @@ validationsTestSuite = ->
         ok !result
         QUnit.start()
 
+  asyncTest "numeric", ->
+    class Product extends Batman.Model
+      @validate 'number', numeric: yes
+
+    p = new Product number: 5
+    p.validate (result, errors) ->
+      ok result
+      p.set 'number', "not_a_number"
+      p.validate (result, errors) ->
+        ok !result
+        QUnit.start()
+
 QUnit.module "Batman.Model: validations"
 
 validationsTestSuite()
