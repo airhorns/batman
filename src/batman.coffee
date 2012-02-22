@@ -3309,6 +3309,7 @@ $mixin Batman.translate.messages,
       too_long: "must be less than %{count} characters"
       wrong_length: "must be %{count} characters"
       blank: "can't be blank"
+      not_numeric: "must be a number"
 
 class Batman.StorageAdapter extends Batman.Object
 
