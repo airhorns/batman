@@ -23,8 +23,12 @@
     }
     global.Batman = require('../src/batman.node');
     Batman.exportGlobals(global);
-    Batman.Request.prototype.send = function() {
-      throw new Error("Can't send requests during tests!");
+    Batman.Request.prototype.getModule = function() {
+      return {
+        request: function() {
+          throw new Error("Can't send requests during tests!");
+        }
+      };
     };
     tests = glob.sync("" + __dirname + "/batman/**/*_test.coffee").map(function(test) {
       return path.resolve(process.cwd(), test);
