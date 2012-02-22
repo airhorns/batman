@@ -1,3 +1,5 @@
+return unless IN_NODE
+
 oldGetModule = Batman.Request::getModule
 
 QUnit.module 'Batman.Request'
