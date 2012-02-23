@@ -22,14 +22,14 @@ asyncTest "preloaded/already rendered partials should render", ->
   source = '<div data-partial="test/one"></div>'
   node = helpers.render source, {}, (node) ->
     delay =>
-      equals node.children(0).html(), "Hello from a partial"
+      equals node.children(0).html(), "<div>Hello from a partial</div>"
 
 asyncTest "unloaded partials should load then render", 2, ->
   source = '<div data-partial="test/one"></div>'
 
   # Callback below doesn't fire until view's ready event, which waits for the partial to be fetched and rendered.
   node = helpers.render source, {}, (node) ->
-    equal node.children(0).html(), "Hello from a partial"
+    equal node.children(0).html(), "<div>Hello from a partial</div>"
     QUnit.start()
 
   setTimeout ->
@@ -47,8 +47,8 @@ asyncTest "unloaded partials should only load once", ->
 
   node = helpers.render source, context, (node) ->
     delay ->
-      equal node.children(0).children(0).html(), "Hello from a partial"
-  
+      equal node.children(0).children(0).html(), "<div>Hello from a partial</div>"
+
   doWhen (-> MockRequest.instanceCount > 0), ->
     equal MockRequest.instanceCount, 1
     MockRequest.lastInstance.fireSuccess('<div>Hello from a partial</div>')
@@ -58,7 +58,7 @@ asyncTest "data-defineview bindings can be used to embed view contents", ->
               <p data-bind="foo"></p>
             </div>
             <div>
-              <p data-partial="test/view"></p>
+              <div data-partial="test/view"></div>
             </div>'
 
   context = Batman
@@ -66,5 +66,5 @@ asyncTest "data-defineview bindings can be used to embed view contents", ->
 
   node = helpers.render source, context, (node) ->
     equal node.length, 1
-    equal node.children(0).children(0).html(), 'bar'
+    equal node.find('p').html(), 'bar'
     QUnit.start()
