@@ -2392,9 +2392,59 @@ class Batman.App extends Batman.Object
     @fire('stop')
     @
 
+class Batman.RenderCache
+  maximumSize: 10
+  constructor: ->
+    @cache = []
+    @positionIndex = {}
+    @activityIndex = []
+
+  viewForOptions: (options) ->
+    unless view = @_retrieve(options)
+      view = @_newViewFromOptions(options)
+      @_store(view, options)
+    view
+
+  cacheKey: (options) -> "" + options.source + $functionName(options.viewClass)
+  length: -> @cache.length
+
+  _newViewFromOptions: (options) -> new options.viewClass(options)
+  _store: (view, options) ->
+    key = @cacheKey(options)
+    # Evict the current item if one exists
+    if @length() == @maximumSize
+      viewPosition = @activityIndex.unshift()
+      for indexKey, indexPosition of @positionIndex
+        if indexPosition = viewPosition
+          delete @positionIndex[key]
+    else
+      viewPosition = @length()
+
+    @cache[viewPosition] = {view, options}
+    @positionIndex[key] = viewPosition
+    view
+
+    return if @length() == 0
+
+  _retrieve: (options) ->
+    key = @cacheKey(options)
+    position = @positionIndex[key]
+    storage = @cache[position]
+    if storage? && @_optionsEquivalence(options, storage.options)
+      # Update this view's position in the activity index by removing it from its current spot and appending it to the end
+      activityPosition = @activityIndex.indexOf(position)
+      @activityIndex.splice(activityPosition, 1)
+      @activityIndex.push position
+      return storage.view
+
+  _optionsEquivalence: (incomingOptions, storageOptions) ->
+    return false unless Object.keys(incomingOptions).length == Object.keys(storageOptions).length
+    for key of incomingOptions when key isnt 'view'
+      return false if incomingOptions[key] != storageOptions[key]
+    return true
+
 # Controllers
 # -----------
-
 class Batman.Controller extends Batman.Object
   @singleton 'sharedController'
 
