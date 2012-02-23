@@ -2454,6 +2454,8 @@ class Batman.Controller extends Batman.Object
     filters = @_batman.afterFilters ||= new Batman.Hash
     filters.set(nameOrFunction, options)
 
+  renderCache: new Batman.RenderCache
+
   runFilters: (params, filters) ->
     action = params.action
     if filters = @constructor._batman?.get(filters)
@@ -2524,9 +2526,12 @@ class Batman.Controller extends Batman.Object
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
       options.context ||= @get('_renderContext')
       options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
-      options.view = new options.viewClass(options)
+      view = @renderCache.viewForOptions(options)
+    else
+      view = options.view
+      delete options.view
 
-    if view = options.view
+    if view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
         yieldContainer = options.into || 'main'
@@ -2534,6 +2539,7 @@ class Batman.Controller extends Batman.Object
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
+
 # Models
 # ------
 
