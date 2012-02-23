@@ -2400,10 +2400,10 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
-      options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")]
+      options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
       options.context ||= @get('_renderContext')
       options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
-      options.view = new (options.viewClass || Batman.View)(options)
+      options.view = new options.viewClass(options)
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
