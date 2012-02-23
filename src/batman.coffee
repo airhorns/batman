@@ -2400,18 +2400,19 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     if not options.view
+      options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
       options.context ||= @get('_renderContext')
       options.source ||= helpers.underscore(@get('controllerName') + '/' + @get('action'))
-      options.view = new (Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View)(options)
+      options.view = new options.viewClass(options)
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
-        Batman.DOM.replace options.into || 'main', view.get('node'), view.hasContainer
+        yieldContainer = options.into || 'main'
+        Batman.DOM.fillYieldContainer yieldContainer, view.get('node'), true, view.hasContainer
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
-
 # Models
 # ------
 
@@ -3841,7 +3842,6 @@ class Batman.Renderer extends Batman.Object
       @resumeNode = node
       @timeout = $setImmediate @resume
       return
-
     if node.getAttribute and node.attributes
       bindings = for attr in node.attributes
         name = attr.nodeName.match(bindingRegexp)?[1]
@@ -3881,11 +3881,10 @@ class Batman.Renderer extends Batman.Object
 
     nextParent = node
     while nextParent = nextParent.parentNode
+      parentSibling = nextParent.nextSibling
       $onParseExit(nextParent).forEach (callback) -> callback()
       $forgetParseExit(nextParent)
       return if @node == nextParent
-
-      parentSibling = nextParent.nextSibling
       return parentSibling if parentSibling
 
     return
@@ -4034,17 +4033,15 @@ Batman.DOM = {
       false
 
     yield: (node, key) ->
-      $setImmediate -> Batman.DOM.yield key, node
+      $onParseExit node, -> Batman.DOM.createYieldContainer key, node
       true
     contentfor: (node, key) ->
-      $setImmediate -> Batman.DOM.contentFor key, node
+      $onParseExit node, -> Batman.DOM.fillYieldContainer key, node
       true
     replace: (node, key) ->
-      $setImmediate -> Batman.DOM.replace key, node
+      $onParseExit node, -> Batman.DOM.fillYieldContainer key, node, true
       true
   }
-  _yielders: {} # name/fn pairs of yielding functions
-  _yields: {}   # name/container pairs of yielding nodes
 
   # `Batman.DOM.attrReaders` contains all the DOM directives which take an argument in their name, in the
   # `data-dosomething-argument="keypath"` style. This means things like foreach, binding attributes like
@@ -4162,59 +4159,49 @@ Batman.DOM = {
   # List of input type="types" for which we can use keyup events to track
   textInputTypes: ['text', 'search', 'tel', 'url', 'email', 'password']
 
+  _yieldExecutors: {} # name/[fn,fn] pairs of yielding functions
+  _yieldContainers: {}   # name/container pairs of yielding nodes
+
   # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
   # `replace` is used to replace yielded content.
   # This can be used for abstraction as well as repetition.
-  yield: (name, node) ->
-    Batman.DOM._yields[name] = node
+  createYieldContainer: (name, node) ->
+    Batman.DOM._yieldContainers[name] = node
+    Batman.DOM._executeYield(name)
+    true
 
-    # render any content for this yield
-    if yielders = Batman.DOM._yielders[name]
-      fn(node) for fn in yielders
+  fillYieldContainer: (name, node, _replaceContent, _yieldChildren) ->
+    # Detach the node from the DOM lest it be obliterated during yield
+    node.parentNode?.removeChild(node)
 
-  contentFor: (name, node, _replaceContent, _yieldChildren) ->
-    yieldingNode = Batman.DOM._yields[name]
-
-    # Clone the node if it's a child in case the parent gets cleared during the yield
-    if yieldingNode and $isChildOf(yieldingNode, node)
-      node = $cloneNode node
-
-    yieldFn = (yieldingNode) ->
-      if _replaceContent || !Batman._data(yieldingNode, 'yielded')
-        $setInnerHTML yieldingNode, '', true
-        Batman.DOM.didRemoveNode(child) for child in yieldingNode.children
+    yieldExecutor = (destinationNode) ->
+      if _replaceContent || !Batman._data(destinationNode, 'yielded')
+        $setInnerHTML destinationNode, '', true
 
       if _yieldChildren
         while node.childNodes.length > 0
           child = node.childNodes[0]
-          view = Batman.data(child, 'view')
-          view?.fire 'beforeAppear', child
-
-          $appendChild yieldingNode, node.childNodes[0], true
-
-          view?.fire 'appear', child
+          $appendChild destinationNode, child, true
       else
-        view = Batman.data(node, 'view')
-        view?.fire 'beforeAppear', child
-
-        $appendChild yieldingNode, node, true
-
-        view?.fire 'appear', child
+        $appendChild destinationNode, node, true
 
       Batman._data node, 'yielded', true
-      Batman._data yieldingNode, 'yielded', true
-      delete Batman.DOM._yielders[name]
+      Batman._data destinationNode, 'yielded', true
+      delete Batman.DOM._yieldExecutors[name]
 
-    if contents = Batman.DOM._yielders[name]
-      contents.push yieldFn
-    else
-      Batman.DOM._yielders[name] = [yieldFn]
+    Batman.DOM._yieldExecutors[name] ||= []
+    Batman.DOM._yieldExecutors[name].push yieldExecutor
 
-    if yieldingNode
-      Batman.DOM.yield name, yieldingNode
+    Batman.DOM._executeYield(name)
+    true
 
-  replace: (name, node, _yieldChildren) ->
-    Batman.DOM.contentFor name, node, true, _yieldChildren
+  _executeYield: (name) ->
+    node = Batman.DOM._yieldContainers[name]
+    return unless node?
+    # render any content for this yield
+    if yieldExecutors = Batman.DOM._yieldExecutors[name]
+      fn(node) for fn in yieldExecutors
+    true
 
   partial: (container, path, context, renderer) ->
     renderer.prevent 'rendered'
@@ -4265,30 +4252,6 @@ Batman.DOM = {
   unbindTree: $unbindTree = (node, unbindRoot = true) ->
     $unbindNode node if unbindRoot
     $unbindTree(child) for child in node.childNodes
-
-  # Copy the event handlers from src node to dst node
-  copyNodeEventListeners: $copyNodeEventListeners = (dst, src) ->
-    if listeners = Batman._data src, 'listeners'
-      for eventName, eventListeners of listeners
-        eventListeners.forEach (listener) ->
-          $addEventListener dst, eventName, listener
-
-  # Copy all event handlers from the src tree to the dst tree.  Note that the
-  # trees must have identical structures.
-  copyTreeEventListeners: $copyTreeEventListeners = (dst, src) ->
-    $copyNodeEventListeners dst, src
-    for i in [0...src.childNodes.length]
-      $copyTreeEventListeners dst.childNodes[i], src.childNodes[i]
-
-  # Enhance the base cloneNode method to copy event handlers over to the new
-  # instance
-  cloneNode: $cloneNode = (node, deep=true) ->
-    newNode = node.cloneNode(deep)
-    if deep
-      $copyTreeEventListeners newNode, node
-    else
-      $copyNodeEventListeners newNode, node
-    newNode
 
   # Memory-safe setting of a node's innerHTML property
   setInnerHTML: $setInnerHTML = (node, html, args...) ->

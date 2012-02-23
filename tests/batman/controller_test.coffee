@@ -2,7 +2,6 @@ class TestController extends Batman.Controller
   show: ->
 
 class MockView extends MockClass
-
   @chainedCallback 'ready'
   get: createSpy().whichReturns("view contents")
 
@@ -15,7 +14,7 @@ test 'it should render views if given in the options', ->
   @controller.render
     view: testView
 
-  spyOnDuring Batman.DOM, 'replace', (replace) ->
+  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) ->
     testView.fireReady()
     deepEqual testView.get.lastCallArguments, ['node']
     deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
@@ -26,7 +25,7 @@ test 'it should pull in views if not present already', ->
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show'
 
-    spyOnDuring Batman.DOM, 'replace', (replace) =>
+    spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
       deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
@@ -63,7 +62,7 @@ test 'event handlers can render after an action', 6, ->
     ok true, 'another event called'
     @render view: testView3
 
-  spyOnDuring Batman.DOM, 'replace', (replace) =>
+  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
     @controller.dispatch 'test'
     testView.fire 'ready'
     equal replace.callCount, 1
@@ -75,7 +74,6 @@ test 'event handlers can render after an action', 6, ->
     @controller.handleAnotherEvent()
     testView3.fire 'ready'
     equal replace.callCount, 3
-
 
 test 'redirecting a dispatch prevents implicit render', 2, ->
   Batman.navigator = new Batman.HashbangNavigator
