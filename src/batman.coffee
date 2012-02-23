@@ -2554,7 +2554,7 @@ class Batman.Controller extends Batman.Object
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
         yieldContainer = options.into || 'main'
-        Batman.DOM.fillYieldContainer yieldContainer, view.get('node'), true, view.hasContainer
+        Batman.DOM.fillYieldContainer yieldContainer, view.get('node'), true
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
@@ -4079,7 +4079,6 @@ class Batman.View extends Batman.Object
       unless @node
         html = @get('html')
         return unless html && html.length > 0
-        @hasContainer = true
         @node = document.createElement 'div'
         $setInnerHTML(@node, html)
         if @node.children.length > 0
@@ -4503,20 +4502,14 @@ Batman.DOM = {
     Batman.DOM._executeYield(name)
     true
 
-  fillYieldContainer: (name, node, _replaceContent, _yieldChildren) ->
+  fillYieldContainer: (name, node, _replaceContent) ->
     # Detach the node from the DOM lest it be obliterated during yield
     node.parentNode?.removeChild(node)
 
     yieldExecutor = (destinationNode) ->
       if _replaceContent || !Batman._data(destinationNode, 'yielded')
         $setInnerHTML destinationNode, '', true
-
-      if _yieldChildren
-        while node.childNodes.length > 0
-          child = node.childNodes[0]
-          $appendChild destinationNode, child, true
-      else
-        $appendChild destinationNode, node, true
+      $appendChild destinationNode, node, true
 
       Batman._data node, 'yielded', true
       Batman._data destinationNode, 'yielded', true
@@ -4545,10 +4538,7 @@ Batman.DOM = {
 
     view.on 'ready', ->
       $setInnerHTML container, ''
-      # Render the partial content into the data-partial node
-      # Text nodes move when they are appended, so copy childNodes
-      children = (node for node in view.get('node').childNodes)
-      $appendChild(container, child) for child in children
+      $appendChild container, view.get('node')
       renderer.allowAndFire 'rendered'
 
   # Adds a binding or binding-like object to the `bindings` set in a node's
