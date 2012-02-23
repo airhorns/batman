@@ -8,6 +8,7 @@ class MockView extends MockClass
 QUnit.module 'Batman.Controller render'
   setup: ->
     @controller = new TestController
+    Batman.DOM.Yield.clearAll()
   teardown: ->
     delete Batman.currentApp
 
@@ -17,10 +18,10 @@ test 'it should render a Batman.View if `view` isn\'t given in the options to re
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show'
 
-    spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
+    spyOnDuring Batman.DOM.Yield.withName('main'), 'replace', (replace) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
-      deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+      deepEqual replace.lastCallArguments, ['view contents']
 
 test 'it should cache the rendered Batman.View if `view` isn\'t given in the options to render', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
@@ -38,10 +39,10 @@ test 'it should render a Batman.View subclass with the ControllerAction name on 
   view = MockView.lastInstance
   equal view.constructorArguments[0].source, 'test/show'
 
-  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
+  spyOnDuring Batman.DOM.Yield.withName('main'), 'replace', (replace) =>
     view.fireReady()
     deepEqual view.get.lastCallArguments, ['node']
-    deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+    deepEqual replace.lastCallArguments, ['view contents']
 
 test 'it should cache the rendered Batman.View subclass with the ControllerAction name on the current app if it exists', ->
   Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base
@@ -58,10 +59,10 @@ test 'it should render views if given in the options', ->
   @controller.render
     view: testView
 
-  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) ->
+  spyOnDuring Batman.DOM.Yield.withName('main'), 'replace', (replace) =>
     testView.fireReady()
     deepEqual testView.get.lastCallArguments, ['node']
-    deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+    deepEqual replace.lastCallArguments, ['view contents']
 
 test 'it should pull in views if not present already', ->
   mockClassDuring Batman ,'View', MockView, (mockClass) =>
@@ -69,10 +70,10 @@ test 'it should pull in views if not present already', ->
     view = mockClass.lastInstance
     equal view.constructorArguments[0].source, 'test/show'
 
-    spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
+    spyOnDuring Batman.DOM.Yield.withName('main'), 'replace', (replace) =>
       view.fireReady()
       deepEqual view.get.lastCallArguments, ['node']
-      deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+      deepEqual replace.lastCallArguments, ['view contents']
 
 test 'dispatching routes without any actions calls render', 1, ->
   @controller.test = ->
@@ -106,8 +107,8 @@ test 'event handlers can render after an action', 6, ->
     ok true, 'another event called'
     @render view: testView3
 
-  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
-    @controller.dispatch 'test'
+  @controller.dispatch 'test'
+  spyOnDuring Batman.DOM.Yield.withName('main'), 'replace', (replace) =>
     testView.fire 'ready'
     equal replace.callCount, 1
 
