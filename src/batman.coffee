@@ -2369,54 +2369,50 @@ class Batman.App extends Batman.Object
     @fire('stop')
     @
 
-class Batman.RenderCache
-  maximumSize: 10
+class Batman.RenderCache extends Batman.Hash
+  maximumLength: 10
   constructor: ->
-    @cache = []
-    @positionIndex = {}
-    @activityIndex = []
+    super
+    @keyQueue = []
+
+  developer.do =>
+    class NonWarningProperty extends Batman.Keypath
+      constructor: ->
+        developer.suppress()
+        super
+        developer.unsuppress()
+
+    @::propertyClass = NonWarningProperty
 
   viewForOptions: (options) ->
-    unless view = @_retrieve(options)
+    unless view = @get(options)
       view = @_newViewFromOptions(options)
-      @_store(view, options)
+      @set(options, view)
     view
-
-  cacheKey: (options) -> "" + options.source + $functionName(options.viewClass)
-  length: -> @cache.length
 
   _newViewFromOptions: (options) -> new options.viewClass(options)
-  _store: (view, options) ->
-    key = @cacheKey(options)
-    # Evict the current item if one exists
-    if @length() == @maximumSize
-      viewPosition = @activityIndex.unshift()
-      for indexKey, indexPosition of @positionIndex
-        if indexPosition = viewPosition
-          delete @positionIndex[key]
-    else
-      viewPosition = @length()
 
-    @cache[viewPosition] = {view, options}
-    @positionIndex[key] = viewPosition
-    view
+  get: (key) ->
+    result = super
+    # Bubble the result up to the top of the queue
+    if result
+      for queuedKey, index in @keyQueue
+        if @equality(queuedKey, key)
+          @keyQueue.splice(index, 1)
+          @keyQueue.unshift key
+          break
+    result
 
-    return if @length() == 0
+  set: (key, value) ->
+    val = super
+    @keyQueue.unshift key
+    if val? && @length > @maximumLength
+      @unset @keyQueue.pop()
+    val
 
-  _retrieve: (options) ->
-    key = @cacheKey(options)
-    position = @positionIndex[key]
-    storage = @cache[position]
-    if storage? && @_optionsEquivalence(options, storage.options)
-      # Update this view's position in the activity index by removing it from its current spot and appending it to the end
-      activityPosition = @activityIndex.indexOf(position)
-      @activityIndex.splice(activityPosition, 1)
-      @activityIndex.push position
-      return storage.view
-
-  _optionsEquivalence: (incomingOptions, storageOptions) ->
+  equality: (incomingOptions, storageOptions) ->
     return false unless Object.keys(incomingOptions).length == Object.keys(storageOptions).length
-    for key of incomingOptions when key isnt 'view'
+    for key of incomingOptions when !(key in ['view', 'into'])
       return false if incomingOptions[key] != storageOptions[key]
     return true
 
@@ -4013,7 +4009,11 @@ class Batman.ViewStore extends Batman.Object
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   isView: true
-  constructor: (options = {}) ->
+  constructor: (options) ->
+    if !options
+      options = {}
+    else
+      options = $mixin {}, options
     context = options.context
     if context
       unless context instanceof Batman.RenderContext

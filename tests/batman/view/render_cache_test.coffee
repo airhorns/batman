@@ -6,9 +6,9 @@ QUnit.module "Batman.RenderCache"
     @exampleOptions = {source: "products/show", viewClass: @MockView, context: @context}
 
 test "cache can have items added", ->
-  equal 0, @cache.length()
+  equal 0, @cache.length
   viewInstance = @cache.viewForOptions @exampleOptions
-  equal 1, @cache.length()
+  equal 1, @cache.length
 
 test "cache can retrieve previously added items", ->
   newViewInstance = @cache.viewForOptions @exampleOptions
@@ -34,7 +34,7 @@ test "cache won't return items with the same cache key but with different length
   notEqual viewA, viewB
 
 test "cache evicts old items as new items come in past the size limit", ->
-  @cache.maximumSize = 2
+  @cache.maximumLength = 2
   editOptions = Batman.mixin {}, @exampleOptions, {source: "products/edit"}
   newOptions = Batman.mixin {}, @exampleOptions, {source: "products/new"}
   showOptions = Batman.mixin {}, @exampleOptions
@@ -43,24 +43,24 @@ test "cache evicts old items as new items come in past the size limit", ->
   newView = @cache.viewForOptions newOptions
   # This should cycle out the edit view
   showView = @cache.viewForOptions showOptions
-  equal @cache.length(), 2
+  equal @cache.length, 2
 
   # This cycles show to the top -> now show, new
   equal @cache.viewForOptions(showOptions), showView, "The newly added view is cached"
   # This cyclew new to the top -> now new, show
   equal @cache.viewForOptions(newOptions), newView, "The unaffected view is still cached"
 
-  equal @cache.length(), 2
+  equal @cache.length, 2
   # This should cycle out show, -> now edit, new
   notEqual @cache.viewForOptions(editOptions), editView, "The olded view has been evicted because a new one is returned instead of a cached one"
 
-  equal @cache.length(), 2
+  equal @cache.length, 2
 
 test "cache reprioritizes MRU items to not be evicted", ->
-  @cache.maximumSize = 3
+  @cache.maximumLength = 3
   editOptions = Batman.mixin {}, @exampleOptions, {source: "products/edit"}
-  indexOptions = Batman.mixin {}, @exampleOptions, {source: "products/index"}
   newOptions = Batman.mixin {}, @exampleOptions, {source: "products/new"}
+  indexOptions = Batman.mixin {}, @exampleOptions, {source: "products/index"}
   showOptions = Batman.mixin {}, @exampleOptions
 
   editView = @cache.viewForOptions editOptions
