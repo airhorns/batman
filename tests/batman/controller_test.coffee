@@ -8,6 +8,50 @@ class MockView extends MockClass
 QUnit.module 'Batman.Controller render'
   setup: ->
     @controller = new TestController
+  teardown: ->
+    delete Batman.currentApp
+
+test 'it should render a Batman.View if `view` isn\'t given in the options to render', ->
+  mockClassDuring Batman ,'View', MockView, (mockClass) =>
+    @controller.dispatch 'show'
+    view = mockClass.lastInstance
+    equal view.constructorArguments[0].source, 'test/show'
+
+    spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
+      view.fireReady()
+      deepEqual view.get.lastCallArguments, ['node']
+      deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+
+test 'it should cache the rendered Batman.View if `view` isn\'t given in the options to render', ->
+  mockClassDuring Batman ,'View', MockView, (mockClass) =>
+    @controller.dispatch 'show'
+    view = mockClass.lastInstance
+
+    @controller.dispatch 'show'
+    equal mockClass.lastInstance, view, "No new instance has been made"
+
+test 'it should render a Batman.View subclass with the ControllerAction name on the current app if it exists', ->
+  Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base
+  mockApp.TestShowView = MockView
+
+  @controller.dispatch 'show'
+  view = MockView.lastInstance
+  equal view.constructorArguments[0].source, 'test/show'
+
+  spyOnDuring Batman.DOM, 'fillYieldContainer', (replace) =>
+    view.fireReady()
+    deepEqual view.get.lastCallArguments, ['node']
+    deepEqual replace.lastCallArguments.slice(0, 2), ['main', 'view contents']
+
+test 'it should cache the rendered Batman.View subclass with the ControllerAction name on the current app if it exists', ->
+  Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base
+  mockApp.TestShowView = MockView
+
+  @controller.dispatch 'show'
+  view = MockView.lastInstance
+
+  @controller.dispatch 'show'
+  equal MockView.lastInstance, view, "No new instance has been made"
 
 test 'it should render views if given in the options', ->
   testView = new MockView
