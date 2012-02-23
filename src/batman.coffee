@@ -2500,6 +2500,8 @@ class Batman.Controller extends Batman.Object
     @set 'action', action
     @set 'params', params
 
+    Batman.DOM.Yield.clearAll()
+
     @runFilters params, 'beforeFilters'
 
     developer.assert @[action], "Error! Controller action #{@get 'controllerName'}.#{action} couldn't be found!"
@@ -2541,6 +2543,9 @@ class Batman.Controller extends Batman.Object
 
     return if options is false
 
+    into = options.into || 'main'
+    delete options.into
+
     if not options.view
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
       options.context ||= @get('_renderContext')
@@ -2553,8 +2558,7 @@ class Batman.Controller extends Batman.Object
     if view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
-        yieldContainer = options.into || 'main'
-        Batman.DOM.fillYieldContainer yieldContainer, view.get('node'), true
+        Batman.DOM.Yield.withName(into).replace view.get('node')
         Batman.currentApp?.allowAndFire 'ready'
         view.ready?(@params)
     view
@@ -4364,14 +4368,14 @@ Batman.DOM = {
       new Batman.DOM.DeferredRenderingBinding(node, key, context, renderer)
       false
 
-    yield: (node, key) ->
-      $onParseExit node, -> Batman.DOM.createYieldContainer key, node
+    yield:      (node, key) ->
+      $onParseExit node, -> Batman.DOM.Yield.withName(key).set 'destinationNode', node
       true
     contentfor: (node, key) ->
-      $onParseExit node, -> Batman.DOM.fillYieldContainer key, node
+      $onParseExit node, -> Batman.DOM.Yield.withName(key).append(node)
       true
-    replace: (node, key) ->
-      $onParseExit node, -> Batman.DOM.fillYieldContainer key, node, true
+    replace:    (node, key) ->
+      $onParseExit node, -> Batman.DOM.Yield.withName(key).replace(node)
       true
   }
 
@@ -4491,43 +4495,30 @@ Batman.DOM = {
   # List of input type="types" for which we can use keyup events to track
   textInputTypes: ['text', 'search', 'tel', 'url', 'email', 'password']
 
-  _yieldExecutors: {} # name/[fn,fn] pairs of yielding functions
-  _yieldContainers: {}   # name/container pairs of yielding nodes
+  Yield: class Yield extends Batman.Object
+    @yields: {}
+    @queued: (fn) ->
+      return (args...) ->
+        if @destinationNode?
+          fn.apply(@, args)
+        else
+          handler = @observe 'destinationNode', =>
+            result = fn.apply(@, args)
+            @forget 'destinationNode', handler
+            result
+    @detachQueued = (fn) ->
+      queuer = @queued(fn)
+      return (node) ->
+        node?.parentNode?.removeChild(node)
+        queuer.apply(@, arguments)
+    @clearAll: -> @yields = {}
+    @withName: (name) ->
+      @yields[name] ||= new @({name})
+      @yields[name]
 
-  # `yield` and `contentFor` are used to declare partial views and then pull them in elsewhere.
-  # `replace` is used to replace yielded content.
-  # This can be used for abstraction as well as repetition.
-  createYieldContainer: (name, node) ->
-    Batman.DOM._yieldContainers[name] = node
-    Batman.DOM._executeYield(name)
-    true
-
-  fillYieldContainer: (name, node, _replaceContent) ->
-    # Detach the node from the DOM lest it be obliterated during yield
-    node.parentNode?.removeChild(node)
-
-    yieldExecutor = (destinationNode) ->
-      if _replaceContent || !Batman._data(destinationNode, 'yielded')
-        $setInnerHTML destinationNode, '', true
-      $appendChild destinationNode, node, true
-
-      Batman._data node, 'yielded', true
-      Batman._data destinationNode, 'yielded', true
-      delete Batman.DOM._yieldExecutors[name]
-
-    Batman.DOM._yieldExecutors[name] ||= []
-    Batman.DOM._yieldExecutors[name].push yieldExecutor
-
-    Batman.DOM._executeYield(name)
-    true
-
-  _executeYield: (name) ->
-    node = Batman.DOM._yieldContainers[name]
-    return unless node?
-    # render any content for this yield
-    if yieldExecutors = Batman.DOM._yieldExecutors[name]
-      fn(node) for fn in yieldExecutors
-    true
+    clear:   @queued -> $setInnerHTML @destinationNode, '', true
+    append:  @detachQueued (node) -> $appendChild @destinationNode, node, true
+    replace: @detachQueued (node) -> @clear(); @append(node)
 
   partial: (container, path, context, renderer) ->
     renderer.prevent 'rendered'
