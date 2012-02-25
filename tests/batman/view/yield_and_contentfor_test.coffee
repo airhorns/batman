@@ -152,20 +152,3 @@ asyncTest 'data-replace should replace content without breaking contentfors', 2,
     equal node.children(0).first().html(), 'replaces'
     equal node.children(0).first().next().html(), 'appends'
     QUnit.start()
-
-asyncTest 'data-replace should remove bindings on replaced content', ->
-  source = '''
-    <div data-yield="foo"></div>
-    <div data-contentfor="foo"><span data-bind="expensive"></span></div>
-    <div data-replace="foo"><input type="button" data-bind="simple"></input></div>
-  '''
-  context = new Batman.Object
-    simple: 'simple'
-  context.accessor 'expensive', spy = createSpy ->
-    context.get 'simple'
-
-  helpers.render source, context, (node) ->
-    oldCallCount = spy.callCount
-    context.set 'simple', 'updated'
-    equal spy.callCount, oldCallCount
-    QUnit.start()

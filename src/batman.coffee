@@ -1158,7 +1158,7 @@ class Batman.Hash extends Batman.Object
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
 
-  @accessor
+  @defaultAccessor =
     get: Batman.SimpleHash::get
     set: @mutation (key, value) ->
       result = Batman.SimpleHash::set.call(@, key, value)
@@ -1169,6 +1169,8 @@ class Batman.Hash extends Batman.Object
       @fire 'itemsWereRemoved', key if result?
       result
     cachable: false
+
+  @accessor @defaultAccessor
 
   _preventMutationEvents: (block) ->
     @prevent 'change'
@@ -2405,9 +2407,15 @@ class Batman.RenderCache extends Batman.Hash
 
   set: (key, value) ->
     val = super
+    val.set 'cached', true
     @keyQueue.unshift key
     if val? && @length > @maximumLength
       @unset @keyQueue.pop()
+    val
+
+  unset: (key) ->
+    val = super
+    val.set 'cached', false
     val
 
   equality: (incomingOptions, storageOptions) ->
@@ -4011,28 +4019,6 @@ class Batman.ViewStore extends Batman.Object
 # A `Batman.View` can function two ways: a mechanism to load and/or parse html files
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
-  isView: true
-  constructor: (options) ->
-    if !options
-      options = {}
-    else
-      options = $mixin {}, options
-    context = options.context
-    if context
-      unless context instanceof Batman.RenderContext
-        context = Batman.RenderContext.root().descend(context)
-    else
-      context = Batman.RenderContext.root()
-    options.context = context.descend(@)
-    super(options)
-
-    # Start the rendering by asking for the node
-    Batman.Property.withoutTracking =>
-      if node = @get('node')
-        @render node
-      else
-        @observe 'node', (node) => @render(node)
-
   @store: new Batman.ViewStore()
   @option: (keys...) ->
     keys.forEach (key) =>
@@ -4046,12 +4032,12 @@ class Batman.View extends Batman.Object
     @accessor keys..., (key) ->
       @get(@_argumentBindingKey(key))?.get('filteredValue')
 
+  isView: true
+  rendered: false
   # Set the source attribute to an html file to have that file loaded.
   source: ''
-
   # Set the html to a string of html to have that html parsed.
   html: ''
-
   # Set an existing DOM node to parse immediately.
   node: null
 
@@ -4085,16 +4071,59 @@ class Batman.View extends Batman.Object
           @forget('html', updateHTML)
       @observeAndFire 'html', updateHTML
 
-  @accessor 'yieldContents', -> Batman()
+  class YieldStorage extends Batman.Hash
+    @accessor $mixin {}, Batman.Hash.defaultAccessor,
+      get: (k) ->
+        val = Batman.Hash.defaultAccessor.get.call(@, k)
+        if !val?
+          val = @set k, []
+        val
+
+  @accessor 'yields', -> new YieldStorage
+
+  constructor: (options) ->
+    if !options
+      options = {}
+    else
+      options = $mixin {}, options
+    context = options.context
+    if context
+      unless context instanceof Batman.RenderContext
+        context = Batman.RenderContext.root().descend(context)
+    else
+      context = Batman.RenderContext.root()
+    options.context = context.descend(@)
+    super(options)
+
+    # Start the rendering by asking for the node
+    Batman.Property.withoutTracking =>
+      if node = @get('node')
+        @render node
+      else
+        @observe 'node', (node) => @render(node)
 
   render: (node) ->
+    return if @rendered
+    @rendered = true
     @event('ready').resetOneShot()
 
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
     if node
       @_renderer = new Batman.Renderer(node, null, @context, @)
-      @_renderer.on 'rendered', => @fire('ready', node)
+      @_renderer.on 'rendered', =>
+        @applyYields()
+        @fire('ready', node)
+
+  applyYields: ->
+    @get('yields').forEach (name, nodes) ->
+      yield = Batman.DOM.Yield.withName(name)
+      for {node, action} in nodes
+        yield[action](node)
+
+  retractYields: ->
+    @get('yields').forEach (name, nodes) ->
+      node.parentNode?.removeChild(node) for {node} in nodes
 
   _argumentBindingKey: (key) -> "_#{key}ArgumentBinding"
 
@@ -4363,11 +4392,11 @@ Batman.DOM = {
     yield:      (node, key) ->
       $onParseExit node, -> Batman.DOM.Yield.withName(key).set 'destinationNode', node
       true
-    contentfor: (node, key) ->
-      $onParseExit node, -> Batman.DOM.Yield.withName(key).append(node)
+    contentfor: (node, key, context, renderer, action = 'append') ->
+      $onParseExit node, -> renderer.view.get("yields.#{key}").push({node, action})
       true
-    replace:    (node, key) ->
-      $onParseExit node, -> Batman.DOM.Yield.withName(key).replace(node)
+    replace:    (node, key, context, renderer) ->
+      Batman.DOM.readers.contentfor(node, key, context, renderer, 'replace')
       true
   }
 
@@ -4517,46 +4546,19 @@ Batman.DOM = {
       $appendChild container, view.get('node')
       renderer.allowAndFire 'rendered'
 
-  # Adds a binding or binding-like object to the `bindings` set in a node's
-  # data, so that upon node removal we can unset the binding and any other objects
-  # it retains.
-  trackBinding: $trackBinding = (binding, node) ->
-    if bindings = Batman._data node, 'bindings'
-      bindings.push(binding)
-    else
-      Batman._data node, 'bindings', [binding]
+  onParseExit: $onParseExit = (node, callback) ->
+    set = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', new Batman.SimpleSet)
+    set.add callback if callback?
+    set
 
-    Batman.DOM.fire('bindingAdded', binding)
-    true
-
-  # Removes listeners and bindings tied to `node`, allowing it to be cleared
-  # or removed without leaking memory
-  unbindNode: $unbindNode = (node) ->
-    # break down all bindings
-    if bindings = Batman._data node, 'bindings'
-      bindings.forEach (binding) -> binding.die()
-
-    # remove all event listeners
-    if listeners = Batman._data node, 'listeners'
-      for eventName, eventListeners of listeners
-        eventListeners.forEach (listener) ->
-          $removeEventListener node, eventName, listener
-
-    # remove all bindings and other data associated with this node
-    Batman.removeData node                   # external data (Batman.data)
-    Batman.removeData node, undefined, true  # internal data (Batman._data)
-
-  # Unbinds the tree rooted at `node`.
-  # When set to `false`, `unbindRoot` skips the `node` before unbinding all of its children.
-  unbindTree: $unbindTree = (node, unbindRoot = true) ->
-    $unbindNode node if unbindRoot
-    $unbindTree(child) for child in node.childNodes
+  forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 
   # Memory-safe setting of a node's innerHTML property
   setInnerHTML: $setInnerHTML = (node, html, args...) ->
-    hide.apply(child, args) for child in node.childNodes when hide = Batman.data(child, 'hide')
-    $unbindTree node, false
-    node?.innerHTML = html
+    childNodes = Array::slice.call(node.childNodes)
+    Batman.DOM.willRemoveNode(child) for child in childNodes
+    node.innerHTML = html
+    Batman.DOM.didRemoveNode(child) for child in childNodes
 
   setStyleProperty: $setStyleProperty = (node, property, value, importance) ->
     if node.style.setAttribute
@@ -4566,23 +4568,22 @@ Batman.DOM = {
 
   # Memory-safe removal of a node from the DOM
   removeNode: $removeNode = (node) ->
+    Batman.DOM.willRemoveNode(node)
     node.parentNode?.removeChild node
     Batman.DOM.didRemoveNode(node)
 
   appendChild: $appendChild = (parent, child, args...) ->
-    view = Batman.data(child, 'view')
-    view?.fire 'beforeAppear', child
-
-    Batman.data(child, 'show')?.apply(child, args)
+    Batman.DOM.willInsertNode(child)
     parent.appendChild(child)
-
-    view?.fire 'appear', child
+    Batman.DOM.didInsertNode(child)
 
   insertBefore: $insertBefore = (parentNode, newNode, referenceNode = null) ->
     if !referenceNode or parentNode.childNodes.length <= 0
       $appendChild parentNode, newNode
     else
+      Batman.DOM.willInsertNode(newNode)
       parentNode.insertBefore newNode, referenceNode
+      Batman.DOM.didInsertNode(newNode)
 
   valueForNode: (node, value = '', escapeValue = true) ->
     isSetting = arguments.length > 1
@@ -4637,20 +4638,62 @@ Batman.DOM = {
   stopPropagation: $stopPropagation = (e) ->
     if e.stopPropagation then e.stopPropagation() else e.cancelBubble = true
 
+  # Adds a binding or binding-like object to the `bindings` set in a node's
+  # data, so that upon node removal we can unset the binding and any other objects
+  # it retains.
+  trackBinding: $trackBinding = (binding, node) ->
+    if bindings = Batman._data node, 'bindings'
+      bindings.add binding
+    else
+      Batman._data node, 'bindings', new Batman.SimpleSet(binding)
+
+    Batman.DOM.fire('bindingAdded', binding)
+    true
+
+  willInsertNode: (node) ->
+    view = Batman.data node, 'view'
+    view?.fire 'beforeAppear', node
+    Batman.data(node, 'show')?.call(node)
+    Batman.DOM.willInsertNode(child) for child in node.childNodes
+    true
+
+  didInsertNode: (node) ->
+    view = Batman.data node, 'view'
+    view?.fire 'appear', node
+    Batman.DOM.didInsertNode(child) for child in node.childNodes
+    true
+
+  willRemoveNode: (node) ->
+    view = Batman.data node, 'view'
+    if view
+      view.fire 'beforeDisappear', node
+    Batman.data(node, 'hide')?.call(node)
+    Batman.DOM.willRemoveNode(child) for child in node.childNodes
+    true
+
   didRemoveNode: (node) ->
     view = Batman.data node, 'view'
-    view?.fire 'beforeDisappear', node
+    if view && view.get('cached')
+      view.retractYields()
+      view.fire 'disappear', node
+    else
+      # break down all bindings
+      if bindings = Batman._data node, 'bindings'
+        bindings.forEach (binding) -> binding.die()
 
-    $unbindTree node
+      # remove all event listeners
+      if listeners = Batman._data node, 'listeners'
+        for eventName, eventListeners of listeners
+          eventListeners.forEach (listener) ->
+            $removeEventListener node, eventName, listener
 
-    view?.fire 'disappear', node
+      # remove all bindings and other data associated with this node
+      Batman.removeData node                   # external data (Batman.data)
+      Batman.removeData node, undefined, true  # internal data (Batman._data)
 
-  onParseExit: $onParseExit = (node, callback) ->
-    callbacks = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', [])
-    callbacks.push callback if callback?
-    callbacks
+    Batman.DOM.didRemoveNode(child) for child in node.childNodes
+    true
 
-  forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 }
 
 $mixin Batman.DOM, Batman.EventEmitter, Batman.Observable

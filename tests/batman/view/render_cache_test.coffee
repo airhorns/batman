@@ -2,6 +2,8 @@ QUnit.module "Batman.RenderCache"
   setup: ->
     @cache = new Batman.RenderCache
     class @MockView extends MockClass
+      get: ->
+      set: ->
     @context = {}
     @exampleOptions = {source: "products/show", viewClass: @MockView, context: @context}
 
