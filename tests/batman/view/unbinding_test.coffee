@@ -102,3 +102,40 @@ asyncTest "listeners are kept in Batman.data and destroyed when the node is remo
       deepEqual Batman._data(n), {}
 
     QUnit.start()
+
+asyncTest "nodes with views are not unbound if they are cached", ->
+  context = Batman
+    bar: "foo"
+    TestView: class TestView extends Batman.View
+      cached: true
+
+  helpers.render '<div data-view="TestView"><span data-bind="bar"></span></div>', context, (node) ->
+    equal node.find('span').html(), "foo"
+    Batman.DOM.removeNode node[0]
+    context.set 'bar', 'baz'
+    equal node.find('span').html(), "baz"
+    QUnit.start()
+
+asyncTest "cached view can be reinserted", ->
+  viewInstance = false
+
+  class TestView extends Batman.View
+    cached: true
+    constructor: ->
+      viewInstance = @
+      super
+
+  context = Batman
+    bar: "foo"
+    TestView: TestView
+
+  helpers.render '<div data-view="TestView"><span data-bind="bar"></span></div>', context, (node) ->
+    equal node.find('span').html(), "foo"
+    Batman.DOM.removeNode(node[0])
+
+    newElement = $('<div/>')[0]
+    Batman.DOM.appendChild newElement, viewInstance.get('node')
+    equal $(newElement).find('span').html(), "foo"
+    context.set 'bar', 'baz'
+    equal $(newElement).find('span').html(), "baz"
+    QUnit.start()

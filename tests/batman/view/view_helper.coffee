@@ -107,6 +107,8 @@ exports.render = (source, jqueryize = true, context = {}, callback = ->) ->
 
   view.on 'ready', ->
     node = if jqueryize then $(view.get('node')).children() else view.get('node')
+    Batman.DOM.willInsertNode(view.get('node'))
+    Batman.DOM.didInsertNode(view.get('node'))
     callback(node, view)
 
   view.get('node')

@@ -152,3 +152,28 @@ asyncTest 'data-replace should replace content without breaking contentfors', 2,
     equal node.children(0).first().html(), 'replaces'
     equal node.children(0).first().next().html(), 'appends'
     QUnit.start()
+
+asyncTest "views should be able to yield more than once", ->
+  viewInstance = false
+  class TestView extends Batman.View
+    cached: true
+    constructor: ->
+      viewInstance = @
+      super
+
+  source = '''
+    <div class="yield" data-yield="foo"></div>
+    <span class="view" data-view="TestView"><div data-contentfor="foo">testing</div></span>
+  '''
+
+  context = Batman {TestView}
+  helpers.render source, false, context, (node) ->
+    destination = node.childNodes[0]
+    source = node.childNodes[2]
+    equal destination.innerHTML, '<div data-contentfor="foo">testing</div>'
+    Batman.DOM.removeNode(source)
+    equal destination.innerHTML, ""
+
+    Batman.DOM.appendChild(node, viewInstance.get('node'))
+    equal destination.innerHTML, '<div data-contentfor="foo">testing</div>'
+    QUnit.start()
