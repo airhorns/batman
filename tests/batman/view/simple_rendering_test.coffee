@@ -65,8 +65,8 @@ asyncTest 'it should allow bindings to be defined later', 2, ->
   helpers.render '<div data-bind="foo.bar"></div>', context, (node) =>
     equals node.html(), ""
     context.set 'foo', Batman(bar: "baz")
-    delay ->
-      equals node.html(), "baz"
+    equals node.html(), "baz"
+    QUnit.start()
 
 asyncTest 'it should allow commenting of bindings', 1, ->
   helpers.render '<div x-data-bind="foo"></div>',
@@ -84,11 +84,10 @@ asyncTest 'bindings in lower down scopes should shadow higher ones', 3, ->
     node = $('#inner', node)
     equals node.html(), "inner"
     context.set 'foo', "outer changed"
-    delay ->
-      equals node.html(), "inner"
-      context.set 'namespace.foo', 'inner changed'
-      delay ->
-        equals node.html(), "inner changed"
+    equals node.html(), "inner"
+    context.set 'namespace.foo', 'inner changed'
+    equals node.html(), "inner changed"
+    QUnit.start()
 
 asyncTest 'bindings in lower down scopes should shadow higher ones with shadowing defined as the base of the keypath being defined', 3, ->
   context = Batman
@@ -101,11 +100,10 @@ asyncTest 'bindings in lower down scopes should shadow higher ones with shadowin
     node = $('#inner', node)
     equals node.html(), ""
     context.set 'foo', "outer changed"
-    delay ->
-      equals node.html(), ""
-      context.set 'namespace.foo.bar', 'inner'
-      delay ->
-        equals node.html(), "inner"
+    equals node.html(), ""
+    context.set 'namespace.foo.bar', 'inner'
+    equals node.html(), "inner"
+    QUnit.start()
 
 QUnit.module 'Batman.View visibility bindings'
 
@@ -227,8 +225,8 @@ asyncTest 'it should bind the input value and update the input when it changes',
   helpers.render '<input data-bind="one" type="text" />', context, (node) ->
     equal $(node[0]).val(), 'qux'
     context.set('one', "bar")
-    delay =>
-      equal $(node[0]).val(), 'bar'
+    equal $(node[0]).val(), 'bar'
+    QUnit.start()
 
 asyncTest 'it should bind the input value but not update the window object if the input changes', 2, ->
   context = Batman({})
@@ -237,8 +235,8 @@ asyncTest 'it should bind the input value but not update the window object if th
     equal node[0].value, ''
     node[0].value = 'foo'
     helpers.triggerChange(node[0])
-    delay =>
-      equal typeof window.nonexistantKey, 'undefined'
+    equal typeof window.nonexistantKey, 'undefined'
+    QUnit.start()
 
 asyncTest 'it should bind the input value but not update the window object if the input changes with a many segment keypath', 2, ->
   context = Batman({})
@@ -247,7 +245,7 @@ asyncTest 'it should bind the input value but not update the window object if th
     equal node[0].value, ''
     node[0].value = 'foo'
     helpers.triggerChange(node[0])
-    delay =>
+    delay ->
       equal typeof window.someKey, 'undefined'
 
 asyncTest 'it should bind the input value of checkboxes and update the value when the object changes', 2, ->
@@ -257,8 +255,8 @@ asyncTest 'it should bind the input value of checkboxes and update the value whe
   helpers.render '<input type="checkbox" data-bind="one" />', context, (node) ->
     equal node[0].checked, true
     context.set('one', false)
-    delay =>
-      equal node[0].checked, false
+    equal node[0].checked, false
+    QUnit.start()
 
 asyncTest 'it should bind the input value of checkboxes and update the object when the value changes', 1, ->
   context = Batman
@@ -267,8 +265,8 @@ asyncTest 'it should bind the input value of checkboxes and update the object wh
   helpers.render '<input type="checkbox" data-bind="one" />', context, (node) ->
     node[0].checked = false
     helpers.triggerChange(node[0])
-    delay =>
-      equal context.get('one'), false
+    equal context.get('one'), false
+    QUnit.start()
 
 asyncTest 'it should bind the input value and update the object when it changes', 1, ->
   context = new Batman.Object
@@ -278,8 +276,8 @@ asyncTest 'it should bind the input value and update the object when it changes'
     $(node[0]).val('bar')
     # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
     helpers.triggerChange(node[0])
-    delay =>
-      equal context.get('one'), 'bar'
+    equal context.get('one'), 'bar'
+    QUnit.start()
 
 asyncTest 'it should bind the input value and update the object when it keyups', 1, ->
   context = new Batman.Object
@@ -289,8 +287,8 @@ asyncTest 'it should bind the input value and update the object when it keyups',
     $(node[0]).val('bar')
     # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
     helpers.triggerKey(node[0], 82) # 82 is r from "bar"
-    delay =>
-      equal context.get('one'), 'bar'
+    equal context.get('one'), 'bar'
+    QUnit.start()
 
 for type in ['text', 'search', 'tel', 'url', 'email', 'password']
   do (type) ->
@@ -302,8 +300,8 @@ for type in ['text', 'search', 'tel', 'url', 'email', 'password']
         $(node[0]).val('bar')
         # Use DOM level 2 event dispatch, $().trigger doesn't seem to work
         helpers.triggerKey(node[0], 82) # 82 is r from "bar"
-        delay =>
-          equal context.get('one'), 'bar'
+        equal context.get('one'), 'bar'
+        QUnit.start()
 
 asyncTest 'it should bind the value of textareas', 2, ->
   context = new Batman.Object
@@ -312,8 +310,8 @@ asyncTest 'it should bind the value of textareas', 2, ->
   helpers.render '<textarea data-bind="one"></textarea>', context, (node) ->
     equal node.val(), 'qux'
     context.set('one', "bar")
-    delay =>
-      equal node.val(), 'bar'
+    equal node.val(), 'bar'
+    QUnit.start()
 
 asyncTest 'textarea value bindings should not escape their value', 2, ->
   helpers.render '<textarea data-bind="foo"></textarea>',
@@ -368,8 +366,8 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
 
     helpers.render '<input type="file" data-bind="fileAttributes"></input>', false, context, (node) ->
       helpers.triggerChange(node.childNodes[0])
-      delay ->
-        strictEqual context.fileAttributes, undefined
+      strictEqual context.fileAttributes, undefined
+      QUnit.start()
 
   asyncTest 'it should bind the value of file type inputs with the "multiple" flag', 2, ->
     [context, adapter] = getMockModel()
@@ -377,9 +375,8 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
 
     helpers.render '<input type="file" data-bind="fileAttributes" multiple="multiple"></input>', false, context, (node) ->
       helpers.triggerChange(node.childNodes[0])
-      delay ->
-        deepEqual context.fileAttributes, []
-
+      deepEqual context.fileAttributes, []
+      QUnit.start()
 
   asyncTest 'it should bind the value of file type inputs when they are proxied', 2, ->
     [context, adapter] = getMockModel()
@@ -389,8 +386,8 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
 
     helpers.render source, false, {proxied: context}, (node) ->
       helpers.triggerChange(node.childNodes[0].childNodes[0])
-      delay ->
-        strictEqual context.fileAttributes, undefined
+      strictEqual context.fileAttributes, undefined
+      QUnit.start()
 
 asyncTest 'should bind radio buttons to a value', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
@@ -408,8 +405,8 @@ asyncTest 'should bind radio buttons to a value', ->
     ok (!fixed.checked and free.checked and !trade.checked)
 
     context.set 'ad.sale_type', 'trade'
-    delay =>
-      ok (!fixed.checked and !free.checked and trade.checked)
+    ok (!fixed.checked and !free.checked and trade.checked)
+    QUnit.start()
 
 asyncTest 'should bind to the value of radio buttons', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
@@ -427,8 +424,8 @@ asyncTest 'should bind to the value of radio buttons', ->
     equal context.get('ad.sale_type'), 'trade', 'checked attribute binds'
 
     helpers.triggerChange(fixed)
-    delay =>
-      equal context.get('ad.sale_type'), 'fixed'
+    equal context.get('ad.sale_type'), 'fixed'
+    QUnit.start()
 
 QUnit.module "Batman.View: mixin and context bindings"
 
@@ -438,9 +435,9 @@ asyncTest 'it should allow mixins to be applied', 1, ->
 
   source = '<div data-mixin="test"></div>'
   helpers.render source, false, (node) ->
-    delay ->
-      equals Batman.data(node.firstChild, 'foo'), 'bar'
-      delete Batman.mixins.test
+    equals Batman.data(node.firstChild, 'foo'), 'bar'
+    delete Batman.mixins.test
+    QUnit.start()
 
 asyncTest 'it should allow contexts to be entered', 2, ->
   context = Batman
@@ -450,8 +447,8 @@ asyncTest 'it should allow contexts to be entered', 2, ->
   helpers.render source, context, (node) ->
     equal $('#test', node).html(), 'bar'
     context.set('namespace', Batman(foo: 'baz'))
-    delay ->
-      equal $("#test", node).html(), 'baz', 'if the context changes the bindings should update'
+    equal $("#test", node).html(), 'baz', 'if the context changes the bindings should update'
+    QUnit.start()
 
 asyncTest 'contexts should only be available inside the node with the context directive', 2, ->
   context = Batman
@@ -462,8 +459,8 @@ asyncTest 'contexts should only be available inside the node with the context di
   helpers.render source, context, (node) ->
     equal node[1].innerHTML, ""
     context.set('namespace', Batman(foo: 'baz'))
-    delay ->
-      equal node[1].innerHTML, ""
+    equal node[1].innerHTML, ""
+    QUnit.start()
 
 asyncTest 'contexts should be available on the node with the context directive', 2, ->
   context = Batman
@@ -474,8 +471,8 @@ asyncTest 'contexts should be available on the node with the context directive',
   helpers.render source, context, (node) ->
     equal node[0].innerHTML, "bar"
     context.set('namespace', Batman(foo: 'baz'))
-    delay ->
-      equal node[0].innerHTML, "baz"
+    equal node[0].innerHTML, "baz"
+    QUnit.start()
 
 asyncTest 'it should allow context names to be specified', 2, ->
   context = Batman
@@ -484,8 +481,8 @@ asyncTest 'it should allow context names to be specified', 2, ->
   helpers.render source, context, (node) ->
     equal $('#test', node).html(), 'foo'
     context.set('namespace', 'bar')
-    delay ->
-      equal $("#test", node).html(), 'bar', 'if the context changes the bindings should update'
+    equal $("#test", node).html(), 'bar', 'if the context changes the bindings should update'
+    QUnit.start()
 
 asyncTest 'it should allow contexts to be specified using filters', 2, ->
   context = Batman
@@ -498,8 +495,8 @@ asyncTest 'it should allow contexts to be specified using filters', 2, ->
   helpers.render source, context, (node) ->
     equal $('#test', node).html(), 'baz'
     context.set('namespace', Batman(foo: Batman(bar: 'qux')))
-    delay ->
-      equal $("#test", node).html(), 'qux', 'if the context changes the bindings should update'
+    equal $("#test", node).html(), 'qux', 'if the context changes the bindings should update'
+    QUnit.start()
 
 QUnit.module "Batman.View: data-render-if bindings"
 
