@@ -13,9 +13,10 @@ asyncTest 'data-bind-style should bind to a string', 4, ->
     equal node.style['color'], 'green'
 
     context.set 'string', 'color: green'
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'green'
+    equal node.style['backgroundColor'], ''
+    equal node.style['color'], 'green'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
   source = '<input type="text" data-bind-style="object"></input>'
@@ -29,9 +30,10 @@ asyncTest 'data-bind-style should bind to a vanilla object', 4, ->
     equal node.style['backgroundColor'], 'blue'
     equal node.style['color'], 'green'
     context.set 'object', {color: 'red'}
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'red'
+    equal node.style['backgroundColor'], ''
+    equal node.style['color'], 'red'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should bind to a Batman object', 8, ->
   source = '<input type="text" data-bind-style="object"></input>'
@@ -45,17 +47,16 @@ asyncTest 'data-bind-style should bind to a Batman object', 8, ->
     equal node.style['backgroundColor'], 'blue'
     equal node.style['color'], 'green'
     context.set 'object.color', 'blue'
-    delay =>
-      equal node.style['color'], 'blue'
-      equal node.style['backgroundColor'], 'blue'
-      context.unset 'object.color'
-      delay =>
-        equal node.style['color'], ''
-        equal node.style['backgroundColor'], 'blue'
-        context.set 'object', new Batman.Hash color: 'yellow'
-        delay =>
-          equal node.style['color'], 'yellow'
-          equal node.style['backgroundColor'], 'blue'
+    equal node.style['color'], 'blue'
+    equal node.style['backgroundColor'], 'blue'
+    context.unset 'object.color'
+    equal node.style['color'], ''
+    equal node.style['backgroundColor'], 'blue'
+    context.set 'object', new Batman.Hash color: 'yellow'
+    equal node.style['color'], 'yellow'
+    equal node.style['backgroundColor'], 'blue'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
   source = '<div data-bind-style="hash"></div>'
@@ -69,14 +70,14 @@ asyncTest 'data-bind-style should forget previously bound hashes', 6, ->
     equal node.style['color'], 'green'
 
     context.set 'hash', new Batman.Hash color: 'red'
-    delay =>
-      equal node.style['backgroundColor'], 'blue'
-      equal node.style['color'], 'red'
+    equal node.style['backgroundColor'], 'blue'
+    equal node.style['color'], 'red'
 
-      hash.set 'color', 'green'
-      delay =>
-        equal node.style['backgroundColor'], 'blue'
-        equal node.style['color'], 'red'
+    hash.set 'color', 'green'
+    equal node.style['backgroundColor'], 'blue'
+    equal node.style['color'], 'red'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs', 4, ->
   source = '<input type="text" data-bind-style="styles"></input>'
@@ -92,9 +93,10 @@ asyncTest 'data-bind-style should bind to a vanilla object of attr/keypath pairs
     equal node.style.color, 'blue'
     equal node.style['backgroundColor'], 'green'
     context.set 'color', 'green'
-    delay =>
-      equal node.style.color, 'green'
-      equal node.style['backgroundColor'], 'green'
+    equal node.style.color, 'green'
+    equal node.style['backgroundColor'], 'green'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should bind dash-separated CSS keys to camelized ones', 4, ->
   source = '<input type="text" data-bind-style="string"></input>'
@@ -107,9 +109,10 @@ asyncTest 'data-bind-style should bind dash-separated CSS keys to camelized ones
     equal node.style['color'], 'green'
 
     context.set 'string', 'color: green'
-    delay =>
-      equal node.style['backgroundColor'], ''
-      equal node.style['color'], 'green'
+    equal node.style['backgroundColor'], ''
+    equal node.style['color'], 'green'
+
+    QUnit.start()
 
 asyncTest 'data-bind-style should correctly work for style with absolute URL', 1, ->
   source = '<input type="text" data-bind-style="string"></input>'

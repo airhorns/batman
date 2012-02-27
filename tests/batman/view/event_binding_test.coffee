@@ -11,10 +11,11 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   source = '<button data-event-click="foo.bar.doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      equal spy.lastCallContext, context.get('foo.bar')
-      equal spy.lastCallArguments[0], node[0]
-      equal spy.lastCallArguments[2].findKey('foo')[0], context.get('foo')
+    equal spy.lastCallContext, context.get('foo.bar')
+    equal spy.lastCallArguments[0], node[0]
+    equal spy.lastCallArguments[2].findKey('foo')[0], context.get('foo')
+
+    QUnit.start()
 
 asyncTest 'it should allow events to be bound and execute them in the context as specified on terminal keypath', 3, ->
   context = Batman
@@ -24,10 +25,11 @@ asyncTest 'it should allow events to be bound and execute them in the context as
   source = '<button data-event-click="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      equal spy.lastCallContext, context
-      equal spy.lastCallArguments[0], node[0]
-      equal spy.lastCallArguments[2].get('foo'), 'bar'
+    equal spy.lastCallContext, context
+    equal spy.lastCallArguments[0], node[0]
+    equal spy.lastCallArguments[2].get('foo'), 'bar'
+
+    QUnit.start()
 
 asyncTest 'it should allow click events to be bound', 2, ->
   context =
@@ -36,9 +38,10 @@ asyncTest 'it should allow click events to be bound', 2, ->
   source = '<button data-event-click="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0]
+
+    QUnit.start()
 
 asyncTest 'it should allow double click events to be bound', 2, ->
   context =
@@ -47,9 +50,10 @@ asyncTest 'it should allow double click events to be bound', 2, ->
   source = '<button data-event-doubleclick="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerDoubleClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0]
+
+    QUnit.start()
 
 asyncTest 'it should allow un-special-cased events like focus to be bound', 2, ->
   context =
@@ -58,9 +62,10 @@ asyncTest 'it should allow un-special-cased events like focus to be bound', 2, -
   source = '<input type="text" data-event-focus="doSomething" value="foo"></input>'
   helpers.render source, context, (node) ->
     helpers.triggerFocus(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0]
+
+    QUnit.start()
 
 asyncTest 'it should allow event handlers to update', 3, ->
   context = Batman
@@ -69,13 +74,13 @@ asyncTest 'it should allow event handlers to update', 3, ->
   source = '<button data-event-click="doSomething"></button>'
   helpers.render source, context, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      context.set('doSomething', newSpy = createSpy())
-      helpers.triggerClick(node[0])
-      delay ->
-        ok newSpy.called
-        equal spy.callCount, 1
+    ok spy.called
+    context.set('doSomething', newSpy = createSpy())
+    helpers.triggerClick(node[0])
+    ok newSpy.called
+    equal spy.callCount, 1
+
+    QUnit.start()
 
 asyncTest 'it should allow change events on checkboxes to be bound', 2, ->
   context = new Batman.Object
@@ -85,9 +90,10 @@ asyncTest 'it should allow change events on checkboxes to be bound', 2, ->
   helpers.render '<input type="checkbox" data-bind="one" data-event-change="doSomething"/>', context, (node) ->
     node[0].checked = false
     helpers.triggerChange(node[0])
-    delay =>
-      ok context.doSomething.called
-      ok context.doSomething.lastCallArguments[2].findKey
+    ok context.doSomething.called
+    ok context.doSomething.lastCallArguments[2].findKey
+
+    QUnit.start()
 
 asyncTest 'it should allow submit events on inputs to be bound', 3, ->
   context =
@@ -96,10 +102,11 @@ asyncTest 'it should allow submit events on inputs to be bound', 3, ->
   source = '<form><input data-event-submit="doSomething" /></form>'
   helpers.render source, context, (node) ->
     helpers.triggerKey(node[0].childNodes[0], 13)
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0].childNodes[0]
-      ok spy.lastCallArguments[2].findKey
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0].childNodes[0]
+    ok spy.lastCallArguments[2].findKey
+
+    QUnit.start()
 
 asyncTest 'it should ignore keyup events with no associated keydown events', 2, ->
   # This can happen when we move the focus between nodes while handling some of these events.
@@ -111,9 +118,10 @@ asyncTest 'it should ignore keyup events with no associated keydown events', 2, 
   helpers.render source, context, (node) ->
     helpers.triggerKey(node[0].childNodes[1], 13, ["keydown", "keypress"])
     helpers.triggerKey(node[0].childNodes[0], 13, ["keyup"])
-    delay ->
-      ok !aSpy.called
-      ok !anotherSpy.called
+    ok !aSpy.called
+    ok !anotherSpy.called
+
+    QUnit.start()
 
 asyncTest 'it should allow form submit events to be bound', 2, ->
   context =
@@ -122,9 +130,10 @@ asyncTest 'it should allow form submit events to be bound', 2, ->
   source = '<form data-event-submit="doSomething"><input type="submit" id="submit" /></form>'
   helpers.render source, context, (node) ->
     helpers.triggerSubmit(node[0])
-    delay =>
-      ok spy.called
-      ok spy.lastCallArguments[2].findKey
+    ok spy.called
+    ok spy.lastCallArguments[2].findKey
+
+    QUnit.start()
 
 asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
   spy = createSpy()
@@ -135,9 +144,10 @@ asyncTest 'allows data-event-click attributes to reference native model properti
 
   helpers.render source, {foo: new Foo()}, (node) ->
     helpers.triggerClick(node[0])
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0]
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0]
+
+    QUnit.start()
 
 asyncTest 'should pass the context to other events without special handlers', 3, ->
   context =
@@ -146,8 +156,9 @@ asyncTest 'should pass the context to other events without special handlers', 3,
   source = '<form><input data-event-keypress="doSomething" /></form>'
   helpers.render source, context, (node) ->
     helpers.triggerKey(node[0].childNodes[0], 65)
-    delay ->
-      ok spy.called
-      equal spy.lastCallArguments[0], node[0].childNodes[0]
-      ok spy.lastCallArguments[2].findKey
+    ok spy.called
+    equal spy.lastCallArguments[0], node[0].childNodes[0]
+    ok spy.lastCallArguments[2].findKey
+
+    QUnit.start()
 

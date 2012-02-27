@@ -47,8 +47,8 @@ asyncTest 'it should allow multiple class names to be bound and updated', ->
   helpers.render source, context, (node) ->
     equal node[0].className, 'foo bar'
     context.set 'classes', 'bar baz'
-    delay =>
-      equal node[0].className, 'bar baz'
+    equal node[0].className, 'bar baz'
+    QUnit.start()
 
 
 asyncTest 'it should allow an already present class to be removed', 4, ->
@@ -61,9 +61,10 @@ asyncTest 'it should allow an already present class to be removed', 4, ->
     ok node.hasClass('two')
 
     context.set 'bar', true
-    delay ->
-      ok node.hasClass('zero')
-      ok !node.hasClass('two')
+    ok node.hasClass('zero')
+    ok !node.hasClass('two')
+
+    QUnit.start()
 
 asyncTest 'it should not remove an already present similar class name', 6, ->
   source = '<div data-removeclass-foobar="bar" class="zero bar"></div>'
@@ -76,10 +77,11 @@ asyncTest 'it should not remove an already present similar class name', 6, ->
     ok node.hasClass('foobar')
 
     context.set 'bar', true
-    delay ->
-      ok node.hasClass('zero')
-      ok node.hasClass('bar')
-      ok !node.hasClass('foobar')
+    ok node.hasClass('zero')
+    ok node.hasClass('bar')
+    ok !node.hasClass('foobar')
+
+    QUnit.start()
 
 asyncTest 'it should allow multiple class names to be bound and updated via set', ->
   source = '<div data-bind-class="classes"></div>'
@@ -91,10 +93,11 @@ asyncTest 'it should allow multiple class names to be bound and updated via set'
     ok node.hasClass('bar')
     ok node.hasClass('baz')
     context.get('classes').remove('foo')
-    delay =>
-      ok !node.hasClass('foo')
-      ok node.hasClass('bar')
-      ok node.hasClass('baz')
+    ok !node.hasClass('foo')
+    ok node.hasClass('bar')
+    ok node.hasClass('baz')
+
+    QUnit.start()
 
 asyncTest 'it should allow multiple class names to be bound and updated via hash', ->
   source = '<div data-bind-class="classes"></div>'
@@ -107,8 +110,9 @@ asyncTest 'it should allow multiple class names to be bound and updated via hash
   helpers.render source, context, (node) ->
     equal node[0].className, 'foo bar baz'
     context.get('classes').unset('foo')
-    delay =>
-      equal node[0].className, 'bar baz'
+    equal node[0].className, 'bar baz'
+
+    QUnit.start()
 
 asyncTest 'it should allow multiple class names to be bound via object', ->
   source = '<div data-bind-class="classes"></div>'
@@ -121,5 +125,6 @@ asyncTest 'it should allow multiple class names to be bound via object', ->
   helpers.render source, context, (node) ->
     equal node[0].className, 'foo bar baz'
     context.set('classes', {bar: true, baz: true})
-    delay =>
-      equal node[0].className, 'bar baz'
+    equal node[0].className, 'bar baz'
+    QUnit.start()
+
