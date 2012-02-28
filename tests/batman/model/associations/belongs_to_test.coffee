@@ -68,6 +68,7 @@ asyncTest "belongsTo associations are saved", 6, ->
   product.set 'collection', collection
 
   product.save (err, record) =>
+    throw err if err
     equal record.get('store_id'), store.id
     equal record.get('collection_id'), collection.id
     storedJSON = @productAdapter.storage["products#{record.id}"]
@@ -78,11 +79,13 @@ asyncTest "belongsTo associations are saved", 6, ->
     equal storedJSON.collection_id, 2
 
     @Product.find record.get('id'), (err, product2) ->
+      throw err if err
       deepEqual product2.toJSON(), storedJSON
       QUnit.start()
 
 asyncTest "belongsTo parent models are added to the identity map", 1, ->
   @Product.find 4, (err, product) =>
+    throw err if err
     equal @Store.get('loaded').length, 1
     QUnit.start()
 

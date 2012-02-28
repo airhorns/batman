@@ -79,6 +79,7 @@ asyncTest 'hasOne formats the URL to /roots/id/singular', 1, ->
   delay ->
     deepEqual product.toJSON(), productJSON
 
+
 asyncTest 'hasMany formats the URL to /roots/id/plural', 1, ->
   @Store.hasMany 'products', namespace: @
   @Product.belongsTo 'store', namespace: @
@@ -93,6 +94,42 @@ asyncTest 'hasMany formats the URL to /roots/id/plural', 1, ->
     name: 'Product Two'
     cost: 10
     store_id: 1
+  }]
+
+  MockRequest.expect {
+    url: '/stores/1/products' # .json is cut off in setup
+    method: 'GET'
+  }, productsJSON
+
+  MockRequest.expect {
+    url: '/stores/1'
+    method: 'GET'
+  }, [
+    id: 1
+    name: 'Store One'
+  ]
+
+  store = new @Store id: 1
+  products = store.get('products')
+  delay ->
+    deepEqual (products.map (product) -> product.toJSON()), productsJSON
+
+asyncTest 'hasMany formats the URL to /roots/id/plural when polymorphic', 1, ->
+  @Store.hasMany 'products', {namespace: @, as: 'subject'}
+  @Product.belongsTo 'subject', {namespace: @, polymorphic: true}
+
+  productsJSON = [{
+    id: 1
+    name: 'Product One'
+    cost: 10
+    subject_id: 1
+    subject_type: 'Store'
+  }, {
+    id: 2
+    name: 'Product Two'
+    cost: 10
+    subject_id: 1
+    subject_type: 'Store'
   }]
 
   MockRequest.expect {

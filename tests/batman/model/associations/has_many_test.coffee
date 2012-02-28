@@ -212,7 +212,8 @@ asyncTest "hasMany associations loaded from JSON should index the loaded set lik
       equal variants.get('length'), 3
       QUnit.start()
 
-asyncTest "hasMany child models are added to the identity map", 1, ->
+asyncTest "hasMany child models are added to the identity map", 2, ->
+  equal @ProductVariant.get('loaded').length, 0
   @Product.find 3, (err, product) =>
     equal @ProductVariant.get('loaded').length, 2
     QUnit.start()
