@@ -1,4 +1,4 @@
-header "Hash Memory Usage"
+header "Hash & Set Memory Usage"
 
 qs = (length) ->
   x = ['?']

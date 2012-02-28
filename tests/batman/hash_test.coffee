@@ -147,6 +147,7 @@ test "using .hasKey(key) in an accessor registers the hash as a source of the pr
 test "using .forEach() in an accessor registers the hash as a source of the property", ->
   obj = new Batman.Object
   obj.accessor 'foreach', => @hash.forEach ->
+
   obj.observe 'foreach', observer = createSpy()
   @hash.set('foo', 'bar')
   equal observer.callCount, 1
