@@ -2372,13 +2372,16 @@ class Batman.App extends Batman.Object
     @observe 'layout', (layout) =>
       layout?.on 'ready', => @fire 'ready'
 
-    if typeof @layout is 'undefined'
-      @set 'layout', new Batman.View
+    if (layout = @get('layout'))?
+      if typeof layout == 'string'
+        layoutClass = @[helpers.camelize(layout) + 'View']
+    else
+      layoutClass = Batman.View
+
+    if layoutClass
+      layout = @set 'layout', new layoutClass
         context: @
         node: document
-
-    else if typeof @layout is 'string'
-      @set 'layout', new @[helpers.camelize(@layout) + 'View']
 
     @hasRun = yes
     @fire('run')
@@ -2507,8 +2510,6 @@ class Batman.Controller extends Batman.Object
     @_actedDuringAction = no
     @set 'action', action
     @set 'params', params
-
-    Batman.DOM.Yield.clearAll()
 
     @runFilters params, 'beforeFilters'
 
@@ -4570,8 +4571,9 @@ Batman.DOM = {
   setInnerHTML: $setInnerHTML = (node, html, args...) ->
     childNodes = Array::slice.call(node.childNodes)
     Batman.DOM.willRemoveNode(child) for child in childNodes
-    node.innerHTML = html
+    result = node.innerHTML = html
     Batman.DOM.didRemoveNode(child) for child in childNodes
+    result
 
   setStyleProperty: $setStyleProperty = (node, property, value, importance) ->
     if node.style.setAttribute
