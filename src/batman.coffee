@@ -4550,7 +4550,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
       (?:$|,)         # before the end of this argument in the list.
     )
     (
-      [a-zA-Z][\w\.]* # Now that true and false can't be matched, match a dot delimited list of keys.
+      [a-zA-Z][\w-\.]* # Now that true and false can't be matched, match a dot delimited list of keys.
       [\?\!]?         # Allow ? and ! at the end of a keypath to support Ruby's methods
     )
     \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.

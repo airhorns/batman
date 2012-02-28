@@ -10,6 +10,12 @@ asyncTest 'get', 1, ->
     equals node.html(), "qux"
     QUnit.start()
 
+asyncTest 'keypaths with dashes', ->
+  context = Batman "foo-bar": "baz"
+  helpers.render '<div data-bind="foo-bar"></div>', context, (node) ->
+    equals node.html(), 'baz'
+    QUnit.start()
+
 asyncTest 'get dotted syntax', 1, ->
   context = Batman
     foo: new Batman.Hash({bar: "qux"})
