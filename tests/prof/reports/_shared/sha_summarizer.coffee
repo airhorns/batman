@@ -40,5 +40,15 @@ exports =
     results = query queryString, sha, keys...
     pivoted = results.pivot 'key', 'y', {default: 0}
 
+  reportKeysAcrossShas: (keys, shas, type = 'mean') ->
+    queryString = " SELECT Reports.sha, Points.y, Reports.key FROM Points
+                    LEFT JOIN Reports ON (Points.ReportId = Reports.id)
+                    WHERE
+                      Points.note = '#{type}' AND
+                      Reports.key IN (#{exports.qs(keys.length)}) AND
+                      Reports.sha IN (#{exports.qs(shas.length)})"
+
+    results = query queryString, keys..., shas...
+    pivoted = results.pivot 'key', 'y', {default: 0}
 
 output exports
