@@ -1216,7 +1216,7 @@ class Batman.SimpleSet
 
   add: (items...) ->
     addedItems = []
-    for item in items when !@has(item)
+    for item in items when !~@_storage.indexOf item
       @_storage.push item
       addedItems.push item
       @length++
