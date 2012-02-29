@@ -1202,7 +1202,7 @@ class Batman.Hash extends Batman.Object
 
 class Batman.SimpleSet
   constructor: ->
-    @_storage = new Batman.SimpleHash
+    @_storage = []
     @_indexes = new Batman.SimpleHash
     @_uniqueIndexes = new Batman.SimpleHash
     @_sorts = new Batman.SimpleHash
@@ -1212,12 +1212,12 @@ class Batman.SimpleSet
   $extendsEnumerable(@::)
 
   has: (item) ->
-    @_storage.hasKey item
+    !!(~@_storage.indexOf item)
 
   add: (items...) ->
     addedItems = []
-    for item in items when !@_storage.hasKey(item)
-      @_storage.set item, true
+    for item in items when !@has(item)
+      @_storage.push item
       addedItems.push item
       @length++
     if @fire and addedItems.length isnt 0
@@ -1226,8 +1226,8 @@ class Batman.SimpleSet
     addedItems
   remove: (items...) ->
     removedItems = []
-    for item in items when @_storage.hasKey(item)
-      @_storage.unset item
+    for item in items when ~(index = @_storage.indexOf(item))
+      @_storage.splice(index, 1)
       removedItems.push item
       @length--
     if @fire and removedItems.length isnt 0
@@ -1236,19 +1236,18 @@ class Batman.SimpleSet
     removedItems
 
   find: (f) ->
-    ret = undefined
-    @forEach (item) ->
-      if ret is undefined && f(item) is true
-        ret = item
-    ret
+    index = @_storage.indexOf(item)
+    for item in @_storage
+      return item if f(item)
+    undefined
 
   forEach: (iterator, ctx) ->
     container = this
-    @_storage.forEach (key) -> iterator.call(ctx, key, null, container)
+    @_storage.slice().forEach (key) -> iterator.call(ctx, key, null, container)
   isEmpty: -> @length is 0
   clear: ->
-    items = @toArray()
-    @_storage = new Batman.SimpleHash
+    items = @_storage
+    @_storage = []
     @length = 0
     if @fire and items.length isnt 0
       @fire('change', this, this)
@@ -1261,8 +1260,7 @@ class Batman.SimpleSet
       @add(other.toArray()...)
     finally
       @allowAndFire?('change', this, this)
-  toArray: ->
-    @_storage.keys()
+  toArray: -> @_storage.slice()
   merge: (others...) ->
     merged = new @constructor
     others.unshift(@)
