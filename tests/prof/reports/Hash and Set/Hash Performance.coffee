@@ -10,4 +10,3 @@ barchart helpers.reportKeysAcrossShas([keys[1], keys[3]], shas)
 
 header "Getting Speed"
 barchart helpers.reportKeysAcrossShas([keys[0], keys[2]], shas)
-
