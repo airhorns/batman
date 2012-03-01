@@ -1,7 +1,31 @@
 {createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require '../model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../../view/view_helper'
 
-QUnit.module "Batman.Model Associations"
+QUnit.module "Batman.Model Associations",
+  setup: ->
+    @oldApp = Batman.currentApp
+
+  teardown: ->
+    Batman.currentApp = @oldApp
+
+test "association macros without options", ->
+  app = Batman.currentApp = {}
+  class app.Card extends Batman.Model
+    @belongsTo 'deck'
+  class app.Deck extends Batman.Model
+    @hasMany 'cards'
+    @belongsTo 'player'
+  class app.Player extends Batman.Model
+    @hasOne 'deck'
+
+  player = new app.Player
+  deck = new app.Deck
+  card = new app.Card
+
+  ok player.get('deck') instanceof Batman.HasOneProxy
+  ok deck.get('player') instanceof Batman.BelongsToProxy
+  ok deck.get('cards') instanceof Batman.AssociationSet
+  ok card.get('deck') instanceof Batman.BelongsToProxy
 
 asyncTest "support custom model namespaces and class names", 2, ->
   namespace = {}

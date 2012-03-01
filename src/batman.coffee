@@ -3124,7 +3124,7 @@ class Batman.BelongsToAssociation extends Batman.SingularAssociation
     autoload: true
 
   constructor: (model, label, options) ->
-    if options? && options.polymorphic
+    if options?.polymorphic
       delete options.polymorphic
       return new Batman.PolymorphicBelongsToAssociation(arguments...)
     super
@@ -3300,7 +3300,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
   indexRelatedModelOn: 'foreignKey'
 
   constructor: (model, label, options) ->
-    if options.as
+    if options?.as
       return new Batman.PolymorphicHasManyAssociation(arguments...)
     super
     @primaryKey = @options.primaryKey or "id"
