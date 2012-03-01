@@ -34,6 +34,9 @@ Watson.benchmark 'set performance', (error, suite) ->
       for clunk in clunks
         set.remove(clunk)
       true
+    , {
+      onCycle: -> set = getSet()
+    }
 
   do ->
     set = new Batman.Set
@@ -64,6 +67,9 @@ Watson.benchmark 'set performance', (error, suite) ->
       for clunk in sortedMoreClunks
         set.remove(clunk)
       true
+    , {
+      onCycle: -> set = getSet()
+    }
 
   do ->
     set = new Batman.Set
@@ -84,6 +90,9 @@ Watson.benchmark 'set performance', (error, suite) ->
       for string in strings
         set.remove(string)
       true
+    , {
+      onCycle: -> set = getSet()
+    }
 
   do ->
     set = new Batman.Set
@@ -93,5 +102,26 @@ Watson.benchmark 'set performance', (error, suite) ->
       for string in strings
         set.has string
       true
+
+  do ->
+    moreStrings = ("foooo" + i for i in [0..100])
+    sortedMoreStrings = moreStrings.sort (a, b) -> if generator.next() >= 5 then 1 else -1
+
+    getSet = ->
+      set = new Batman.Set
+      set.add(string) for string in strings
+      set.add(string) for string in moreStrings
+      set
+
+    set = getSet()
+
+    suite.add 'haystack string member removal', () ->
+      # Remove clunks in a deterministic but random order
+      for string in sortedMoreStrings
+        set.remove(string)
+      true
+    , {
+      onCycle: -> set = getSet()
+    }
 
   suite.run()
