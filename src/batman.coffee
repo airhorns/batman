@@ -467,8 +467,7 @@ Batman.EventEmitter =
     if events.hasKey(key)
       existingEvent = events.get(key)
     else
-      @_batman.ancestors (ancestor) ->
-        existingEvent ||= ancestor._batman?.events?.get(key)
+      @_batman.ancestors (ancestor) -> existingEvent ||= ancestor._batman?.events?.get(key)
       newEvent = events.set(key, new eventClass(this, key))
       newEvent.oneShot = existingEvent?.oneShot
       newEvent
@@ -546,7 +545,11 @@ class Batman.Property
   hashKey: ->
     @hashKey = -> key
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
-
+  #event: (key) ->
+    #eventClass = @eventClass or Batman.Event
+    #@events ||= {}
+    #@events[key] ||= new eventClass(this, key)
+    #@events[key]
   changeEvent: ->
     event = @event('change')
     @changeEvent = -> event
@@ -616,8 +619,8 @@ class Batman.Property
     @lockValue() if @value isnt undefined and @isFinal()
 
   sourceChangeHandler: ->
-    handler = @_handleSourceChange.bind(@)
-    developer.do -> handler.property = @
+    handler = => @_handleSourceChange()
+    developer.do => handler.property = @
     @sourceChangeHandler = -> handler
     handler
 
