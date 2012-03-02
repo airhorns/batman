@@ -616,7 +616,8 @@ class Batman.Property
     @lockValue() if @value isnt undefined and @isFinal()
 
   sourceChangeHandler: ->
-    handler = => @_handleSourceChange()
+    handler = @_handleSourceChange.bind(@)
+    developer.do -> handler.property = @
     @sourceChangeHandler = -> handler
     handler
 
