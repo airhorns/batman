@@ -1,12 +1,10 @@
-Tiller is a totally read only reporting system where you write reports in Coffeescript and use a DSL to build nice looking HTML output. Combined with watson to generate data by logging memory usage over time and using benchmark.js, you can generate data and view the reports.
+Tiller is a totally read only reporting system for which you write reports in a CoffeeScript a DSL to build nice looking HTML output. Combined with `watson` to generate data about memory usage and performance characteristics, you can generate data and view the reports.
 
 Watson and Tiller both are npm packages which you'll have to install. The flow of things is like this:
 
  - Aquire tarballs for watson and tiller.
- - Install tiller via `npm install -g . && npm link` in the tiller source directory
- - Link tiller to watson's node_modules in the watson source directory via `npm link tiller`
- - Install watsons dependencies via `npm link` in the watson source directory
- - `git checkout` the `hornairs/prof` branch of batman
+ - Install tiller via `npm install -g && npm link` in the tiller source directory
+ - Install watsons dependencies and expose it using `npm link` in the watson source directory
  - Link watson to batman via `npm link watson` in the batman source directory
  - Create a MySQL database and store the connection information in 'batman/tests/prof/watson.json'
  - Run something like 'watson run --files="some/*glob/relative/to/current/path" shaA shaB HEAD master~10 v0.7.5' to generate the data
