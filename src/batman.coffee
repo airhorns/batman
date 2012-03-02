@@ -459,17 +459,17 @@ class Batman.Event
 Batman.EventEmitter =
   isEventEmitter: true
   hasEvent: (key) ->
-    @_batman?.get?('events')?.hasKey(key)
+    @_batman?.get?('events')?.hasOwnProperty(key)
   event: (key) ->
     Batman.initializeObject @
     eventClass = @eventClass or Batman.Event
-    events = @_batman.events ||= new Batman.SimpleHash
-    if events.hasKey(key)
-      existingEvent = events.get(key)
+    events = @_batman.events ||= {}
+    if events.hasOwnProperty(key)
+      existingEvent = events[key]
     else
       @_batman.ancestors (ancestor) ->
-        existingEvent ||= ancestor._batman?.events?.get(key)
-      newEvent = events.set(key, new eventClass(this, key))
+        existingEvent ||= ancestor._batman?.events?[key]
+      newEvent = events[key] = new eventClass(this, key)
       newEvent.oneShot = existingEvent?.oneShot
       newEvent
   on: (key, handler) ->
@@ -726,8 +726,6 @@ class Batman.Keypath extends Batman.Property
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
 
-
-
 # Observable
 # ----------
 
@@ -966,7 +964,6 @@ class BatmanObject extends Object
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
     @mixin mixins...
-
 
   # Make every subclass and their instances observable.
   @classMixin Batman.EventEmitter, Batman.Observable
