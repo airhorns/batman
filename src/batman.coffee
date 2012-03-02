@@ -1023,31 +1023,52 @@ class Batman.SimpleHash
   $extendsEnumerable(@::)
   propertyClass: Batman.Property
   hasKey: (key) ->
-    if pairs = @_storage[@hashKeyFor(key)]
-      for pair in pairs
-        return true if @equality(pair[0], key)
-    return false
+    if @objectKey(key)
+      return false unless @_objectStorage
+      if pairs = @_objectStorage[@hashKeyFor(key)]
+        for pair in pairs
+          return true if @equality(pair[0], key)
+      return false
+    else
+      @_storage.hasOwnProperty(key)
   get: (key) ->
-    if pairs = @_storage[@hashKeyFor(key)]
-      for pair in pairs
-        return pair[1] if @equality(pair[0], key)
+    if @objectKey(key)
+      return undefined unless @_objectStorage
+      if pairs = @_objectStorage[@hashKeyFor(key)]
+        for pair in pairs
+          return pair[1] if @equality(pair[0], key)
+    else
+      @_storage[key]
   set: (key, val) ->
-    pairs = @_storage[@hashKeyFor(key)] ||= []
-    for pair in pairs
-      if @equality(pair[0], key)
-        return pair[1] = val
-    @length++
-    pairs.push([key, val])
-    val
+    if @objectKey(key)
+      @_objectStorage ||= {}
+      pairs = @_objectStorage[@hashKeyFor(key)] ||= []
+      for pair in pairs
+        if @equality(pair[0], key)
+          return pair[1] = val
+      @length++
+      pairs.push([key, val])
+      val
+    else
+      @length++ unless @_storage[key]?
+      @_storage[key] = val
   unset: (key) ->
-    hashKey = @hashKeyFor(key)
-    if pairs = @_storage[hashKey]
-      for [obj,value], index in pairs
-        if @equality(obj, key)
-          pair = pairs.splice(index,1)
-          delete @_storage[hashKey] unless pairs.length
-          @length--
-          return pair[0][1]
+    if @objectKey(key)
+      return undefined unless @_objectStorage
+      hashKey = @hashKeyFor(key)
+      if pairs = @_objectStorage[hashKey]
+        for [obj,value], index in pairs
+          if @equality(obj, key)
+            pair = pairs.splice(index,1)
+            delete @_objectStorage[hashKey] unless pairs.length
+            @length--
+            return pair[0][1]
+    else
+      val = @_storage[key]
+      if @_storage[key]?
+        @length--
+        delete @_storage[key]
+      val
   getOrSet: Batman.Observable.getOrSet
   hashKeyFor: (obj) -> obj?.hashKey?() or obj
   equality: (lhs, rhs) ->
@@ -1055,9 +1076,16 @@ class Batman.SimpleHash
     return true if lhs isnt lhs and rhs isnt rhs # when both are NaN
     return true if lhs?.isEqual?(rhs) and rhs?.isEqual?(lhs)
     return false
+  objectKey: (key) -> typeof key isnt 'string'
   forEach: (iterator, ctx) ->
-    for key, values of @_storage
-      iterator.call(ctx, obj, value, this) for [obj, value] in values.slice()
+    results = []
+    if @_objectStorage
+      for key, values of @_objectStorage
+        for [obj, value] in values.slice()
+          results.push iterator.call(ctx, obj, value, this)
+    for key, value of @_storage
+      results.push iterator.call(ctx, key, value, this)
+    results
   keys: ->
     result = []
     # Explicitly reference this foreach so that if it's overriden in subclasses the new implementation isn't used.
@@ -1065,6 +1093,7 @@ class Batman.SimpleHash
     result
   clear: ->
     @_storage = {}
+    delete @_objectStorage
     @length = 0
   isEmpty: ->
     @length is 0
@@ -1082,8 +1111,11 @@ class Batman.SimpleHash
     @update(object)
   toObject: ->
     obj = {}
-    for key, pair of @_storage
-      obj[key] = pair[0][1] # the first value for this key
+    for key, value of @_storage
+      obj[key] = value
+    if @_objectStorage
+      for key, pair of @_objectStorage
+        obj[key] = pair[0][1] # the first value for this key
     obj
   toJSON: @::toObject
 
@@ -1152,13 +1184,13 @@ class Batman.Hash extends Batman.Object
         @set(k,v)
     @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
     @fire('itemsWereRemoved', removedKeys...) if removedKeys.length > 0
-  equality: Batman.SimpleHash::equality
-  hashKeyFor: Batman.SimpleHash::hashKeyFor
+
+  for k in ['equality', 'hashKeyFor', 'objectKey']
+    @::[k] = Batman.SimpleHash::[k]
 
   for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge', 'toJSON', 'toObject']
-    proto = @prototype
-    do (k) ->
-      proto[k] = ->
+    do (k) =>
+      @prototype[k] = ->
         @registerAsMutableSource()
         Batman.SimpleHash::[k].apply(@, arguments)
 
