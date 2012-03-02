@@ -8,11 +8,11 @@ test "addEventListener and removeEventListener store and remove callbacks using 
 
   Batman.DOM.addEventListener div, 'click', f
   listeners = Batman._data div, 'listeners'
-  ok listeners.click.has f
+  ok ~listeners.click.indexOf f
 
   Batman.DOM.removeEventListener div, 'click', f
   listeners = Batman._data div, 'listeners'
-  ok !listeners.click.has f
+  ok !~listeners.click.indexOf f
 
 asyncTest "bindings are kept in Batman.data and destroyed when the node is removed", 6, ->
   context = new Batman.Object bar: true
@@ -24,7 +24,7 @@ asyncTest "bindings are kept in Batman.data and destroyed when the node is remov
     child = parent.childNodes[0]
     for node in [child, parent]
       bindings = Batman._data node, 'bindings'
-      ok !bindings.isEmpty()
+      ok bindings.length > 0
 
       Batman.DOM.removeNode node
       deepEqual Batman._data(node), {}
@@ -77,7 +77,7 @@ asyncTest "Batman.DOM.Style objects are kept in Batman.data and destroyed when t
     equal itemsAddedSpy.callCount, 0
     QUnit.start()
 
-asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 12, ->
+asyncTest "listeners are kept in Batman.data and destroyed when the node is removed", 8, ->
   context = new Batman.Object foo: ->
 
   helpers.render '<div data-event-click="foo"><div data-event-click="foo"></div></div>', context, (node) ->
@@ -85,9 +85,7 @@ asyncTest "listeners are kept in Batman.data and destroyed when the node is remo
     child = parent.childNodes[0]
     for n in [child, parent]
       listeners = Batman._data n, 'listeners'
-      ok listeners and listeners.click
-      ok listeners.click instanceof Batman.Set
-      ok !listeners.click.isEmpty()
+      ok listeners.click.length > 0
 
       if Batman.DOM.hasAddEventListener
         spy = spyOn n, 'removeEventListener'

@@ -4436,9 +4436,9 @@ Batman.DOM = {
   # it retains.
   trackBinding: $trackBinding = (binding, node) ->
     if bindings = Batman._data node, 'bindings'
-      bindings.add binding
+      bindings.push(binding)
     else
-      Batman._data node, 'bindings', new Batman.SimpleSet(binding)
+      Batman._data node, 'bindings', [binding]
 
     Batman.DOM.fire('bindingAdded', binding)
     true
@@ -4519,8 +4519,8 @@ Batman.DOM = {
     unless listeners = Batman._data node, 'listeners'
       listeners = Batman._data node, 'listeners', {}
     unless listeners[eventName]
-      listeners[eventName] = new Batman.Set
-    listeners[eventName].add callback
+      listeners[eventName] = []
+    listeners[eventName].push callback
 
     if $hasAddEventListener
       node.addEventListener eventName, callback, false
@@ -4532,7 +4532,9 @@ Batman.DOM = {
     # remove the listener from Batman.data
     if listeners = Batman._data node, 'listeners'
       if eventListeners = listeners[eventName]
-        eventListeners.remove callback
+        index = eventListeners.indexOf(callback)
+        if index != -1
+          eventListeners.splice(index, 1)
 
     if $hasAddEventListener
       node.removeEventListener eventName, callback, false
