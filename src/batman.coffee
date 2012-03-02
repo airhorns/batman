@@ -4552,9 +4552,9 @@ Batman.DOM = {
     view?.fire 'disappear', node
 
   onParseExit: $onParseExit = (node, callback) ->
-    set = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', new Batman.SimpleSet)
-    set.add callback if callback?
-    set
+    callbacks = Batman._data(node, 'onParseExit') || Batman._data(node, 'onParseExit', [])
+    callbacks.push callback if callback?
+    callbacks
 
   forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 }
