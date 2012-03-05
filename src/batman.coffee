@@ -544,7 +544,11 @@ class Batman.Property
   hashKey: ->
     @hashKey = -> key
     key = "<Batman.Property base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
-
+  event: (key) ->
+    eventClass = @eventClass or Batman.Event
+    @events ||= {}
+    @events[key] ||= new eventClass(this, key)
+    @events[key]
   changeEvent: ->
     event = @event('change')
     @changeEvent = -> event
