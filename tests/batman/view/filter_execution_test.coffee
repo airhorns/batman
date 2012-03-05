@@ -217,7 +217,7 @@ asyncTest 'map over a set', 1, ->
         comments: 20
     )
   , (node) ->
-    equals node.html(), "one, two"
+    helpers.splitAndSortedEquals node.html(), "one, two", ", "
     QUnit.start()
 
 asyncTest 'map over batman objects', 1, ->

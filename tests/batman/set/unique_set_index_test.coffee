@@ -10,7 +10,7 @@ QUnit.module 'Batman.UniqueSetIndex',
     @byFred = Batman author: @fred
     @anotherByFred = Batman author: @fred
 
-    @base = new Batman.Set(@byMary, @byFred, @byZeke, @anotherByFred)
+    @base = new Batman.Set(@byMary, @byFred, @byZeke)
     @authorNameIndex = new Batman.UniqueSetIndex(@base, 'author.name')
 
     # not yet in the set:
@@ -34,10 +34,12 @@ test "get(value) continues to return the same item if other matching items are a
   equal @authorNameIndex.get("Fred"), @byFred
 
 test "get(value) returns another matching item when the first is removed", ->
+  @base.add(@anotherByFred)
   @base.remove(@byFred)
   equal @authorNameIndex.get("Fred"), @anotherByFred
 
 test "get(value) returns another matching item when the first no longer matches", ->
+  @base.add(@anotherByFred)
   @byFred.set('author', @jill)
   equal @authorNameIndex.get("Fred"), @anotherByFred
 

@@ -48,7 +48,7 @@ basicSetTestSuite = ->
     equal @set.length, 1
 
   test "find(f) returns the first item for which f is true", 1, ->
-    @set.add(1, 2, 3, 4)
+    @set.add(1, 2, 3, 5)
     result = @set.find (n) -> n % 2 is 0
     equal result, 2
 

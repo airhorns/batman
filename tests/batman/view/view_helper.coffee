@@ -71,12 +71,6 @@ exports.triggerKey = (domNode, keyCode, eventNames = ["keydown", "keypress", "ke
     else if document.createEventObject
       domNode.fireEvent 'on'+eventName, event
 
-exports.withNodeInDom = (node, callback) ->
-  node = $(node)
-  $('body').append(node)
-  do callback
-  node.remove()
-
 exports.triggerSubmit = (domNode) ->
   if document.createEvent
     evt = document.createEvent('HTMLEvents')
@@ -84,6 +78,15 @@ exports.triggerSubmit = (domNode) ->
     domNode.dispatchEvent(evt)
   else if document.createEventObject
     domNode.fireEvent 'onsubmit'
+
+exports.withNodeInDom = (node, callback) ->
+  node = $(node)
+  $('body').append(node)
+  do callback
+  node.remove()
+
+exports.splitAndSortedEquals = (a, b, split = ',') ->
+  deepEqual a.split(split).sort(), b.split(split).sort()
 
 # Helper function for rendering a view given a context. Optionally returns a jQuery of the nodes,
 # and calls a callback with the same. Beware of the 50ms timeout when rendering views, tests should

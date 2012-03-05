@@ -1,3 +1,5 @@
+{generateSorterOnProperty} = if typeof require isnt 'undefined' then require '../model_helper' else window
+
 QUnit.module 'Polymorphic object access',
   setup: ->
     @pojo =
@@ -6,7 +8,7 @@ QUnit.module 'Polymorphic object access',
     @hash = new Batman.Hash
     @hash.set('foo', 'fooVal')
     @hash.set('bar', 'barVal')
-    
+
     @array = ['foo', 'bar']
     @set = new Batman.Set('foo', 'bar')
     @setSort = @set.sortedBy(0)
@@ -43,8 +45,9 @@ test "Batman.forEach iterates over an Array", ->
 test "Batman.forEach iterates over a Batman.Set", ->
   Batman.forEach @set, @spy, @emptyContext
   equal @spy.callCount, 2
-  deepEqual @spy.calls[0].arguments, ['foo', null, @set]
-  deepEqual @spy.calls[1].arguments, ['bar', null, @set]
+  sorter = generateSorterOnProperty((x) -> x.arguments[0])
+  deepEqual sorter(@spy.calls)[0].arguments, ['bar', null, @set]
+  deepEqual sorter(@spy.calls)[1].arguments, ['foo', null, @set]
   strictEqual @spy.calls[0].context, @emptyContext
   strictEqual @spy.calls[1].context, @emptyContext
 
@@ -92,4 +95,4 @@ test "Batman.contains delegates to Batman.objectHasKey for Batman.Hashes", ->
   strictEqual Batman.contains(@hash, 'bar'), true
   strictEqual Batman.contains(@hash, 'baz'), false
 
-  
+

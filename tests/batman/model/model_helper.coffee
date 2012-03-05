@@ -75,11 +75,28 @@ createStorageAdapter = (modelClass, adapterClass, data = {}) ->
   modelClass.persist adapter
   adapter
 
+generateSorterOnProperty = (property) ->
+  if typeof property is 'string'
+    key = property
+    property = (x) -> x[key]
+  return (array) ->
+    array.sort (a, b) ->
+      a = property(a)
+      b = property(b)
+      if a < b
+        -1
+      else if a > b
+        1
+      else
+        0
+
 if typeof exports is 'undefined'
   window.TestStorageAdapter = TestStorageAdapter
   window.AsyncTestStorageAdapter = AsyncTestStorageAdapter
   window.createStorageAdapter = createStorageAdapter
+  window.generateSorterOnProperty = generateSorterOnProperty
 else
   exports.TestStorageAdapter = TestStorageAdapter
   exports.AsyncTestStorageAdapter = AsyncTestStorageAdapter
   exports.createStorageAdapter = createStorageAdapter
+  exports.generateSorterOnProperty = generateSorterOnProperty

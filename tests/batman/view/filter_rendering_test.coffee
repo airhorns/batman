@@ -300,11 +300,10 @@ asyncTest 'should allow filtered keypaths as arguments to context and filters to
     bar: 'baz'
 
   helpers.render '<div data-context-corge="foo | get bar"><div id="test" data-bind="corge | map \'foo\' | join \', \'"></div></div>', context, (node) ->
-    delay ->
-      equals $("#test", node).html(), 'bar, baz'
-      context.set 'bar', 'qux'
-      delay ->
-        equals $("#test", node).html(), '1, 2'
+    helpers.splitAndSortedEquals $("#test", node).html(), 'bar, baz', ', '
+    context.set 'bar', 'qux'
+    helpers.splitAndSortedEquals $("#test", node).html(), '1, 2', ', '
+    QUnit.start()
 
 asyncTest 'should allow filtered keypaths as arguments to formfor', 1, ->
   class SingletonDooDad extends Batman.Object

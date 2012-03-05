@@ -29,7 +29,7 @@ test "new Batman.SetIndex(set, key) with unobservable items will observe the set
   barSpy = spyOn(@mary, 'observe')
   baSpy = spyOn(@mary, 'observe')
   simpleIndex = new Batman.SetIndex(set, 'length')
-  deepEqual simpleIndex.get(3).toArray(), ["foo", "bar"]
+  deepEqual simpleIndex.get(3).toArray().sort(), ["foo", "bar"].sort()
 
   ok itemsAddedSpy.called, "the set should be observed"
   ok itemsRemovedSpy.called, "the set should be observed"

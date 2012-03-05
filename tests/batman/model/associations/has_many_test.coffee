@@ -1,4 +1,4 @@
-{createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require '../model_helper' else window
+{createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter, generateSorterOnProperty} = if typeof require isnt 'undefined' then require '../model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../../view/view_helper'
 
 QUnit.module "Batman.Model hasMany Associations"
@@ -146,10 +146,12 @@ asyncTest "hasMany associations are saved via the parent model", 5, ->
       storedJSON = @storeAdapter.storage["stores#{record.id}"]
       deepEqual store2.toJSON(), storedJSON
       # hasMany saves inline by default
-      deepEqual storedJSON.products, [
+      sorter = generateSorterOnProperty('name')
+
+      deepEqual sorter(storedJSON.products), sorter([
         {name: "Gizmo", store_id: record.id, productVariants: []}
         {name: "Gadget", store_id: record.id, productVariants: []}
-      ]
+      ])
       QUnit.start()
 
 asyncTest "hasMany associations are saved via the child model", 2, ->

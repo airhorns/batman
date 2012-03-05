@@ -82,7 +82,7 @@ asyncTest 'it should allow data-context definitions on inner nodes', ->
   objects = objects.map (object) -> Batman(foo: Batman(bar: object))
 
   helpers.render source, {objects}, (node, view) ->
-    deepEqual getPs(view), ['foo', 'bar']
+    deepEqual getPs(view).sort(), ['foo', 'bar'].sort()
     QUnit.start()
 
 asyncTest 'the ready event should wait for all children to be rendered', ->
@@ -361,7 +361,7 @@ asyncTest 'it shouldn\'t become desynchronized with a fancy filtered style set',
       unless @filtered?
         @filtered = new Batman.Set()
         @filtered.add @get('all').toArray()...
-      @filtered
+      @filtered.sortedBy('valueOf')
     set: (k,v) ->
       set = @get('filtered')
       @get('all').forEach (e) ->

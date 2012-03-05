@@ -1,4 +1,4 @@
-{createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require '../model_helper' else window
+{createStorageAdapter, TestStorageAdapter, AsyncTestStorageAdapter, generateSorterOnProperty} = if typeof require isnt 'undefined' then require '../model_helper' else window
 helpers = if typeof require is 'undefined' then window.viewHelpers else require '../../view/view_helper'
 
 baseSetup = ->
@@ -288,10 +288,11 @@ asyncTest "hasMany associations are saved via the parent model", 7, ->
       storedJSON = @storeAdapter.storage["stores#{record.id}"]
       deepEqual store2.toJSON(), storedJSON
       # hasMany saves inline by default
-      deepEqual storedJSON.metafields, [
+      sorter = generateSorterOnProperty('key')
+      deepEqual sorter(storedJSON.metafields), sorter([
         {key: "Gizmo", subject_id: record.id, subject_type: 'Store'}
         {key: "Gadget", subject_id: record.id, subject_type: 'Store'}
-      ]
+      ])
       QUnit.start()
 
 asyncTest "hasMany associations are saved via the child model", 3, ->

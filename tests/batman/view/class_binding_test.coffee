@@ -87,10 +87,14 @@ asyncTest 'it should allow multiple class names to be bound and updated via set'
     classes: new Batman.Set('foo', 'bar', 'baz')
 
   helpers.render source, context, (node) ->
-    equal node[0].className, 'foo bar baz'
+    ok node.hasClass('foo')
+    ok node.hasClass('bar')
+    ok node.hasClass('baz')
     context.get('classes').remove('foo')
     delay =>
-      equal node[0].className, 'bar baz'
+      ok !node.hasClass('foo')
+      ok node.hasClass('bar')
+      ok node.hasClass('baz')
 
 asyncTest 'it should allow multiple class names to be bound and updated via hash', ->
   source = '<div data-bind-class="classes"></div>'
