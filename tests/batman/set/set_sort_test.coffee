@@ -115,6 +115,24 @@ test "toArray() returns the correct order", ->
   expected = [@byFred, @anotherByFred, @byMary, @byZeke]
   deepEqual @authorNameSort.toArray(), expected
 
+test "toArray() returns the correct order when sorting on key which returns a function by calling the function", ->
+  class Test
+    constructor: (@name) ->
+    getName: -> @name
+
+  a = new Test('a')
+  b = new Test('b')
+  c = new Test('c')
+
+  base = new Batman.Set(b, a, c)
+  sorted = base.sortedBy('getName')
+  deepEqual sorted.toArray(), [a, b, c]
+
+test "toArray() returns the correct order when sorting on the 'valueOf' key to sort primitives", ->
+  @base = new Batman.Set('b', 'c', 'a')
+  sorted = @base.sortedBy('valueOf')
+  deepEqual sorted.toArray(), ['a', 'b', 'c']
+
 test "toArray() includes newly added items in the correct order", ->
   @base.add @byJill
   expected = [@byFred, @anotherByFred, @byJill, @byMary, @byZeke]
@@ -163,4 +181,3 @@ test "stopObserving() forgets all observers", ->
 
   @byFred.set('author', @mary)
   deepEqual @authorNameSort.toArray(), expected
-

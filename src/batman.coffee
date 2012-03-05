@@ -1421,8 +1421,12 @@ class Batman.SetSort extends Batman.SetProxy
   _reIndex: ->
     newOrder = @base.toArray().sort (a,b) =>
       valueA = $get(a, @key)
+      if typeof valueA is 'function'
+        valueA = valueA.call(a)
       valueA = valueA.valueOf() if valueA?
       valueB = $get(b, @key)
+      if typeof valueB is 'function'
+        valueB = valueB.call(b)
       valueB = valueB.valueOf() if valueB?
       multiple = if @descending then -1 else 1
       @compare.call(@, valueA, valueB) * multiple
