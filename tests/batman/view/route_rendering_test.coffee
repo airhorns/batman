@@ -112,18 +112,15 @@ asyncTest 'should bind to models when routing to them', 3, ->
         urls = ($(a).attr('href') for a in $('a', view.get('node')))
         expected = expected.map (path) -> Batman.navigator.linkTo(path)
         deepEqual urls, expected
-
       checkUrls ['/tweets/1', '/tweets/1/duplicate']
       context.unset 'tweet'
 
-      delay ->
-        urls = ($(a).attr('href') for a in $('a', view.get('node')))
-        deepEqual urls, ['#', '#']
+      urls = ($(a).attr('href') for a in $('a', view.get('node')))
+      deepEqual urls, ['#', '#']
 
-        context.set 'tweet', tweetB
-        delay ->
-          checkUrls ['/tweets/2', '/tweets/2/duplicate']
-      
+      context.set 'tweet', tweetB
+      checkUrls ['/tweets/2', '/tweets/2/duplicate']
+      QUnit.start()
 
   @App.run()
 

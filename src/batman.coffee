@@ -405,7 +405,7 @@ class Batman.Event
     else
       new Batman.Event(base, key)
   constructor: (@base, @key) ->
-    @handlers = new Batman.SimpleSet
+    @handlers = []
     @_preventCount = 0
   isEvent: true
   isEqual: (other) ->
@@ -413,26 +413,24 @@ class Batman.Event
   hashKey: ->
     @hashKey = -> key
     key = "<Batman.Event base: #{Batman.Hash::hashKeyFor(@base)}, key: \"#{Batman.Hash::hashKeyFor(@key)}\">"
-
   addHandler: (handler) ->
-    @handlers.add(handler)
+    @handlers.push(handler) if @handlers.indexOf(handler) == -1
     @autofireHandler(handler) if @oneShot
     this
   removeHandler: (handler) ->
-    @handlers.remove(handler)
+    if (index = @handlers.indexOf(handler)) != -1
+      @handlers.splice(index, 1)
     this
-
   eachHandler: (iterator) ->
-    @handlers.forEach(iterator)
+    @handlers.slice().forEach(iterator)
     if @base?.isEventEmitter
       key = @key
-      @base._batman.ancestors (ancestor) ->
+      @base._batman?.ancestors (ancestor) ->
         if ancestor.isEventEmitter and ancestor.hasEvent(key)
           handlers = ancestor.event(key).handlers
-          handlers.forEach(iterator)
-
+          handlers.slice().forEach(iterator)
+  clearHandlers: -> @handlers = []
   handlerContext: -> @base
-
   prevent: -> ++@_preventCount
   allow: ->
     --@_preventCount if @_preventCount
@@ -563,13 +561,13 @@ class Batman.Property
     accessor
   eachObserver: (iterator) ->
     key = @key
-    @changeEvent().handlers.forEach(iterator)
+    @changeEvent().handlers.slice().forEach(iterator)
     if @base.isObservable
       @base._batman.ancestors (ancestor) ->
         if ancestor.isObservable and ancestor.hasProperty(key)
           property = ancestor.property(key)
           handlers = property.changeEvent().handlers
-          handlers.forEach(iterator)
+          handlers.slice().forEach(iterator)
   observers: ->
     results = []
     @eachObserver (observer) -> results.push(observer)
@@ -653,7 +651,7 @@ class Batman.Property
     if handler?
       @changeEvent().removeHandler(handler)
     else
-      @changeEvent().handlers.clear()
+      @changeEvent().clearHandlers()
   observeAndFire: (handler) ->
     @observe(handler)
     handler.call(@base, @value, @value)
@@ -666,7 +664,7 @@ class Batman.Property
     handler = @sourceChangeHandler()
     @_eachSourceChangeEvent (e) -> e.removeHandler(handler)
     delete @sources
-    @changeEvent().handlers.clear()
+    @changeEvent().clearHandlers()
 
   lockValue: ->
     @_removeHandlers()
@@ -5169,7 +5167,6 @@ class Batman.DOM.FormBinding extends Batman.DOM.AbstractAttributeBinding
 
     Batman.DOM.events.submit @get('node'), (node, e) -> $preventDefault e
     Batman.DOM.on 'bindingAdded', @bindingWasAdded
-
     @setupErrorsList()
 
   bindingWasAdded: (binding) =>
