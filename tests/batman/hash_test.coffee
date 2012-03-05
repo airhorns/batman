@@ -42,6 +42,11 @@ test "get(key) is not cached", ->
   @hash.property('foo').value = 'baz'
   equal @hash.get('foo'), 'bar'
 
+test "get(key) can get keys which are normally defined on any object", ->
+  for key in ['valueOf', 'toSource', 'toString', 'hasOwnProperty', 'isPrototypeOf', 'constructor']
+    @hash.set(key, 'test')
+    equal @hash.get(key), 'test'
+
 test "set(key, val) stores the value for that key, such that hasKey(key) returns true and get(key) returns the stored value", ->
   @hash.set 'foo', 'bar'
   equal @hash.hasKey('foo'), true

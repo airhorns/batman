@@ -1031,6 +1031,7 @@ class Batman.SimpleHash
           return true if @equality(pair[0], key)
       return false
     else
+      key = @prefixedKey(key)
       @_storage.hasOwnProperty(key)
   get: (key) ->
     if @objectKey(key)
@@ -1039,7 +1040,7 @@ class Batman.SimpleHash
         for pair in pairs
           return pair[1] if @equality(pair[0], key)
     else
-      @_storage[key]
+      @_storage[@prefixedKey(key)]
   set: (key, val) ->
     if @objectKey(key)
       @_objectStorage ||= {}
@@ -1051,6 +1052,7 @@ class Batman.SimpleHash
       pairs.push([key, val])
       val
     else
+      key = @prefixedKey(key)
       @length++ unless @_storage[key]?
       @_storage[key] = val
   unset: (key) ->
@@ -1065,12 +1067,15 @@ class Batman.SimpleHash
             @length--
             return pair[0][1]
     else
+      key = @prefixedKey(key)
       val = @_storage[key]
       if @_storage[key]?
         @length--
         delete @_storage[key]
       val
   getOrSet: Batman.Observable.getOrSet
+  prefixedKey: (key) -> "_"+key
+  unprefixedKey: (key) -> key.slice(1)
   hashKeyFor: (obj) -> obj?.hashKey?() or obj
   equality: (lhs, rhs) ->
     return true if lhs is rhs
@@ -1085,7 +1090,7 @@ class Batman.SimpleHash
         for [obj, value] in values.slice()
           results.push iterator.call(ctx, obj, value, this)
     for key, value of @_storage
-      results.push iterator.call(ctx, key, value, this)
+      results.push iterator.call(ctx, @unprefixedKey(key), value, this)
     results
   keys: ->
     result = []
@@ -1113,7 +1118,7 @@ class Batman.SimpleHash
   toObject: ->
     obj = {}
     for key, value of @_storage
-      obj[key] = value
+      obj[@unprefixedKey(key)] = value
     if @_objectStorage
       for key, pair of @_objectStorage
         obj[key] = pair[0][1] # the first value for this key
@@ -1186,7 +1191,7 @@ class Batman.Hash extends Batman.Object
     @fire('itemsWereAdded', addedKeys...) if addedKeys.length > 0
     @fire('itemsWereRemoved', removedKeys...) if removedKeys.length > 0
 
-  for k in ['equality', 'hashKeyFor', 'objectKey']
+  for k in ['equality', 'hashKeyFor', 'objectKey', 'prefixedKey', 'unprefixedKey']
     @::[k] = Batman.SimpleHash::[k]
 
   for k in ['hasKey', 'forEach', 'isEmpty', 'keys', 'merge', 'toJSON', 'toObject']
