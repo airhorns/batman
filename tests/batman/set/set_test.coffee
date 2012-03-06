@@ -220,7 +220,7 @@ basicSetTestSuite = ->
 
   test "using .forEach() in an accessor registers the set as a source of the property", ->
     obj = new Batman.Object
-    obj.accessor 'foreach', => @set.forEach ->
+    obj.accessor 'foreach', => @set.forEach(->); []
     obj.observe 'foreach', observer = createSpy()
     @set.add('foo')
     equal observer.callCount, 1
