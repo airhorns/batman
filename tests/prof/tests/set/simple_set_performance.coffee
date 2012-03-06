@@ -17,6 +17,16 @@ Watson.benchmark 'set performance', (error, suite) ->
 
   do ->
     set = new Batman.Set
+    for clunk in clunks
+      set.add clunk
+
+    suite.add 'object member iteration', () ->
+      for i in [0..100]
+        set.forEach (item) ->
+      true
+
+  do ->
+    set = new Batman.Set
     suite.add 'object member adding', () ->
       for clunk in clunks
         set.add clunk
@@ -70,6 +80,16 @@ Watson.benchmark 'set performance', (error, suite) ->
     , {
       onCycle: -> set = getSet()
     }
+
+  do ->
+    set = new Batman.Set
+    for string in strings
+      set.add string
+
+    suite.add 'string member iteration', () ->
+      for i in [0..100]
+        set.forEach (string) ->
+      true
 
   do ->
     set = new Batman.Set

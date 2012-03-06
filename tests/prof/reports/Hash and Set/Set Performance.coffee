@@ -4,6 +4,9 @@ qs = (length) -> ('?' for i in [0...length]).join(', ')
 keys = ['set performance: object member adding']
 shas = helpers.getAvailableShas(keys)
 
+header "Iteration Speed"
+barchart helpers.reportKeysAcrossShas(['set performance: object member iteration', 'set performance: string member iteration'], shas)
+
 header "Membership Check Speed"
 barchart helpers.reportKeysAcrossShas(['set performance: object membership check', 'set performance: string membership check'], shas)
 
