@@ -4034,7 +4034,7 @@ class Batman.Renderer extends Batman.Object
 
   bindingRegexp = /^data\-(.*)/
 
-  bindingSortOrder = ["renderif", "foreach", "formfor", "context", "bind", "source", "target"]
+  bindingSortOrder = ["view", "renderif", "foreach", "formfor", "context", "bind", "source", "target"]
 
   bindingSortPositions = {}
   bindingSortPositions[name] = pos for name, pos in bindingSortOrder

@@ -7,8 +7,8 @@ hte = (actual, expected) ->
     expected.toLowerCase().replace(/\n|\r/g, "")
 
 test "Batman.Renderer::_sortBindings should be consistent", ->
-  bindings = [["a"], ["foreach"], ["c"], ["bind"], ["b"], ["context"], ["f"], ["formfor"], ["d"], ["renderif"], ["e"]]
-  expectedSort = [["renderif"], ["foreach"], ["formfor"], ["context"], ["bind"], ["a"], ["b"], ["c"], ["d"], ["e"], ["f"]]
+  bindings = [["a"], ["foreach"], ["c"], ["bind"], ["b"], ["context"], ["f"], ["view"], ["g"], ["formfor"], ["d"], ["renderif"], ["e"]]
+  expectedSort = [["view"], ["renderif"], ["foreach"], ["formfor"], ["context"], ["bind"], ["a"], ["b"], ["c"], ["d"], ["e"], ["f"], ["g"]]
   deepEqual bindings.sort(Batman.Renderer::_sortBindings), expectedSort
 
 test 'it should render simple nodes', ->

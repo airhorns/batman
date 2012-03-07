@@ -85,3 +85,16 @@ asyncTest 'it should not render inner nodes', ->
   helpers.render source, context, ->
     ok !spy.called
     QUnit.start()
+
+asyncTest 'it should not render bindings on the node', ->
+  source = '<div data-view="someCustomClass" data-bind="someProp"></div>'
+  context = Batman({someCustomClass: @MockViewClass})
+  context.accessor 'someProp', {get: spy = createSpy()}
+
+  setTimeout =>
+    @MockViewClass.lastInstance.fireReady()
+  , ASYNC_TEST_DELAY
+
+  helpers.render source, context, ->
+    ok !spy.called
+    QUnit.start()
