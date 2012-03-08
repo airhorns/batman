@@ -339,11 +339,11 @@ Batman.Request::send = (data) ->
     complete: =>
       @fire 'loaded'
 
-  unless @get('formData')
+  unless @hasFileUploads()
     options.headers['Content-type'] = @get('contentType')
 
   if options.method in ['PUT', 'POST']
-    if @get('formData')
+    if @hasFileUploads()
       options.data = @constructor.objectToFormData(data)
     else
       options.data = param(data)

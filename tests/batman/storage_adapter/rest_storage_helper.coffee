@@ -14,6 +14,7 @@ specialProductJSON =
     id: 10
 
 class MockRequest extends MockClass
+  @dataHasFileUploads: Batman.Request.dataHasFileUploads
   @expects = {}
   @reset: ->
     MockClass.reset.call(@)

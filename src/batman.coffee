@@ -1603,7 +1603,20 @@ class Batman.Request extends Batman.Object
   url: ''
   data: ''
   method: 'GET'
-  formData: false
+
+  @dataHasFileUploads = dataHasFileUploads = (data) ->
+    return true if data instanceof File
+    type = $typeOf(data)
+    switch type
+      when 'Object'
+        for k, v of data
+          return true if dataHasFileUploads(v)
+      when 'Array'
+        for v in data
+          return true if dataHasFileUploads(v)
+    false
+       
+  hasFileUploads: -> dataHasFileUploads(@data)
   response: null
   status: null
   headers: {}
@@ -4957,19 +4970,6 @@ class Batman.DOM.FileBinding extends Batman.DOM.AbstractBinding
   isInputBinding: true
   nodeChange: (node, subContext) ->
     return if !@isTwoWay()
-
-    segments = @key.split('.')
-    if segments.length > 1
-      keyContext = subContext.get(segments.slice(0, -1).join('.'))
-    else
-      keyContext = subContext
-
-    actualObject = Batman.RenderContext.deProxy(keyContext)
-
-    if actualObject.hasStorage && actualObject.hasStorage()
-      for adapter in actualObject._batman.get('storage') when adapter instanceof Batman.RestStorage
-        adapter.defaultRequestOptions.formData = true
-
     if node.hasAttribute('multiple')
       @set 'filteredValue', Array::slice.call(node.files)
     else

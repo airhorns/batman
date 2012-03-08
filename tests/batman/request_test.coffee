@@ -1,12 +1,33 @@
 oldSend = Batman.Request::send
+oldFile = Batman.container.File
 
 QUnit.module 'Batman.Request'
   setup: ->
     @sendSpy = createSpy()
     Batman.Request::send = @sendSpy
+    Batman.container.File = class File
   teardown: ->
+    Batman.container.File = oldFile
     Batman.Request::send = oldSend
     @request?.cancel()
+
+test 'hasFileUploads() returns false when the request data has no file uploads', ->
+  req = new Batman.Request data:
+    user:
+      name: 'Jim'
+  equal req.hasFileUploads(), false
+ 
+test 'hasFileUploads() returns true when the request data has a file upload in a nested object', ->
+  req = new Batman.Request data:
+    user:
+      avatar: new File()
+  equal req.hasFileUploads(), true
+
+test 'hasFileUploads() returns true when the request data has a file upload in a nested array', ->
+  req = new Batman.Request data:
+    user:
+      avatars: [undefined, new File()]
+  equal req.hasFileUploads(), true
 
 test 'should not fire if not given a url', ->
   new Batman.Request

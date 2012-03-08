@@ -39,7 +39,7 @@ Batman.Request::send = (data) ->
 
   if @get('method') in ['PUT', 'POST']
 
-    unless @get 'formData'
+    unless @hasFileUploads()
       options.contentType = @get 'contentType'
     else
       options.contentType = false

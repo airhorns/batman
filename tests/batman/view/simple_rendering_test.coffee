@@ -369,7 +369,17 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
     helpers.render '<input type="file" data-bind="fileAttributes"></input>', false, context, (node) ->
       helpers.triggerChange(node.childNodes[0])
       delay ->
-        ok adapter.defaultRequestOptions.formData
+        strictEqual context.fileAttributes, undefined
+
+  asyncTest 'it should bind the value of file type inputs with the "multiple" flag', 2, ->
+    [context, adapter] = getMockModel()
+    ok !adapter.defaultRequestOptions.formData
+
+    helpers.render '<input type="file" data-bind="fileAttributes" multiple="multiple"></input>', false, context, (node) ->
+      helpers.triggerChange(node.childNodes[0])
+      delay ->
+        deepEqual context.fileAttributes, []
+
 
   asyncTest 'it should bind the value of file type inputs when they are proxied', 2, ->
     [context, adapter] = getMockModel()
@@ -380,7 +390,7 @@ unless IN_NODE # jsdom doesn't seem to like input type="file"
     helpers.render source, false, {proxied: context}, (node) ->
       helpers.triggerChange(node.childNodes[0].childNodes[0])
       delay ->
-        ok adapter.defaultRequestOptions.formData
+        strictEqual context.fileAttributes, undefined
 
 asyncTest 'should bind radio buttons to a value', ->
   source = '<input id="fixed" type="radio" data-bind="ad.sale_type" name="sale_type" value="fixed"/>
