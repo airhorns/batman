@@ -4018,7 +4018,6 @@ class Batman.View extends Batman.Object
 
   render: (node) ->
     @event('ready').resetOneShot()
-    @_renderer?.forgetAll()
 
     # We use a renderer with the continuation style rendering engine to not
     # block user interaction for too long during the render.
@@ -4063,8 +4062,6 @@ class Batman.Renderer extends Batman.Object
   stop: ->
     $clearImmediate @immediate
     @fire 'stopped'
-
-  forgetAll: ->
 
   for k in ['parsed', 'rendered', 'stopped']
     @::event(k).oneShot = true
