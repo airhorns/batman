@@ -968,6 +968,25 @@ class BatmanObject extends Object
   @accessor: -> @classAccessor.apply @prototype, arguments
   # Support adding accessors to instances after creation
   accessor: @classAccessor
+  
+  wrapSingleAccessor = (core, wrapper) ->
+    wrapper = wrapper?(core) or wrapper
+    for k, v of core
+      wrapper[k] = v unless k of wrapper
+    wrapper
+
+  @wrapClassAccessor: (keys..., wrapper) ->
+    Batman.initializeObject(this)
+    if keys.length is 0
+      core = Batman.Property.defaultAccessorForBase(this)
+      @accessor wrapSingleAccessor(core, wrapper)
+    else
+      for key in keys
+        core = Batman.Property.accessorForBaseAndKey(this, key)
+        @accessor key, wrapSingleAccessor(core, wrapper)
+
+  @wrapAccessor: -> @wrapClassAccessor.apply @prototype, arguments
+  wrapAccessor: @wrapClassAccessor
 
   constructor: (mixins...) ->
     @_batman = new _Batman(@)
