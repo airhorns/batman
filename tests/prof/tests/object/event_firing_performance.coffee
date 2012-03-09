@@ -8,14 +8,14 @@ Watson.benchmark 'event firing', (error, suite) ->
 
   do ->
     clunks = (new Clunk({i}) for i in [0..200])
-    suite.add 'once per object', ->
+    suite.add 'once per object with no handlers', ->
       for clunk in clunks
         clunk.fire('foo')
       true
 
   do ->
     clunk = new Clunk({i: 0})
-    suite.add 'many on same object', ->
+    suite.add 'many on same object with no handlers', ->
       clunk.fire('foo') for i in [0..200]
       true
 
