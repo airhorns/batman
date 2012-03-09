@@ -2671,11 +2671,6 @@ class Batman.Model extends Batman.Object
         @get('loaded').add(record)
         return record
 
-  associationProxy: (association) ->
-    Batman.initializeObject(@)
-    proxies = @_batman.associationProxies ||= new Batman.SimpleHash
-    proxies.get(association.label) or proxies.set(association.label, new association.proxyClass(association, @))
-
   # ### Record API
 
   # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
@@ -2738,6 +2733,8 @@ class Batman.Model extends Batman.Object
       @set('id', idOrAttributes)
 
     @empty() if not @state()
+
+  isNew: -> typeof @get('id') is 'undefined'
 
   # Override the `Batman.Observable` implementation of `set` to implement dirty tracking.
   set: (key, value) ->
@@ -2922,7 +2919,11 @@ class Batman.Model extends Batman.Object
             validator.callback @errors, @, key, validationCallback
     return
 
-  isNew: -> typeof @get('id') is 'undefined'
+  associationProxy: (association) ->
+    Batman.initializeObject(@)
+    proxies = @_batman.associationProxies ||= {}
+    proxies[association.label] ||= new association.proxyClass(association, @)
+    proxies[association.label]
 
 # ## Associations
 class Batman.AssociationProxy extends Batman.Object
@@ -3090,13 +3091,14 @@ class Batman.Association
       name: helpers.camelize(helpers.singularize(@label))
     @options = $mixin defaultOptions, @defaultOptions, options
 
-    # Setup encoders and accessors for this association. The accessor needs reference to this
-    # association object, so curry the association info into the getAccessor, which has the
-    # model applied as the context
+    # Setup encoders and accessors for this association.
     @model.encode label, @encoder()
 
+    # The accessor needs reference to this association object, so curry the association info into
+    # the getAccessor, which has the model applied as the context.
     self = @
     getAccessor = -> return self.getAccessor.call(@, self, @model, @label)
+
     @model.accessor @label,
       get: getAccessor
       set: model.defaultAccessor.set
@@ -3471,6 +3473,7 @@ class Batman.PolymorphicHasManyAssociation extends Batman.HasManyAssociation
       delete association._beingEncoded
       jsonArray
     encoder
+
 # ### Model Associations API
 for k in Batman.AssociationCurator.availableAssociations
   do (k) =>
