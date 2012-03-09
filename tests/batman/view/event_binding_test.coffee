@@ -62,7 +62,7 @@ asyncTest 'it should allow un-special-cased events like focus to be bound', 2, -
       ok spy.called
       equal spy.lastCallArguments[0], node[0]
 
-asyncTest 'it should allow event handlers to update', 2, ->
+asyncTest 'it should allow event handlers to update', 3, ->
   context = Batman
     doSomething: spy = createSpy()
 
@@ -75,6 +75,7 @@ asyncTest 'it should allow event handlers to update', 2, ->
       helpers.triggerClick(node[0])
       delay ->
         ok newSpy.called
+        equal spy.callCount, 1
 
 asyncTest 'it should allow change events on checkboxes to be bound', 2, ->
   context = new Batman.Object
