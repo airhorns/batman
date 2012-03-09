@@ -947,11 +947,25 @@ class BatmanObject extends Object
   getAccessorObject = (base, accessor) ->
     if typeof accessor is 'function'
       accessor = {get: accessor}
-    else if typeof accessor.promise is 'function'
-      accessor = new Batman.PromiseAccessor(accessor.promise, Batman.Property.defaultAccessorForBase(base))
     accessor
 
+  promiseWrapper = (fetcher) ->
+    (core) ->
+      get: (key) ->
+        val = core.get.apply(this, arguments)
+        return val if (typeof val isnt 'undefined')
+        returned = false
+        deliver = (err, result) =>
+          @set(key, result) if returned
+          val = result
+        fetcher.call(this, deliver, key)
+        returned = true
+        val
+      cachable: true
+
   @classAccessor: (keys..., accessor) ->
+    if typeof accessor.promise is 'function'
+      return @wrapAccessor(keys..., promiseWrapper(accessor.promise))
     Batman.initializeObject @
     # Create a default accessor if no keys have been given.
     if keys.length is 0
@@ -1004,23 +1018,6 @@ class BatmanObject extends Object
     @classAccessor singletonMethodName,
       get: -> @["_#{singletonMethodName}"] ||= new @
 
-      
-class Batman.PromiseAccessor
-  constructor: (fetcher, wrappedAccessor = Batman.Property.defaultAccessor) ->
-    @[k] = v for k,v of wrappedAccessor
-    @get = (key) ->
-      val = wrappedAccessor.get.apply(this, arguments)
-      return val if (typeof val isnt 'undefined')
-      returned = false
-      deliver = (err, result) =>
-        @set(key, result) if returned
-        val = result
-      fetcher.call(this, deliver, key)
-      returned = true
-      val
-    @cachable = true
-
-    
 Batman.Object = BatmanObject
 
 class Batman.Accessible extends Batman.Object
