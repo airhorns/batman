@@ -5157,13 +5157,13 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
     return unless viewClassOrInstance?
     if viewClassOrInstance.isView
       @view = viewClassOrInstance
-      @view.set 'node', @node
       @view.set 'context', @renderContext
+      @view.set 'node', @node
     else
       @view = new viewClassOrInstance
         node: @node
         context: @renderContext
-        parentView: @renderContext.findKey('isView')?[1]
+        parentView: @renderer.view
 
     Batman.data @node, 'view', @view
 
