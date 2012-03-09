@@ -13,8 +13,15 @@
   jquerySource = fs.readFileSync(path.join(__dirname, 'lib', 'jquery.js')).toString();
 
   qqunit.Environment.jsdom.jQueryify(window, path.join(__dirname, 'lib', 'jquery.js'), function(window, jQuery) {
-    var Helper, k, tests, v;
+    var File, Helper, k, tests, v;
     global.jQuery = jQuery;
+    global.File = window.File = File = (function() {
+
+      function File() {}
+
+      return File;
+
+    })();
     Helper = require('./batman/test_helper');
     for (k in Helper) {
       if (!__hasProp.call(Helper, k)) continue;

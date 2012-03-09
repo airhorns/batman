@@ -9,6 +9,7 @@ jquerySource = fs.readFileSync(path.join(__dirname, 'lib', 'jquery.js')).toStrin
 
 qqunit.Environment.jsdom.jQueryify window, path.join(__dirname, 'lib', 'jquery.js'), (window, jQuery) ->
   global.jQuery = jQuery
+  global.File = window.File = class File
 
   # Load test helper
   Helper = require './batman/test_helper'
