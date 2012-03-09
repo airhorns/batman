@@ -4149,6 +4149,8 @@ class Batman.RenderContext
       Batman.currentApp.get('_renderContext')
     else
       @base
+
+  windowWrapper: {window}
   constructor: (@object, @parent) ->
 
   findKey: (key) ->
@@ -4163,7 +4165,6 @@ class Batman.RenderContext
         return [val, currentNode.object].map(@constructor.deProxy)
       currentNode = currentNode.parent
 
-    @windowWrapper ||= window: Batman.container
     [$get(@windowWrapper, key), @windowWrapper]
 
   get: (key) -> @findKey(key)[0]
