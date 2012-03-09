@@ -807,8 +807,7 @@ Batman.initializeObject = (object) ->
 # object state. Things like observers, accessors, and states belong in the `_batman` object
 # attached to every Batman.Object subclass and subclass instance.
 Batman._Batman = class _Batman
-  constructor: (@object, mixins...) ->
-    $mixin(@, mixins...) if mixins.length > 0
+  constructor: (@object) ->
 
   # Used by `Batman.initializeObject` to ensure that this `_batman` was created referencing
   # the object it is pointing to.
@@ -984,7 +983,7 @@ class BatmanObject extends Object
     @classAccessor singletonMethodName,
       get: -> @["_#{singletonMethodName}"] ||= new @
 
-      
+
 class Batman.PromiseAccessor
   constructor: (fetcher, wrappedAccessor = Batman.Property.defaultAccessor) ->
     @[k] = v for k,v of wrappedAccessor
@@ -1000,7 +999,7 @@ class Batman.PromiseAccessor
       val
     @cachable = true
 
-    
+
 Batman.Object = BatmanObject
 
 class Batman.Accessible extends Batman.Object
@@ -1637,7 +1636,7 @@ class Batman.Request extends Batman.Object
         for v in data
           return true if dataHasFileUploads(v)
     false
-       
+
   hasFileUploads: -> dataHasFileUploads(@data)
   response: null
   status: null
