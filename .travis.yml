@@ -4,4 +4,4 @@ node_js:
   - 0.6
 notifications:
   irc: "irc.freenode.org#batmanjs"
-  email: false
+  email: batman-dev@shopify.com
