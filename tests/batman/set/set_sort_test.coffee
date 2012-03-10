@@ -111,6 +111,25 @@ test "forEach(iterator) loops in the correct order", ->
   @authorNameSort.forEach (item, i) ->
     ok item is expected[i]
 
+test "get('length') returns the correct length", ->
+  equal @authorNameSort.get('length'), 4
+
+test "get('length') returns the correct length when items are added to the underlying set", ->
+  @base.add @byJill
+  equal @authorNameSort.get('length'), 5
+
+test "get('length') returns the correct length when items are removed from the underlying set", ->
+  @base.remove @byFred
+  equal @authorNameSort.get('length'), 3
+
+test "get('length') returns the correct length when items are added to the set via the set sort proxy", ->
+  @authorNameSort.add @byJill
+  equal @authorNameSort.get('length'), 5
+
+test "get('length') returns the correct length when items are added to the set via the set sort proxy", ->
+  @authorNameSort.remove @byFred
+  equal @authorNameSort.get('length'), 3
+
 test "toArray() returns the correct order", ->
   expected = [@byFred, @anotherByFred, @byMary, @byZeke]
   deepEqual @authorNameSort.toArray(), expected

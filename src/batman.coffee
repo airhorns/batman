@@ -1368,11 +1368,15 @@ class Batman.SetObserver extends Batman.Object
       @base.event(key)[method](observer)
 
 class Batman.SetProxy extends Batman.Object
-  constructor: () ->
+  constructor: (@base) ->
     super()
-    @length = 0
-    @base.on 'itemsWereAdded', (items...) => @fire('itemsWereAdded', items...)
-    @base.on 'itemsWereRemoved', (items...) => @fire('itemsWereRemoved', items...)
+    @length = @base.length
+    @base.on 'itemsWereAdded', (items...) =>
+      @set 'length', @base.length
+      @fire('itemsWereAdded', items...)
+    @base.on 'itemsWereRemoved', (items...) =>
+      @set 'length', @base.length
+      @fire('itemsWereRemoved', items...)
 
   $extendsEnumerable(@::)
 
@@ -1380,14 +1384,14 @@ class Batman.SetProxy extends Batman.Object
     r = new Batman.Set()
     @reduce(((r, e) -> r.add(e) if f(e); r), r)
 
-  for k in ['add', 'remove', 'find', 'clear', 'replace']
-    do (k) =>
-      @::[k] = ->
-        results = @base[k](arguments...)
-        @length = @set('length', @base.get 'length')
-        results
+  replace: ->
+    length = @property('length')
+    length.isolate()
+    result = @base.replace.apply(@, arguments)
+    length.expose()
+    result
 
-  for k in ['has', 'merge', 'toArray', 'isEmpty', 'indexedBy', 'indexedByUnique', 'sortedBy']
+  for k in ['add', 'remove', 'find', 'clear', 'has', 'merge', 'toArray', 'isEmpty', 'indexedBy', 'indexedByUnique', 'sortedBy']
     do (k) =>
       @::[k] = -> @base[k](arguments...)
 
@@ -1400,8 +1404,8 @@ class Batman.SetProxy extends Batman.Object
     set: (_, v) -> @length = v
 
 class Batman.SetSort extends Batman.SetProxy
-  constructor: (@base, @key, order="asc") ->
-    super()
+  constructor: (base, @key, order="asc") ->
+    super(base)
     @descending = order.toLowerCase() is "desc"
     if @base.isObservable
       @_setObserver = new Batman.SetObserver(@base)
