@@ -6,9 +6,8 @@ QUnit.module "Batman.SetIntersection"
 
 membersEqual = (set, members) ->
   deepEqual set.toArray().sort(), members.sort()
-
-test "intersections should contain items present only in both sets", ->
-  membersEqual @intersection, ["c"]
+  equal set.get('length'), members.length
+  equal set.length, members.length
 
 test "intersections should be empty if either set is empty", ->
   @left.clear() # one empty
@@ -19,6 +18,9 @@ test "intersections should be empty if either set is empty", ->
 
   @left.add("a", "b") # other empty
   membersEqual @intersection, []
+
+test "intersections should contain items present only in both sets", ->
+  membersEqual @intersection, ["c"]
 
 test "intersections should observe additions to either set and add the added item to themselves if present in the other set", ->
   @left.add "f"

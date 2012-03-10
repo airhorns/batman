@@ -6,6 +6,8 @@ QUnit.module "Batman.SetUnion"
 
 membersEqual = (set, members) ->
   deepEqual set.toArray().sort(), members.sort()
+  equal set.get('length'), members.length
+  equal set.length, members.length
 
 test "unions should contain items from both sets", ->
   membersEqual @union, ["a", "b", "c", "d", "e"]
