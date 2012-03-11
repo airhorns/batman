@@ -4154,7 +4154,7 @@ class Batman.RenderContext
     else
       @base
 
-  windowWrapper: {window}
+  windowWrapper: if window? then {window} else {}
   constructor: (@object, @parent) ->
 
   findKey: (key) ->
