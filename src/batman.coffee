@@ -985,7 +985,7 @@ class BatmanObject extends Object
   @accessor: -> @classAccessor.apply @prototype, arguments
   # Support adding accessors to instances after creation
   accessor: @classAccessor
-  
+
   wrapSingleAccessor = (core, wrapper) ->
     wrapper = wrapper?(core) or wrapper
     for k, v of core
@@ -4508,6 +4508,9 @@ Batman.DOM = {
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
   # or removed without leaking memory
   unbindNode: $unbindNode = (node) ->
+    view = Batman.data(node, 'view')
+    view?.fire 'beforeDisappear', node
+
     # break down all bindings
     if bindings = Batman._data node, 'bindings'
       bindings.forEach (binding) -> binding.die()
@@ -4521,6 +4524,8 @@ Batman.DOM = {
     # remove all bindings and other data associated with this node
     Batman.removeData node                   # external data (Batman.data)
     Batman.removeData node, undefined, true  # internal data (Batman._data)
+
+    view?.fire 'disappear', node
 
   # Unbinds the tree rooted at `node`.
   # When set to `false`, `unbindRoot` skips the `node` before unbinding all of its children.
@@ -4542,8 +4547,13 @@ Batman.DOM = {
 
   # Memory-safe removal of a node from the DOM
   removeNode: $removeNode = (node) ->
+    view = Batman.data(node, 'view')
+    view?.fire 'beforeDisappear', node
+
     node.parentNode?.removeChild node
     Batman.DOM.didRemoveNode(node)
+
+    view?.fire 'disappear', node
 
   appendChild: $appendChild = (parent, child, args...) ->
     view = Batman.data(child, 'view')
