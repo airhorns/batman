@@ -707,7 +707,7 @@ class Batman.Property
 
 class Batman.Keypath extends Batman.Property
   constructor: (base, key) ->
-    if $typeOf(key) is 'String'
+    if typeof key is 'string'
       @segments = key.split('.')
       @depth = @segments.length
     else
