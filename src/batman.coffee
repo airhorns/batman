@@ -4117,20 +4117,20 @@ class Batman.Renderer extends Batman.Object
       @timeout = $setImmediate @resume
       return
     if node.getAttribute and node.attributes
-      bindings = for attr in node.attributes
-        name = attr.nodeName.match(bindingRegexp)?[1]
+      bindings = []
+      for attribute in node.attributes
+        name = attribute.nodeName.match(bindingRegexp)?[1]
         continue if not name
-        if ~(varIndex = name.indexOf('-'))
-          [name.substr(0, varIndex), name.substr(varIndex + 1), attr.value]
+        bindings.push if (names = name.split('-')).length > 1
+          [names[0], names[1], attribute.value]
         else
-          [name, attr.value]
+          [name, undefined, attribute.value]
 
-      for readerArgs in bindings.sort(@_sortBindings)
-        key = readerArgs[1]
-        result = if readerArgs.length == 2
-          Batman.DOM.readers[readerArgs[0]]?(node, key, @context, @)
+      for [name, argument, keypath] in bindings.sort(@_sortBindings)
+        result = if argument
+          Batman.DOM.attrReaders[name]?(node, argument, keypath, @context, @)
         else
-          Batman.DOM.attrReaders[readerArgs[0]]?(node, key, readerArgs[2], @context, @)
+          Batman.DOM.readers[name]?(node, keypath, @context, @)
 
         if result is false
           skipChildren = true
