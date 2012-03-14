@@ -248,6 +248,50 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
       <h3>observeAndFire(key, observerCallback) : BatmanObject</h3>
       <h3>forget([key [, observerCallback]]) : BatmanObject</h3>
       <h3>getOrSet(keypath, valueFunction) : currentValue</h3>
+      <h2>Batman.Object</h2>
+      <h3>constructor(objects...)</h3>
+      <h3>toJSON() : object</h3>
+      <h3>hashKey(): string</h3>
+      <h3>accessor([keys...], objectOrFunction) -&gt;</h3>
+          <h4>Arguments</h4>
+          <h4>Uses</h4>
+          <h4>Caveats</h4>
+      <h2>Batman.SimpleSet</h2>
+      <h3>SimpleSet vs Set</h3>
+      <h3>constructor(items...)</h3>
+      <h3>length : number</h3>
+      <h3>has(item) : Boolean</h3>
+      <h3>add(items...) : Array</h3>
+      <h3>remove(items...) : Array</h3>
+      <h3>find(testFunction : function) : [Object]</h3>
+      <h3>forEach(iteratorFunction : function[, context: Object])</h3>
+      <h3>isEmpty() : boolean</h3>
+      <h3>clear() : Array</h3>
+      <h3>replace(collection : Enumerable) : Array</h3>
+      <h3>toArray() : Array</h3>
+      <h3>merge(collections... : Enumerable) : SimpleSet</h3>
+      <h3>indexedBy(key : String) : SetIndex</h3>
+      <h3>indexedByUnique(key : String) : UniqueSetIndex</h3>
+      <h3>sortedBy(key: String) : SetSort</h3>
+      <h2>Batman.Set</h2>
+      <h3>SimpleSet vs Set</h3>
+      <h3>constructor(items...)</h3>
+      <h3>length : number</h3>
+      <h3>isEmpty : boolean</h3>
+      <h3>toArray : Array</h3>
+      <h3>has(item) : Boolean</h3>
+      <h3>add(items...)</h3>
+      <h3>remove(items...)</h3>
+      <h3>find(testFunction : function) : [Object]</h3>
+      <h3>forEach(iteratorFunction : function[, context: Object])</h3>
+      <h3>isEmpty() : boolean</h3>
+      <h3>clear() : Array</h3>
+      <h3>replace(collection : Enumerable) : Array</h3>
+      <h3>toArray() : Array</h3>
+      <h3>merge(collections... : Enumerable) : Set</h3>
+      <h3>indexedBy(key : String) : SetIndex</h3>
+      <h3>indexedByUnique(key : String) : UniqueSetIndex</h3>
+      <h3>sortedBy(key: String) : SetSort</h3>
 </div>
 <div role="main">
   <h1>batman.js</h1>
@@ -689,6 +733,9 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Adds the <code>observerCallback</code> as an observer to <code>key</code>, and fires it immediately. Accepts the exact same arguments and follows the same semantics as <code>Observable::observe</code>, but the observer is fired with the current value of the keypath it observers synchronously during the call to <code>observeAndFire</code>.
 
 </p>
+<p>During the initial synchronous firing of the <code>callback</code>, the <code>newValue</code> and <code>oldValue</code> arguments will be the same value: the current value of the property. This is because the old value of the property is not cached and therefore unavailable. If your observer needs the old value of the property, you must attach it before the <code>set</code> on the property happens.
+
+</p>
 <div class="console-session">
   <h4>observeAndFire calls the observer upon attaching it with the currentValue of the property</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
@@ -825,7 +872,915 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
   </pre>
 </div>
 
+<h2>Batman.Object</h2>
+<p><code>Batman.Object</code> is the superclass for virtually all objects in a Batman application. <code>Batman.Object</code> mixes in <code>Batman.Observable</code> and <code>Batman.EventEmitter</code> for things like <code>get</code>, <code>set</code>, <code>observe</code>, and <code>fire</code>, and then defines some more useful things for tying everything together.
 
+</p>
+<h3>constructor(objects...)</h3>
+<p>To create a new <code>Batman.Object</code>, the <code>Batman.Object</code> constructor can be used, or, the <code>Batman</code> namespace is also a utility function for creating Batman objects. Each object passed in to the constructor will have all its properties applied to the new <code>Batman.Object</code> using <code>get</code> and <code>set</code>, so any custom getters or setters will be respected. Objects passed in last will have precedence over objects passed in first in the event that they share the same keys. The property copy from these objects is shallow.
+
+</p>
+<div class="console-session">
+  <h4>Batman() function allows for handy creation of Batman.Objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">object</span><span class="p">.</span><span class="nx">get</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;function&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Batman.Object constructor function accepts multiple mixin arguments and later mixins take precedence.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">length</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">120</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">130</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">100</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;bpm&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">130</span> <span class="c1">// The property from the second object passed to the constructor overwrites that from the first.</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>toJSON() : object</h3>
+<p><code>toJSON</code> returns a vanilla JavaScript object representing this <code>Batman.Object</code>.
+
+</p>
+<div class="console-session">
+  <h4>toJSON returns a vanilla JS object</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">object</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>hashKey(): string</h3>
+<p><code>hashKey</code> returns a unique string representing this particular <code>Batman.Object</code>. No two <code>Batman.Object</code>s will have the same <code>hashKey</code>.
+
+</p>
+<h3>accessor([keys...], objectOrFunction) -&gt;</h3>
+<p>Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. <code>accessor</code> is a Batman and old browser friendly version of ES5 <code>Object.defineProperty</code> missing some of the goodness.
+
+</p>
+<p>The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking <code>get</code> calls, so do be sure to use <code>get</code> to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies.
+
+</p>
+<h4>Arguments</h4>
+<p><code>@accessor</code> can be called with zero, one, or many keys for the accessor to define. This has the following effects:
+
+</p>
+<ul>
+<li>zero: create a <code>defaultAccessor</code>, which will be called when no other properties or accessors on an object match a keypath. This is similar to <code>method_missing</code> in Ruby or <code>#doesNotUnderstand</code> in Smalltalk.</li>
+</ul>
+<p><code>@accessor</code> accepts as the last argument either an object with any combination of the <code>get</code>, <code>set</code>, and <code>unset</code> keys defined. Functions which implement the behaviour for those particular actions on the property should reside at these keys. <code>@accessor</code> also accepts a function as the last argument, which is a shorthand for specifying the <code>get</code> implementation for the accessor.
+
+</p>
+<h4>Uses</h4>
+<p>Accessors are a really useful addition to the world of JavaScript. You can now define transforms on simple properties which will automatically update when the properties they transform change, for example you might want to truncate a potentially long piece of text to display a summary elsewhere, or you might want to capitalize or <code>encodeURIComponent</code> a value before putting it in the view or the current URL.
+
+</p>
+<div class="console-session">
+  <h4>@accessor can be called on a class to define how a property is calculated</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">({</span>
+    <span class="nx">body</span><span class="o">:</span> <span class="s2">&quot;Why Batman is Useful: A lengthy post on an important subject&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Why Batman...&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<p>You can also use accessors to combine properties; the colloquial <code>fullName</code> example comes to mind, but all sorts of other complex logic can be abstracted away using the accessor pattern.
+
+</p>
+<div class="console-session">
+  <h4>@accessor can define a transform on several properties</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">User</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">User</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">User</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">User</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">User</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;fullName&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;firstName&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;lastName&#39;</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">User</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">tim</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">User</span><span class="p">({</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Tim&quot;</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Thomas&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">tim</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;fullName&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Tim Thomas&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">tim</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;firstName&#39;</span><span class="p">,</span> <span class="s2">&quot;Timmy&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">tim</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;fullName&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Timmy Thomas&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@accessor can use arbitrary logic to define the value</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Player</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Player</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Player</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Player</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">Player</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Player</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;played&#39;</span><span class="p">))</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;goals&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;assists&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Player</span><span class="p">({</span>
+    <span class="nx">played</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+    <span class="nx">goals</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="nx">assists</span><span class="o">:</span> <span class="mi">0</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">0</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;played&#39;</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">0</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;goals&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">6</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;assists&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">7</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h4>Caveats</h4>
+
+<h2>Batman.SimpleSet</h2>
+<p><code>SimpleSet</code> is an implementation of the <code>Set</code> object you might expect to find in lots of other languages standard libraries. Sets are an enumerable but unordered collection of objects. A particular object may either be a member or not be a member of a particular set, but it may not belong to the set twice, as that would imply ordering. In the case of Batman, sets will tell you when items are added or removed through events, sets mix in the <code>Enumerable</code> module for handy iteration and aggregation, and can also generate indexes and sorts via <code>SetIndex</code> and <code>SetSort</code>.
+
+</p>
+<h4>SimpleSet vs Set</h4>
+<p><code>SimpleSet</code> and <code>Set</code> are two distinct classes in Batman. <code>SimpleSet</code> implements the set semantics as described above, but it is <em>not</em> a <code>Batman.Object</code>, so properties on it (like it&#39;s <code>length</code> or <code>toArray</code>) can not be observed, and thus not bound. <code>Set</code> is a <code>Batman.Object</code>, so it can be observed, and thus plays nice with the accessor system. Use a <code>SimpleSet</code> only when you know nothing will need to be observed on the set you are creating, which usually isn&#39;t a valid assumption. If it is in fact correct, consider using a native array as well, because iteration and in fact membership checks will be faster.
+
+
+</p>
+<h3>constructor(items...)</h3>
+<p>When creating a <code>SimpleSet</code>, items forming the initial set can be passed as separate arguments to the constructor
+
+</p>
+<div class="console-session">
+  <h4>new SimpleSet constructor can be called without arguments</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>new SimpleSet constructor can be passed items to add to the set.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>length : number</h3>
+<p>A count of the items in a <code>SimpleSet</code> can be found at it&#39;s <code>length</code> property.
+
+</p>
+<h3>has(item) : Boolean</h3>
+<p><code>has</code> returns a boolean describing if the given <code>item</code> is a member of the set.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::has indicates if an item is a member of the set or not.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>add(items...) : Array</h3>
+<p><code>add</code> adds 0 or more new items to the set. <code>add</code> returns an array of the items which have been newly added to the set, which is to say the intersection of the argument items and the set itself before addition.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::add adds an item to the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>SimpleSet::add returns only the new items that weren\&#39;t previously in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>remove(items...) : Array</h3>
+<p><code>remove</code> removes 0 or more items from the set. <code>remove</code> returns an array of the items which were successfully removed from the set, which is to say the intersection of the argument items and the set itself before removal.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::remove removes an item from the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>SimpleSet::remove returns only the new items that were previously in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>find(testFunction : function) : [Object]</h3>
+<p><code>find</code> returns the first item within the set for which the <code>testFunction</code> called with the item returns <code>true</code>, or <code>undefined</code> if no item passes the test.
+
+</p>
+<p><em>Note</em>: <code>find</code> returns the first item the test passes for, but since set iteration has no specified order, no guarantee can be made about which item will be returned if more than one item in the set passes the test. However, set iteration order is stable, so <code>find</code> called on the same set twice should return the same item.
+
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::find returns the first item for which the test function passes</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">x</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">===</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">2</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>SimpleSet::find returns undefined if no items pass the test function</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">x</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;undefined&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>forEach(iteratorFunction : function[, context: Object])</h3>
+<p><code>forEach</code> calls the <code>iteratorFunction</code> with each item in the set, optionally executing the <code>iteratorFunction</code> in the passed context. Returns <code>undefined</code>.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, which is to say Set client code cannot rely on one item being iterated over before another, regardless of when the Set&#39;s items were added. If you need an ordered set, Batman provides <code>SetSort</code> for exactly this, while including the added benefit of observability. If you need a one time ordering of a set, you can get the array representation with <code>toArray</code> and then use vanilla JavaScript <code>sort</code> on that array.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::forEach iterates over each item in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">sum</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">sum</span> <span class="o">+=</span> <span class="nx">x</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">sum</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">6</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>SimpleSet::forEach iterates over each item in the set optionally in the provided context</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">context</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">sum</span><span class="o">:</span> <span class="mi">0</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sum</span> <span class="o">+=</span> <span class="nx">x</span><span class="p">;</span>
+  <span class="p">},</span> <span class="nx">context</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">context</span><span class="p">.</span><span class="nx">sum</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">6</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>isEmpty() : boolean</h3>
+<p><code>isEmpty</code> returns a boolean: <code>true</code> if the set has no items, and <code>false</code> if it has any items.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::isEmpty returns true if the set has no items</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>clear() : Array</h3>
+<p><code>clear</code> removes all items from a set. Returns an array of all the items in the set.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, so the order of the array of items returned by <code>clear</code> is undefined.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::clear empties the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">clear</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>replace(collection : Enumerable) : Array</h3>
+<p><code>replace</code> removes all the items in a set and then adds all the items found in another <code>collection</code>. The other collection must have a <code>toArray</code> function which returns an array representation of the collection. Returns the array of items added.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::replace empties the set and then adds items from a different collection</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">secondSet</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="nx">secondSet</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>toArray() : Array</h3>
+<p><code>toArray</code> returns an array representation of the set.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, so the order in which the set&#39;s items appear in the array is not defined. It is however stable, so the order of the items in two successive <code>toArray</code> calls where the set was not modified in between should be the same.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::toArray returns an array representation of the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>merge(collections... : Enumerable) : SimpleSet</h3>
+<p><code>merge</code> adds all the items in a set and all the items in the passed <code>collections</code> to a new set and returns it. A <code>collection</code> is an object which has a <code>forEach</code> function. It is a non-destructive collection union. The set <code>merge</code> is called on and each <code>collection</code> passed to <code>merge</code> remain unaffected.
+
+</p>
+<div class="console-session">
+  <h4>SimpleSet::merge returns a new set with the items of the original set and the passed set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">abc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">def</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">set</span> <span class="o">=</span> <span class="nx">abc</span><span class="p">.</span><span class="nx">merge</span><span class="p">(</span><span class="nx">def</span><span class="p">))</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;Object&#39;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>indexedBy(key : String) : SetIndex</h3>
+<h3>indexedByUnique(key : String) : UniqueSetIndex</h3>
+<h3>sortedBy(key: String) : SetSort</h3>
+
+<h2>Batman.Set</h2>
+<p><code>Set</code> is an observable, <code>Batman.Object</code> wrapper around <code>SimpleSet</code>.
+
+</p>
+<h4>SimpleSet vs Set</h4>
+<p><code>SimpleSet</code> and <code>Set</code> are two distinct classes in Batman. <code>SimpleSet</code> implements the basic set semantics, but it is <em>not</em> a <code>Batman.Object</code>, so properties on it (like it&#39;s <code>length</code> or <code>toArray</code>) can not be bound. <code>Set</code> is a <code>Batman.Object</code>, so it can be observed, and thus plays nice with the accessor system. Use a <code>SimpleSet</code> only when you know nothing will need to be observed on the set you are creating, which usually isn&#39;t a valid assumption. If it is in fact correct, consider using a native array as well, because iteration and in fact membership checks will be faster.
+
+</p>
+<h3>constructor(items...)</h3>
+<p>When creating a <code>Set</code>, items forming the initial set can be passed as separate arguments to the constructor
+
+</p>
+<div class="console-session">
+  <h4>new Set constructor can be called without arguments</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>new Set constructor can be passed items to add to the set.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>length : number</h3>
+<p>A count of the items in a <code>Set</code> can be found at it&#39;s <code>length</code> property.
+
+</p>
+<h3>isEmpty : boolean</h3>
+<p>Observable property for <code>isEmpty()</code>
+
+</p>
+<h3>toArray : Array</h3>
+<p>Observable property for <code>toArray()</code>. Whenever items are added or removed on the set, the <code>toArray</code> property will change. This is the mechanism by which Batman&#39;s view bindings get notified of collection updates.
+
+</p>
+<div class="console-session">
+  <h4>observers on the toArray property fire when the set changes</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">observe</span><span class="p">(</span><span class="s1">&#39;toArray&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newArray</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">newArray</span><span class="p">.</span><span class="nx">sort</span><span class="p">());</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>has(item) : Boolean</h3>
+<p><code>has</code> returns a boolean describing if the given <code>item</code> is a member of the set.
+
+</p>
+<p><em>Note</em>: Using <code>has(item)</code> in an accessor body will register the set <code>has</code> is called upon as a source of the property being calculated. This so that whenever the set changes, the property will be recalculated, because the set may now have or not have the item in question.
+
+</p>
+<div class="console-session">
+  <h4>Set::has indicates if an item is a member of the set or not.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::has registers the set as a source of an accessor</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Team</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Team</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">awards</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="nx">Team</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;bestEver?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">awards</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;Stanley Cup&#39;</span><span class="p">);</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Team</span><span class="p">;</span>
+
+  <span class="p">})())</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Team</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">observeAndFire</span><span class="p">(</span><span class="s1">&#39;bestEver?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">status</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">status</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;awards&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;Eastern Conference Champs&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;awards&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;Stanley Cup&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>add(items...)</h3>
+<p><code>add</code> adds 0 or more new items to the set. <code>add</code> returns an array of the items which have been newly added to the set, which is to say the intersection of the argument items and the set itself before addition.
+
+</p>
+<p><code>add</code> fires the <code>itemsWereAdded</code> event with the list of items newly added to the set if that list has length greater than 0. This is to say the event will not be fired if the items passed to add were all already members of the set.
+
+</p>
+<div class="console-session">
+  <h4>Set::add adds an item to the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::add returns only the new items that weren\&#39;t previously in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::add fires the itemsWereAdded event with the items newly added to the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::add does not fire the itemsWereAdded event if the added items were already in the set.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;undefined&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>remove(items...)</h3>
+<p><code>remove</code> removes 0 or more items from the set. <code>remove</code> returns an array of the items which were successfully removed from the set, which is to say the intersection of the argument items and the set itself before removal.
+
+</p>
+<p><code>remove</code> fires the <code>itemsWereRemoved</code> event with the list of removed items if that list has length greater than 0. This is to say the event will not be fired if none of the passed items were members of the set.
+
+</p>
+<div class="console-session">
+  <h4>Set::remove removes an item from the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::remove returns only the new items that were previously in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::remove fires the itemsWereRemoved event with the items removed to the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::remove does not fire the itemsWereRemoved event if the removed items were not already members of the set.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;undefined&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>find(testFunction : function) : [Object]</h3>
+<p><code>find</code> returns the first item within the set for which the <code>testFunction</code> called with the item returns <code>true</code>, or <code>undefined</code> if no item passes the test.
+
+</p>
+<p><em>Note</em>: <code>find</code> returns the first item the test passes for, but since set iteration has no specified order, no guarantee can be made about which item will be returned if more than one item in the set passes the test. However, set iteration order is stable, so <code>find</code> called on the same set twice should return the same item.
+
+
+</p>
+<div class="console-session">
+  <h4>Set::find returns the first item for which the test function passes</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">x</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">===</span> <span class="mi">0</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">2</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::find returns undefined if no items pass the test function</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">x</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;undefined&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>forEach(iteratorFunction : function[, context: Object])</h3>
+<p><code>forEach</code> calls the <code>iteratorFunction</code> with each item in the set, optionally executing the <code>iteratorFunction</code> in the passed context. Returns <code>undefined</code>.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, which is to say Set client code cannot rely on one item being iterated over before another, regardless of when the Set&#39;s items were added. If you need an ordered set, Batman provides <code>SetSort</code> for exactly this, while including the added benefit of observability. If you need a one time ordering of a set, you can get the array representation with <code>toArray</code> and then use vanilla JavaScript <code>sort</code> on that array.
+
+</p>
+<p><em>Note</em>: Using <code>forEach()</code> in an accessor body will register the set iterated over as a source of the property being calculated. This so that whenever the set changes, the property will be recalculated. This can be come an issue if you iterate over a set and modify the set&#39;s items, as when the property recalculates that modification will potentially happen on item&#39;s it&#39;s happened on previously.
+
+</p>
+<div class="console-session">
+  <h4>Set::forEach iterates over each item in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">sum</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">sum</span> <span class="o">+=</span> <span class="nx">x</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">sum</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">6</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::forEach iterates over each item in the set optionally in the provided context</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">context</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">sum</span><span class="o">:</span> <span class="mi">0</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">sum</span> <span class="o">+=</span> <span class="nx">x</span><span class="p">;</span>
+  <span class="p">},</span> <span class="nx">context</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">context</span><span class="p">.</span><span class="nx">sum</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">6</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::forEach registers the set as a source if called in an accessor body</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Team</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Team</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">players</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="nx">Team</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;willWinTheCup?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">sedinCount</span><span class="p">;</span>
+      <span class="nx">sedinCount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">players</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">player</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">player</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">===</span> <span class="s1">&#39;Sedin&#39;</span><span class="p">)</span> <span class="k">return</span> <span class="nx">sedinCount</span><span class="o">++</span><span class="p">;</span>
+      <span class="p">});</span>
+      <span class="k">return</span> <span class="nx">sedinCount</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Team</span><span class="p">;</span>
+
+  <span class="p">})())</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Team</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">observeAndFire</span><span class="p">(</span><span class="s1">&#39;willWinTheCup?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">status</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">status</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;willWinTheCup?&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;players&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;Henrik Sedin&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;players&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;Daniel Sedin&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>isEmpty() : boolean</h3>
+<p><code>isEmpty</code> returns a boolean: <code>true</code> if the set has no items, and <code>false</code> if it has any items.
+
+</p>
+<p><em>Note</em>: Using <code>isEmpty()</code> in an accessor body will register the set <code>isEmpty</code> is called on as a source of the property being calculated, so that whenever the set changes the property will be recalculated.
+
+</p>
+<div class="console-session">
+  <h4>Set::isEmpty returns true if the set has no items</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::isEmpty registers the set as a source of an accessor</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Team</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Team</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">games</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">();</span>
+    <span class="p">}</span>
+
+    <span class="nx">Team</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;seasonStarted?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">games</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">();</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Team</span><span class="p">;</span>
+
+  <span class="p">})())</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Team</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;seasonStarted?&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;games&#39;</span><span class="p">).</span><span class="nx">add</span><span class="p">({</span>
+    <span class="nx">win</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">team</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;seasonStarted?&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>clear() : Array</h3>
+<p><code>clear</code> removes all items from a set. Returns an array of all the items in the set.
+
+</p>
+<p><code>clear</code> will fire the <code>itemsWereRemoved</code> event once with all the items in the set.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, so the order of the array of items returned by <code>clear</code> is undefined.
+
+</p>
+<div class="console-session">
+  <h4>Set::clear empties the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">clear</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::clear fires the itemsWereRemoved event with all the items in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">clear</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>replace(collection : Enumerable) : Array</h3>
+<p><code>replace</code> removes all the items in a set and then adds all the items found in another <code>collection</code>. The other collection must have a <code>toArray</code> function which returns an array representation of the collection. Returns the array of items added.
+
+</p>
+<p><code>replace</code> will fire the <code>itemsWereRemoved</code> event once with all the items in the set, and then the <code>itemsWereAdded</code> event once with the items from the incoming collection.
+
+</p>
+<div class="console-session">
+  <h4>Set::replace empties the set and then adds items from a different collection</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">secondSet</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="nx">secondSet</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::replace fires the itemsWereRemoved event with all the items in the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">())</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Set::replace fires the itemsWereAdded event with all the items in the incoming set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">items</span><span class="p">;</span>
+    <span class="nx">items</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="nx">__slice</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">arguments</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">:</span> <span class="p">[];</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">items</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">))</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span><span class="p">.</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>toArray() : Array</h3>
+<p><code>toArray</code> returns an array representation of the set.
+
+</p>
+<p><em>Note</em>: Set iteration order is not defined, so the order in which the set&#39;s items appear in the array is not defined. It is however stable, so the order of the items in two successive <code>toArray</code> calls where the set was not modified in between should be the same.
+
+</p>
+<p><em>Note</em>: <code>toArray</code> is also an observable property.
+
+</p>
+<p><em>Note</em>: Using <code>toArray()</code> in an accessor body will register the set <code>toArray</code> is called on as a source of the property being calculated, so that whenever the set changes the property will be recalculated.
+
+</p>
+<div class="console-session">
+  <h4>Set::toArray returns an array representation of the set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>merge(collections... : Enumerable) : Set</h3>
+<p><code>merge</code> adds all the items in a set and all the items in the passed <code>collections</code> to a new set and returns it. A <code>collection</code> is an object which has a <code>forEach</code> function. It is a non-destructive collection union. The set <code>merge</code> is called on and each <code>collection</code> passed to <code>merge</code> remain unaffected.
+
+</p>
+<p><em>Note</em>: Be careful about using <code>merge</code> within accessors. Calling <code>merge</code> in an accessor function body will register the set <code>merge</code> is called upon as a source of the property being calculated, which means each the set changes, the property will be recalculated. This means the merge will occur again each time, and return an entirely new <code>Set</code> instance. If the previously returned <code>Set</code> instance is retained after recalculation, this is a big memory leak. Instead of merging in accessors, try to use a <code>SetUnion</code> or a <code>SetIntersection</code>.
+
+</p>
+<div class="console-session">
+  <h4>Set::merge returns a new set with the items of the original set and the passed set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">abc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">def</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">set</span> <span class="o">=</span> <span class="nx">abc</span><span class="p">.</span><span class="nx">merge</span><span class="p">(</span><span class="nx">def</span><span class="p">))</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;Object&#39;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">]</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3>indexedBy(key : String) : SetIndex</h3>
+<h3>indexedByUnique(key : String) : UniqueSetIndex</h3>
+<h3>sortedBy(key: String) : SetSort</h3>
 
 
 </div>

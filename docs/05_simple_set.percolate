@@ -1,0 +1,192 @@
+## Batman.SimpleSet
+
+`SimpleSet` is an implementation of the `Set` object you might expect to find in lots of other languages standard libraries. Sets are an enumerable but unordered collection of objects. A particular object may either be a member or not be a member of a particular set, but it may not belong to the set twice, as that would imply ordering. In the case of Batman, sets will tell you when items are added or removed through events, sets mix in the `Enumerable` module for handy iteration and aggregation, and can also generate indexes and sorts via `SetIndex` and `SetSort`.
+
+#### SimpleSet vs Set
+
+`SimpleSet` and `Set` are two distinct classes in Batman. `SimpleSet` implements the set semantics as described above, but it is *not* a `Batman.Object`, so properties on it (like it's `length` or `toArray`) can not be observed, and thus not bound. `Set` is a `Batman.Object`, so it can be observed, and thus plays nice with the accessor system. Use a `SimpleSet` only when you know nothing will need to be observed on the set you are creating, which usually isn't a valid assumption. If it is in fact correct, consider using a native array as well, because iteration and in fact membership checks will be faster.
+
+
+### constructor(items...)
+
+When creating a `SimpleSet`, items forming the initial set can be passed as separate arguments to the constructor
+
+!!!
+test 'new SimpleSet constructor can be called without arguments', ->
+  show set = new Batman.SimpleSet
+  deepEqual set.toArray(), []
+!!!
+
+!!!
+test 'new SimpleSet constructor can be passed items to add to the set.', ->
+  show set = new Batman.SimpleSet('a', 'b', 'c')
+  deepEqual set.toArray().sort(), ['a', 'b', 'c']
+!!!
+
+### length : number
+
+A count of the items in a `SimpleSet` can be found at it's `length` property.
+
+### has(item) : Boolean
+
+`has` returns a boolean describing if the given `item` is a member of the set.
+
+!!!
+test 'SimpleSet::has indicates if an item is a member of the set or not.', ->
+  show set = new Batman.SimpleSet('a', 'b', 'c')
+  ok set.has('a')
+  equal set.has('d'), false
+!!!
+
+### add(items...) : Array
+
+`add` adds 0 or more new items to the set. `add` returns an array of the items which have been newly added to the set, which is to say the intersection of the argument items and the set itself before addition.
+
+!!!
+test 'SimpleSet::add adds an item to the set', ->
+  show set = new Batman.SimpleSet()
+  equal set.has('a'), false
+  deepEqual set.add('a'), ['a']
+  equal set.has('a'), true
+!!!
+
+!!!
+test 'SimpleSet::add returns only the new items that weren\'t previously in the set', ->
+  show set = new Batman.SimpleSet('a', 'b')
+  deepEqual set.add('b','c','d').sort(), ['c', 'd']
+  deepEqual set.toArray().sort(), ['a', 'b', 'c', 'd']
+!!!
+
+### remove(items...) : Array
+
+`remove` removes 0 or more items from the set. `remove` returns an array of the items which were successfully removed from the set, which is to say the intersection of the argument items and the set itself before removal.
+
+!!!
+test 'SimpleSet::remove removes an item from the set', ->
+  show set = new Batman.SimpleSet('a')
+  equal set.has('a'), true
+  deepEqual set.remove('a'), ['a']
+  equal set.has('a'), false
+!!!
+
+!!!
+test 'SimpleSet::remove returns only the new items that were previously in the set', ->
+  show set = new Batman.SimpleSet('a', 'b')
+  deepEqual set.remove('b','c','d').sort(), ['b']
+  deepEqual set.toArray(), ['a']
+!!!
+
+### find(testFunction : function) : [Object]
+
+`find` returns the first item within the set for which the `testFunction` called with the item returns `true`, or `undefined` if no item passes the test.
+
+_Note_: `find` returns the first item the test passes for, but since set iteration has no specified order, no guarantee can be made about which item will be returned if more than one item in the set passes the test. However, set iteration order is stable, so `find` called on the same set twice should return the same item.
+
+
+!!!
+test 'SimpleSet::find returns the first item for which the test function passes', ->
+  show set = new Batman.SimpleSet(1, 2, 3)
+  equal set.find((x) -> x % 2 == 0), 2
+!!!
+
+!!!
+test 'SimpleSet::find returns undefined if no items pass the test function', ->
+  show set = new Batman.SimpleSet(1, 2, 3)
+  equal typeof set.find((x) -> x > 5), 'undefined'
+!!!
+
+### forEach(iteratorFunction : function[, context: Object])
+
+`forEach` calls the `iteratorFunction` with each item in the set, optionally executing the `iteratorFunction` in the passed context. Returns `undefined`.
+
+_Note_: Set iteration order is not defined, which is to say Set client code cannot rely on one item being iterated over before another, regardless of when the Set's items were added. If you need an ordered set, Batman provides `SetSort` for exactly this, while including the added benefit of observability. If you need a one time ordering of a set, you can get the array representation with `toArray` and then use vanilla JavaScript `sort` on that array.
+
+!!!
+test 'SimpleSet::forEach iterates over each item in the set', ->
+  show sum = 0
+  show set = new Batman.SimpleSet(1,2,3)
+  show set.forEach (x) -> sum += x
+  equal sum, 6
+!!!
+
+!!!
+test 'SimpleSet::forEach iterates over each item in the set optionally in the provided context', ->
+  show context = {sum: 0}
+  show set = new Batman.SimpleSet(1,2,3)
+  show(set.forEach((x) ->
+    @sum += x
+  , context))
+  equal context.sum, 6
+!!!
+
+### isEmpty() : boolean
+
+`isEmpty` returns a boolean: `true` if the set has no items, and `false` if it has any items.
+
+!!!
+test 'SimpleSet::isEmpty returns true if the set has no items', ->
+  show set = new Batman.SimpleSet()
+  ok set.isEmpty()
+  show set.add('a')
+  equal set.isEmpty(), false
+!!!
+
+### clear() : Array
+
+`clear` removes all items from a set. Returns an array of all the items in the set.
+
+_Note_: Set iteration order is not defined, so the order of the array of items returned by `clear` is undefined.
+
+!!!
+test 'SimpleSet::clear empties the set', ->
+  show set = new Batman.SimpleSet('a', 'b', 'c')
+  equal set.isEmpty(), false
+  deepEqual set.clear().sort(), ['a', 'b', 'c']
+  ok set.isEmpty()
+!!!
+
+### replace(collection : Enumerable) : Array
+
+`replace` removes all the items in a set and then adds all the items found in another `collection`. The other collection must have a `toArray` function which returns an array representation of the collection. Returns the array of items added.
+
+!!!
+test 'SimpleSet::replace empties the set and then adds items from a different collection', ->
+  show set = new Batman.SimpleSet('a', 'b', 'c')
+  show secondSet = new Batman.SimpleSet('d', 'e', 'f')
+  deepEqual set.replace(secondSet).sort(), ['d', 'e', 'f']
+  deepEqual set.toArray().sort(), ['d', 'e', 'f']
+!!!
+
+### toArray() : Array
+
+`toArray` returns an array representation of the set.
+
+_Note_: Set iteration order is not defined, so the order in which the set's items appear in the array is not defined. It is however stable, so the order of the items in two successive `toArray` calls where the set was not modified in between should be the same.
+
+!!!
+test 'SimpleSet::toArray returns an array representation of the set', ->
+  show set = new Batman.SimpleSet()
+  deepEqual set.toArray(), []
+  show set.add('a', 'b', 'c')
+  deepEqual set.toArray().sort(), ['a', 'b', 'c']
+!!!
+
+### merge(collections... : Enumerable) : SimpleSet
+
+`merge` adds all the items in a set and all the items in the passed `collections` to a new set and returns it. A `collection` is an object which has a `forEach` function. It is a non-destructive collection union. The set `merge` is called on and each `collection` passed to `merge` remain unaffected.
+
+!!!
+test 'SimpleSet::merge returns a new set with the items of the original set and the passed set', ->
+  show abc = new Batman.SimpleSet('a', 'b', 'c')
+  show def = new Batman.SimpleSet('d', 'e', 'f')
+  equal Batman.typeOf(set = abc.merge(def)), 'Object'
+  deepEqual set.toArray().sort(), ['a', 'b', 'c', 'd', 'e', 'f']
+!!!
+
+### indexedBy(key : String) : SetIndex
+
+### indexedByUnique(key : String) : UniqueSetIndex
+
+### sortedBy(key: String) : SetSort
+
+

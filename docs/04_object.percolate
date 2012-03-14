@@ -36,4 +36,64 @@ test 'toJSON returns a vanilla JS object', ->
 
 ### accessor([keys...], objectOrFunction) ->
 
-`accessor` is used to define custom getters and setters for one, many, or all properties on an object.
+Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. `accessor` is a Batman and old browser friendly version of ES5 `Object.defineProperty` missing some of the goodness.
+
+The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking `get` calls, so do be sure to use `get` to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies.
+
+#### Arguments
+
+`@accessor` can be called with zero, one, or many keys for the accessor to define. This has the following effects:
+
+  * zero: create a `defaultAccessor`, which will be called when no other properties or accessors on an object match a keypath. This is similar to `method_missing` in Ruby or `#doesNotUnderstand` in Smalltalk.
+  * one: create a `keyAccessor` at the given key, which will only be called when that key is gotten, set, or unset.
+  * many: create `keyAccessors` for each given key, which will then be called whenever each one of the listed keys is gotten, set, or unset.
+
+`@accessor` accepts as the last argument either an object with any combination of the `get`, `set`, and `unset` keys defined. Functions which implement the behaviour for those particular actions on the property should reside at these keys. `@accessor` also accepts a function as the last argument, which is a shorthand for specifying the `get` implementation for the accessor.
+
+#### Uses
+
+Accessors are a really useful addition to the world of JavaScript. You can now define transforms on simple properties which will automatically update when the properties they transform change, for example you might want to truncate a potentially long piece of text to display a summary elsewhere, or you might want to capitalize or `encodeURIComponent` a value before putting it in the view or the current URL.
+
+!!!
+test '@accessor can be called on a class to define how a property is calculated', ->
+  show class Post extends Batman.Object
+  show Post.accessor 'summary', -> @get('body').slice(0, 10) + "..."
+  show post = new Post(body: "Why Batman is Useful: A lengthy post on an important subject")
+  equal post.get('summary'), "Why Batman..."
+!!!
+
+You can also use accessors to combine properties; the colloquial `fullName` example comes to mind, but all sorts of other complex logic can be abstracted away using the accessor pattern.
+
+!!!
+test '@accessor can define a transform on several properties', ->
+  show(class User extends Batman.Object
+        @accessor 'fullName', -> @get('firstName') + " " + @get('lastName')
+  )
+  show tim = new User(firstName: "Tim", lastName: "Thomas")
+  equal tim.get('fullName'), "Tim Thomas"
+  show tim.set('firstName', "Timmy")
+  equal tim.get('fullName'), "Timmy Thomas"
+!!!
+
+!!!
+test '@accessor can use arbitrary logic to define the value', ->
+  show class Player extends Batman.Object
+  show Player.accessor 'score', ->
+      if @get('played')
+        (@get('goals') * 2) + (@get('assists') * 1)
+      else
+        0
+
+  show rick = new Player(played: false, goals: 0, assists: 0)
+  equal rick.get('score'), 0
+  show rick.set('played', true)
+  equal rick.get('score'), 0
+  show rick.set('goals', 3)
+  equal rick.get('score'), 6
+  show rick.set('assists', 1)
+  equal rick.get('score'), 7
+!!!
+
+#### Caveats
+
+
