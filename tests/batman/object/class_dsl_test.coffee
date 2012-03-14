@@ -32,6 +32,16 @@ test "@accessor takes a function argument for the accessor as a shortcut for {ge
   deepEqual Thing::_batman.defaultAccessor, {get: defaultAccessorSpy}
   deepEqual Thing::_batman.keyAccessors.get('foo'), {get: keyAccessorSpy}
 
+test "@accessor() without any args returns the default accessor", ->
+  obj = new Batman.Object
+  strictEqual obj.accessor(), Batman.Property.defaultAccessor
+
+test "@accessor(key) with a single non-object, non-function argument returns the accessor for that key", ->
+  obj = new Batman.Object
+  fooAccessor = get: -> "foo"
+  obj.accessor "foo", fooAccessor
+  strictEqual obj.accessor("foo"), fooAccessor
+
 test "@wrapAccessor calls the given function with the existing accessor, and merges it with the return value of the function", ->
   class PlusOne extends Batman.Object
     @wrapAccessor (core) ->

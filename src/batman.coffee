@@ -964,7 +964,11 @@ class BatmanObject extends Object
       cachable: true
 
   @classAccessor: (keys..., accessor) ->
-    if typeof accessor.promise is 'function'
+    if not accessor?
+      return Batman.Property.defaultAccessorForBase(this)
+    else if keys.length is 0 and $typeOf(accessor) not in ['Object', 'Function']
+      return Batman.Property.accessorForBaseAndKey(this, accessor)
+    else if typeof accessor.promise is 'function'
       return @wrapAccessor(keys..., promiseWrapper(accessor.promise))
     Batman.initializeObject @
     # Create a default accessor if no keys have been given.
@@ -992,12 +996,10 @@ class BatmanObject extends Object
   @wrapClassAccessor: (keys..., wrapper) ->
     Batman.initializeObject(this)
     if keys.length is 0
-      core = Batman.Property.defaultAccessorForBase(this)
-      @accessor wrapSingleAccessor(core, wrapper)
+      @accessor wrapSingleAccessor(@accessor(), wrapper)
     else
       for key in keys
-        core = Batman.Property.accessorForBaseAndKey(this, key)
-        @accessor key, wrapSingleAccessor(core, wrapper)
+        @accessor key, wrapSingleAccessor(@accessor(key), wrapper)
 
   @wrapAccessor: -> @wrapClassAccessor.apply @prototype, arguments
   wrapAccessor: @wrapClassAccessor
