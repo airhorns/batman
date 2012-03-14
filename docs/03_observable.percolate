@@ -2,7 +2,7 @@
 
 `Batman.Observable` is a mixin which gives objects the ability to notify subscribers to changes on its properties. `Observable` also adds functionality for observing _keypaths_: arbitrarily deeply nested properties on objects.
 
-### get(keypath)
+### get(keypath) : value
 
 Retrieves the value at a `key` on an object. Accepts keypaths.
 
@@ -31,7 +31,7 @@ test "get retrieves properties on Batman objects when . property access doesn't"
   equal song.get('length'), 340
 !!!
 
-### set(keypath, newValue) : newPropertyValue
+### set(keypath, newValue) : newValue
 
 Stores the `value` at a `key` on an object. Accepts keypaths. Returns the new value of the property.
 
@@ -66,7 +66,7 @@ test "set is incompatible with '.' property mutation", ->
   equal song.get('length'), 340, "The song length reported by Batman is unchanged because set wasn't used to change the value."
 !!!
 
-### unset(keypath) : previousValue
+### unset(keypath) : value
 
 Removes the value at the given `keypath`, leaving it `undefined`. Accepts keypaths. Returns the value the property had before unsetting.
 
@@ -92,7 +92,7 @@ test "unset removes the property at a keypath", ->
 !!!
 
 
-### observe(key, observerCallback) : BatmanObject
+### observe(key, observerCallback) : this
 
 Adds a handler to call when the value of the property at the `key` changes upon `set`ting. Accepts keypaths.
 
@@ -127,7 +127,7 @@ test "observe attaches handlers which get called upon change", ->
   deepEqual logged.last, ["James", "Harry"], "The observer fired when the 'author' segment of the keypath changed."
 !!!
 
-### observeAndFire(key, observerCallback) : BatmanObject
+### observeAndFire(key, observerCallback) : this
 
 Adds the `observerCallback` as an observer to `key`, and fires it immediately. Accepts the exact same arguments and follows the same semantics as `Observable::observe`, but the observer is fired with the current value of the keypath it observers synchronously during the call to `observeAndFire`.
 
@@ -142,7 +142,7 @@ test "observeAndFire calls the observer upon attaching it with the currentValue 
   deepEqual logged.last, [300, 340]
 !!!
 
-### forget([key [, observerCallback]]) : BatmanObject
+### forget([key [, observerCallback]]) : this
 
 If `observerCallback` and `key` are given, that observer is removed from the observers on `key`. If only a `key` is given, all observers on that key are removed. If no `key` is given, all observers on all keys are removed. Accepts keypaths.
 
@@ -189,7 +189,7 @@ test "forget removes all observers from all key if no key is given", ->
   equal logged.length, 1, "Nothing more has been logged because neither observer fired."
 !!!
 
-### getOrSet(keypath, valueFunction) : currentValue
+### getOrSet(keypath, valueFunction) : value
 
 Assigns the `keypath` to the result of calling the `valueFunction` if the current value at the `keypath` is falsey. Returns the value of the property after the operation, be it changed or not. Equivalent to CoffeeScript's `||=` operator.
 
