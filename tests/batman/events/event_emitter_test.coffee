@@ -7,24 +7,19 @@ QUnit.module "Batman.EventEmitter"
     @ottawaWeather = new WeatherSystem
     @rain = @ottawaWeather.event('rain')
 
-test "firing an event calls the prototype's handlers for that event too", ->
-  @rain.addHandler(h1 = createSpy())
-  @rain.addHandler(h2 = createSpy())
+test "firing an event calls ancestor event handlers for that event too", ->
+  secondPrototypeHandler = createSpy()
+  class Thunderstorm extends @WeatherSystem
+    @::on 'rain', secondPrototypeHandler
 
-  @rain.fire(1,2,3)
+  storm = new Thunderstorm
+  storm.on 'rain', instanceHandler = createSpy()
+  storm.fire('rain', 1,2,3)
 
-  equal h1.callCount, 1
-  #equal h1.lastCallContext, @ottawaWeather
-  deepEqual h1.lastCallArguments, [1,2,3]
-
-  equal h2.callCount, 1
-  equal h2.lastCallContext, @ottawaWeather
-  deepEqual h2.lastCallArguments, [1,2,3]
-
-  equal @prototypeRainHandler.callCount, 1
-  equal @prototypeRainHandler.lastCallContext, @ottawaWeather
-  deepEqual @prototypeRainHandler.lastCallArguments, [1,2,3]
-
+  for handler in [instanceHandler, @prototypeRainHandler, secondPrototypeHandler]
+    equal handler.callCount, 1
+    ok handler.lastCallContext == storm
+    deepEqual handler.lastCallArguments, [1,2,3]
 
 test "events inherited from ancestors retain oneshot status", ->
   @WeatherSystem::event('snow').oneShot = true

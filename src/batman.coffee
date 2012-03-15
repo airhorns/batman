@@ -426,7 +426,7 @@ class Batman.Event
     if @base?.isEventEmitter
       key = @key
       @base._batman?.ancestors (ancestor) ->
-        if ancestor.isEventEmitter and ancestor.hasEvent(key)
+        if ancestor.isEventEmitter and ancestor._batman?.events?.hasOwnProperty(key)
           handlers = ancestor.event(key).handlers
           handlers.slice().forEach(iterator)
   clearHandlers: -> @handlers = []
@@ -832,11 +832,18 @@ Batman._Batman = class _Batman
       else
         # And then try to merge them if there is more than one. Use `concat` on arrays, and `merge` on
         # sets and hashes.
-        if results[0].concat?
-          results = results.reduceRight (a, b) -> a.concat(b)
+        reduction = if results[0].concat?
+          (a, b) -> a.concat(b)
         else if results[0].merge?
-          results = results.reduceRight (a, b) -> a.merge(b)
-        results
+          (a, b) -> a.merge(b)
+        else if results.every((x) -> typeof x is 'object')
+          results.unshift({})
+          (a, b) -> $mixin(a, b)
+
+        if reduction
+          results.reduceRight(reduction)
+        else
+          results
 
   # `getFirst` is a prototype and class aware property access method. `getFirst` traverses the prototype chain,
   # and returns the value of the first `_batman` object which defines the passed key. Useful for
@@ -985,7 +992,7 @@ class BatmanObject extends Object
   @accessor: -> @classAccessor.apply @prototype, arguments
   # Support adding accessors to instances after creation
   accessor: @classAccessor
-  
+
   wrapSingleAccessor = (core, wrapper) ->
     wrapper = wrapper?(core) or wrapper
     for k, v of core
