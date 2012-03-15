@@ -472,6 +472,12 @@ Batman.EventEmitter =
       newEvent
   on: (key, handler) ->
     @event(key).addHandler(handler)
+  once: (key, originalHandler) ->
+    event = @event(key)
+    handler = ->
+      originalHandler.apply(@, arguments)
+      event.removeHandler(handler)
+    event.addHandler(handler)
   registerAsMutableSource: ->
     Batman.Property.registerSource(@)
   mutation: (wrappedFunction) ->

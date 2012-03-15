@@ -208,6 +208,13 @@ class MockClass
   on: (event, callback) ->
     (@callbackStacks[event] ||= []).push(callback)
     @
+  once: (event, originalCallback) ->
+    self = @
+    callback = ->
+      originalCallback.apply(@, arguments)
+      self.callbackStacks[event].splice(self.callbackStacks[event].indexOf(callback), 1)
+    @on(event, callback)
+    @
   fire: (event) ->
     return unless @callbackStacks[event]
     f.apply(@, arguments) for f in @callbackStacks[event]
