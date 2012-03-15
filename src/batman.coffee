@@ -2381,7 +2381,7 @@ class Batman.App extends Batman.Object
         Batman.navigator.start() if Object.keys(@get('dispatcher').routeMap).length > 0
 
     @observe 'layout', (layout) =>
-      layout?.on 'ready', => @fire 'ready'
+      layout?.once 'ready', => @fire 'ready'
 
     if typeof @layout is 'undefined'
       @set 'layout', new Batman.View
@@ -2514,7 +2514,7 @@ class Batman.Controller extends Batman.Object
 
     if view = options.view
       Batman.currentApp?.prevent 'ready'
-      view.on 'ready', =>
+      view.once 'ready', =>
         yieldContainer = options.into || 'main'
         Batman.DOM.fillYieldContainer yieldContainer, view.get('node'), true, view.hasContainer
         Batman.currentApp?.allowAndFire 'ready'
@@ -4002,20 +4002,26 @@ class Batman.View extends Batman.Object
     options.context = context.descend(@)
     super(options)
 
-    # Start the rendering by asking for the node
+    # If this view specifies how to fetch its content, we set this property to true.
+    # Otherwise, this view will expect a node to be set, and it will render that
+    # node's innerHTML.
+    if @get('source')? || @get('html')?
+      @set('waitForHTML', true)
+
     Batman.Property.withoutTracking =>
-      if node = @get('node')
-        @render node
-      else
-        @observe 'node', (node) => @render(node)
+      @set('constructed', true)
+      @observeAndFire 'readyToRender', @render
 
   @store: new Batman.ViewStore()
 
+  # Weather or not to wait for some HTML in the HTML property before rendering
+  waitForHTML: false
+
   # Set the source attribute to an html file to have that file loaded.
-  source: ''
+  source: null
 
   # Set the html to a string of html to have that html parsed.
-  html: ''
+  html: null
 
   # Set an existing DOM node to parse immediately.
   node: null
@@ -4034,31 +4040,40 @@ class Batman.View extends Batman.Object
   @accessor 'node'
     get: ->
       unless @node
-        html = @get('html')
-        return unless html && html.length > 0
-        @hasContainer = true
-        @node = document.createElement 'div'
-        $setInnerHTML(@node, html)
-        if @node.children.length > 0
-          Batman.data(@node.children[0], 'view', @)
+        @set 'node', @_generateNode()
       return @node
     set: (_, node) ->
+      $removeNode(@node) if @node?
       @node = node
       Batman.data(@node, 'view', @)
-      updateHTML = (html) =>
-        if html?
-          $setInnerHTML(@get('node'), html)
-          @forget('html', updateHTML)
-      @observeAndFire 'html', updateHTML
+      @render()
+      @node
 
-  render: (node) ->
+  @accessor 'readyToRender', ->
+    @get('constructed') &&
+    (if @get('waitForHTML') then @get('html')? else true) &&
+    @get('node')?
+
+  render: =>
+    return unless @get('readyToRender')
     @event('ready').resetOneShot()
 
-    # We use a renderer with the continuation style rendering engine to not
-    # block user interaction for too long during the render.
-    if node
-      @_renderer = new Batman.Renderer(node, null, @context, @)
-      @_renderer.on 'rendered', => @fire('ready', node)
+    if @get('waitForHTML')
+      $setInnerHTML @get('node'), @get('html')
+
+    if @_renderer
+      @_renderer.stop()
+
+    node = @get('node')
+    @_renderer = new Batman.Renderer(node, null, @context, @)
+    @_renderer.on 'rendered', => @fire('ready', node)
+
+  _generateNode: ->
+    @hasContainer = true
+    node = document.createElement 'div'
+    if node.children.length > 0
+      Batman.data(node.children[0], 'view', @)
+    node
 
   @::on 'appear', -> @viewDidAppear? arguments...
   @::on 'disappear', -> @viewDidDisappear? arguments...
@@ -4498,7 +4513,7 @@ Batman.DOM = {
       source: path
       context: context
 
-    view.on 'ready', ->
+    view.once 'ready', ->
       $setInnerHTML container, ''
       # Render the partial content into the data-partial node
       # Text nodes move when they are appended, so copy childNodes
@@ -5205,7 +5220,7 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
 
     Batman.data @node, 'view', @view
 
-    @view.on 'ready', =>
+    @view.once 'ready', =>
       @view.awakeFromHTML? @node
       @view.fire 'beforeAppear', @node
       @renderer.allowAndFire 'rendered'

@@ -11,7 +11,8 @@ QUnit.module 'Batman.View'
     MockRequest.reset()
     @options =
       source: "test_path#{++count}"
-
+      context:
+        foo: 'bar'
     Batman.Request = MockRequest
     @view = new Batman.View(@options) # create a view which uses the MockRequest internally
 
@@ -35,29 +36,33 @@ test 'should not add its node property as a source to an enclosing accessor', 1,
   newView = accessible.get()
   equal newView, view
 
-test 'should update a new, set node with the contents of its view after the source loads', 1, ->
-  node = document.createElement('div')
+asyncTest 'should fire the ready event once its contents have been loaded', 0, ->
+  @view.once 'ready', ->
+    QUnit.start()
+
+  MockRequest.lastInstance.fireSuccess('view contents')
+
+asyncTest 'should update a new, set node with the contents of its view after the source loads', 1, ->
+  window.testnode = node = document.createElement('div')
+  @view.once 'ready', ->
+    equal node.innerHTML, '<div data-bind="foo">bar</div>'
+    QUnit.start()
+
   @view.set('node', node)
-  MockRequest.lastInstance.fireSuccess('view contents')
-  equal node.innerHTML, 'view contents'
+  MockRequest.lastInstance.fireSuccess('<div data-bind="foo"></div>')
 
-test 'should update a new, set node node with the contents of its view if the node is set after the source loads', 1, ->
+asyncTest 'should update a new, set node with the contents of its view if the node is set after the source loads', 1, ->
   node = document.createElement('div')
-  MockRequest.lastInstance.fireSuccess('view contents')
+  @view.once 'ready', ->
+    equal node.innerHTML, '<div data-bind="foo">bar</div>'
+    QUnit.start()
+
+  MockRequest.lastInstance.fireSuccess('<div data-bind="foo"></div>')
   @view.set('node', node)
-  equal node.innerHTML, 'view contents'
 
-asyncTest 'should fire the ready event once its contents have been loaded', 1, ->
-  @view.on 'ready', observer = createSpy()
-
-  MockRequest.lastInstance.fireSuccess('view contents')
-  delay =>
-    ok observer.called
-
-asyncTest 'should allow prefetching of view sources', 2, ->
+test 'should allow prefetching of view sources', 2, ->
   Batman.View.store.prefetch('view')
   equal MockRequest.lastConstructorArguments[0].url, "/views/view.html"
-  delay =>
-    MockRequest.lastInstance.fireSuccess('prefetched contents')
-    view = new Batman.View({source: 'view'})
-    equal view.get('html'), 'prefetched contents'
+  MockRequest.lastInstance.fireSuccess('prefetched contents')
+  view = new Batman.View({source: 'view'})
+  equal view.get('html'), 'prefetched contents'
