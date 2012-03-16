@@ -4041,6 +4041,7 @@ class Batman.View extends Batman.Object
     get: ->
       unless @node
         @set 'node', @_generateNode()
+        @hasContainer = true
       return @node
     set: (_, node) ->
       $removeNode(@node) if @node?
@@ -4069,11 +4070,7 @@ class Batman.View extends Batman.Object
     @_renderer.on 'rendered', => @fire('ready', node)
 
   _generateNode: ->
-    @hasContainer = true
-    node = document.createElement 'div'
-    if node.children.length > 0
-      Batman.data(node.children[0], 'view', @)
-    node
+    document.createElement 'div'
 
   @::on 'appear', -> @viewDidAppear? arguments...
   @::on 'disappear', -> @viewDidDisappear? arguments...
