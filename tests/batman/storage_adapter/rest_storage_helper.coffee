@@ -83,6 +83,35 @@ restStorageTestSuite = ->
       equal readProducts[0].get("name"), "test"
       QUnit.start()
 
+  asyncTest 'updating in storage: should update the record with the response if it is different', 1, ->
+    MockRequest.expect
+      url: '/products/10'
+      method: 'PUT'
+    , product:
+        id: 10
+        name: "test"
+        other_field: "another test"
+
+    @Product.encode 'other_field'
+    product = new @Product(name: "test", id: 10)
+    @adapter.perform 'update', product, {}, (err, record) =>
+      throw err if err
+      equal record.get('other_field'), "another test"
+      QUnit.start()
+
+  asyncTest 'updating in storage: should not fail if no response comes back', 1, ->
+
+    MockRequest.expect
+      url: '/products/10'
+      method: 'PUT'
+    , ""
+
+    product = new @Product(name: "test", id: 10)
+    @adapter.perform 'update', product, {}, (err, record) =>
+      throw err if err
+      ok record
+      QUnit.start()
+
   asyncTest 'response metadata should be available in the after read callbacks', 3, ->
     MockRequest.expect
         url: '/products'

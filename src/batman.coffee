@@ -3903,17 +3903,23 @@ class Batman.RestStorage extends Batman.StorageAdapter
     next()
 
   @::after 'create', 'read', 'update', @skipIfError (env, next) ->
+    if !env.data?
+      return next()
+
     if typeof env.data is 'string'
-      try
-        json = @_jsonToAttributes(env.data)
-      catch error
-        env.error = error
-        return next()
+      if env.data.length > 0
+        try
+          json = @_jsonToAttributes(env.data)
+        catch error
+          env.error = error
+          return next()
     else
       json = env.data
-    namespace = @recordJsonNamespace(env.record)
-    json = json[namespace] if namespace && json[namespace]?
-    env.record.fromJSON(json)
+
+    if json?
+      namespace = @recordJsonNamespace(env.record)
+      json = json[namespace] if namespace && json[namespace]?
+      env.record.fromJSON(json)
     env.result = env.record
     next()
 
