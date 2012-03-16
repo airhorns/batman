@@ -41,7 +41,7 @@ class Shopify.ProductsController extends Batman.Controller
     <a data-route="product" data-bind="product.name">name will go here</a>
   </li>
 
-  <li><span data-bind="products.length"></span> <span data-bind="'product' | pluralize products.length"></span></li>
+  <li><span data-bind="'product' | pluralize products.length"></span></li>
 </ul>
 ```
 
