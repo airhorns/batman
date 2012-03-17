@@ -51,19 +51,21 @@ asyncTest 'it should allow multiple class names to be bound and updated', ->
       equal node[0].className, 'bar baz'
 
 
-asyncTest 'it should allow an already present class to be removed', 4, ->
-  source = '<div data-removeclass-two="bar" class="zero two"></div>'
+asyncTest 'it should allow an already present class to be removed', 6, ->
+  source = '<div data-removeclass-two="bar" class="zero two three"></div>'
   context = Batman
     foo: true
     bar: false
   helpers.render source, context, (node) ->
     ok node.hasClass('zero')
     ok node.hasClass('two')
+    ok node.hasClass('three')
 
     context.set 'bar', true
     delay ->
       ok node.hasClass('zero')
       ok !node.hasClass('two')
+      ok node.hasClass('three')
 
 asyncTest 'it should not remove an already present similar class name', 6, ->
   source = '<div data-removeclass-foobar="bar" class="zero bar"></div>'
