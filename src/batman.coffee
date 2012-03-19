@@ -2779,11 +2779,12 @@ class Batman.Model extends Batman.Object
 
     # Actually set the value and note what the old value was in the tracking array.
     result = super
-    @dirtyKeys.set(key, oldValue)
-
-    # Mark the model as dirty if isn't already.
-    @dirty() unless @state() in ['dirty', 'loading', 'creating']
+    @_markDirtyKeyAndStorePreviousValue(key, oldValue)
     result
+
+  _markDirtyKeyAndStorePreviousValue: (key, oldValue) ->
+    @dirtyKeys.set(key, oldValue)
+    @dirty() unless @state() in ['dirty', 'loading', 'creating']
 
   updateAttributes: (attrs) ->
     @mixin(attrs)
