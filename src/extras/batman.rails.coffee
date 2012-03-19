@@ -17,6 +17,7 @@ applyExtra = (Batman) ->
     s = []
     add = (key, value) ->
       value = value() if typeof value is 'function'
+      value = '' unless value?
       s[s.length] = encodeURIComponent(key) + "=" + encodeURIComponent(value)
 
     if Batman.typeOf(a) is 'Array'
