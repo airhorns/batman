@@ -4,11 +4,10 @@ validationsTestSuite = ->
       @validate 'name', presence: yes
 
     p = new Product
-    oldState = p.lifecycle.get('state')
+    oldState = p.get('lifecycle.state')
     p.validate (error, errors) ->
-      equal p.lifecycle.get('state'), oldState
+      equal p.get('lifecycle.state'), oldState
       QUnit.start()
-
 
   asyncTest "length", 2, ->
     class Product extends Batman.Model
@@ -41,8 +40,13 @@ validationsTestSuite = ->
       p.validate (error, errors) ->
         throw error if error
         equal errors.length, 1
+        p.set 'name', ''
+        p.validate (error, errors) ->
+          throw error if error
+          equal errors.length, 1
+          QUnit.start()
 
-  asyncTest "presence and length", 4, ->
+  asyncTest "presence and length", 2, ->
     class Product extends Batman.Model
       @validate 'name', {presence: yes, maxLength: 10, minLength: 3}
 
@@ -117,11 +121,11 @@ asyncTest "errors set length should be observable", 4, ->
   @product.get('errors').observe 'length', (newLength, oldLength) ->
     equal newLength, errorsAtCount[count++]
 
-  @product.validate (err, errors) ->
+  @product.validate (err, errors) =>
     throw err if err
     equal errors.get('length'), 1
     @product.set 'name', 'Foo'
-    @product.validate (err, errors) ->
+    @product.validate (err, errors) =>
       throw err if err
       equal errors.get('length'), 0
       QUnit.start()
