@@ -22,7 +22,7 @@ _Note_: Calling `fire` doesn't guarantee the event will fire since firing can be
 test 'event handlers are fired', ->
   show dynamite = $mixin {}, Batman.EventEmitter
   show dynamite.on 'detonate', (noise) -> log "detonated with noise #{noise}"
-  dynamite.fire 'detonate', "BOOM!"
+  show dynamite.fire 'detonate', "BOOM!"
   equal logged.last, "detonated with noise BOOM!"
 !!!
 
@@ -54,9 +54,9 @@ test 'one shot events fire handlers attached after they have fired for the first
   equal logged.last, "detonated immediately!!", "The handler was called as soon as it was attached."
 !!!
 
-### prevent(key)
+### prevent(key) : EventEmitter
 
-Prevents the event with name `key` from firing, even if `.fire` is called. This is useful if you need to guarantee a precondition is in fulfilled before allowing event handlers to execute.
+Prevents the event with name `key` from firing, even if `.fire` is called. This is useful if you need to guarantee a precondition is in fulfilled before allowing event handlers to execute. Returns the event emitting object.
 
 Undo event prevention with `allow` or `allowAndFire`.
 
@@ -72,9 +72,15 @@ test 'events can be prevented', ->
   equal logged.last, undefined, "The event handler wasn't fired."
 !!!
 
-### allow(key)
+!!!
+test 'prevent returns the event emitter', ->
+  show dynamite = $mixin {}, Batman.EventEmitter
+  equal dynamite, dynamite.prevent('detonate')
+!!!
 
-Allows the event with name `key` to fire once more, after `prevent` had been called previously. `allow` will not fire the event when called, regardless of weather or not the event can now be fired or if an attempt to fire it was made while the event was prevented.
+### allow(key) : EventEmitter
+
+Allows the event with name `key` to fire once more, after `prevent` had been called previously. `allow` will not fire the event when called, regardless of weather or not the event can now be fired or if an attempt to fire it was made while the event was prevented. Returns the event emitting object.
 
 _Note_: `prevent` can be called more than once to effectively "nest" preventions. `allow` or `allowAndFire` must be called the same number of times or more for events to fire once more.
 
@@ -104,6 +110,12 @@ test 'events must be allowed the same number of times they have been prevented',
   show dynamite.allow('detonate')
   show dynamite.fire('detonate')
   equal logged.length, 1, "The event handler was fired."
+!!!
+
+!!!
+test 'allow returns the event emitter', ->
+  show dynamite = $mixin {}, Batman.EventEmitter
+  equal dynamite, dynamite.allow('detonate')
 !!!
 
 ### allowAndFire(key)

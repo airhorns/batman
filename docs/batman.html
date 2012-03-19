@@ -228,11 +228,11 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
       <h1 class=""><a href="#batman-js">batman.js</a></1>
     <h3 class=""><a href="#batman-js-its-got">It&#39;s got</a></3>
     <h4 class=""><a href="#batman-js-its-got-platforms">Platforms</a></4>
-    <h2 class="object"><a href="#batman-js-installation">Installation</a></2>
+    <h2 class=""><a href="#batman-js-installation">Installation</a></2>
     <h3 class=""><a href="#batman-js-installation-standalone-browser-version">Standalone Browser Version</a></3>
     <h3 class=""><a href="#batman-js-installation-node-js">node.js</a></3>
-    <h2 class="object"><a href="#batman-js-architecture">Architecture</a></2>
-    <h2 class="object"><a href="#batman-eventemitter">Batman.EventEmitter</a></2>
+    <h2 class=""><a href="#batman-js-architecture">Architecture</a></2>
+    <h2 class="class"><a href="#batman-eventemitter">Batman.EventEmitter</a></2>
     <h3 class="function"><a href="#batman-eventemitter-on">on(key, handler)</a></3>
     <h3 class="function"><a href="#batman-eventemitter-fire">fire(key, arguments...)</a></3>
     <h3 class="function"><a href="#batman-eventemitter-hasevent">hasEvent(key)</a></3>
@@ -240,7 +240,7 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
     <h3 class="function"><a href="#batman-eventemitter-prevent">prevent(key)</a></3>
     <h3 class="function"><a href="#batman-eventemitter-allow">allow(key)</a></3>
     <h3 class="function"><a href="#batman-eventemitter-allowandfire">allowAndFire(key)</a></3>
-    <h2 class="object"><a href="#batman-observable">Batman.Observable</a></2>
+    <h2 class="class"><a href="#batman-observable">Batman.Observable</a></2>
     <h3 class="function"><a href="#batman-observable-get">get(keypath)</a></3>
     <h3 class="function"><a href="#batman-observable-set">set(keypath, newValue)</a></3>
     <h3 class="function"><a href="#batman-observable-unset">unset(keypath)</a></3>
@@ -248,7 +248,7 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
     <h3 class="function"><a href="#batman-observable-observeandfire">observeAndFire(key, observerCallback)</a></3>
     <h3 class="function"><a href="#batman-observable-forget">forget([key [, observerCallback]])</a></3>
     <h3 class="function"><a href="#batman-observable-getorset">getOrSet(keypath, valueFunction)</a></3>
-    <h2 class="object"><a href="#batman-object">Batman.Object</a></2>
+    <h2 class="class"><a href="#batman-object">Batman.Object</a></2>
     <h3 class="function"><a href="#batman-object-constructor">constructor(objects...)</a></3>
     <h3 class="function"><a href="#batman-object-tojson">toJSON()</a></3>
     <h3 class="function"><a href="#batman-object-hashkey">hashKey()</a></3>
@@ -256,7 +256,7 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
     <h4 class=""><a href="#batman-object-accessor-arguments">Arguments</a></4>
     <h4 class=""><a href="#batman-object-accessor-uses">Uses</a></4>
     <h4 class=""><a href="#batman-object-accessor-caveats">Caveats</a></4>
-    <h2 class="object"><a href="#batman-simpleset">Batman.SimpleSet</a></2>
+    <h2 class="class"><a href="#batman-simpleset">Batman.SimpleSet</a></2>
     <h4 class=""><a href="#batman-simpleset-simpleset-vs-set">SimpleSet vs Set</a></4>
     <h3 class="function"><a href="#batman-simpleset-constructor">constructor(items...)</a></3>
     <h3 class="property"><a href="#batman-simpleset-length">length</a></3>
@@ -273,7 +273,7 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
     <h3 class="property"><a href="#batman-simpleset-indexedby">indexedBy(key</a></3>
     <h3 class="property"><a href="#batman-simpleset-indexedbyunique">indexedByUnique(key</a></3>
     <h3 class="property"><a href="#batman-simpleset-sortedby">sortedBy(key</a></3>
-    <h2 class="object"><a href="#batman-set">Batman.Set</a></2>
+    <h2 class="class"><a href="#batman-set">Batman.Set</a></2>
     <h4 class=""><a href="#batman-set-simpleset-vs-set">SimpleSet vs Set</a></4>
     <h3 class="function"><a href="#batman-set-constructor">constructor(items...)</a></3>
     <h3 class="property"><a href="#batman-set-length">length</a></3>
@@ -379,6 +379,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">noise</span><span class="p">)</span> <span class="p">{</span>
     <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="s2">&quot;detonated with noise &quot;</span> <span class="o">+</span> <span class="nx">noise</span><span class="p">);</span>
   <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">fire</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="s2">&quot;BOOM!&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;detonated with noise BOOM!&quot;</span>
 </pre></div></div></code>
@@ -421,8 +422,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-<h3 id="batman-eventemitter-prevent">prevent(key)</h3>
-<p>Prevents the event with name <code>key</code> from firing, even if <code>.fire</code> is called. This is useful if you need to guarantee a precondition is in fulfilled before allowing event handlers to execute.
+<h3 id="batman-eventemitter-prevent">prevent(key) : EventEmitter</h3>
+<p>Prevents the event with name <code>key</code> from firing, even if <code>.fire</code> is called. This is useful if you need to guarantee a precondition is in fulfilled before allowing event handlers to execute. Returns the event emitting object.
 
 </p>
 <p>Undo event prevention with <code>allow</code> or <code>allowAndFire</code>.
@@ -445,8 +446,16 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-<h3 id="batman-eventemitter-allow">allow(key)</h3>
-<p>Allows the event with name <code>key</code> to fire once more, after <code>prevent</code> had been called previously. <code>allow</code> will not fire the event when called, regardless of weather or not the event can now be fired or if an attempt to fire it was made while the event was prevented.
+<div class="console-session">
+  <h4>prevent returns the event emitter</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">prevent</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-eventemitter-allow">allow(key) : EventEmitter</h3>
+<p>Allows the event with name <code>key</code> to fire once more, after <code>prevent</code> had been called previously. <code>allow</code> will not fire the event when called, regardless of weather or not the event can now be fired or if an attempt to fire it was made while the event was prevented. Returns the event emitting object.
 
 </p>
 <p><em>Note</em>: <code>prevent</code> can be called more than once to effectively &quot;nest&quot; preventions. <code>allow</code> or <code>allowAndFire</code> must be called the same number of times or more for events to fire once more.
@@ -488,6 +497,14 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">fire</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">length</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span> <span class="c1">// The event handler was fired.</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>allow returns the event emitter</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">allow</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
 </pre></div></div></code>
   </pre>
 </div>
@@ -929,7 +946,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. <code>accessor</code> is a Batman and old browser friendly version of ES5 <code>Object.defineProperty</code> missing some of the goodness.
 
 </p>
-<p>The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking <code>get</code> calls, so do be sure to use <code>get</code> to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies.
+<p>The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking <code>get</code> calls, so do be sure to use <code>get</code> to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies. The property dependencies of an accessor are called &quot;sources&quot; in the Batman world.
 
 </p>
 <h4 id="batman-object-accessor-arguments">Arguments</h4>
@@ -956,12 +973,13 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
       <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
     <span class="p">}</span>
 
+    <span class="nx">Post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
+    <span class="p">});</span>
+
     <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
 
   <span class="p">})()</span>
-</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
-  <span class="p">})</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">({</span>
     <span class="nx">body</span><span class="o">:</span> <span class="s2">&quot;Why Batman is Useful: A lengthy post on an important subject&quot;</span>
   <span class="p">})</span>
@@ -1012,16 +1030,17 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
       <span class="nx">Player</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
     <span class="p">}</span>
 
+    <span class="nx">Player</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;played&#39;</span><span class="p">))</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;goals&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;assists&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span><span class="p">);</span>
+      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
     <span class="k">return</span> <span class="nx">Player</span><span class="p">;</span>
 
   <span class="p">})()</span>
-</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Player</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;played&#39;</span><span class="p">))</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;goals&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;assists&#39;</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1</span><span class="p">);</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">})</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">rick</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Player</span><span class="p">({</span>
     <span class="nx">played</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
     <span class="nx">goals</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
@@ -1042,6 +1061,56 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
   </pre>
 </div>
 <h4 id="batman-object-accessor-caveats">Caveats</h4>
+<p>Accessors are extremely useful but you must keep these items in mind while programming using them:
+
+</p>
+<ol>
+<li>Accessors should be linear, so they can be cached.</li>
+</ol>
+<p>Batman automatically memoizes the return value of accessors, and will not re-execute the body until one of the accessor&#39;s sources changes. If you need the accessor to recalculate every time the property is gotten, pass false as the <code>cacheable</code> in the accessor descriptor object (the last argument to the <code>@accessor</code> function).
+
+</p>
+<div class="console-session">
+  <h4>@accessor usually caches results</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">counter</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Example</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Example</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Example</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Example</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Example</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="o">++</span><span class="nx">counter</span><span class="p">;</span>
+    <span class="p">});</span>
+
+    <span class="nx">Example</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;notCachedCounter&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="o">++</span><span class="nx">counter</span><span class="p">;</span>
+      <span class="p">},</span>
+      <span class="nx">cachable</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Example</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">example</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Example</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;notCachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">2</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;notCachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">3</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
+</pre></div></div></code>
+  </pre>
+</div>
 
 <h2 id="batman-simpleset">Batman.SimpleSet</h2>
 <p><code>SimpleSet</code> is an implementation of the <code>Set</code> object you might expect to find in lots of other languages standard libraries. Sets are an enumerable but unordered collection of objects. A particular object may either be a member or not be a member of a particular set, but it may not belong to the set twice, as that would imply ordering. In the case of Batman, sets will tell you when items are added or removed through events, sets mix in the <code>Enumerable</code> module for handy iteration and aggregation, and can also generate indexes and sorts via <code>SetIndex</code> and <code>SetSort</code>.

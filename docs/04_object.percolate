@@ -38,7 +38,7 @@ test 'toJSON returns a vanilla JS object', ->
 
 Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. `accessor` is a Batman and old browser friendly version of ES5 `Object.defineProperty` missing some of the goodness.
 
-The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking `get` calls, so do be sure to use `get` to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies.
+The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking `get` calls, so do be sure to use `get` to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies. The property dependencies of an accessor are called "sources" in the Batman world.
 
 #### Arguments
 
@@ -56,8 +56,9 @@ Accessors are a really useful addition to the world of JavaScript. You can now d
 
 !!!
 test '@accessor can be called on a class to define how a property is calculated', ->
-  show class Post extends Batman.Object
-  show Post.accessor 'summary', -> @get('body').slice(0, 10) + "..."
+  show(class Post extends Batman.Object
+        @accessor 'summary', -> @get('body').slice(0, 10) + "..."
+  )
   show post = new Post(body: "Why Batman is Useful: A lengthy post on an important subject")
   equal post.get('summary'), "Why Batman..."
 !!!
@@ -77,13 +78,13 @@ test '@accessor can define a transform on several properties', ->
 
 !!!
 test '@accessor can use arbitrary logic to define the value', ->
-  show class Player extends Batman.Object
-  show Player.accessor 'score', ->
-      if @get('played')
-        (@get('goals') * 2) + (@get('assists') * 1)
-      else
-        0
-
+  show(class Player extends Batman.Object
+        @accessor 'score', ->
+          if @get('played')
+            (@get('goals') * 2) + (@get('assists') * 1)
+          else
+            0
+  )
   show rick = new Player(played: false, goals: 0, assists: 0)
   equal rick.get('score'), 0
   show rick.set('played', true)
@@ -95,5 +96,29 @@ test '@accessor can use arbitrary logic to define the value', ->
 !!!
 
 #### Caveats
+
+Accessors are extremely useful but you must keep these items in mind while programming using them:
+
+ 1. Accessors should be linear, so they can be cached.
+
+Batman automatically memoizes the return value of accessors, and will not re-execute the body until one of the accessor's sources changes. If you need the accessor to recalculate every time the property is gotten, pass false as the `cacheable` in the accessor descriptor object (the last argument to the `@accessor` function).
+
+!!!
+test "@accessor usually caches results", ->
+  show counter = 0
+  show(class Example extends Batman.Object
+        @accessor 'cachedCounter', -> ++counter
+        @accessor 'notCachedCounter',
+          get: -> ++counter
+          cachable: false
+  )
+  show example = new Example()
+  equal example.get('cachedCounter'), 1
+  equal example.get('cachedCounter'), 1
+  equal example.get('cachedCounter'), 1, "The second and third calls do not execute the function"
+  equal example.get('notCachedCounter'), 2
+  equal example.get('notCachedCounter'), 3, "Passing cachable: false does re-execute the function"
+  equal example.get('cachedCounter'), 1
+!!!
 
 

@@ -329,5 +329,3 @@ test 'Set::merge returns a new set with the items of the original set and the pa
 ### indexedByUnique(key : String) : UniqueSetIndex
 
 ### sortedBy(key: String) : SetSort
-
-
