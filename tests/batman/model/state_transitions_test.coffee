@@ -6,24 +6,23 @@ QUnit.module "Batman.Model state transitions",
       @encode 'name'
       @persist TestStorageAdapter
 
-test "new instances start 'empty'", ->
+test "new instances start 'clean'", ->
   product = new @Product
   ok product.isNew()
-  equal product.lifecycle.get('state'), 'empty'
+  equal product.get('lifecycle.state'), 'clean'
 
-asyncTest "loaded instances start 'loaded'", 2, ->
+asyncTest "loaded instances start 'clean'", 2, ->
   product = new @Product(10)
   product.load (err, product) ->
     throw err if err
     ok !product.isNew()
-    equal product.lifecycle.get('state'), 'loaded'
+    equal product.get('lifecycle.state'), 'clean'
     QUnit.start()
 
 test "instances have state transitions for observation", 1, ->
   product = new @Product
-  product.lifecycle.onTransition 'loading', 'loaded', spy = createSpy()
-  product.lifecycle.load()
-  product.lifecycle.loaded()
+  product.get('lifecycle').onTransition 'clean', 'dirty', spy = createSpy()
+  product.set('test', true)
   ok spy.called
 
 asyncTest "instance loads can be nested", 1, ->

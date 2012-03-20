@@ -1,11 +1,11 @@
-{TestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
+{TestStorageAdapter, AsyncTestStorageAdapter} = if typeof require isnt 'undefined' then require './model_helper' else window
 
 QUnit.module "Batman.Model instance loading"
   setup: ->
     class @Product extends Batman.Model
       @encode 'name', 'cost'
 
-    @adapter = new TestStorageAdapter(@Product)
+    @adapter = new AsyncTestStorageAdapter(@Product)
     @adapter.storage =
       'products1': {name: "One", cost: 10, id:1}
 
@@ -38,36 +38,83 @@ asyncTest "instantiated instances should accept options for load", 1, ->
 
 asyncTest "loading instances should add them to the all set", ->
   product = new @Product(1)
+  equal @Product.get('all').length, 0
   product.load (err, product) =>
     equal @Product.get('all').length, 1
     QUnit.start()
 
 asyncTest "loading instances should add them to the all set if no callbacks are given", ->
   product = new @Product(1)
+  equal @Product.get('all').length, 0
   product.load()
   delay =>
     equal @Product.get('all').length, 1
+
+asyncTest "callbacks passed to load should be pipelined into the same request", ->
+  product = new @Product(1)
+  spyOn @adapter, 'read'
+  product.load firstLoad = createSpy()
+  product.load secondLoad = createSpy()
+  product.load (err, passedProduct) =>
+    throw err if err
+    equal passedProduct, product
+    # Callback order is not guaranteed
+    setTimeout =>
+      for load in [firstLoad, secondLoad]
+        ok !load.lastCallArguments[0]
+        equal load.lastCallArguments[1], product
+      equal @adapter.read.callCount, 1
+      QUnit.start()
+    , 0
+
+asyncTest "load should pipeline even if no callbacks are given", ->
+  product = new @Product(1)
+  spyOn @adapter, 'read'
+  product.load()
+  product.load firstLoad = createSpy()
+  product.load()
+  product.load secondLoad = createSpy()
+  product.load (err, passedProduct) =>
+    throw err if err
+    equal passedProduct, product
+    # Callback order is not guaranteed
+    setTimeout =>
+      for load in [firstLoad, secondLoad]
+        ok !load.lastCallArguments[0]
+        equal load.lastCallArguments[1], product
+      equal @adapter.read.callCount, 1
+      QUnit.start()
+    , 0
+
+test "callbacks passed to load with options should not be pipelined into the same request", ->
+  product = new @Product(1)
+  spyOn @adapter, 'read'
+  product.load {id: 1}, firstLoad = createSpy()
+  QUnit.raises (-> product.load({id: 2}, (err, product) -> throw err if err))
+  QUnit.raises (-> product.load({id: 1}, (err, product )-> throw err if err))
 
 QUnit.module "Batman.Model instance saving"
   setup: ->
     class @Product extends Batman.Model
       @encode 'name', 'cost'
 
-    @adapter = new TestStorageAdapter(@Product)
+    @adapter = new AsyncTestStorageAdapter(@Product)
     @Product.persist @adapter
 
-test "model instances should save", ->
+asyncTest "model instances should save", ->
   product = new @Product()
   product.save (err, product) =>
     throw err if err?
     ok product.get('id') # We rely on the test storage adapter to add an ID, simulating what might actually happen IRL
+    QUnit.start()
 
-test "new instances should be added to the identity map", ->
+asyncTest "new instances should be added to the identity map", ->
   product = new @Product()
   equal @Product.get('loaded.length'), 0
   product.save (err, product) =>
     throw err if err?
     equal @Product.get('loaded').length, 1
+    QUnit.start()
 
 asyncTest "new instances should be added to the identity map even if no callback is given", ->
   product = new @Product()
@@ -77,7 +124,7 @@ asyncTest "new instances should be added to the identity map even if no callback
     throw err if err?
     equal @Product.get('loaded').length, 1
 
-test "existing instances shouldn't be re added to the identity map", ->
+asyncTest "existing instances shouldn't be re added to the identity map", ->
   product = new @Product(10)
   product.load (err, product) =>
     throw err if err
@@ -85,55 +132,57 @@ test "existing instances shouldn't be re added to the identity map", ->
     product.save (err, product) =>
       throw err if err?
       equal @Product.get('all').length, 1
+      QUnit.start()
 
-test "existing instances should be updated with incoming attributes", ->
+asyncTest "existing instances should be updated with incoming attributes", ->
   @adapter.storage = {"products10": {name: "override"}}
   product = new @Product(id: 10, name: "underneath")
   product.load (err, product) =>
     throw err if err
     equal product.get('name'), 'override'
+    QUnit.start()
 
-
-test "model instances should accept options for save upon create", 1, ->
+asyncTest "model instances should accept options for save upon create", 1, ->
   product = new @Product()
-  oldSave = @adapter.create
-  @adapter.create = (record, options, callback) ->
-    deepEqual options, {neato: true}
-    oldSave.apply(@, arguments)
+  spyOn @adapter, 'create'
 
   product.save {neato: true}, (err, product) =>
     throw err if err?
+    deepEqual @adapter.create.lastCallArguments[1], {neato: true}
+    QUnit.start()
 
-test "model instances should accept options for save upon update", 1, ->
+asyncTest "model instances should accept options for save upon update", 1, ->
   product = new @Product(10)
-  oldSave = @adapter.update
-  @adapter.update = (record, options, callback) ->
-    deepEqual options, {neato: true}
-    oldSave.apply(@, arguments)
+  spyOn @adapter, 'update'
 
   product.save {neato: true}, (err, product) =>
+    deepEqual @adapter.update.lastCallArguments[1], {neato: true}
     throw err if err?
+    QUnit.start()
 
-test "model instances should throw if they can't be saved", ->
+asyncTest "model instances should throw if they can't be saved", ->
   product = new @Product()
   @adapter.create = (record, options, callback) -> callback(new Error("couldn't save for some reason"))
   product.save (err, product) =>
     ok err
+    QUnit.start()
 
-test "model instances shouldn't save if they don't validate", ->
+asyncTest "model instances shouldn't save if they don't validate", ->
   @Product.validate 'name', presence: yes
   product = new @Product()
   product.save (err, product) ->
     equal err.length, 1
+    QUnit.start()
 
-test "model instances shouldn't save if they have been destroyed", ->
+asyncTest "model instances shouldn't save if they have been destroyed", ->
   p = new @Product(10)
   p.destroy (err) =>
     throw err if err
     p.save (err) ->
       ok err
-    p.load (err) ->
-      ok err
+      p.load (err) ->
+        ok err
+        QUnit.start()
 
 asyncTest "create method returns an instance of a model while saving it", ->
   result = @Product.create (err, product) =>
@@ -156,7 +205,7 @@ QUnit.module "Batman.Model instance destruction"
     class @Product extends Batman.Model
       @encode 'name', 'cost'
 
-    @adapter = new TestStorageAdapter(@Product)
+    @adapter = new AsyncTestStorageAdapter(@Product)
     @Product.persist @adapter
 
 asyncTest "model instances should be destroyable", ->

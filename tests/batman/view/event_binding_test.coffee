@@ -129,7 +129,9 @@ asyncTest 'it should allow form submit events to be bound', 2, ->
 asyncTest 'allows data-event-click attributes to reference native model properties directly', ->
   spy = createSpy()
   class Foo extends Batman.Model
-    handleClick: spy
+    constructor: ->
+      super
+      @set 'handleClick', spy
 
   source = '<button data-event-click="foo.handleClick"></button>'
 

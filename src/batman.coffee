@@ -2713,7 +2713,7 @@ class Batman.Model extends Batman.Object
     else
       existing = @get("loaded.indexedBy.id").get(id)?.toArray()[0]
       if existing
-        existing.updateAttributes(record._batman.attributes || {})
+        existing.updateAttributes(record.get('attributes')?.toObject() || {})
         return existing
       else
         @get('loaded').add(record)
@@ -2785,8 +2785,6 @@ class Batman.Model extends Batman.Object
         @set(pk, v)
 
   @accessor 'lifecycle', -> @lifecycle ||= new Batman.Model.InstanceLifecycleStateMachine('clean')
-  @accessor 'batmanState', -> @get('lifecycle.state')
-
   @accessor 'attributes', -> @attributes ||= new Batman.Hash
   @accessor 'dirtyKeys', -> @dirtyKeys ||= new Batman.Hash
   @accessor 'errors', -> @errors ||= new Batman.ErrorsSet
@@ -2860,21 +2858,32 @@ class Batman.Model extends Batman.Object
   load: (options, callback) =>
     if !callback
       [options, callback] = [{}, options]
-
+    hasOptions = Object.keys(options).length != 0
     if @get('lifecycle.state') in ['destroying', 'destroyed']
       callback?(new Error("Can't load a destroyed record!"))
       return
 
     if @get('lifecycle').load()
+      callbackQueue = []
+      callbackQueue.push callback if callback?
+      if !hasOptions
+        @_currentLoad = callbackQueue
       @_doStorageOperation 'read', options, (err, record) =>
         unless err
           @get('lifecycle').loaded()
           record = @constructor._mapIdentity(record)
         else
           @get('lifecycle').error()
-        callback?(err, record)
+        if !hasOptions
+          @_currentLoad = null
+        for callback in callbackQueue
+          callback(err, record)
+        return
     else
-      callback?(new Batman.StateMachine.InvalidTransitionError("Can't load while in state #{@get('lifecycle.state')}"))
+      if @get('lifecycle.state') is 'loading' && !hasOptions
+        @_currentLoad.push callback if callback?
+      else
+        callback?(new Batman.StateMachine.InvalidTransitionError("Can't load while in state #{@get('lifecycle.state')}"))
 
   # `save` persists a record to all the storage mechanisms added using `@persist`. `save` will only save
   # a model if it is valid.
@@ -2897,13 +2906,16 @@ class Batman.Model extends Batman.Object
 
         associations = @constructor._batman.get('associations')
         # Save belongsTo models immediately since we don't need this model's id
+        @_pauseDirtyTracking = true
         associations?.getByType('belongsTo')?.forEach (association, label) => association.apply(@)
+        @_pauseDirtyTracking = false
 
         @_doStorageOperation storageOperation, options, (err, record) =>
           unless err
             @get('dirtyKeys').clear()
-            hasOne?.forEach (association) -> association.apply(err, record)
-            hasMany?.forEach (association) -> association.apply(err, record)
+            if associations
+              associations.getByType('hasOne')?.forEach (association, label) -> association.apply(err, record)
+              associations.getByType('hasMany')?.forEach (association, label) -> association.apply(err, record)
             record = @constructor._mapIdentity(record)
             @get('lifecycle').do endState
           else

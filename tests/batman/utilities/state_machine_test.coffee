@@ -5,7 +5,6 @@ QUnit.module "Batman.StateMachine"
         switch: {on: 'off', off: 'on'}
         switchOn: {off: 'on'}
 
-
     @sm = new @SwitchStateMachine 'on'
 
 test "should start in the inital state given", ->
@@ -117,3 +116,11 @@ test "subclasses should inherit transitions", 2, ->
   equal @sm.get('state'), 'off'
   @sm.switchOn()
   equal @sm.get('state'), 'on'
+
+test "accessors should be able to source state", 2, ->
+  x = Batman(sm: @sm)
+  x.accessor 'foo', -> @get('sm.state').toUpperCase()
+
+  equal x.get('foo'), 'ON'
+  @sm.switch()
+  equal x.get('foo'), 'OFF'

@@ -58,13 +58,12 @@ test "primary key can be changed by setting primary key on the model class", ->
   product = new @Product(uuid: "abc123")
   equal product.get('id'), 'abc123'
 
-test 'the \'batmanState\' key should be bindable', ->
+test 'the \'lifecycle.state\' key should be bindable', ->
   p = new @Product()
   equal p.get('lifecycle.state'), "clean"
-  equal p.get('batmanState'), "clean"
 
-  p.observe 'batmanState', spy = createSpy()
-  p.set('state', 'silly')
+  p.observe 'lifecycle.state', spy = createSpy()
+  p.set('unrelatedkey', 'silly')
   ok spy.called
 
 test 'the instantiated storage adapter should be returned when persisting', ->

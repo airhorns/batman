@@ -69,8 +69,8 @@ asyncTest "belongsTo associations are saved", 6, ->
 
   product.save (err, record) =>
     throw err if err
-    equal record.get('store_id'), store.id
-    equal record.get('collection_id'), collection.id
+    equal record.get('store_id'), store.get('id')
+    equal record.get('collection_id'), collection.get('id')
     storedJSON = @productAdapter.storage["products#{record.id}"]
     deepEqual storedJSON, product.toJSON()
 
