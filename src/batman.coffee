@@ -2553,7 +2553,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     into = options.into || 'main'
-    delete options.into
+    options.into = null
 
     if not options.view
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
@@ -2562,7 +2562,7 @@ class Batman.Controller extends Batman.Object
       view = @renderCache.viewForOptions(options)
     else
       view = options.view
-      delete options.view
+      options.view = null
 
     if view
       Batman.currentApp?.prevent 'ready'
