@@ -224,75 +224,381 @@ f.event={add:function(a,c,d,e,g){var h,i,j,k,l,m,n,o,p,q,r,s;if(!(a.nodeType===3
 
 </header>
 <div role="sidebar">
-    <h0 class=""><a href="#"></a></0>
-      <h1 class=""><a href="#batman-js">batman.js</a></1>
-    <h3 class=""><a href="#batman-js-its-got">It&#39;s got</a></3>
-    <h4 class=""><a href="#batman-js-its-got-platforms">Platforms</a></4>
-    <h2 class=""><a href="#batman-js-installation">Installation</a></2>
-    <h3 class=""><a href="#batman-js-installation-standalone-browser-version">Standalone Browser Version</a></3>
-    <h3 class=""><a href="#batman-js-installation-node-js">node.js</a></3>
-    <h2 class=""><a href="#batman-js-architecture">Architecture</a></2>
-    <h2 class="class"><a href="#batman-eventemitter">Batman.EventEmitter</a></2>
-    <h3 class="function"><a href="#batman-eventemitter-on">on(key, handler)</a></3>
-    <h3 class="function"><a href="#batman-eventemitter-fire">fire(key, arguments...)</a></3>
-    <h3 class="function"><a href="#batman-eventemitter-hasevent">hasEvent(key)</a></3>
-    <h3 class="property"><a href="#batman-eventemitter-oneshot">oneShot</a></3>
-    <h3 class="function"><a href="#batman-eventemitter-prevent">prevent(key)</a></3>
-    <h3 class="function"><a href="#batman-eventemitter-allow">allow(key)</a></3>
-    <h3 class="function"><a href="#batman-eventemitter-allowandfire">allowAndFire(key)</a></3>
-    <h2 class="class"><a href="#batman-observable">Batman.Observable</a></2>
-    <h3 class="function"><a href="#batman-observable-get">get(keypath)</a></3>
-    <h3 class="function"><a href="#batman-observable-set">set(keypath, newValue)</a></3>
-    <h3 class="function"><a href="#batman-observable-unset">unset(keypath)</a></3>
-    <h3 class="function"><a href="#batman-observable-observe">observe(key, observerCallback)</a></3>
-    <h3 class="function"><a href="#batman-observable-observeandfire">observeAndFire(key, observerCallback)</a></3>
-    <h3 class="function"><a href="#batman-observable-forget">forget([key [, observerCallback]])</a></3>
-    <h3 class="function"><a href="#batman-observable-getorset">getOrSet(keypath, valueFunction)</a></3>
-    <h2 class="class"><a href="#batman-object">Batman.Object</a></2>
-    <h3 class="function"><a href="#batman-object-constructor">constructor(objects...)</a></3>
-    <h3 class="function"><a href="#batman-object-tojson">toJSON()</a></3>
-    <h3 class="function"><a href="#batman-object-hashkey">hashKey()</a></3>
-    <h3 class="function"><a href="#batman-object-accessor">accessor([keys...], objectOrFunction) -&gt;</a></3>
-    <h4 class=""><a href="#batman-object-accessor-arguments">Arguments</a></4>
-    <h4 class=""><a href="#batman-object-accessor-uses">Uses</a></4>
-    <h4 class=""><a href="#batman-object-accessor-caveats">Caveats</a></4>
-    <h2 class="class"><a href="#batman-simpleset">Batman.SimpleSet</a></2>
-    <h4 class=""><a href="#batman-simpleset-simpleset-vs-set">SimpleSet vs Set</a></4>
-    <h3 class="function"><a href="#batman-simpleset-constructor">constructor(items...)</a></3>
-    <h3 class="property"><a href="#batman-simpleset-length">length</a></3>
-    <h3 class="function"><a href="#batman-simpleset-has">has(item)</a></3>
-    <h3 class="function"><a href="#batman-simpleset-add">add(items...)</a></3>
-    <h3 class="function"><a href="#batman-simpleset-remove">remove(items...)</a></3>
-    <h3 class="property"><a href="#batman-simpleset-find">find(testFunction</a></3>
-    <h3 class="property"><a href="#batman-simpleset-foreach">forEach(iteratorFunction</a></3>
-    <h3 class="function"><a href="#batman-simpleset-isempty">isEmpty()</a></3>
-    <h3 class="function"><a href="#batman-simpleset-clear">clear()</a></3>
-    <h3 class="property"><a href="#batman-simpleset-replace">replace(collection</a></3>
-    <h3 class="function"><a href="#batman-simpleset-toarray">toArray()</a></3>
-    <h3 class="property"><a href="#batman-simpleset-merge">merge(collections...</a></3>
-    <h3 class="property"><a href="#batman-simpleset-indexedby">indexedBy(key</a></3>
-    <h3 class="property"><a href="#batman-simpleset-indexedbyunique">indexedByUnique(key</a></3>
-    <h3 class="property"><a href="#batman-simpleset-sortedby">sortedBy(key</a></3>
-    <h2 class="class"><a href="#batman-set">Batman.Set</a></2>
-    <h4 class=""><a href="#batman-set-simpleset-vs-set">SimpleSet vs Set</a></4>
-    <h3 class="function"><a href="#batman-set-constructor">constructor(items...)</a></3>
-    <h3 class="property"><a href="#batman-set-length">length</a></3>
-    <h3 class="property"><a href="#batman-set-isempty">isEmpty</a></3>
-    <h3 class="property"><a href="#batman-set-toarray">toArray</a></3>
-    <h3 class="function"><a href="#batman-set-has">has(item)</a></3>
-    <h3 class="function"><a href="#batman-set-add">add(items...)</a></3>
-    <h3 class="function"><a href="#batman-set-remove">remove(items...)</a></3>
-    <h3 class="property"><a href="#batman-set-find">find(testFunction</a></3>
-    <h3 class="property"><a href="#batman-set-foreach">forEach(iteratorFunction</a></3>
-    <h3 class="function"><a href="#batman-set-isempty">isEmpty()</a></3>
-    <h3 class="function"><a href="#batman-set-clear">clear()</a></3>
-    <h3 class="property"><a href="#batman-set-replace">replace(collection</a></3>
-    <h3 class="function"><a href="#batman-set-toarray">toArray()</a></3>
-    <h3 class="property"><a href="#batman-set-merge">merge(collections...</a></3>
-    <h3 class="property"><a href="#batman-set-indexedby">indexedBy(key</a></3>
-    <h3 class="property"><a href="#batman-set-indexedbyunique">indexedByUnique(key</a></3>
-    <h3 class="property"><a href="#batman-set-sortedby">sortedBy(key</a></3>
-  </div>
+  <ul id="table_of_contents">
+      <li><a href="#"></a>
+<ul>
+  <li><a href="#batman-js">batman.js</a>
+<ul>
+  <li><a href="#batman-js-its-got">It&#39;s got</a>
+<ul>
+  <li><a href="#batman-js-its-got-platforms">Platforms</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-js-installation">Installation</a>
+<ul>
+  <li><a href="#batman-js-installation-standalone-browser-version">Standalone Browser Version</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-js-installation-node-js">node.js</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-js-architecture">Architecture</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-helpers">Batman Helpers</a>
+<ul>
+  <li><a href="#batman-helpers-container">container</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-typeof">typeOf(object)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-mixin">mixin(subject, objects...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-unmixin">unmixin(subject, objects...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-ischildof">isChildOf (parent</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-setimmediate">setImmediate(callback</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-clearimmediate">clearImmediate(handle)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-foreach">forEach(iterable</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-objecthaskey">objectHasKey(object, key)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-contains">contains(object, item)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-get">get(object, key)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-escapehtml">escapeHTML(string)</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-helpers">Batman.helpers</a>
+<ul>
+  <li><a href="#batman-helpers-ordinalize">ordinalize(value</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-singularize">singularize(pluralString</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-pluralize">pluralize(singularString</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-camelize">camelize(string, [lowercaseFirstLetter = false])</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-underscore">underscore(string)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-helpers-capitalize">capitalize(string)</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter">Batman.EventEmitter</a>
+<ul>
+  <li><a href="#batman-eventemitter-on">on(key, handler)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-fire">fire(key, arguments...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-hasevent">hasEvent(key)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-oneshot">oneShot</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-prevent">prevent(key)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-allow">allow(key)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-eventemitter-allowandfire">allowAndFire(key)</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-observable">Batman.Observable</a>
+<ul>
+  <li><a href="#batman-observable-get">get(keypath)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-set">set(keypath, newValue)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-unset">unset(keypath)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-observe">observe(key, observerCallback)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-observeandfire">observeAndFire(key, observerCallback)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-forget">forget([key [, observerCallback]])</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-observable-getorset">getOrSet(keypath, valueFunction)</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-object">Batman.Object</a>
+<ul>
+  <li><a href="#batman-object-accessor">@accessor([keys...], objectOrFunction) -&gt;</a>
+<ul>
+  <li><a href="#batman-object-accessor-arguments">Arguments</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-accessor-uses">Uses</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-accessor-caveats">Caveats</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-object-classaccessor">@classAccessor([keys...], objectOrFunction) -&gt;</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-mixin">@mixin(objects...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-classmixin">@classMixin(objects...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-constructor">constructor(objects...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-tojson">toJSON()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-hashkey">hashKey()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-accessor">accessor([keys...], objectOrFunction)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-object-mixin">mixin(objects...)</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-simpleset">Batman.SimpleSet</a>
+<ul>
+  <li><a href="#batman-simpleset-simpleset-vs-set">SimpleSet vs Set</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-constructor">constructor(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-length">length</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-has">has(item)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-add">add(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-remove">remove(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-find">find(testFunction</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-foreach">forEach(iteratorFunction</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-isempty">isEmpty()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-clear">clear()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-replace">replace(collection</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-toarray">toArray()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-merge">merge(collections...</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-indexedby">indexedBy(key</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-indexedbyunique">indexedByUnique(key</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-simpleset-sortedby">sortedBy(key</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+  <li><a href="#batman-set">Batman.Set</a>
+<ul>
+  <li><a href="#batman-set-simpleset-vs-set">SimpleSet vs Set</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-constructor">constructor(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-length">length</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-isempty">isEmpty</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-toarray">toArray</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-has">has(item)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-add">add(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-remove">remove(items...)</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-find">find(testFunction</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-foreach">forEach(iteratorFunction</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-isempty">isEmpty()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-clear">clear()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-replace">replace(collection</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-toarray">toArray()</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-merge">merge(collections...</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-indexedby">indexedBy(key</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-indexedbyunique">indexedByUnique(key</a>
+<ul>
+</ul>
+</li>
+  <li><a href="#batman-set-sortedby">sortedBy(key</a>
+<ul>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+  </ul>
+</div>
 <div role="main">
   <h1 id="batman-js">batman.js</h1>
 <p><a href="http://batmanjs.org/">batman.js</a> is a framework for building rich single-page browser applications. It is written in <a href="http://jashkenas.github.com/coffee-script/">CoffeeScript</a> and its API is developed with CoffeeScript in mind, but of course you can use plain old JavaScript too.
@@ -347,6 +653,440 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </ul>
 <p>A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app can use <a href="https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries">pushState</a> where supported, or fall back on to <a href="http://www.w3.org/QA/2011/05/hash_uris.html">hash-bang fragment identifers</a>.
 </p>
+
+<h2 id="batman-helpers">Batman Helpers</h2>
+<p>Batman includes an number of useful, general purpose helper functions and references. They can all be found attached to the <code>Batman</code> object and can optionally be exported into the global namespace with a <code>$</code> prefix.
+
+</p>
+<h3 id="batman-helpers-container">container : [window|Object]</h3>
+<p><code>Batman.container</code> points to either the <code>window</code> object if running the browser, or the <code>global</code> object if running in node. This is useful if you want to add something to the global scope in all environments.
+
+</p>
+<h3 id="batman-helpers-typeof">typeOf(object) : string</h3>
+<p><code>typeOf</code> determines a more specific type of an <code>object</code> than the native <code>typeof</code> operator in JavaScript. This is useful for a number of situations like dealing with <code>Object</code> promoted strings and numbers, or arrays which look like <code>object</code>s to <code>typeof</code>. Use <code>typeOf</code> when you need more than <code>&quot;object&quot;</code> from <code>typeof</code>.
+
+</p>
+<p><em>Note</em>: <code>typeOf</code> is substantially slower than <code>typeof</code>. <code>typeOf</code> works in a somewhat hackish manner by getting the <code>Object::toString</code> representation of the object and slicing it to retrieve the name of the constructor.
+
+</p>
+<div class="console-session">
+  <h4>typeOf returns &quot;String&quot; for both strings and Object strings</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">primitive</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">objectified</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">String</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">primitive</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;string&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">objectified</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;object&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">primitive</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;String&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">objectified</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;String&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>typeOf returns Array for arrays</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">array</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">array</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;object&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">typeOf</span><span class="p">(</span><span class="nx">array</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Array&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-mixin">mixin(subject, objects...) : subject</h3>
+<p><code>mixin</code>, occasionally known elsewhere as <code>extend</code> or <code>merge</code>, flattens a series of objects onto the subject. Key/value pairs on objects passed as later arguments (arguments with a higher index) take precedence over earlier arguments. Returns the <code>subject</code> passed in with the new values.
+
+</p>
+<p><code>mixin</code> also has special properties that make it different than the canonical <code>extend</code> functions:
+
+</p>
+<ol>
+<li>If the <code>subject</code> has a <code>set</code> function, <code>subject.set(key, value)</code> will be used to apply keys instead of <code>subject[key] = value</code>. This means that if the subject is a <code>Batman.Object</code>, observers and thus bindings on the object will be notified when other (Batmanified or not) objects are mixed into it.</li>
+</ol>
+<p><em>Note</em>: <code>mixin</code> is destructive to (only) the first argument. If you need a non-destructive version of <code>mixin</code>, just pass an empty object as the first object, and all keys from the successive arguments will be applied to the empty object.
+
+</p>
+<div class="console-session">
+  <h4>mixin merges argument objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// mixin returns the subject</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">subject</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// the subject is modified destructively</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>mixin merges argument objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">unmodified</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixin</span><span class="p">({},</span> <span class="nx">unmodified</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// mixin returns the subject</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">unmodified</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// argument objects are untouched allowing non-destructive merge</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>mixed in objects passed as higher indexed arguments take precedence</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">x</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="nx">y</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">x</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">x</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="nx">y</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-unmixin">unmixin(subject, objects...) : subject</h3>
+<p><code>unmixin</code> &quot;unmerges&quot; the passes objects from the <code>subject</code>. If a key exists on any of the <code>objects</code> it will be <code>delete</code>d from the <code>subject</code>. Returns the <code>subject</code>.
+
+</p>
+<p><code>unmixin</code>, similar to <code>mixin</code>, supports calling an <code>uninitialize</code> function for each of the <code>objects</code> being unmixed in. If an <code>uninitialize</code> function exists on each
+
+</p>
+<div class="console-session">
+  <h4>unmixin removes keys found on the unmixined objects on the subject</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">unmixin</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">fly</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// unmixin returns the subject</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">subject</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">funky</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span> <span class="c1">// the subject is destructively modified.</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-ischildof">isChildOf (parent : HTMLElement, child : HTMLElement) : boolean</h3>
+<p><code>isChildOf</code> is a simple DOM helper which returns a boolean describing if the passed <code>child</code> node can be found in the descendants of the passed <code>parent</code> node.
+
+</p>
+<h3 id="batman-helpers-setimmediate">setImmediate(callback : Function) : object</h3>
+<p><code>setImmediate</code> (and it&#39;s sister <code>clearImmediate</code>) are a more efficient version of <code>setTimeout(callback, 0)</code>. Due to timer resolution issues, setTimeout passed a timeout of 0 doesn&#39;t actually execute the function as soon as the JS execution stack has been emptied, but at minimum 4ms and maxmium 25ms after. For this reason Batman provides a cross browser implementation of <code>setImmediate</code> which does it&#39;s best to call the callback immediately after the stack empties. Batman&#39;s <code>setImmediate</code> polyfill uses the native version if available, <code>window.postmessage</code> trickery if supported, and falls back on <code>setTimeout(-&gt;, 0)</code>.
+
+</p>
+<p><code>setImmediate</code> returns a handle which can be passed to <code>clearImmediate</code> to cancel the future calling of the callback.
+
+</p>
+<h3 id="batman-helpers-clearimmediate">clearImmediate(handle)</h3>
+<p><code>clearImmediate</code> stops the calling of a callback in the future when passed it&#39;s <code>handle</code> (which is returned from the <code>setImmediate</code> call used to enqueue it).
+
+</p>
+<h3 id="batman-helpers-foreach">forEach(iterable : object, iterator : Function[, context : Object])</h3>
+<p>The <code>forEach</code> Batman helper is a universal iteration helper. When passed an <code>iterable</code> object, the helper will call the <code>iterator</code> (optionally in the <code>context</code>) for each item in the <code>iterable</code>. The <code>iterable</code> can be:
+
+</p>
+<ol>
+<li>something which has it&#39;s own <code>forEach</code>, in which case the <code>iterator</code> whill just be passed to <code>iterable.forEach</code>.</li>
+</ol>
+<p>The <code>forEach</code> helper is useful for iterating over objects when the type of those objects isn&#39;t guaranteed.
+
+</p>
+<div class="console-session">
+  <h4>forEach iterates over objects with forEach defined</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">set</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">x</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;a&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>forEach iterates over array like objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">ArrayLike</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">ArrayLike</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="p">[]</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">imitation</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ArrayLike</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">push</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">imitation</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nb">Array</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">push</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">imitation</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">imitation</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">(</span><span class="nx">x</span><span class="p">);</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;b&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>forEach iterates over objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">x</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">val</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">log</span><span class="p">({</span>
+      <span class="nx">key</span><span class="o">:</span> <span class="nx">key</span><span class="p">,</span>
+      <span class="nx">val</span><span class="o">:</span> <span class="nx">val</span>
+    <span class="p">});</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">logged</span><span class="p">.</span><span class="nx">last</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">key</span><span class="o">:</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span>
+    <span class="nx">val</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-objecthaskey">objectHasKey(object, key) : boolean</h3>
+<p><code>objectHasKey</code> returns a boolean describing the presence of the <code>key</code> in the passed <code>object</code>. <code>objectHasKey</code> delegates to the <code>object</code>&#39;s <code>hasKey</code> function if present, and otherwise just does a check using the JavaScript <code>in</code> operator.
+
+</p>
+<div class="console-session">
+  <h4>objectHasKey verifies if a key is present in an object</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">objectHasKey</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;fit&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">objectHasKey</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;flirty&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>objectHasKey verifies if a key is present in an object with `hasKey` defined</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleHash</span><span class="p">({</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">objectHasKey</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;fit&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">objectHasKey</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;flirty&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-contains">contains(object, item) : boolean</h3>
+<p><code>contains</code> returns a boolean describing if the given <code>object</code> has member <code>item</code>. Membership in this context is defined as:
+
+</p>
+<ul>
+<li>the result of <code>object.has(item)</code> if the <code>object</code> has a <code>has</code> function defined</li>
+</ul>
+<p><em>Note</em>: When passed an object without a <code>has</code> function, <code>contains</code> will return <code>true</code> if the <code>object</code> has <code>item</code> as a <em><code>key</code></em>, not as a value at any key.
+
+</p>
+<p><code>contains</code> is useful for checking item membership when the type of the object can&#39;t be relied on.
+
+</p>
+<h3 id="batman-helpers-get">get(object, key) : value</h3>
+<p><code>get</code> is a general purpose function for retrieving the value from a <code>key</code> on an <code>object</code> of an indeterminate type. This is useful if code needs to work with both <code>Batman.Object</code>s and Plain Old JavaScript Objects. <code>get</code> has the following semantics:
+
+</p>
+<ul>
+<li>if the <code>object</code> has a <code>get</code> function defined, return the result of <code>object.get(key)</code></li>
+</ul>
+<div class="console-session">
+  <h4>get returns the value at a key on a POJO</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;fit&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;flirty&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="k">void</span> <span class="mi">0</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>get returns the value at a key on a Batman.Object</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;fit&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;flirty&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="k">void</span> <span class="mi">0</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>get returns the value at a deep key on a POJO</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">customer</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Joe&quot;</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;customer.name&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Joe&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;customer.age&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="k">void</span> <span class="mi">0</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>get returns the value at a deep key on a Batman.Object</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">customer</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Joe&quot;</span>
+    <span class="p">}</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;customer.name&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Joe&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="s1">&#39;customer.age&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="k">void</span> <span class="mi">0</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-escapehtml">escapeHTML(string) : string</h3>
+<p><code>escapeHTML</code> takes a string of unknown origin and makes it safe for display on a web page by encoding control characters in HTML into their HTML entities.
+
+</p>
+<p><em>Warning</em>: Do not rely on <code>escapeHTML</code> to purge unsafe data from user submitted content. While <code>escapeHTML</code> is applied to every binding&#39;s contents by default, it should not be your only line of defence against script injection attacks.
+
+</p>
+<div class="console-session">
+  <h4>escapeHTML encodes special characters into HTML entities</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">escapeHTML</span><span class="p">(</span><span class="s2">&quot;&amp; &lt; &gt; \&quot; &#39;&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;&amp;amp; &amp;lt; &amp;gt; &amp;#34; &amp;#39;&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h2 id="batman-helpers">Batman.helpers</h2>
+<p><code>Batman.helpers</code> is a namespace for Batman&#39;s helpful string manipulation helpers.
+
+</p>
+<p><em>Note</em>: Batman&#39;s pluralization functions mirror those of Rails&#39; exactly.
+
+</p>
+<h3 id="batman-helpers-ordinalize">ordinalize(value : [number|string]) : string</h3>
+<p><code>ordinalize</code> converts a given integer into an ordinal string for describing position in a list, like 1st, 2nd, or 20th.
+
+</p>
+<div class="console-session">
+  <h4>ordinalize converts numbers to their ordinal form</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;1st&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;2nd&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="mi">1002</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;1002nd&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="s2">&quot;1003&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;1003rd&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="o">-</span><span class="mi">11</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;-11th&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="o">-</span><span class="mi">1021</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;-1021st&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-singularize">singularize(pluralString : string) : string</h3>
+<p><code>singularize</code> converts the plural form of a word to a singular form.
+
+</p>
+<div class="console-session">
+  <h4>singularize converts plural words to singular words</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;posts&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;post&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;octopi&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;octopus&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;sheep&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;sheep&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;word&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;word&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;CamelOctopi&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;CamelOctopus&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-pluralize">pluralize(singularString : string) : string</h3>
+<p><code>pluralize</code> converts the singular form of a word to the plural form.
+
+</p>
+<div class="console-session">
+  <h4>pluralize converts plural words to singular words</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;posts&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;octopus&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;octopi&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;sheep&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;sheep&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;words&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;words&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;CamelOctopus&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;CamelOctopi&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-camelize">camelize(string, [lowercaseFirstLetter = false]) : string</h3>
+<p><code>camelize</code> converts the passed <code>string</code> to UpperCamelCase. If the second argument is passed as <code>true</code>, then lowerCamelCase is returned.
+
+</p>
+<div class="console-session">
+  <h4>camelize returns the CamelCase version of an under_scored word</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">camelize</span><span class="p">(</span><span class="s2">&quot;batman_object&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;BatmanObject&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">camelize</span><span class="p">(</span><span class="s2">&quot;batman_object&quot;</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;batmanObject&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-underscore">underscore(string) : string</h3>
+<p><code>underscore</code> returns the underscored version of a CamelCase word.
+
+</p>
+<div class="console-session">
+  <h4>underscore converts CamelCase to under_scores</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">underscore</span><span class="p">(</span><span class="s2">&quot;BatmanObject&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;batman_object&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-helpers-capitalize">capitalize(string) : string</h3>
+<p><code>capitalize</code> does a word-wise capitalization of a phrase or word.
+
+</p>
+<div class="console-session">
+  <h4>capitalize makes the first letter of each word in the string uppercase</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">capitalize</span><span class="p">(</span><span class="s2">&quot;batmanObject&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;BatmanObject&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">capitalize</span><span class="p">(</span><span class="s2">&quot;batman object&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Batman Object&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">capitalize</span><span class="p">(</span><span class="s2">&quot;AlreadyCapitalized&quot;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;AlreadyCapitalized&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
 
 <h2 id="batman-eventemitter">Batman.EventEmitter</h2>
 <p><code>EventEmitter</code> is a mixin which can be applied to any object to give it the ability to fire events and accept listeners for those events.
@@ -893,60 +1633,14 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>Batman.Object</code> is the superclass for virtually all objects in a Batman application. <code>Batman.Object</code> mixes in <code>Batman.Observable</code> and <code>Batman.EventEmitter</code> for things like <code>get</code>, <code>set</code>, <code>observe</code>, and <code>fire</code>, and then defines some more useful things for tying everything together.
 
 </p>
-<h3 id="batman-object-constructor">constructor(objects...)</h3>
-<p>To create a new <code>Batman.Object</code>, the <code>Batman.Object</code> constructor can be used, or, the <code>Batman</code> namespace is also a utility function for creating Batman objects. Each object passed in to the constructor will have all its properties applied to the new <code>Batman.Object</code> using <code>get</code> and <code>set</code>, so any custom getters or setters will be respected. Objects passed in last will have precedence over objects passed in first in the event that they share the same keys. The property copy from these objects is shallow.
-
-</p>
-<div class="console-session">
-  <h4>Batman() function allows for handy creation of Batman.Objects</h4>
-  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
-    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
-  <span class="p">})</span>
-</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">object</span><span class="p">.</span><span class="nx">get</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;function&#39;</span>
-</pre></div></div></code>
-  </pre>
-</div>
-<div class="console-session">
-  <h4>Batman.Object constructor function accepts multiple mixin arguments and later mixins take precedence.</h4>
-  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
-    <span class="nx">length</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
-    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">120</span>
-  <span class="p">},</span> <span class="p">{</span>
-    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">130</span>
-  <span class="p">})</span>
-</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">)</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">100</span>
-</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;bpm&#39;</span><span class="p">)</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">130</span> <span class="c1">// The property from the second object passed to the constructor overwrites that from the first.</span>
-</pre></div></div></code>
-  </pre>
-</div>
-<h3 id="batman-object-tojson">toJSON() : object</h3>
-<p><code>toJSON</code> returns a vanilla JavaScript object representing this <code>Batman.Object</code>.
-
-</p>
-<div class="console-session">
-  <h4>toJSON returns a vanilla JS object</h4>
-  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
-    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
-  <span class="p">})</span>
-</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">object</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
-    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
-  <span class="p">}</span>
-</pre></div></div></code>
-  </pre>
-</div>
-<h3 id="batman-object-hashkey">hashKey(): string</h3>
-<p><code>hashKey</code> returns a unique string representing this particular <code>Batman.Object</code>. No two <code>Batman.Object</code>s will have the same <code>hashKey</code>.
-
-</p>
-<h3 id="batman-object-accessor">accessor([keys...], objectOrFunction) -&gt;</h3>
+<h3 id="batman-object-accessor">@accessor([keys...], objectOrFunction) -&gt;</h3>
 <p>Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. <code>accessor</code> is a Batman and old browser friendly version of ES5 <code>Object.defineProperty</code> missing some of the goodness.
 
 </p>
 <p>The value of custom accessors can be observed just like any property. Accessors also track which other properties they rely on for computation, and recalculate eagerly when those other properties change. This way, when a source value is changed, any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish this feat by tracking <code>get</code> calls, so do be sure to use <code>get</code> to retrieve properties on Batman Objects inside accessors so those properties can be tracked as dependencies. The property dependencies of an accessor are called &quot;sources&quot; in the Batman world.
+
+</p>
+<p>Importantly, accessors are also inherited, so accessors defined anywhere in an object&#39;s prototype chain will be used. Following this, <code>@accessor</code> is meant to be used during the class definition of a class extending <code>Batman.Object</code>.
 
 </p>
 <h4 id="batman-object-accessor-arguments">Arguments</h4>
@@ -1020,6 +1714,45 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
+<p>Accessors can define custom <code>get</code>, <code>set</code>, and <code>unset</code> functions to support each operation on the property:
+
+</p>
+<div class="console-session">
+  <h4>@accessor can define the get, set, and unset methods for the property</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">AbsoluteNumber</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">AbsoluteNumber</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">AbsoluteNumber</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">AbsoluteNumber</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">AbsoluteNumber</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_value</span><span class="p">;</span>
+      <span class="p">},</span>
+      <span class="nx">set</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_</span><span class="p">,</span> <span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_value</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">abs</span><span class="p">(</span><span class="nx">value</span><span class="p">);</span>
+      <span class="p">},</span>
+      <span class="nx">unset</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">delete</span> <span class="k">this</span><span class="p">.</span><span class="nx">_value</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">AbsoluteNumber</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">number</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">AbsoluteNumber</span><span class="p">({</span>
+    <span class="nx">value</span><span class="o">:</span> <span class="o">-</span><span class="mi">10</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">number</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">10</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<p>Importantly, it is also safe to use branching, loops, or whatever logic you want in accessor bodies:
+
+</p>
 <div class="console-session">
   <h4>@accessor can use arbitrary logic to define the value</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Player</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -1101,16 +1834,237 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
 </pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span> <span class="c1">// The second and third calls do not execute the function</span>
 </pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;notCachedCounter&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">2</span>
 </pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;notCachedCounter&#39;</span><span class="p">)</span>
-</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">3</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">3</span> <span class="c1">// Passing cachable: false does re-execute the function</span>
 </pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">example</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;cachedCounter&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">1</span>
 </pre></div></div></code>
   </pre>
 </div>
+<ol>
+<li>Accessors <em>must</em> use <code>get</code> to access properties they use for computation</li>
+</ol>
+<p>Batman tracks an accessor&#39;s sources by adding a global hook to all <code>get</code>s done, so if you don&#39;t use <code>get</code> to access properties on objects, Batman can&#39;t know that that property is a source of the property your accessor defines, so it can&#39;t recompute that property when the source property changes. All properties on <code>Batman.Object</code> should be accessed using <code>get</code> and <code>set</code> regardless if the code occurs in an accessor body or not, but it is critical to do so in accessors so the sources of the accessor can be tracked.
+
+</p>
+<ol>
+<li>Accessors can create memory leaks or performance bottlenecks</li>
+</ol>
+<p>If you return a brand new object by say merging a number of <code>Batman.Set</code>s or doing any sort of major and complete re-computation you run the risk of creating performance problems. This is because accessors can be called frequently and unpredictably, as they are recomputed every time one of their sources changes as well as upon every <code>set</code>. Instead of recomputing expensive things every time the accessor is called, try to use objects which do delta recomputation using observers. Practically this translates to using things like <code>new SetUnion(@get(&#39;setA&#39;), @get(&#39;setB&#39;))</code> instead of <code>@get(&#39;setA&#39;).merge(@get(&#39;setB&#39;))</code> in an accessor body.
+
+</p>
+<h3 id="batman-object-classaccessor">@classAccessor([keys...], objectOrFunction) -&gt;</h3>
+<p><code>classAccessor</code> defines an accessor on the class, in that gets and sets done on the class will use the accessor definition as an implementation. <code>@accessor</code> called on a class will define an accessor for all instances of that class, where as <code>@classAccessor</code> defines accessors on the class object itself. See <code>@accessor</code> for the details surrounding accessors.
+
+</p>
+<div class="console-session">
+  <h4>@classAccessor defines an accessor on the class</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">SingletonDooDad</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">SingletonDooDad</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">SingletonDooDad</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">SingletonDooDad</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">SingletonDooDad</span><span class="p">.</span><span class="nx">classAccessor</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">new</span> <span class="k">this</span><span class="p">();</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">SingletonDooDad</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">instance</span> <span class="o">=</span> <span class="nx">SingletonDooDad</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">SingletonDooDad</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span> <span class="o">===</span> <span class="nx">instance</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span> <span class="c1">// A second get returns the same instance</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-mixin">@mixin(objects...)</h3>
+<p><code>@mixin</code> is a handy function for mixing in <code>objects</code> to a class&#39; prototype. <code>@mixin</code> is implemented on top of the Batman level <code>mixin</code> helper, which means that keys from incoming <code>objects</code> will be applied using <code>set</code>, and any <code>initialize</code> functions on the <code>objects</code> will be called with the prototype being mixed into.
+
+</p>
+<p><em>Note</em>: <code>@mixin</code>, similar to <code>@accessor</code>, applies to all instances of a class. If you need to mix in to the class itself, look at <code>classMixin</code>.
+<em>note</em>: <code>@mixin</code>, once more similar to <code>@accessor</code>, is intended for use during the class definition of a <code>Batman.Object</code> subclass.
+
+</p>
+<div class="console-session">
+  <h4>@mixin extends the prototype of a Batman.Object subclass</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">FishBehaviour</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">canBreathUnderwater</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">MammalBehaviour</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">canBreathAboveWater</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Platypus</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Platypus</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Platypus</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Platypus</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Platypus</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">FishBehaviour</span><span class="p">,</span> <span class="nx">MammalBehaviour</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Platypus</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">platypus</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Platypus</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">platypus</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;canBreathAboveWater&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">platypus</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;canBreathUnderwater&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-classmixin">@classMixin(objects...)</h3>
+<p><code>@classMixin</code> allows mixing in objects to a class during that class&#39; definition. See <code>@mixin</code> for information about the arguments passed to mixin, but note that <code>@classMixin</code> applies to the class object itself, and <code>@mixin</code> applies to all instances of the class.
+
+</p>
+<div class="console-session">
+  <h4>@classMixin extends the Batman.Object subclass</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Singleton</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">initialze</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">subject</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="nx">subject</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nx">subject</span><span class="p">;</span>
+      <span class="p">});</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Highlander</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Highlander</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Highlander</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Highlander</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Highlander</span><span class="p">.</span><span class="nx">classMixin</span><span class="p">(</span><span class="nx">Singleton</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Highlander</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">instance</span> <span class="o">=</span> <span class="nx">Highlander</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">instance</span> <span class="o">===</span> <span class="nx">Highlander</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span> <span class="c1">// There can only be one.</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-constructor">constructor(objects...)</h3>
+<p>To create a new <code>Batman.Object</code>, the <code>Batman.Object</code> constructor can be used, or, the <code>Batman</code> namespace is also a utility function for creating Batman objects. Each object passed in to the constructor will have all its properties applied to the new <code>Batman.Object</code> using <code>get</code> and <code>set</code>, so any custom getters or setters will be respected. Objects passed in last will have precedence over objects passed in first in the event that they share the same keys. The property copy from these objects is shallow.
+
+</p>
+<div class="console-session">
+  <h4>Batman() function allows for handy creation of Batman.Objects</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">object</span><span class="p">.</span><span class="nx">get</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;function&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>Batman.Object constructor function accepts multiple mixin arguments and later mixins take precedence.</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">length</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">120</span>
+  <span class="p">},</span> <span class="p">{</span>
+    <span class="nx">bpm</span><span class="o">:</span> <span class="mi">130</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;length&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">100</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">song</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;bpm&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="mi">130</span> <span class="c1">// The property from the second object passed to the constructor overwrites that from the first.</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-tojson">toJSON() : object</h3>
+<p><code>toJSON</code> returns a vanilla JavaScript object representing this <code>Batman.Object</code>.
+
+</p>
+<div class="console-session">
+  <h4>toJSON returns a vanilla JS object</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">object</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-hashkey">hashKey() : string</h3>
+<p><code>hashKey</code> returns a unique string representing this particular <code>Batman.Object</code>. No two <code>Batman.Object</code>s will have the same <code>hashKey</code>.
+
+</p>
+<h3 id="batman-object-accessor">accessor([keys...], objectOrFunction)</h3>
+<p><code>accessor</code> defines an accessor on one instance of an object instead of on all instances like the class level <code>@accessor</code>. See <code>@accessor</code> for the details surrounding accessors.
+
+</p>
+<div class="console-session">
+  <h4>accessor can be called on an instance of Batman.Object to define an accessor just on that instance</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">({</span>
+    <span class="nx">body</span><span class="o">:</span> <span class="s2">&quot;Why Batman is Useful: A lengthy post on an important subject&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;summary&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Why Batman...&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;longSummary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;longSummary&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Why Batman is Useful...&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>defining an accessor on an instance does not affect the other instances</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nb">Object</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">({</span>
+    <span class="nx">body</span><span class="o">:</span> <span class="s2">&quot;Why Batman is Useful: A lengthy post on an important subject&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">otherPost</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">({</span>
+    <span class="nx">body</span><span class="o">:</span> <span class="s2">&quot;Why State Machines Are Useful: Another lengthy post&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;longSummary&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span><span class="p">;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">post</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;longSummary&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Why Batman is Useful...&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">otherPost</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;longSummary&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="k">void</span> <span class="mi">0</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-object-mixin">mixin(objects...)</h3>
 
 <h2 id="batman-simpleset">Batman.SimpleSet</h2>
 <p><code>SimpleSet</code> is an implementation of the <code>Set</code> object you might expect to find in lots of other languages standard libraries. Sets are an enumerable but unordered collection of objects. A particular object may either be a member or not be a member of a particular set, but it may not belong to the set twice, as that would imply ordering. In the case of Batman, sets will tell you when items are added or removed through events, sets mix in the <code>Enumerable</code> module for handy iteration and aggregation, and can also generate indexes and sorts via <code>SetIndex</code> and <code>SetSort</code>.
