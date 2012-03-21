@@ -2,7 +2,7 @@
 
 Batman includes an number of useful, general purpose helper functions and references. They can all be found attached to the `Batman` object and can optionally be exported into the global namespace with a `$` prefix.
 
-### container : [window|Object]
+### container
 
 `Batman.container` points to either the `window` object if running the browser, or the `global` object if running in node. This is useful if you want to add something to the global scope in all environments.
 
@@ -74,7 +74,7 @@ test 'unmixin removes keys found on the unmixined objects on the subject', ->
   deepEqual subject, {funky: true}, "the subject is destructively modified."
 !!!
 
-### isChildOf (parent : HTMLElement, child : HTMLElement) : boolean
+### isChildOf(parent : HTMLElement, child : HTMLElement) : boolean
 
 `isChildOf` is a simple DOM helper which returns a boolean describing if the passed `child` node can be found in the descendants of the passed `parent` node.
 

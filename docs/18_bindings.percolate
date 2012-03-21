@@ -1,0 +1,194 @@
+## Batman View Bindings
+
+Batman's view bindings are how data gets show and collected from the user. They center on the notion of "bindings": that the view representation and the JavaScript land value are always guaranteed to be in sync, such that when one changes, the other will reflect it.
+
+### How to use bindings
+
+Bindings are declared as attributes on nodes under the `data` namespace. In practice, it looks like this:
+
+```html
+<div data-bind="name"></div>
+```
+
+This instantiates a binding on the `div` node which will update the node's `innerHTML` with the value found at the `name` keypath in the <a href="#batman-view-bindings-binding-contexts">current context</a>. Whenever the `name` key changes, the div's `innerHTML` will update to the new value.
+
+Nodes can have multiple bindings like this:
+
+```html
+<p data-bind="body" data-showif="isPublished"></p>
+```
+
+and bindings can be on inputs which the user can change, like this:
+
+```html
+<input type="text" data-bind="title"></input>
+```
+
+When the `title` property changes on the JavaScript object this `input` is bound to, the `input`'s value will be updated. When the user types into the `input` (and `change` or `keyup` events are triggered), the `title` property in JavaScript land will be updated.
+
+### Binding Keypaths
+
+A +keypath+ is the value of the HTML attribute a binding references. Importantly, keypaths can have multiple segments:
+
+```html
+<p data-bind="order.customer.name"></p>
+```
+
+The keypath in the above HTML is `order.customer.name`. When you create a binding to a keypath like this (with dot separating segments), the binding will update the HTML value when +any+ of those segments change. In the above example, this means the `p` tag's `innerHTML` will be updated when:
+
+ 1. the order changes,
+ 2. the order's customer changes,
+ 3. or the order's customer's name changes.
+
+This is important because it means you can rely on a binding to "just work" when anything it depends on changes. If say you had a `<select>` on the page which changed the `order`'s `customer` property, bindings which bind to `order.customer.name` will update each time you change that select to reflect the new customer's name.
+
+### Binding Contexts
+
+All bindings render in a context. Binding contexts, known internally to Batman as `RenderContext`s, are objects which emulate the notion of variable scope in JavaScript code. When a controller action renders, it passes a context to the view consisting of itself, the `App`, and an object with a `window` key pointing to the host `window` object.
+
+### Keypath Filters
+
+Bindings can bind to filtered keypaths:
+
+```html
+<p data-bind="post.body | truncate 100"></p>
+```
+
+The above `<p>` will have 100 characters worth of the post's body. Whenever the post's body changes, it will be retruncated and the `<p>`'s `innerHTML` will be updated.
+
+Filter chains can be arbitrarily long:
+
+```html
+<span data-bind="knight.title | prepend 'Sir' | append ', the honourable'."></span>
+```
+
+and filter chains can use other keypaths as arguments to the filters:
+
+```html
+<span data-bind="person.name | prepend ' ' | prepend person.title"></span>
+```
+
+The above `<span>`'s `innerHTML` will be updated whenever the person's name, or the person's title changes.
+
+#### Two Way Bindings and Filters
+
+Note that filtered keypaths can not propagate DOM land changes because values can't always be "unfiltered". For example, if we bind an input to the truncated version of a string:
+
+```html
+<input data-bind="post.body | truncate 100"></input>
+```
+
+The `<input>`'s value can be updated when the `post.body` property changes but if a user types into this input field, they will edit the truncated body. If Batman updated the `post.body` property with the contents of the input, all characters which had been truncated will be lost to the nether. To avoid this loss of information and inconsistency, bindings to filtered keypaths will +only update from JavaScript land to HTML+, and never vice versa.
+
+### data-bind
+
+`data-bind` creates a two way binding between a property on a `Batman.Object` and an HTML element. Bindings created via `data-bind` will update the HTML element with the value of the JS land property as soon as they are created and each time the property changes after, and if the HTML element can be observed for changes, it will update the JS land property with the value from the HTML.
+
+`data-bind` will change its behaviour depending on what kind of tag it is attached to:
+
+ + `<input type="checkbox">`: the binding will edit the `checked` property of the checkbox and populate the keypath with a boolean.
+ + `<input type="text">` and similar, `<textarea`>: the binding will edit the `value` property of the input and populate the keypath with the string found at `value`.
+ + All other tags: the binding will edit the `innerHTML` property of the tag and will not populate the keypath.
+
+!!!
+test
+
+### data-source
+
+### data-target
+
+### data-context
+
+{name}
+
+### data-event
+
+#### click
+
+#### doubleclick
+
+#### change
+
+#### submit
+
+#### catchall
+
+### data-showif
+
+### data-hideif
+
+### data-route
+
+### data-view
+
+{bindKey}
+
+### data-addclass
+
+### data-removeclass
+
+### data-foreach
+
+### data-formfor
+
+### data-partial
+
+### data-mixin
+
+### data-defineview
+
+### data-renderif
+
+### data-yield
+
+### data-contentfor
+
+### data-replace
+
+## Batman View Filters
+
+### raw(value) : string
+
+### get(value, key) : value
+
+### equals(left, right) : boolean
+
+### not(value) : boolean
+
+### matches(value, string) : boolean
+
+### truncate(value, length, end = '...') : string
+
+### default(value, defaultValue) : value
+
+### prepend(value, string) : string
+
+### append(value, string) : string
+
+### replace(value, searchString, replaceString[, flags]) : string
+
+### downcase(value) : string
+
+### upcase(value) : string
+
+### pluralize(value, count) : string
+
+### join(value, seperator = '') : string
+
+### sort(value) : value
+
+### map(iterable) : value
+
+### has(iterable, item) : boolean
+
+### first(iterable) : value
+
+### meta(value, keypath) : value
+
+### iterpolate(string, valuesObject) : string
+
+### withArguments(function, curriedArguments...) : function
+
+### routeToAction(model, action) : string
+
+### escape(value) : string

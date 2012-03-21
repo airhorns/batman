@@ -2,7 +2,7 @@
 
 `Batman.Object` is the superclass for virtually all objects in a Batman application. `Batman.Object` mixes in `Batman.Observable` and `Batman.EventEmitter` for things like `get`, `set`, `observe`, and `fire`, and then defines some more useful things for tying everything together.
 
-### @accessor([keys...], objectOrFunction) ->
+### @accessor([keys...], objectOrFunction)
 
 Accessors are used to create properties on a class, prototype, or instance which can be fetched, set, and unset. These properties can be static, computed as functions of the other properties on the object the accessor belongs to, or properties of any Batman object in the system. `accessor` is a Batman and old browser friendly version of ES5 `Object.defineProperty` missing some of the goodness.
 
@@ -115,7 +115,7 @@ Batman tracks an accessor's sources by adding a global hook to all `get`s done, 
 
 If you return a brand new object by say merging a number of `Batman.Set`s or doing any sort of major and complete re-computation you run the risk of creating performance problems. This is because accessors can be called frequently and unpredictably, as they are recomputed every time one of their sources changes as well as upon every `set`. Instead of recomputing expensive things every time the accessor is called, try to use objects which do delta recomputation using observers. Practically this translates to using things like `new SetUnion(@get('setA'), @get('setB'))` instead of `@get('setA').merge(@get('setB'))` in an accessor body.
 
-### @classAccessor([keys...], objectOrFunction) ->
+### @classAccessor([keys...], objectOrFunction)
 
 `classAccessor` defines an accessor on the class, in that gets and sets done on the class will use the accessor definition as an implementation. `@accessor` called on a class will define an accessor for all instances of that class, where as `@classAccessor` defines accessors on the class object itself. See `@accessor` for the details surrounding accessors.
 
@@ -128,7 +128,7 @@ test '@classAccessor defines an accessor on the class', ->
   ok SingletonDooDad.get('instance') == instance, "A second get returns the same instance"
 !!!
 
-### @mixin(objects...) : this
+### @mixin(objects...) : prototype
 
 `@mixin` is a handy function for mixing in `objects` to a class' prototype. `@mixin` is implemented on top of the Batman level `mixin` helper, which means that keys from incoming `objects` will be applied using `set`, and any `initialize` functions on the `objects` will be called with the prototype being mixed into. Returns the prototype being mixed into.
 
@@ -162,6 +162,33 @@ test '@classMixin extends the Batman.Object subclass', ->
   )
   show instance = Highlander.get('instance')
   ok instance == Highlander.get('instance'), "There can only be one."
+!!!
+
+### @observeAll(key, callback : function) : prototype
+
+`@observeAll` extends the `Batman.Object` implementation of `Batman.Observable` with the ability to observe all instances of the class (and subclasses). Observers attached with `@observeAll` function exactly as if they were attached to the object directly. Returns the prototype of the class.
+
+_Note_: `@observeAll` is intended to be used during the class definition for a `Batman.Object` subclass, but it can be called after the class has been defined as a function on the class. It supports being called after instances of the class have been instantiated as well.
+
+!!!
+test "@observeAll attaches handlers which get called upon change", ->
+  show(class Song extends Batman.Object
+        @observeAll 'length', (newValue, oldValue) -> log newValue
+  )
+  show song = new Song({length: 340, bpm: 120})
+  equal song.set('length', 200), 200
+  deepEqual logged.last, 200
+!!!
+
+!!!
+test "@observeAll can attach handlers after instance instantiation", ->
+  show(class Song extends Batman.Object)
+  show song = new Song({length: 340, bpm: 120})
+  equal song.set('length', 360), 360
+  deepEqual logged.last, undefined
+  show Song.observeAll 'length', (newValue, oldValue) -> log newValue
+  equal song.set('length', 200), 200
+  deepEqual logged.last, 200
 !!!
 
 ### constructor(objects...)
@@ -223,4 +250,16 @@ test 'defining an accessor on an instance does not affect the other instances', 
 
 ### mixin(objects...) : this
 
-`mixin` extends the object it's called on with the passed `objects` using the `Batman.mixin` helper.
+`mixin` extends the object it's called on with the passed `objects` using the `Batman.mixin` helper. Returns the object it's called upon.
+
+_Note_: Since the `Batman.mixin` helper is used, mixin functionality like using `set` to apply properties and calling `initialize` functions is included in the instance level `mixin` function.
+
+!!!
+test 'mixin on an instance applies the keys from the mixed in object to the instance', ->
+  show(class Snake extends Batman.Object
+  )
+  show snake = new Snake()
+  show snake.mixin {canSlither: true}, {canHiss: true}
+  ok snake.get('canSlither')
+  ok snake.get('canHiss')
+!!!
