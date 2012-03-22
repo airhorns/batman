@@ -2694,6 +2694,8 @@ class Batman.Model extends Batman.Object
       foundRecord = @_mapIdentity(record)
       callback(undefined, foundRecord)
 
+    record
+
   @_mapIdentity: (record) ->
     if typeof (id = record.get('id')) == 'undefined' || id == ''
       return record
