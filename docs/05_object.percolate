@@ -10,7 +10,7 @@ The value of custom accessors can be observed just like any property. Accessors 
 
 Importantly, accessors are also inherited, so accessors defined anywhere in an object's prototype chain will be used. Following this, `@accessor` is meant to be used during the class definition of a class extending `Batman.Object`.
 
-#### Arguments
+==== Arguments
 
 `@accessor` can be called with zero, one, or many keys for the accessor to define. This has the following effects:
 
@@ -20,7 +20,7 @@ Importantly, accessors are also inherited, so accessors defined anywhere in an o
 
 `@accessor` accepts as the last argument either an object with any combination of the `get`, `set`, and `unset` keys defined. Functions which implement the behaviour for those particular actions on the property should reside at these keys. `@accessor` also accepts a function as the last argument, which is a shorthand for specifying the `get` implementation for the accessor.
 
-#### Uses
+==== Uses
 
 Accessors are a really useful addition to the world of JavaScript. You can now define transforms on simple properties which will automatically update when the properties they transform change, for example you might want to truncate a potentially long piece of text to display a summary elsewhere, or you might want to capitalize or `encodeURIComponent` a value before putting it in the view or the current URL.
 
@@ -81,7 +81,7 @@ test '@accessor can use arbitrary logic to define the value', ->
   equal rick.get('score'), 7
 !!!
 
-#### Caveats
+==== Caveats
 
 Accessors are extremely useful but you must keep these items in mind while programming using them:
 

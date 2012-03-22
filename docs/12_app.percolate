@@ -21,13 +21,13 @@ _Note_: `@run` emits the `run` class event on the `App`, but not necessarily as 
 `@run` can be called before or on the `load` DOMEvent of the window. `@run` will return the App if the commencement was successful and complete, or `false` if the App must wait for the `layout` to render or if the `App` has already run.
 
 
-#### starting an application with DOMEvents
+==== starting an application with DOMEvents
 ```coffeescript
 window.addEventListener 'load', ->
   MyApp.run()
 ```
 
-#### starting an application with jQuery
+==== starting an application with jQuery
 ```coffeescript
 $ ->
   MyApp.run()
