@@ -18,6 +18,7 @@ QUnit.module 'Batman.Dispatcher: inferring paths'
   setup: ->
     class @App extends Batman.App
     class @App.Product extends Batman.Model
+    class @App.SavedSearch extends Batman.Model
 
     @routeMap = Batman()
     @dispatcher = new Batman.Dispatcher(@App, @routeMap)
@@ -27,6 +28,12 @@ test "paramsFromArgument gets record params", ->
 
 test "paramsFromArgument gets model params", ->
   deepEqual Batman.Dispatcher.paramsFromArgument(@App.Product), {controller: 'products', action: 'index'}
+
+test "paramsFromArgument gets multiword record params", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument(new @App.SavedSearch(id: 1)), {controller: 'savedSearches', action: 'show', id: 1}
+
+test "paramsFromArgument gets multiword model params", ->
+  deepEqual Batman.Dispatcher.paramsFromArgument(@App.SavedSearch), {controller: 'savedSearches', action: 'index'}
 
 test "paramsFromArgument gets record proxy params", ->
   proxy = new Batman.AssociationProxy({}, @App.Product)

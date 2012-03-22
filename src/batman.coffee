@@ -1837,7 +1837,7 @@ class Batman.Dispatcher extends Batman.Object
 
   @paramsFromArgument: (argument) ->
     resourceNameFromModel = (model) ->
-      helpers.underscore(helpers.pluralize($functionName(model)))
+      helpers.camelize(helpers.pluralize($functionName(model)), true)
 
     return argument unless @canInferRoute(argument)
 
