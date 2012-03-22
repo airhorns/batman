@@ -327,6 +327,23 @@ _Note_: `data-view` bindings will bind to the passed keypath until it exists, th
 
 ### data-partial
 
+`data-partial` pulls in a partial template and renders it in the current context of the node the `data-partial` occurs in. `data-partial` expects the name of the view to render in the value of the HTML attribute. __Warning__: This value is not a keypath. The HTML attribute's value is interpreted as a string, and the template which resides at that view path will be rendered.
+
+If we have this HTML at `views/villains/_stub.html` in our app:
+
+```html
+<span data-bind="villian.name"></span>
+```
+
+and in `views/villians/show.html` we have this HTML:
+
+```html
+<h1>A villian!</h1>
+<div data-partial="villians/_stub"></div>
+```
+
+the contents of the `stub` partial will be inserted and rendered in the `<div>` above.
+
 ### data-mixin
 
 ### data-defineview
@@ -343,6 +360,11 @@ _Note_: `data-view` bindings will bind to the passed keypath until it exists, th
 
 ### raw(value) : string
 
+The `raw` filter renders the value unescaped.
+
+```html
+<span data-bind="someHTMLyString | raw"></span>
+```
 ### get(value, key) : value
 
 ### value[key] : value

@@ -29,9 +29,10 @@ qqunit.Environment.jsdom.jQueryify window, jqueryPath, (window, jQuery) ->
     docs = glob.sync("#{__dirname}/**/*.percolate").map (doc) -> path.resolve(process.cwd(), doc)
 
     console.log "Running Batman doc suite."
-    percolate.generate docs..., (error, stats, output) ->
+    percolate.generate __dirname, docs..., (error, stats, output) ->
       throw error if error
       fs.writeFileSync path.join(__dirname, 'batman.html'), output unless stats.failed > 0
+      console.log "Docs written."
       process.exit stats.failed
   catch e
     console.error e.stack

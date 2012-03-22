@@ -1,0 +1,8 @@
+<a href="#{{id}}" class="{{class}}">{{text}}</a>
+{{#hasChildren}}
+<ul>
+  {{#children}}
+  <li {{#searchable}}class="searchable"{{/searchable}}>{{> table_of_contents_node }}</li>
+  {{/children}}
+</ul>
+{{/hasChildren}}
