@@ -2583,7 +2583,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
     <span class="p">}</span>
 
     <span class="nx">Team</span><span class="p">.</span><span class="nx">accessor</span><span class="p">(</span><span class="s1">&#39;bestEver?&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">awards</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;Stanley Cup&#39;</span><span class="p">);</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;awards&#39;</span><span class="p">).</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;Stanley Cup&#39;</span><span class="p">);</span>
     <span class="p">});</span>
 
     <span class="k">return</span> <span class="nx">Team</span><span class="p">;</span>

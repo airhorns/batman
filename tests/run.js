@@ -1,10 +1,8 @@
 (function() {
-  var fs, glob, path, qqunit;
+  var glob, path, qqunit;
   var __hasProp = Object.prototype.hasOwnProperty;
 
   glob = require('glob');
-
-  fs = require('fs');
 
   path = require('path');
 

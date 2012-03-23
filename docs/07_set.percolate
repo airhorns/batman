@@ -62,7 +62,8 @@ test 'Set::has registers the set as a source of an accessor', ->
   show (class Team extends Batman.Object
     constructor: ->
       @awards = new Batman.Set()
-    @accessor 'bestEver?', -> @awards.has('Stanley Cup')
+
+    @accessor 'bestEver?', -> @get('awards').has('Stanley Cup')
   )
   show team = new Team
   show team.observeAndFire 'bestEver?', (status) -> log status

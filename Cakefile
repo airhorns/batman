@@ -14,6 +14,23 @@ option '-d', '--dist',   'compile minified versions of the platform dependent co
 option '-m', '--compare', 'compare to git refs (stat task only)'
 option '-s', '--coverage', 'run jscoverage during tests and report coverage (test task only)'
 
+nodeSpawner = (fileToRun, options) ->
+  # Spawn a run of the tests in a separate process so if watch mode is enabled the globals used by the runner
+  # don't leak over.
+  return ->
+    if !running
+      running = true
+      child = spawn 'node', [fileToRun]
+      process.on 'exit', exitListener = ->
+        child.kill()
+      child.stdout.on 'data', (data) -> process.stdout.write data
+      child.stderr.on 'data', (data) -> process.stderr.write data
+      child.on 'exit', (code) ->
+        process.removeListener 'exit', exitListener
+        running = false
+        if !options.watch
+          process.exit code
+
 task 'build', 'compile Batman.js and all the tools', (options) ->
   files = glob.sync('./src/**/*').concat(glob.sync('./tests/lib/*'))
   muffin.run
@@ -79,12 +96,14 @@ task 'build', 'compile Batman.js and all the tools', (options) ->
           console.warn done
           done
 
-task 'doc', 'build the Docco documentation', (options) ->
+task 'doc', 'build the Percolate documentation', (options) ->
   muffin.run
-    files: './src/**/*'
+    files: './docs/**/*'
     options: options
     map:
-      'src/batman.coffee': (matches) -> muffin.doccoFile(matches[0], options)
+      'docs/percolate\.coffee'  : (matches) -> muffin.compileScript(matches[0], 'docs/percolate.js', options)
+      '(.+).percolate'          : -> true
+    after: nodeSpawner('docs/percolate.js', options)
 
 task 'test', 'compile Batman.js and the tests and run them on the command line', (options) ->
   running = false
@@ -96,22 +115,29 @@ task 'test', 'compile Batman.js and the tests and run them on the command line',
       'src/extras/(.+).coffee'                   : (matches) -> true
       'tests/batman/(.+)_(test|helper).coffee'   : (matches) -> true
       'tests/run.coffee'                         : (matches) -> muffin.compileScript(matches[0], 'tests/run.js', options)
-    after: ->
-      # Spawn a run of the tests in a separate process so if watch mode is enabled the globals used by the runner
-      # don't leak over.
-      runPath = path.join(__dirname, 'tests/run.js')
-      if !running
-        running = true
-        child = spawn 'node', ['tests/run.js']
-        process.on 'exit', exitListener = ->
-          child.kill()
-        child.stdout.on 'data', (data) -> process.stdout.write data
-        child.stderr.on 'data', (data) -> process.stderr.write data
-        child.on 'exit', (code) ->
-          process.removeListener 'exit', exitListener
-          running = false
-          if !options.watch
-            process.exit code
+    after: nodeSpawner('tests/run.js', options)
 
 task 'stats', 'compile the files and report on their final size', (options) ->
   muffin.statFiles(glob.sync('./src/**/*.coffee').concat(glob.sync('./lib/**/*.js')), options)
+
+task 'release', (options) ->
+  temp    = require 'temp'
+  tmpdir = temp.mkdirSync()
+  docFiles = ["docs/css/**/*.css", "docs/img/**/*", "docs/js/**/*.js", "docs/batman.html"]
+    .reduce( ((a, b) -> a.concat(glob.sync b)) , [] )
+    .map((f) -> path.join(__dirname, f))
+  console.warn docFiles
+  console.warn tmpdir
+  cmd = " cp -r docs/* #{tmpdir}
+          && git checkout gh-pages
+          && rm -rf docs
+          && mkdir docs
+          && cp -r #{tmpdir}/* docs/
+          && git add docs
+          && git commit -m 'Add new docs.'
+          && git checkout master"
+  console.warn cmd
+  exec cmd, (error, stdout, stderr) ->
+    console.warn stdout.toString()
+    console.warn stderr.toString()
+    throw error if error
