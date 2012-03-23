@@ -129,7 +129,7 @@ task 'release', (options) ->
   console.warn docFiles
   console.warn tmpdir
   cmd = " mkdir -p #{tmpdir}/css #{tmpdir}/css/fonts #{tmpdir}/js #{tmpdir}/img
-          && cp -r #{docFiles.join ' '} #{tmpdir}
+          && #{("cp #{file} #{file.replace __dirname, tmpdir}" for file in docFiles).join ' && '}
           && git checkout gh-pages
           && rm -rf docs
           && mkdir -p docs docs/css docs/css/fonts docs/js docs/img
