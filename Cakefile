@@ -132,8 +132,8 @@ task 'release', (options) ->
           && cp -r #{docFiles.join ' '} #{tmpdir}
           && git checkout gh-pages
           && rm -rf docs
-          && mkdir -p docs docs/css docs/js docs/img
-          && cp -r #{tmpdir}/* docs/
+          && mkdir -p docs docs/css docs/css/fonts docs/js docs/img
+          && cp -r #{tmpdir}/**/* docs/
          "
           #&& git add docs
           #&& git commit -m 'Add new docs.'
