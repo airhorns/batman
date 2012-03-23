@@ -123,7 +123,7 @@ task 'stats', 'compile the files and report on their final size', (options) ->
 task 'release', (options) ->
   temp    = require 'temp'
   tmpdir = temp.mkdirSync()
-  docFiles = ["docs/css/**/*.css", "docs/img/**/*", "docs/js/**/*.js", "docs/batman.html"]
+  docFiles = ["docs/css/**/*.css", "docs/css/fonts/*", "docs/img/**/*", "docs/js/**/*.js", "docs/batman.html"]
     .reduce( ((a, b) -> a.concat(glob.sync b)) , [] )
     .map((f) -> path.join(__dirname, f))
   console.warn docFiles
