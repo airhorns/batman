@@ -131,12 +131,11 @@ task 'release', (options) ->
   cmd = " #{("mkdir -p #{path.dirname(file.replace __dirname, tmpdir)} && cp #{file} #{file.replace __dirname, tmpdir}" for file in docFiles).join ' && '}
           && git checkout gh-pages
           && rm -rf docs
-          && mkdir -p docs docs/css docs/css/fonts docs/js docs/img
-          && cp -r #{tmpdir}/**/* docs/
-         "
-          #&& git add docs
-          #&& git commit -m 'Add new docs.'
-          #&& git checkout master"
+          && cp -r #{tmpdir}/docs docs
+          && git add docs
+          && git commit -m 'Add new docs.'
+          && git checkout master"
+
   console.warn cmd
   exec cmd, (error, stdout, stderr) ->
     console.warn stdout.toString()
