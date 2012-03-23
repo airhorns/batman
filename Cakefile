@@ -128,7 +128,7 @@ task 'release', (options) ->
     .map((f) -> path.join(__dirname, f))
   console.warn docFiles
   console.warn tmpdir
-  cmd = " cp -r #{docFiles} #{tmpdir}
+  cmd = " cp -r #{docFiles.join ' '} #{tmpdir}
           && git checkout gh-pages
           && rm -rf docs
           && mkdir docs
