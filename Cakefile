@@ -128,8 +128,7 @@ task 'release', (options) ->
     .map((f) -> path.join(__dirname, f))
   console.warn docFiles
   console.warn tmpdir
-  cmd = " mkdir -p #{tmpdir}/css #{tmpdir}/css/fonts #{tmpdir}/js #{tmpdir}/img
-          && #{("cp #{file} #{file.replace __dirname, tmpdir}" for file in docFiles).join ' && '}
+  cmd = " #{("mkdir -p #{path.dirname(file.replace __dirname, tmpdir)} && cp #{file} #{file.replace __dirname, tmpdir}" for file in docFiles).join ' && '}
           && git checkout gh-pages
           && rm -rf docs
           && mkdir -p docs docs/css docs/css/fonts docs/js docs/img
