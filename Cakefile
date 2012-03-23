@@ -102,6 +102,7 @@ task 'doc', 'build the Percolate documentation', (options) ->
     options: options
     map:
       'docs/percolate\.coffee'  : (matches) -> muffin.compileScript(matches[0], 'docs/percolate.js', options)
+      'docs/js/docs.coffee'     : (matches) -> muffin.compileScript(matches[0], 'docs/js/docs.js', options)
       '(.+).percolate'          : -> true
     after: nodeSpawner('docs/percolate.js', options)
 

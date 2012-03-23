@@ -18,11 +18,6 @@
 </head>
 <body>
 
-<header id="top">
-  <h1><a href="#top">batdocs</a></h1>
-  <a href="#top" id="back-to-top">top</a>
-</header>
-
 <div role="sidebar">
   <ul id="table_of_contents">
       <li><a href="#" class=""></a>
@@ -471,7 +466,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: <code>typeOf</code> is substantially slower than <code>typeof</code>. <code>typeOf</code> works in a somewhat hackish manner by getting the <code>Object::toString</code> representation of the object and slicing it to retrieve the name of the constructor.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>typeOf returns &quot;String&quot; for both strings and Object strings</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">primitive</span> <span class="o">=</span> <span class="s2">&quot;test&quot;</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">objectified</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">String</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
@@ -486,8 +481,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>typeOf returns Array for arrays</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">array</span> <span class="o">=</span> <span class="p">[]</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">array</span>
@@ -497,7 +491,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-mixin">mixin(subject, objects...) : subject</h3>
 <p><code>mixin</code>, occasionally known elsewhere as <code>extend</code> or <code>merge</code>, flattens a series of objects onto the subject. Key/value pairs on objects passed as later arguments (arguments with a higher index) take precedence over earlier arguments. Returns the <code>subject</code> passed in with the new values.
 
@@ -511,7 +504,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: <code>mixin</code> is destructive to (only) the first argument. If you need a non-destructive version of <code>mixin</code>, just pass an empty object as the first object, and all keys from the successive arguments will be applied to the empty object.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>mixin merges argument objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{}</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="p">{</span>
@@ -535,8 +528,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>mixin merges argument objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">unmodified</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
@@ -558,8 +550,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>mixed in objects passed as higher indexed arguments take precedence</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{}</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">mixin</span><span class="p">(</span><span class="nx">subject</span><span class="p">,</span> <span class="p">{</span>
@@ -575,7 +566,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-unmixin">unmixin(subject, objects...) : subject</h3>
 <p><code>unmixin</code> &quot;unmerges&quot; the passes objects from the <code>subject</code>. If a key exists on any of the <code>objects</code> it will be <code>delete</code>d from the <code>subject</code>. Returns the <code>subject</code>.
 
@@ -583,7 +573,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>unmixin</code>, similar to <code>mixin</code>, supports calling an <code>uninitialize</code> function for each of the <code>objects</code> being unmixed in. If an <code>uninitialize</code> function exists on each
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>unmixin removes keys found on the unmixined objects on the subject</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span><span class="p">,</span>
@@ -605,7 +595,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-ischildof">isChildOf(parent : HTMLElement, child : HTMLElement) : boolean</h3>
 <p><code>isChildOf</code> is a simple DOM helper which returns a boolean describing if the passed <code>child</code> node can be found in the descendants of the passed <code>parent</code> node.
 
@@ -631,7 +620,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>The <code>forEach</code> helper is useful for iterating over objects when the type of those objects isn&#39;t guaranteed.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forEach iterates over objects with forEach defined</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="nx">set</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -642,8 +631,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forEach iterates over array like objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">ArrayLike</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{}</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">ArrayLike</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="p">[]</span>
@@ -658,8 +646,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forEach iterates over objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">x</span><span class="o">:</span> <span class="kc">true</span>
@@ -678,12 +665,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-objecthaskey">objectHasKey(object, key) : boolean</h3>
 <p><code>objectHasKey</code> returns a boolean describing the presence of the <code>key</code> in the passed <code>object</code>. <code>objectHasKey</code> delegates to the <code>object</code>&#39;s <code>hasKey</code> function if present, and otherwise just does a check using the JavaScript <code>in</code> operator.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>objectHasKey verifies if a key is present in an object</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
@@ -695,8 +681,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>objectHasKey verifies if a key is present in an object with `hasKey` defined</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleHash</span><span class="p">({</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
@@ -708,7 +693,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-contains">contains(object, item) : boolean</h3>
 <p><code>contains</code> returns a boolean describing if the given <code>object</code> has member <code>item</code>. Membership in this context is defined as:
 
@@ -729,7 +713,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <ul>
 <li>if the <code>object</code> has a <code>get</code> function defined, return the result of <code>object.get(key)</code></li>
 </ul>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get returns the value at a key on a POJO</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
@@ -741,8 +725,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get returns the value at a key on a Batman.Object</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">fit</span><span class="o">:</span> <span class="kc">true</span>
@@ -754,8 +737,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get returns the value at a deep key on a POJO</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">customer</span><span class="o">:</span> <span class="p">{</span>
@@ -769,8 +751,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get returns the value at a deep key on a Batman.Object</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">subject</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">customer</span><span class="o">:</span> <span class="p">{</span>
@@ -784,7 +765,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-escapehtml">escapeHTML(string) : string</h3>
 <p><code>escapeHTML</code> takes a string of unknown origin and makes it safe for display on a web page by encoding control characters in HTML into their HTML entities.
 
@@ -792,14 +772,13 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Warning</em>: Do not rely on <code>escapeHTML</code> to purge unsafe data from user submitted content. While <code>escapeHTML</code> is applied to every binding&#39;s contents by default, it should not be your only line of defence against script injection attacks.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>escapeHTML encodes special characters into HTML entities</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">escapeHTML</span><span class="p">(</span><span class="s2">&quot;&amp; &lt; &gt; \&quot; &#39;&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;&amp;amp; &amp;lt; &amp;gt; &amp;#34; &amp;#39;&quot;</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h2 id="batman-helpers">Batman.helpers</h2>
 <p><code>Batman.helpers</code> is a namespace for Batman&#39;s helpful string manipulation helpers.
 
@@ -811,7 +790,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>ordinalize</code> converts a given integer into an ordinal string for describing position in a list, like 1st, 2nd, or 20th.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>ordinalize converts numbers to their ordinal form</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">ordinalize</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;1st&quot;</span>
@@ -828,12 +807,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-singularize">singularize(pluralString : string) : string</h3>
 <p><code>singularize</code> converts the plural form of a word to a singular form.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>singularize converts plural words to singular words</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">singularize</span><span class="p">(</span><span class="s2">&quot;posts&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;post&quot;</span>
@@ -848,12 +826,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-pluralize">pluralize(singularString : string) : string</h3>
 <p><code>pluralize</code> converts the singular form of a word to the plural form.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>pluralize converts plural words to singular words</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">pluralize</span><span class="p">(</span><span class="s2">&quot;post&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;posts&quot;</span>
@@ -868,12 +845,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-camelize">camelize(string, [lowercaseFirstLetter = false]) : string</h3>
 <p><code>camelize</code> converts the passed <code>string</code> to UpperCamelCase. If the second argument is passed as <code>true</code>, then lowerCamelCase is returned.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>camelize returns the CamelCase version of an under_scored word</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">camelize</span><span class="p">(</span><span class="s2">&quot;batman_object&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;BatmanObject&quot;</span>
@@ -882,24 +858,22 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-underscore">underscore(string) : string</h3>
 <p><code>underscore</code> returns the underscored version of a CamelCase word.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>underscore converts CamelCase to under_scores</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">underscore</span><span class="p">(</span><span class="s2">&quot;BatmanObject&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;batman_object&quot;</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-helpers-capitalize">capitalize(string) : string</h3>
 <p><code>capitalize</code> does a word-wise capitalization of a phrase or word.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>capitalize makes the first letter of each word in the string uppercase</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Batman</span><span class="p">.</span><span class="nx">helpers</span><span class="p">.</span><span class="nx">capitalize</span><span class="p">(</span><span class="s2">&quot;batmanObject&quot;</span><span class="p">)</span>
 </pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;BatmanObject&quot;</span>
@@ -910,7 +884,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 
 <h2 id="batman-eventemitter">Batman.EventEmitter</h2>
 <p><code>EventEmitter</code> is a mixin which can be applied to any object to give it the ability to fire events and accept listeners for those events.
@@ -920,7 +893,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Attaches a function <code>handler</code> to the event with name <code>key</code>. This function will be executed every time the event fires.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>event handlers execute when attached with on</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -930,7 +903,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-fire">fire(key, arguments...)</h3>
 <p>Calls all previously attached handlers on the event with name <code>key</code>. All handlers will receive the passed <code>arguments</code>.
 
@@ -938,7 +910,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Calling <code>fire</code> doesn&#39;t guarantee the event will fire since firing can be prevented with <code>prevent</code> or <code>preventAll</code>.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>event handlers are fired</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">noise</span><span class="p">)</span> <span class="p">{</span>
@@ -950,12 +922,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-hasevent">hasEvent(key) : boolean</h3>
 <p>Asks if the <code>EventEmitter</code> has an event with the given <code>key</code>.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events can be tested for presence</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -968,7 +939,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-oneshot">oneShot : boolean</h3>
 <p>Events can be set to fire only once, and then fire subsequently attached handlers immediately if they are attached after the initial firing. This is useful for events similar to <code>window.onload</code> where they really only happen once in the lifespan of the application, but you don&#39;t want to check if they have happened already when attaching event handlers.
 
@@ -976,7 +946,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Access the <code>Event</code> object to set the <code>oneShot</code> property on them using <code>EventEmitter::event</code>.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>one shot events fire handlers attached after they have fired for the first time</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">event</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">).</span><span class="nx">oneShot</span> <span class="o">=</span> <span class="kc">true</span>
@@ -989,7 +959,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-prevent">prevent(key) : EventEmitter</h3>
 <p>Prevents the event with name <code>key</code> from firing, even if <code>.fire</code> is called. This is useful if you need to guarantee a precondition is in fulfilled before allowing event handlers to execute. Returns the event emitting object.
 
@@ -1001,7 +970,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events can be prevented</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">prevent</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
@@ -1014,8 +983,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>prevent returns the event emitter</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span>
@@ -1023,7 +991,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-allow">allow(key) : EventEmitter</h3>
 <p>Allows the event with name <code>key</code> to fire once more, after <code>prevent</code> had been called previously. <code>allow</code> will not fire the event when called, regardless of weather or not the event can now be fired or if an attempt to fire it was made while the event was prevented. Returns the event emitting object.
 
@@ -1031,7 +998,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: <code>prevent</code> can be called more than once to effectively &quot;nest&quot; preventions. <code>allow</code> or <code>allowAndFire</code> must be called the same number of times or more for events to fire once more.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events can be allowed after prevention</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">prevent</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
@@ -1048,8 +1015,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events must be allowed the same number of times they have been prevented</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">prevent</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">)</span>
@@ -1071,8 +1037,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>allow returns the event emitter</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span>
@@ -1080,12 +1045,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-eventemitter-allowandfire">allowAndFire(key)</h3>
 <p>Allows the event with name <code>key</code> to fire once more, and tries to fire it. <code>allowAndFire</code> may fail to fire the event if <code>prevent</code> has been called more times than <code>allow</code> or <code>allowAndFire</code> have previous.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events can be allowed and fired after prevention</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -1101,8 +1065,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>events must be be allowed and fired the same number of times they have been prevented</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span> <span class="o">=</span> <span class="nx">$mixin</span><span class="p">({},</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">EventEmitter</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">dynamite</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;detonate&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -1119,7 +1082,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 
 <h2 id="batman-observable">Batman.Observable</h2>
 <p><code>Batman.Observable</code> is a mixin which gives objects the ability to notify subscribers to changes on its properties. <code>Observable</code> also adds functionality for observing <em>keypaths</em>: arbitrarily deeply nested properties on objects.
@@ -1132,7 +1094,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: <code>get</code> must be used for property access on any object in <code>Batman</code>&#39;s world. This is so that Batman can implement neat things like automatic dependency calculation for computed properties, property caching where it is safe, and smart storage mechanisms. With Batman, you must use <code>get</code> instead of normal <code>.</code> property access.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get retrieves properties on Batman objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1145,8 +1107,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get retrieves properties on nested Batman objects using keypaths</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">post</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">text</span><span class="o">:</span> <span class="s2">&quot;Hello World!&quot;</span><span class="p">,</span>
@@ -1159,8 +1120,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>get retrieves properties on Batman objects when . property access doesn&#39;t</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1173,7 +1133,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-set">set(keypath, newValue) : newValue</h3>
 <p>Stores the <code>value</code> at a <code>key</code> on an object. Accepts keypaths. Returns the new value of the property.
 
@@ -1184,7 +1143,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Custom setters can mutate the value during setting, so the value which was passed to <code>set</code> and <code>set</code>&#39;s return value are not guaranteed to be identical.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>set stores properties on batman objects.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1199,8 +1158,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>set stores properties on nested Batman objects using keypaths</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">author</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Harry&quot;</span>
@@ -1216,8 +1174,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>set is incompatible with &#39;.&#39; property mutation</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1232,7 +1189,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-unset">unset(keypath) : value</h3>
 <p>Removes the value at the given <code>keypath</code>, leaving it <code>undefined</code>. Accepts keypaths. Returns the value the property had before unsetting.
 
@@ -1240,7 +1196,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>unset</code> is roughly equivalent to <code>set(keypath, undefined)</code>, however, custom properties can define a nonstandard <code>unset</code> function, so it is best to use <code>unset</code> instead of <code>set(keypath, undefined)</code> wherever possible.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>unset removes the property on Batman objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1255,8 +1211,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>unset removes the property at a keypath</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">author</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Harry&quot;</span>
@@ -1272,7 +1227,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-observe">observe(key, observerCallback) : this</h3>
 <p>Adds a handler to call when the value of the property at the <code>key</code> changes upon <code>set</code>ting. Accepts keypaths.
 
@@ -1286,7 +1240,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Returns the object <code>observe</code> was called upon.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>observe attaches handlers which get called upon change</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1306,11 +1260,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <p><em>Note</em>: <code>observe</code> works excellently on keypaths. If you attach a handler to a &quot;deep&quot; keypath, it will fire any time the value of that keypath changes, which is another way of saying the handler will fire when any segment of the keypath changes, passing in the new value at the end of the keypath.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>observe attaches handlers which get called upon change</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">author</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Harry&quot;</span>
@@ -1330,7 +1283,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-observeandfire">observeAndFire(key, observerCallback) : this</h3>
 <p>Adds the <code>observerCallback</code> as an observer to <code>key</code>, and fires it immediately. Accepts the exact same arguments and follows the same semantics as <code>Observable::observe</code>, but the observer is fired with the current value of the keypath it observers synchronously during the call to <code>observeAndFire</code>.
 
@@ -1338,7 +1290,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>During the initial synchronous firing of the <code>callback</code>, the <code>newValue</code> and <code>oldValue</code> arguments will be the same value: the current value of the property. This is because the old value of the property is not cached and therefore unavailable. If your observer needs the old value of the property, you must attach it before the <code>set</code> on the property happens.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>observeAndFire calls the observer upon attaching it with the currentValue of the property</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1356,7 +1308,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-forget">forget([key [, observerCallback]]) : this</h3>
 <p>If <code>observerCallback</code> and <code>key</code> are given, that observer is removed from the observers on <code>key</code>. If only a <code>key</code> is given, all observers on that key are removed. If no <code>key</code> is given, all observers on all keys are removed. Accepts keypaths.
 
@@ -1364,7 +1315,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Returns the object <code>forget</code> was called upon.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forget removes an observer from a key if the key and the observer are given</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1386,8 +1337,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forget removes all observers from a key if only the key is given</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1413,8 +1363,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>forget removes all observers from all key if no key is given</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1442,12 +1391,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-observable-getorset">getOrSet(keypath, valueFunction) : value</h3>
 <p>Assigns the <code>keypath</code> to the result of calling the <code>valueFunction</code> if the current value at the <code>keypath</code> is falsey. Returns the value of the property after the operation, be it changed or not. Equivalent to CoffeeScript&#39;s <code>||=</code> operator.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>getOrSet doesn&#39;t set the property if it exists</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1462,8 +1410,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>getOrSet sets the property if it is falsey</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">340</span><span class="p">,</span>
@@ -1478,7 +1425,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 
 <h2 id="batman-object">Batman.Object</h2>
 <p><code>Batman.Object</code> is the superclass for virtually all objects in a Batman application. <code>Batman.Object</code> mixes in <code>Batman.Observable</code> and <code>Batman.EventEmitter</code> for things like <code>get</code>, <code>set</code>, <code>observe</code>, and <code>fire</code>, and then defines some more useful things for tying everything together.
@@ -1508,7 +1454,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Accessors are a really useful addition to the world of JavaScript. You can now define transforms on simple properties which will automatically update when the properties they transform change, for example you might want to truncate a potentially long piece of text to display a summary elsewhere, or you might want to capitalize or <code>encodeURIComponent</code> a value before putting it in the view or the current URL.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@accessor can be called on a class to define how a property is calculated</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1533,11 +1479,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <p>You can also use accessors to combine properties; the colloquial <code>fullName</code> example comes to mind, but all sorts of other complex logic can be abstracted away using the accessor pattern.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@accessor can define a transform on several properties</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">User</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1566,11 +1511,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <p>Accessors can define custom <code>get</code>, <code>set</code>, and <code>unset</code> functions to support each operation on the property:
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@accessor can define the get, set, and unset methods for the property</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">AbsoluteNumber</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1603,11 +1547,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <p>Importantly, it is also safe to use branching, loops, or whatever logic you want in accessor bodies:
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@accessor can use arbitrary logic to define the value</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Player</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1647,7 +1590,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h4 id="batman-object-accessor-caveats">Caveats</h4>
 <p>Accessors are extremely useful but you must keep these items in mind while programming using them:
 
@@ -1658,7 +1600,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Batman automatically memoizes the return value of accessors, and will not re-execute the body until one of the accessor&#39;s sources changes. If you need the accessor to recalculate every time the property is gotten, pass false as the <code>cacheable</code> in the accessor descriptor object (the last argument to the <code>@accessor</code> function).
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@accessor usually caches results</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">counter</span> <span class="o">=</span> <span class="mi">0</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Example</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -1699,7 +1641,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <ol>
 <li>Accessors <em>must</em> use <code>get</code> to access properties they use for computation</li>
 </ol>
@@ -1716,7 +1657,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>classAccessor</code> defines an accessor on the class, in that gets and sets done on the class will use the accessor definition as an implementation. <code>@accessor</code> called on a class will define an accessor for all instances of that class, where as <code>@classAccessor</code> defines accessors on the class object itself. See <code>@accessor</code> for the details surrounding accessors.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@classAccessor defines an accessor on the class</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">SingletonDooDad</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1739,7 +1680,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-mixin">@mixin(objects...) : prototype</h3>
 <p><code>@mixin</code> is a handy function for mixing in <code>objects</code> to a class&#39; prototype. <code>@mixin</code> is implemented on top of the Batman level <code>mixin</code> helper, which means that keys from incoming <code>objects</code> will be applied using <code>set</code>, and any <code>initialize</code> functions on the <code>objects</code> will be called with the prototype being mixed into. Returns the prototype being mixed into.
 
@@ -1748,7 +1688,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <em>note</em>: <code>@mixin</code>, once more similar to <code>@accessor</code>, is intended for use during the class definition of a <code>Batman.Object</code> subclass.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@mixin extends the prototype of a Batman.Object subclass</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">FishBehaviour</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">canBreathUnderwater</span><span class="o">:</span> <span class="kc">true</span>
@@ -1777,12 +1717,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-classmixin">@classMixin(objects...) : this</h3>
 <p><code>@classMixin</code> allows mixing in objects to a class during that class&#39; definition. See <code>@mixin</code> for information about the arguments passed to mixin, but note that <code>@classMixin</code> applies to the class object itself, and <code>@mixin</code> applies to all instances of the class. Returns the class being mixed into.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@classMixin extends the Batman.Object subclass</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Singleton</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">initialze</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">subject</span><span class="p">)</span> <span class="p">{</span>
@@ -1810,7 +1749,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-observeall">@observeAll(key, callback : function) : prototype</h3>
 <p><code>@observeAll</code> extends the <code>Batman.Object</code> implementation of <code>Batman.Observable</code> with the ability to observe all instances of the class (and subclasses). Observers attached with <code>@observeAll</code> function exactly as if they were attached to the object directly. Returns the prototype of the class.
 
@@ -1818,7 +1756,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: <code>@observeAll</code> is intended to be used during the class definition for a <code>Batman.Object</code> subclass, but it can be called after the class has been defined as a function on the class. It supports being called after instances of the class have been instantiated as well.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@observeAll attaches handlers which get called upon change</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Song</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1846,8 +1784,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>@observeAll can attach handlers after instance instantiation</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Song</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1878,12 +1815,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-constructor">constructor(objects...)</h3>
 <p>To create a new <code>Batman.Object</code>, the <code>Batman.Object</code> constructor can be used, or, the <code>Batman</code> namespace is also a utility function for creating Batman objects. Each object passed in to the constructor will have all its properties applied to the new <code>Batman.Object</code> using <code>get</code> and <code>set</code>, so any custom getters or setters will be respected. Objects passed in last will have precedence over objects passed in first in the event that they share the same keys. The property copy from these objects is shallow.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Batman() function allows for handy creation of Batman.Objects</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
@@ -1893,8 +1829,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Batman.Object constructor function accepts multiple mixin arguments and later mixins take precedence.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">song</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">length</span><span class="o">:</span> <span class="mi">100</span><span class="p">,</span>
@@ -1909,12 +1844,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-tojson">toJSON() : object</h3>
 <p><code>toJSON</code> returns a vanilla JavaScript object representing this <code>Batman.Object</code>.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>toJSON returns a vanilla JS object</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">object</span> <span class="o">=</span> <span class="nx">Batman</span><span class="p">({</span>
     <span class="nx">foo</span><span class="o">:</span> <span class="s1">&#39;bar&#39;</span>
@@ -1926,7 +1860,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-hashkey">hashKey() : string</h3>
 <p><code>hashKey</code> returns a unique string representing this particular <code>Batman.Object</code>. No two <code>Batman.Object</code>s will have the same <code>hashKey</code>.
 
@@ -1935,7 +1868,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>accessor</code> defines an accessor on one instance of an object instead of on all instances like the class level <code>@accessor</code>. See <code>@accessor</code> for the details surrounding accessors.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>accessor can be called on an instance of Batman.Object to define an accessor just on that instance</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1965,8 +1898,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>defining an accessor on an instance does not affect the other instances</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -1995,7 +1927,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-object-mixin">mixin(objects...) : this</h3>
 <p><code>mixin</code> extends the object it&#39;s called on with the passed <code>objects</code> using the <code>Batman.mixin</code> helper. Returns the object it&#39;s called upon.
 
@@ -2003,7 +1934,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Since the <code>Batman.mixin</code> helper is used, mixin functionality like using <code>set</code> to apply properties and calling <code>initialize</code> functions is included in the instance level <code>mixin</code> function.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>mixin on an instance applies the keys from the mixed in object to the instance</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Snake</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -2029,7 +1960,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 
 <h2 id="batman-simpleset">Batman.SimpleSet</h2>
 <p><code>SimpleSet</code> is an implementation of the <code>Set</code> object you might expect to find in lots of other languages standard libraries. Sets are an enumerable but unordered collection of objects. A particular object may either be a member or not be a member of a particular set, but it may not belong to the set twice, as that would imply ordering. In the case of Batman, sets will tell you when items are added or removed through events, sets mix in the <code>Enumerable</code> module for handy iteration and aggregation, and can also generate indexes and sorts via <code>SetIndex</code> and <code>SetSort</code>.
@@ -2044,7 +1974,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>When creating a <code>SimpleSet</code>, items forming the initial set can be passed as separate arguments to the constructor
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>new SimpleSet constructor can be called without arguments</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
@@ -2052,8 +1982,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>new SimpleSet constructor can be passed items to add to the set.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
@@ -2061,7 +1990,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-length">length : number</h3>
 <p>A count of the items in a <code>SimpleSet</code> can be found at it&#39;s <code>length</code> property.
 
@@ -2070,7 +1998,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>has</code> returns a boolean describing if the given <code>item</code> is a member of the set.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::has indicates if an item is a member of the set or not.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2080,12 +2008,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-add">add(items...) : Array</h3>
 <p><code>add</code> adds 0 or more new items to the set. <code>add</code> returns an array of the items which have been newly added to the set, which is to say the intersection of the argument items and the set itself before addition.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::add adds an item to the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2097,8 +2024,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::add returns only the new items that weren\&#39;t previously in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
@@ -2108,12 +2034,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-remove">remove(items...) : Array</h3>
 <p><code>remove</code> removes 0 or more items from the set. <code>remove</code> returns an array of the items which were successfully removed from the set, which is to say the intersection of the argument items and the set itself before removal.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::remove removes an item from the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2125,8 +2050,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::remove returns only the new items that were previously in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
@@ -2136,7 +2060,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-find">find(testFunction : function) : [Object]</h3>
 <p><code>find</code> returns the first item within the set for which the <code>testFunction</code> called with the item returns <code>true</code>, or <code>undefined</code> if no item passes the test.
 
@@ -2145,7 +2068,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::find returns the first item for which the test function passes</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -2155,8 +2078,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::find returns undefined if no items pass the test function</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -2166,7 +2088,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-foreach">forEach(iteratorFunction : function[, context: Object])</h3>
 <p><code>forEach</code> calls the <code>iteratorFunction</code> with each item in the set, optionally executing the <code>iteratorFunction</code> in the passed context. Returns <code>undefined</code>.
 
@@ -2174,7 +2095,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Set iteration order is not defined, which is to say Set client code cannot rely on one item being iterated over before another, regardless of when the Set&#39;s items were added. If you need an ordered set, Batman provides <code>SetSort</code> for exactly this, while including the added benefit of observability. If you need a one time ordering of a set, you can get the array representation with <code>toArray</code> and then use vanilla JavaScript <code>sort</code> on that array.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::forEach iterates over each item in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">sum</span> <span class="o">=</span> <span class="mi">0</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
@@ -2186,8 +2107,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::forEach iterates over each item in the set optionally in the provided context</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">context</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">sum</span><span class="o">:</span> <span class="mi">0</span>
@@ -2201,12 +2121,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-isempty">isEmpty() : boolean</h3>
 <p><code>isEmpty</code> returns a boolean: <code>true</code> if the set has no items, and <code>false</code> if it has any items.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::isEmpty returns true if the set has no items</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
@@ -2217,7 +2136,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-clear">clear() : Array</h3>
 <p><code>clear</code> removes all items from a set. Returns an array of all the items in the set.
 
@@ -2225,7 +2143,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Set iteration order is not defined, so the order of the array of items returned by <code>clear</code> is undefined.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::clear empties the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
@@ -2237,12 +2155,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-replace">replace(collection : Enumerable) : Array</h3>
 <p><code>replace</code> removes all the items in a set and then adds all the items found in another <code>collection</code>. The other collection must have a <code>toArray</code> function which returns an array representation of the collection. Returns the array of items added.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::replace empties the set and then adds items from a different collection</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">secondSet</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
@@ -2253,7 +2170,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-toarray">toArray() : Array</h3>
 <p><code>toArray</code> returns an array representation of the set.
 
@@ -2261,7 +2177,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Set iteration order is not defined, so the order in which the set&#39;s items appear in the array is not defined. It is however stable, so the order of the items in two successive <code>toArray</code> calls where the set was not modified in between should be the same.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::toArray returns an array representation of the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
@@ -2272,12 +2188,11 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-merge">merge(collections... : Enumerable) : SimpleSet</h3>
 <p><code>merge</code> adds all the items in a set and all the items in the passed <code>collections</code> to a new set and returns it. A <code>collection</code> is an object which has a <code>forEach</code> function. It is a non-destructive collection union. The set <code>merge</code> is called on and each <code>collection</code> passed to <code>merge</code> remain unaffected.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>SimpleSet::merge returns a new set with the items of the original set and the passed set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">abc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">def</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">SimpleSet</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
@@ -2288,7 +2203,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-simpleset-indexedby">indexedBy(key : String) : SetIndex</h3>
 <h3 id="batman-simpleset-indexedbyunique">indexedByUnique(key : String) : UniqueSetIndex</h3>
 <h3 id="batman-simpleset-sortedby">sortedBy(key: String) : SetSort</h3>
@@ -2305,7 +2219,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>When creating a <code>Set</code>, items forming the initial set can be passed as separate arguments to the constructor
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>new Set constructor can be called without arguments</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
@@ -2313,8 +2227,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>new Set constructor can be passed items to add to the set.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">().</span><span class="nx">sort</span><span class="p">()</span>
@@ -2322,7 +2235,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-length">length : number</h3>
 <p>A count of the items in a <code>Set</code> can be found at it&#39;s <code>length</code> property.
 
@@ -2335,7 +2247,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p>Observable property for <code>toArray()</code>. Whenever items are added or removed on the set, the <code>toArray</code> property will change. This is the mechanism by which Batman&#39;s view bindings get notified of collection updates.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>observers on the toArray property fire when the set changes</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">observe</span><span class="p">(</span><span class="s1">&#39;toArray&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newArray</span><span class="p">)</span> <span class="p">{</span>
@@ -2352,7 +2264,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-has">has(item) : Boolean</h3>
 <p><code>has</code> returns a boolean describing if the given <code>item</code> is a member of the set.
 
@@ -2360,7 +2271,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Using <code>has(item)</code> in an accessor body will register the set <code>has</code> is called upon as a source of the property being calculated. This so that whenever the set changes, the property will be recalculated, because the set may now have or not have the item in question.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::has indicates if an item is a member of the set or not.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2370,8 +2281,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::has registers the set as a source of an accessor</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -2401,7 +2311,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-add">add(items...)</h3>
 <p><code>add</code> adds 0 or more new items to the set. <code>add</code> returns an array of the items which have been newly added to the set, which is to say the intersection of the argument items and the set itself before addition.
 
@@ -2409,7 +2318,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>add</code> fires the <code>itemsWereAdded</code> event with the list of items newly added to the set if that list has length greater than 0. This is to say the event will not be fired if the items passed to add were all already members of the set.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::add adds an item to the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2421,8 +2330,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::add returns only the new items that weren\&#39;t previously in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
@@ -2432,8 +2340,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::add fires the itemsWereAdded event with the items newly added to the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2447,8 +2354,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::add does not fire the itemsWereAdded event if the added items were already in the set.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2462,7 +2368,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-remove">remove(items...)</h3>
 <p><code>remove</code> removes 0 or more items from the set. <code>remove</code> returns an array of the items which were successfully removed from the set, which is to say the intersection of the argument items and the set itself before removal.
 
@@ -2470,7 +2375,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>remove</code> fires the <code>itemsWereRemoved</code> event with the list of removed items if that list has length greater than 0. This is to say the event will not be fired if none of the passed items were members of the set.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::remove removes an item from the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span>
@@ -2482,8 +2387,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::remove returns only the new items that were previously in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">).</span><span class="nx">sort</span><span class="p">()</span>
@@ -2493,8 +2397,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::remove fires the itemsWereRemoved event with the items removed to the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2508,8 +2411,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::remove does not fire the itemsWereRemoved event if the removed items were not already members of the set.</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2523,7 +2425,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-find">find(testFunction : function) : [Object]</h3>
 <p><code>find</code> returns the first item within the set for which the <code>testFunction</code> called with the item returns <code>true</code>, or <code>undefined</code> if no item passes the test.
 
@@ -2532,7 +2433,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::find returns the first item for which the test function passes</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -2542,8 +2443,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::find returns undefined if no items pass the test function</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="k">typeof</span> <span class="nx">set</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
@@ -2553,7 +2453,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-foreach">forEach(iteratorFunction : function[, context: Object])</h3>
 <p><code>forEach</code> calls the <code>iteratorFunction</code> with each item in the set, optionally executing the <code>iteratorFunction</code> in the passed context. Returns <code>undefined</code>.
 
@@ -2564,7 +2463,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Using <code>forEach()</code> in an accessor body will register the set iterated over as a source of the property being calculated. This so that whenever the set changes, the property will be recalculated. This can be come an issue if you iterate over a set and modify the set&#39;s items, as when the property recalculates that modification will potentially happen on item&#39;s it&#39;s happened on previously.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::forEach iterates over each item in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">sum</span> <span class="o">=</span> <span class="mi">0</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
@@ -2576,8 +2475,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::forEach iterates over each item in the set optionally in the provided context</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">context</span> <span class="o">=</span> <span class="p">{</span>
     <span class="nx">sum</span><span class="o">:</span> <span class="mi">0</span>
@@ -2591,8 +2489,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::forEach registers the set as a source if called in an accessor body</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -2629,7 +2526,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-isempty">isEmpty() : boolean</h3>
 <p><code>isEmpty</code> returns a boolean: <code>true</code> if the set has no items, and <code>false</code> if it has any items.
 
@@ -2637,7 +2533,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Using <code>isEmpty()</code> in an accessor body will register the set <code>isEmpty</code> is called on as a source of the property being calculated, so that whenever the set changes the property will be recalculated.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::isEmpty returns true if the set has no items</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
@@ -2648,8 +2544,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::isEmpty registers the set as a source of an accessor</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="p">(</span><span class="nx">Team</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -2677,7 +2572,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-clear">clear() : Array</h3>
 <p><code>clear</code> removes all items from a set. Returns an array of all the items in the set.
 
@@ -2688,7 +2582,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Set iteration order is not defined, so the order of the array of items returned by <code>clear</code> is undefined.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::clear empties the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">isEmpty</span><span class="p">()</span>
@@ -2700,8 +2594,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::clear fires the itemsWereRemoved event with all the items in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2715,7 +2608,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-replace">replace(collection : Enumerable) : Array</h3>
 <p><code>replace</code> removes all the items in a set and then adds all the items found in another <code>collection</code>. The other collection must have a <code>toArray</code> function which returns an array representation of the collection. Returns the array of items added.
 
@@ -2723,7 +2615,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>replace</code> will fire the <code>itemsWereRemoved</code> event once with all the items in the set, and then the <code>itemsWereAdded</code> event once with the items from the incoming collection.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::replace empties the set and then adds items from a different collection</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">secondSet</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
@@ -2734,8 +2626,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::replace fires the itemsWereRemoved event with all the items in the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereRemoved&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2749,8 +2640,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::replace fires the itemsWereAdded event with all the items in the incoming set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;itemsWereAdded&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
@@ -2764,7 +2654,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-toarray">toArray() : Array</h3>
 <p><code>toArray</code> returns an array representation of the set.
 
@@ -2778,7 +2667,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Using <code>toArray()</code> in an accessor body will register the set <code>toArray</code> is called on as a source of the property being calculated, so that whenever the set changes the property will be recalculated.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::toArray returns an array representation of the set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">set</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">()</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">()</span>
@@ -2789,7 +2678,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-merge">merge(collections... : Enumerable) : Set</h3>
 <p><code>merge</code> adds all the items in a set and all the items in the passed <code>collections</code> to a new set and returns it. A <code>collection</code> is an object which has a <code>forEach</code> function. It is a non-destructive collection union. The set <code>merge</code> is called on and each <code>collection</code> passed to <code>merge</code> remain unaffected.
 
@@ -2797,7 +2685,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><em>Note</em>: Be careful about using <code>merge</code> within accessors. Calling <code>merge</code> in an accessor function body will register the set <code>merge</code> is called upon as a source of the property being calculated, which means each the set changes, the property will be recalculated. This means the merge will occur again each time, and return an entirely new <code>Set</code> instance. If the previously returned <code>Set</code> instance is retained after recalculation, this is a big memory leak. Instead of merging in accessors, try to use a <code>SetUnion</code> or a <code>SetIntersection</code>.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>Set::merge returns a new set with the items of the original set and the passed set</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">abc</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">)</span>
 </pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">def</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;f&#39;</span><span class="p">)</span>
@@ -2808,7 +2696,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-set-indexedby">indexedBy(key : String) : SetIndex</h3>
 <h3 id="batman-set-indexedbyunique">indexedByUnique(key : String) : UniqueSetIndex</h3>
 <h3 id="batman-set-sortedby">sortedBy(key: String) : SetSort</h3>
@@ -2859,7 +2746,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <p><code>@controllers</code> is a class level property containing the singleton <code>Batman.Controller</code> instances for each subclass in the application. This <code>controllers</code> directory puts these instances at the lowercase name of the controller. For example, the <code>TodosController</code> would be found at <code>controllers.todos</code>. <code>@controllers</code> ideally should never be bound to, but it is very useful for debugging in the console and other such workarounds.
 
 </p>
-<pre><code class="javascript"><div class="console-session">
+<div class="console-session">
   <h4>App.controllers references a directory of controller instances</h4>
   <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Alfred</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
@@ -2889,7 +2776,6 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </pre></div></div></code>
   </pre>
 </div>
-</code></pre>
 <h3 id="batman-app-layout">@layout</h3>
 <h3 id="batman-app-currentparams">@currentParams</h3>
 <h3 id="batman-app-paramsmanager">@paramsManager</h3>

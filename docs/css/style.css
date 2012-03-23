@@ -1,5 +1,5 @@
-/** 
- * Batdocs 
+/**
+ * Batdocs
  * v0 - unsmacss'd
  */
 /* ======== SECTION: 4.0. SCSS MIXINS ======== */
@@ -277,36 +277,24 @@ body {
   border-radius: 0 0 12px 0;
   min-width: 960px; }
 
-#top {
-  padding: 20px;
-  border-bottom: solid 1px #242432;
-  background-color: #3b3b81;
-  background-image: -o-linear-gradient(#504c90, #3b3b81);
-  background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #3b3b81), color-stop(1, #504c90));
-  background-image: -moz-linear-gradient(center bottom, #3b3b81 0%, #504c90 100%); }
-  #top h1 a {
-    color: #fff;
-    font-size: 20px;
-    float: left;
-    text-decoration: none; }
-  #top #back-to-top {
-    display: block;
-    background: #333;
-    width: 50px;
-    position: fixed;
-    top: 0;
-    right: 8%;
-    text-align: center;
-    padding: 3px;
-    font-size: 12px;
-    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.1);
-    border: solid 1px #111;
-    color: #fff;
-    text-decoration: none;
-    background-color: #555555;
-    background-image: -o-linear-gradient(#333333, #555555);
-    background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #555555), color-stop(1, #333333));
-    background-image: -moz-linear-gradient(center bottom, #555555 0%, #333333 100%); }
+#back-to-top {
+  display: block;
+  background: #333;
+  width: 50px;
+  position: fixed;
+  top: 0;
+  right: 8%;
+  text-align: center;
+  padding: 3px;
+  font-size: 12px;
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.1);
+  border: solid 1px #111;
+  color: #fff;
+  text-decoration: none;
+  background-color: #555555;
+  background-image: -o-linear-gradient(#333333, #555555);
+  background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #555555), color-stop(1, #333333));
+  background-image: -moz-linear-gradient(center bottom, #555555 0%, #333333 100%); }
 
 h1 {
   margin-top: 0; }
@@ -333,11 +321,12 @@ code {
   padding: 2px; }
 
 div[role='main'] {
-  padding-top: 20px;
-  width: 76.0%;
+  padding: 50px;
+  padding-top: 30px;
+  margin-left: 280px;
+  width: auto;
   float: left;
   background: #fff;
-  padding: 50px;
   border-bottom: solid 1px #ccc;
   border-right: solid 1px #ccc;
   border-radius: 0 0 12px 0;
@@ -359,11 +348,15 @@ div[role='main'] {
     color: #333; }
 
 div[role='sidebar'] {
-  width: 24.0%;
+  width: 280px;
   height: 100%;
   font-size: 13px;
   font-weight: 200;
-  float: left; }
+  float: left;
+  overflow: scroll;
+  top: 0;
+  left: 0;
+  position: fixed; }
   div[role='sidebar'] a {
     color: #f5f5ff;
     text-decoration: none; }
@@ -383,16 +376,11 @@ div[role='sidebar'] {
     box-sizing: border-box; }
 
 #table_of_contents {
-  padding: 15px 0 0 0;
+  padding: 0;
   margin: 0;
   /* first level */
   /* second level */
-  /* third level */
-  /*
-  li ul { background: magenta; }
-  li li ul { background: pink;  }
-  li li li ul { background: cyan; }   
-  */ }
+  /* third level */ }
   #table_of_contents a {
     display: block;
     padding: 2px 0; }
@@ -405,6 +393,8 @@ div[role='sidebar'] {
     margin: 0;
     padding: 0;
     list-style: none; }
+  #table_of_contents > li > ul {
+    margin-top: 30px; }
   #table_of_contents > li > ul > li {
     border-bottom: solid 1px #3f3e66;
     padding: 0 0 15px 0;
@@ -438,8 +428,8 @@ div[role='sidebar'] {
     padding-left: 35px;
     font-size: 12px; }
 
-/** 
- * Syntax Highlighting 
+/**
+ * Syntax Highlighting
  */
 .highlight .hll {
   background-color: #ffffcc; }
@@ -783,8 +773,8 @@ div[role='main'] .console-session > pre:last-child {
   white-space: normal;
   background: yellow !important; }
 
-/* 
- * Helpers 
+/*
+ * Helpers
  */
 .ir {
   display: block;
@@ -834,3 +824,4 @@ div[role='main'] .console-session > pre:last-child {
 
 .clearfix {
   *zoom: 1; }
+
