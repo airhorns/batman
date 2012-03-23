@@ -128,14 +128,16 @@ task 'release', (options) ->
     .map((f) -> path.join(__dirname, f))
   console.warn docFiles
   console.warn tmpdir
-  cmd = " cp -r #{docFiles.join ' '} #{tmpdir}
+  cmd = " mkdir -p #{tmpdir}/css #{tmpdir}/css/fonts #{tmpdir}/js #{tmpdir}/img
+          && cp -r #{docFiles.join ' '} #{tmpdir}
           && git checkout gh-pages
           && rm -rf docs
-          && mkdir docs docs/css docs/js docs/img
+          && mkdir -p docs docs/css docs/js docs/img
           && cp -r #{tmpdir}/* docs/
-          && git add docs
-          && git commit -m 'Add new docs.'
-          && git checkout master"
+         "
+          #&& git add docs
+          #&& git commit -m 'Add new docs.'
+          #&& git checkout master"
   console.warn cmd
   exec cmd, (error, stdout, stderr) ->
     console.warn stdout.toString()
