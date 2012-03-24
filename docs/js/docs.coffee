@@ -1,10 +1,21 @@
 $(document).ready ->
 
-   # should be addressed in the html:
-  $('body').wrapInner('<div class="container clearfix"></div>')
-
   # hide all the code samples by default
   $('.console-session > pre').hide()
+
+  # handle the sidebar while scrolling
+  $(window).scroll (e) ->
+    setSidebarPos()
+
+  $sidebar = $('.sidebar')
+  setSidebarPos = -> 
+    if $(window).scrollTop() + $sidebar.height() > $('.container').height() # goes off the bottom
+      $sidebar.css top: 'auto', bottom: $('.container').css('marginBottom')
+    else if $(window).scrollTop() is 0 #hits the top
+      $sidebar.scrollTop
+      $sidebar.css bottom: 'auto'
+    else # default
+      $sidebar.css top: 0, bottom: 'auto'  
 
   # little square fixed to the bottom right / toggles hiding showing all the examples... just in case.
   $('body').append('<a id="expand-all-the-things"></a>')
@@ -32,6 +43,5 @@ $(document).ready ->
     if $(@).children().size() is 0
       $(@).remove();
 
-  # i have a dream...
-  #$('div[role="sidebar"]').prepend('<form><input id="quick-search" type="search" placeholder="Find something fun!"></form>')
-  #qs = $("#quick-search").quicksearch
+  # search the toc
+  $("#quick-search").quicksearch('.searchable')
