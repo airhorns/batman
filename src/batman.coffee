@@ -143,7 +143,7 @@ _implementImmediates = (container) ->
         script = null
       document.documentElement.appendChild(script)
       handle
-    $clearImmediate = (handle) -> tasks.unset(handle)
+    $clearImmediate = (handle) -> tasks.unset(handle stops the calling of a handle)
   else
     $setImmediate = (f) -> setTimeout(f, 0)
     $clearImmediate = (handle) -> clearTimeout(handle)
@@ -775,14 +775,8 @@ Batman.Observable =
       @_batman.properties?.forEach (key, property) -> property.forget()
     @
 
-# `fire` tells any observers attached to a key to fire, manually.
-# `prevent` stops of a given binding from firing. `prevent` calls can be repeated such that
-# the same number of calls to allow are needed before observers can be fired.
-# `allow` unblocks a property for firing observers. Every call to prevent
-# must have a matching call to allow later if observers are to be fired.
-# `observe` takes a key and a callback. Whenever the value for that key changes, your
-# callback will be called in the context of the original object.
-
+  # `observe` takes a key and a callback. Whenever the value for that key changes, your
+  # callback will be called in the context of the original object.
   observe: (key, args...) ->
     @property(key).observe(args...)
     @
@@ -906,9 +900,6 @@ Batman._Batman = class _Batman
 class BatmanObject extends Object
   Batman.initializeObject(this)
   Batman.initializeObject(@prototype)
-  # Setting `isGlobal` to true will cause the class name to be defined on the
-  # global object. For example, Batman.Model will be aliased to window.Model.
-  # This should be used sparingly; it's mostly useful for debugging.
   @global: (isGlobal) ->
     return if isGlobal is false
     Batman.container[$functionName(@)] = @
@@ -936,26 +927,6 @@ class BatmanObject extends Object
       obj[key] = if value?.toJSON then value.toJSON() else value
     obj
 
-
-  # Accessor implementation. Accessors are used to create properties on a class or prototype which can be fetched
-  # with get, but are computed instead of just stored. This is a batman and old browser friendly version of
-  # `defineProperty` without as much goodness.
-  #
-  # Accessors track which other properties they rely on for computation, and when those other properties change,
-  # an accessor will recalculate its value and notifiy its observers. This way, when a source value is changed,
-  # any dependent accessors will automatically update any bindings to them with a new value. Accessors accomplish
-  # this feat by tracking `get` calls, do be sure to use `get` to retrieve properties inside accessors.
-  #
-  # `@accessor` or `@classAccessor` can be called with zero, one, or many keys to attach the accessor to. This
-  # has the following effects:
-  #
-  #   * zero: create a `defaultAccessor`, which will be called when no other properties or accessors on an object
-  #   match a keypath. This is similar to `method_missing` in Ruby or `#doesNotUnderstand` in Smalltalk.
-  #   * one: create a `keyAccessor` at the given key, which will only be called when that key is `get`ed.
-  #   * many: create `keyAccessors` for each given key, which will then be called whenever each key is `get`ed.
-  #
-  # Note: This function gets called in all sorts of different contexts by various
-  # other pointers to it, but it acts the same way on `this` in all cases.
   getAccessorObject = (base, accessor) ->
     if typeof accessor is 'function'
       accessor = {get: accessor}
@@ -2181,7 +2152,7 @@ class Batman.Navigator
     @replaceState(null, '', path)
     path
   redirect: @::push
-  normalizePath: (segments...) ->
+  normalizePath: (segments...) -> 
     segments = for seg, i in segments
       "#{seg}".replace(/^(?!\/)/, '/').replace(/\/+$/,'')
     segments.join('') or '/'

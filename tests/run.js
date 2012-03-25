@@ -1,16 +1,12 @@
 (function() {
-  var fs, glob, jquerySource, path, qqunit;
+  var glob, path, qqunit;
   var __hasProp = Object.prototype.hasOwnProperty;
 
   glob = require('glob');
 
-  fs = require('fs');
-
   path = require('path');
 
   qqunit = require('qqunit');
-
-  jquerySource = fs.readFileSync(path.join(__dirname, 'lib', 'jquery.js')).toString();
 
   qqunit.Environment.jsdom.jQueryify(window, path.join(__dirname, 'lib', 'jquery.js'), function(window, jQuery) {
     var File, Helper, k, tests, v;

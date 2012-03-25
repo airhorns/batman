@@ -1,0 +1,276 @@
+## Batman Helpers
+
+Batman includes an number of useful, general purpose helper functions and references. They can all be found attached to the `Batman` object and can optionally be exported into the global namespace with a `$` prefix.
+
+### container
+
+`Batman.container` points to either the `window` object if running the browser, or the `global` object if running in node. This is useful if you want to add something to the global scope in all environments.
+
+### typeOf(object) : string
+
+`typeOf` determines a more specific type of an `object` than the native `typeof` operator in JavaScript. This is useful for a number of situations like dealing with `Object` promoted strings and numbers, or arrays which look like `object`s to `typeof`. Use `typeOf` when you need more than `"object"` from `typeof`.
+
+_Note_: `typeOf` is substantially slower than `typeof`. `typeOf` works in a somewhat hackish manner by getting the `Object::toString` representation of the object and slicing it to retrieve the name of the constructor.
+
+!!!
+test 'typeOf returns "String" for both strings and Object strings', ->
+  show primitive = "test"
+  show objectified = new String("test")
+  equal typeof primitive, "string"
+  equal typeof objectified, "object"
+  equal Batman.typeOf(primitive), "String"
+  equal Batman.typeOf(objectified), "String"
+!!!
+
+!!!
+test 'typeOf returns Array for arrays', ->
+  show array = [];
+  equal typeof array, "object"
+  equal Batman.typeOf(array), "Array"
+!!!
+
+### mixin(subject, objects...) : subject
+
+`mixin`, occasionally known elsewhere as `extend` or `merge`, flattens a series of objects onto the subject. Key/value pairs on objects passed as later arguments (arguments with a higher index) take precedence over earlier arguments. Returns the `subject` passed in with the new values.
+
+`mixin` also has special properties that make it different than the canonical `extend` functions:
+
+ 1. If the `subject` has a `set` function, `subject.set(key, value)` will be used to apply keys instead of `subject[key] = value`. This means that if the subject is a `Batman.Object`, observers and thus bindings on the object will be notified when other (Batmanified or not) objects are mixed into it.
+ 2. If a mixed-in `object` has an `initialize` function defined, that function will be called and passed the `subject`. This is useful for custom extension logic, similar to `self.included` in Ruby. For this reason, the keys `initialize` and `uninitialize` are skipped by `mixin`.
+ 3. `mixin` only iterates over keys for which the `hasOwnProperty` test passes.
+
+_Note_: `mixin` is destructive to (only) the first argument. If you need a non-destructive version of `mixin`, just pass an empty object as the first object, and all keys from the successive arguments will be applied to the empty object.
+
+!!!
+test 'mixin merges argument objects', ->
+  show subject = {}
+  deepEqual Batman.mixin(subject, {fit: true}, {fly: true}, {funky: true}), {fit: true, fly: true, funky: true}, "mixin returns the subject"
+  deepEqual subject, {fit: true, fly: true, funky: true}, "the subject is modified destructively"
+!!!
+
+!!!
+test 'mixin merges argument objects', ->
+  show unmodified = {fit: true}
+  deepEqual Batman.mixin({}, unmodified, {fly: true}, {funky: true}), {fit: true, fly: true, funky: true}, "mixin returns the subject"
+  deepEqual unmodified, {fit: true}, "argument objects are untouched allowing non-destructive merge"
+!!!
+
+!!!
+test 'mixed in objects passed as higher indexed arguments take precedence', ->
+  show subject = {}
+  deepEqual Batman.mixin(subject, {x: 1, y: 1}, {x: 2}), {x: 2, y: 1}
+!!!
+
+### unmixin(subject, objects...) : subject
+
+`unmixin` "unmerges" the passes objects from the `subject`. If a key exists on any of the `objects` it will be `delete`d from the `subject`. Returns the `subject`.
+
+`unmixin`, similar to `mixin`, supports calling an `uninitialize` function for each of the `objects` being unmixed in. If an `uninitialize` function exists on each
+
+!!!
+test 'unmixin removes keys found on the unmixined objects on the subject', ->
+  show subject = {fit: true, fly: true, funky: true}
+  deepEqual Batman.unmixin(subject, {fit: true}, {fly: true}), {funky: true}, "unmixin returns the subject"
+  deepEqual subject, {funky: true}, "the subject is destructively modified."
+!!!
+
+### isChildOf(parent : HTMLElement, child : HTMLElement) : boolean
+
+`isChildOf` is a simple DOM helper which returns a boolean describing if the passed `child` node can be found in the descendants of the passed `parent` node.
+
+### setImmediate(callback : Function) : object
+
+`setImmediate` (and it's sister `clearImmediate`) are a more efficient version of `setTimeout(callback, 0)`. Due to timer resolution issues, setTimeout passed a timeout of 0 doesn't actually execute the function as soon as the JS execution stack has been emptied, but at minimum 4ms and maxmium 25ms after. For this reason Batman provides a cross browser implementation of `setImmediate` which does it's best to call the callback immediately after the stack empties. Batman's `setImmediate` polyfill uses the native version if available, `window.postmessage` trickery if supported, and falls back on `setTimeout(->, 0)`.
+
+`setImmediate` returns a handle which can be passed to `clearImmediate` to cancel the future calling of the callback.
+
+### clearImmediate(handle)
+
+`clearImmediate` stops the calling of a callback in the future when passed it's `handle` (which is returned from the `setImmediate` call used to enqueue it).
+
+### forEach(iterable : object, iterator : Function[, context : Object])
+
+The `forEach` Batman helper is a universal iteration helper. When passed an `iterable` object, the helper will call the `iterator` (optionally in the `context`) for each item in the `iterable`. The `iterable` can be:
+
+ 1. something which has it's own `forEach`, in which case the `iterator` whill just be passed to `iterable.forEach`.
+ 2. an array like object, in which case a JavaScript `for(;;)` loop will be used to iterate over each entry
+ 3. or an object, in which case a JavaScript `for-in` loop will be used to iterate over each entry.
+
+The `forEach` helper is useful for iterating over objects when the type of those objects isn't guaranteed.
+
+!!!
+test 'forEach iterates over objects with forEach defined', ->
+  show set = new Batman.SimpleSet('a')
+  show Batman.forEach(set, (x) -> log x)
+  equal logged.last, "a"
+!!!
+
+!!!
+test 'forEach iterates over array like objects', ->
+  show ArrayLike = ->
+  show ArrayLike:: = []
+  show imitation = new ArrayLike
+  show Array::push.call(imitation, "a")
+  show Array::push.call(imitation, "b")
+  show Batman.forEach(imitation, (x) -> log x)
+  equal logged.last, "b"
+!!!
+
+!!!
+test 'forEach iterates over objects', ->
+  show object = {x: true}
+  show Batman.forEach(object, (key, val) -> log {key, val})
+  deepEqual logged.last, {key: 'x', val: true}
+!!!
+
+### objectHasKey(object, key) : boolean
+
+`objectHasKey` returns a boolean describing the presence of the `key` in the passed `object`. `objectHasKey` delegates to the `object`'s `hasKey` function if present, and otherwise just does a check using the JavaScript `in` operator.
+
+!!!
+test 'objectHasKey verifies if a key is present in an object', ->
+  show subject = {fit: true}
+  ok Batman.objectHasKey(subject, 'fit')
+  equal Batman.objectHasKey(subject, 'flirty'), false
+!!!
+
+!!!
+test 'objectHasKey verifies if a key is present in an object with `hasKey` defined', ->
+  show subject = new Batman.SimpleHash {fit: true}
+  ok Batman.objectHasKey(subject, 'fit')
+  equal Batman.objectHasKey(subject, 'flirty'), false
+!!!
+
+### contains(object, item) : boolean
+
+`contains` returns a boolean describing if the given `object` has member `item`. Membership in this context is defined as:
+
+ + the result of `object.has(item)` if the `object` has a `has` function defined
+ + the result of `item in object` if the `object` is arraylike
+ + the result of the Batman.objectHasKey otherwise
+
+_Note_: When passed an object without a `has` function, `contains` will return `true` if the `object` has `item` as a *`key`*, not as a value at any key.
+
+`contains` is useful for checking item membership when the type of the object can't be relied on.
+
+### get(object, key) : value
+
+`get` is a general purpose function for retrieving the value from a `key` on an `object` of an indeterminate type. This is useful if code needs to work with both `Batman.Object`s and Plain Old JavaScript Objects. `get` has the following semantics:
+
+ + if the `object` has a `get` function defined, return the result of `object.get(key)`
+ + if the object does not have a `get` function defined, use an ephemeral `Batman.Property` to retrieve the key. This is equivalent to `object[key]` for single segment `key`s, but if the `key` is multi-segment (example: 'product.customer.name'), `get` will do nested gets until the either `undefined` or the end of the keypath is reached.
+
+!!!
+test 'get returns the value at a key on a POJO', ->
+  show subject = {fit: true}
+  equal Batman.get(subject, 'fit'), true
+  equal Batman.get(subject, 'flirty'), undefined
+!!!
+
+!!!
+test 'get returns the value at a key on a Batman.Object', ->
+  show subject = Batman {fit: true}
+  equal Batman.get(subject, 'fit'), true
+  equal Batman.get(subject, 'flirty'), undefined
+!!!
+
+!!!
+test 'get returns the value at a deep key on a POJO', ->
+  show subject = {customer: {name: "Joe"}}
+  equal Batman.get(subject, 'customer.name'), "Joe"
+  equal Batman.get(subject, 'customer.age'), undefined
+!!!
+
+!!!
+test 'get returns the value at a deep key on a Batman.Object', ->
+  show subject = Batman {customer: {name: "Joe"}}
+  equal Batman.get(subject, 'customer.name'), "Joe"
+  equal Batman.get(subject, 'customer.age'), undefined
+!!!
+
+### escapeHTML(string) : string
+
+`escapeHTML` takes a string of unknown origin and makes it safe for display on a web page by encoding control characters in HTML into their HTML entities.
+
+*Warning*: Do not rely on `escapeHTML` to purge unsafe data from user submitted content. While `escapeHTML` is applied to every binding's contents by default, it should not be your only line of defence against script injection attacks.
+
+!!!
+test 'escapeHTML encodes special characters into HTML entities', ->
+  equal Batman.escapeHTML("& < > \" '"), "&amp; &lt; &gt; &#34; &#39;"
+!!!
+
+## Batman.helpers
+
+`Batman.helpers` is a namespace for Batman's helpful string manipulation helpers.
+
+_Note_: Batman's pluralization functions mirror those of Rails' exactly.
+
+### ordinalize(value : [number|string]) : string
+
+`ordinalize` converts a given integer into an ordinal string for describing position in a list, like 1st, 2nd, or 20th.
+
+!!!
+test 'ordinalize converts numbers to their ordinal form', ->
+  equal Batman.helpers.ordinalize(1)     , "1st"
+  equal Batman.helpers.ordinalize("2")     , "2nd"
+  equal Batman.helpers.ordinalize(1002)  , "1002nd"
+  equal Batman.helpers.ordinalize("1003")  , "1003rd"
+  equal Batman.helpers.ordinalize(-11)   , "-11th"
+  equal Batman.helpers.ordinalize(-1021) , "-1021st"
+!!!
+
+### singularize(pluralString : string) : string
+
+`singularize` converts the plural form of a word to a singular form.
+
+!!!
+test 'singularize converts plural words to singular words', ->
+  equal Batman.helpers.singularize("posts"), "post"
+  equal Batman.helpers.singularize("octopi"), "octopus"
+  equal Batman.helpers.singularize("sheep"), "sheep"
+  equal Batman.helpers.singularize("word"), "word"
+  equal Batman.helpers.singularize("CamelOctopi"), "CamelOctopus"
+!!!
+
+### pluralize(singularString : string) : string
+
+`pluralize` converts the singular form of a word to the plural form.
+
+!!!
+test 'pluralize converts plural words to singular words', ->
+  equal Batman.helpers.pluralize("post"), "posts"
+  equal Batman.helpers.pluralize("octopus"), "octopi"
+  equal Batman.helpers.pluralize("sheep"), "sheep"
+  equal Batman.helpers.pluralize("words"), "words"
+  equal Batman.helpers.pluralize("CamelOctopus"), "CamelOctopi"
+!!!
+
+### camelize(string, [lowercaseFirstLetter = false]) : string
+
+`camelize` converts the passed `string` to UpperCamelCase. If the second argument is passed as `true`, then lowerCamelCase is returned.
+
+!!!
+test 'camelize returns the CamelCase version of an under_scored word', ->
+  equal Batman.helpers.camelize("batman_object"), "BatmanObject"
+  equal Batman.helpers.camelize("batman_object", true), "batmanObject"
+!!!
+
+### underscore(string) : string
+
+`underscore` returns the underscored version of a CamelCase word.
+
+!!!
+test 'underscore converts CamelCase to under_scores', ->
+  equal Batman.helpers.underscore("BatmanObject"), "batman_object"
+!!!
+
+### capitalize(string) : string
+
+`capitalize` does a word-wise capitalization of a phrase or word.
+
+!!!
+test 'capitalize makes the first letter of each word in the string uppercase', ->
+  equal Batman.helpers.capitalize("batmanObject"), "BatmanObject"
+  equal Batman.helpers.capitalize("batman object"), "Batman Object"
+  equal Batman.helpers.capitalize("AlreadyCapitalized"), "AlreadyCapitalized"
+!!!

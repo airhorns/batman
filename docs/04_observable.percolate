@@ -1,0 +1,208 @@
+## Batman.Observable
+
+`Batman.Observable` is a mixin which gives objects the ability to notify subscribers to changes on its properties. `Observable` also adds functionality for observing _keypaths_: arbitrarily deeply nested properties on objects.
+
+### get(keypath) : value
+
+Retrieves the value at a `key` on an object. Accepts keypaths.
+
+_Note_: `get` must be used for property access on any object in `Batman`'s world. This is so that Batman can implement neat things like automatic dependency calculation for computed properties, property caching where it is safe, and smart storage mechanisms. With Batman, you must use `get` instead of normal `.` property access.
+
+!!!
+test 'get retrieves properties on Batman objects', ->
+  show song = Batman({length: 340, bpm: 120})
+  equal song.get('length'), 340
+  equal song.get('bpm'), 120
+!!!
+
+!!!
+test 'get retrieves properties on nested Batman objects using keypaths', ->
+  show post = Batman
+    text: "Hello World!"
+    author: Batman
+      name: "Harry"
+  equal post.get('author.name'), "Harry"
+!!!
+
+!!!
+test "get retrieves properties on Batman objects when . property access doesn't", ->
+  show song = new Batman.Model({length: 340, bpm: 120})
+  equal typeof song.length, "undefined"
+  equal song.get('length'), 340
+!!!
+
+### set(keypath, newValue) : newValue
+
+Stores the `value` at a `key` on an object. Accepts keypaths. Returns the new value of the property.
+
+_Note_: Once more, `set` must be used for property mutation on all objects in the `Batman` world. This is again so that Batman can implement useful functionality like cache busting, eager recalculation of computed properties, and smarter storage.
+
+_Note_: Custom setters can mutate the value during setting, so the value which was passed to `set` and `set`'s return value are not guaranteed to be identical.
+
+!!!
+test 'set stores properties on batman objects.', ->
+  show song = Batman({length: 340, bpm: 120})
+  equal song.get('length'), 340
+  equal song.set('length', 1000), 1000
+  equal song.get('length'), 1000
+!!!
+
+!!!
+test 'set stores properties on nested Batman objects using keypaths', ->
+  show author = Batman
+    name: "Harry"
+  show post = Batman
+    text: "Hello World!"
+    author: author
+  equal post.set('author.name', "Nick"), "Nick"
+  equal author.get('name'), "Nick", "The value was set on the nested object."
+!!!
+
+!!!
+test "set is incompatible with '.' property mutation", ->
+  show song = new Batman.Model({length: 340, bpm: 120})
+  equal song.get('length'), 340
+  equal song.length = 1000, 1000
+  equal song.get('length'), 340, "The song length reported by Batman is unchanged because set wasn't used to change the value."
+!!!
+
+### unset(keypath) : value
+
+Removes the value at the given `keypath`, leaving it `undefined`. Accepts keypaths. Returns the value the property had before unsetting.
+
+`unset` is roughly equivalent to `set(keypath, undefined)`, however, custom properties can define a nonstandard `unset` function, so it is best to use `unset` instead of `set(keypath, undefined)` wherever possible.
+
+!!!
+test "unset removes the property on Batman objects", ->
+  show song = Batman({length: 340, bpm: 120})
+  equal song.get('length'), 340
+  equal song.unset('length'), 340
+  equal song.get('length'), undefined, "The value is unset."
+!!!
+
+!!!
+test "unset removes the property at a keypath", ->
+  show author = Batman
+    name: "Harry"
+  show post = Batman
+    text: "Hello World!"
+    author: author
+  equal post.unset('author.name'), "Harry"
+  equal author.get('name'), undefined, "The value was unset on the nested object."
+!!!
+
+
+### observe(key, observerCallback) : this
+
+Adds a handler to call when the value of the property at the `key` changes upon `set`ting. Accepts keypaths.
+
+`observe` is the very core of Batman's usefulness. As long as `set` is used everywhere to do property mutation, any object can be observed for changes to its properties. This is critical to the concept of bindings, which Batman uses for it's views.
+
+The `observerCallback` gets called whenever the `key` changes with the arguments `newValue, oldValue`.
+
+Returns the object `observe` was called upon.
+
+!!!
+test "observe attaches handlers which get called upon change", ->
+  show song = Batman({length: 340, bpm: 120})
+  show song.observe 'length', (newValue, oldValue) -> log [newValue, oldValue]
+  equal song.set('length', 200), 200
+  deepEqual logged.last, [200, 340]
+  equal song.set('length', 300), 300
+  deepEqual logged.last, [300, 200]
+!!!
+
+
+_Note_: `observe` works excellently on keypaths. If you attach a handler to a "deep" keypath, it will fire any time the value of that keypath changes, which is another way of saying the handler will fire when any segment of the keypath changes, passing in the new value at the end of the keypath.
+
+!!!
+test "observe attaches handlers which get called upon change", ->
+  show author = Batman
+    name: "Harry"
+  show post = Batman
+    text: "Hello World!"
+    author: author
+  show post.observe('author.name', (newName, oldName) -> log [newName, oldName])
+  show post.set 'author', newAuthor = Batman({name: "James"})
+  deepEqual logged.last, ["James", "Harry"], "The observer fired when the 'author' segment of the keypath changed."
+!!!
+
+### observeAndFire(key, observerCallback) : this
+
+Adds the `observerCallback` as an observer to `key`, and fires it immediately. Accepts the exact same arguments and follows the same semantics as `Observable::observe`, but the observer is fired with the current value of the keypath it observers synchronously during the call to `observeAndFire`.
+
+During the initial synchronous firing of the `callback`, the `newValue` and `oldValue` arguments will be the same value: the current value of the property. This is because the old value of the property is not cached and therefore unavailable. If your observer needs the old value of the property, you must attach it before the `set` on the property happens.
+
+!!!
+test "observeAndFire calls the observer upon attaching it with the currentValue of the property", ->
+  show song = Batman({length: 340, bpm: 120})
+  show song.observeAndFire 'length', (newValue, oldValue) -> log [newValue, oldValue]
+  deepEqual logged.last, [340, 340]
+  equal song.set('length', 300), 300
+  deepEqual logged.last, [300, 340]
+!!!
+
+### forget([key [, observerCallback]]) : this
+
+If `observerCallback` and `key` are given, that observer is removed from the observers on `key`. If only a `key` is given, all observers on that key are removed. If no `key` is given, all observers on all keys are removed. Accepts keypaths.
+
+Returns the object `forget` was called upon.
+
+!!!
+test "forget removes an observer from a key if the key and the observer are given", ->
+  show song = Batman({length: 340, bpm: 120})
+  show observer = (newValue, oldValue) -> log [newValue, oldValue]
+  show song.observe 'length', observer
+  equal song.set('length', 200), 200
+  deepEqual logged.last, [200, 340]
+  show song.forget 'length', observer
+  equal song.set('length', 300), 300
+  deepEqual logged.last, [200, 340], "The logged values haven't changed because the observer hasn't fired again."
+!!!
+
+!!!
+test "forget removes all observers from a key if only the key is given", ->
+  show song = Batman({length: 340, bpm: 120})
+  show(observerA = ((newValue, oldValue) -> log [newValue, oldValue]))
+  show(observerB = ((newValue, oldValue) -> log [newValue, oldValue]))
+  show song.observe 'length', observerA
+  show song.observe 'length', observerB
+  equal song.set('length', 200), 200
+  equal logged.length, 2, "Both length observers fired."
+  show song.forget('length')
+  equal song.set('length', 300), 300
+  equal logged.length, 2, "Nothing more has been logged because neither observer fired."
+!!!
+
+!!!
+test "forget removes all observers from all key if no key is given", ->
+  show song = Batman({length: 340, bpm: 120})
+  show(observerA = ((newValue, oldValue) -> log [newValue, oldValue]))
+  show(observerB = ((newValue, oldValue) -> log [newValue, oldValue]))
+  show song.observe 'length', observerA
+  show song.observe 'bpm', observerB
+  equal song.set('length', 200), 200
+  equal logged.length, 1, "The length observer fired."
+  show song.forget()
+  equal song.set('length', 300), 300
+  equal song.set('bpm', 130), 130
+  equal logged.length, 1, "Nothing more has been logged because neither observer fired."
+!!!
+
+### getOrSet(keypath, valueFunction) : value
+
+Assigns the `keypath` to the result of calling the `valueFunction` if the current value at the `keypath` is falsey. Returns the value of the property after the operation, be it changed or not. Equivalent to CoffeeScript's `||=` operator.
+
+!!!
+test "getOrSet doesn't set the property if it exists", ->
+  show song = Batman({length: 340, bpm: 120})
+  equal song.getOrSet('length', -> 500), 340
+  equal song.get('length'), 340
+!!!
+
+!!!
+test "getOrSet sets the property if it is falsey", ->
+  show song = Batman({length: 340, bpm: 120})
+  equal song.getOrSet('artist', -> "Elvis"), "Elvis"
+  equal song.get('artist'), "Elvis"
+!!!

@@ -1,0 +1,129 @@
+/** 
+ * Syntax Highlighting 
+ */
+
+.highlight .hll { background-color: #ffffcc }
+.highlight  { background: #002B36; }
+.highlight .c { color: #999 } /* Comment */
+.highlight .err { color: #93A1A1 } /* Error */
+.highlight .g { color: #444 } /* Generic */
+.highlight .k { color: #859900 } /* Keyword */
+.highlight .l { color: #93A1A1 } /* Literal */
+.highlight .n { color: #93A1A1 } /* Name */
+.highlight .o { color: #859900 } /* Operator */
+.highlight .x { color: #6666de } /* Other */
+.highlight .p { color: #93A1A1 } /* Punctuation */
+.highlight .cm { color: #586E75 } /* Comment.Multiline */
+.highlight .cp { color: #859900 } /* Comment.Preproc */
+.highlight .c1 { color: #999 } /* Comment.Single */
+.highlight .cs { color: #859900 } /* Comment.Special */
+.highlight .gd { color: #2AA198 } /* Generic.Deleted */
+.highlight .ge { color: #93A1A1; font-style: italic } /* Generic.Emph */
+.highlight .gr { color: #DC322F } /* Generic.Error */
+.highlight .gh { color: #6666de } /* Generic.Heading */
+.highlight .gi { color: #859900 } /* Generic.Inserted */
+.highlight .go { color: #444 } /* Generic.Output */
+.highlight .gp { color: #444 } /* Generic.Prompt */
+.highlight .gs { color: #444; font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #6666de } /* Generic.Subheading */
+.highlight .gt { color: #444 } /* Generic.Traceback */
+.highlight .kc { color: #6666de } /* Keyword.Constant */
+.highlight .kd { color: #268BD2 } /* Keyword.Declaration */
+.highlight .kn { color: #859900 } /* Keyword.Namespace */
+.highlight .kp { color: #859900 } /* Keyword.Pseudo */
+.highlight .kr { color: #268BD2 } /* Keyword.Reserved */
+.highlight .kt { color: #DC322F } /* Keyword.Type */
+.highlight .ld { color: #93A1A1 } /* Literal.Date */
+.highlight .m { color: #2AA198 } /* Literal.Number */
+.highlight .s { color: #2AA198 } /* Literal.String */
+.highlight .na { color: #444 } /* Name.Attribute */
+.highlight .nb { color: #d8a70f } /* Name.Builtin */
+.highlight .nc { color: #268BD2 } /* Name.Class */
+.highlight .no { color: #6666de } /* Name.Constant */
+.highlight .nd { color: #268BD2 } /* Name.Decorator */
+.highlight .ni { color: #6666de } /* Name.Entity */
+.highlight .ne { color: #6666de } /* Name.Exception */
+.highlight .nf { color: #268BD2 } /* Name.Function */
+.highlight .nl { color: #444 } /* Name.Label */
+.highlight .nn { color: #444 } /* Name.Namespace */
+.highlight .nx { color: #444 } /* Name.Other */
+.highlight .py { color: #444 } /* Name.Property */
+.highlight .nt { color: #268BD2 } /* Name.Tag */
+.highlight .nv { color: #268BD2 } /* Name.Variable */
+.highlight .ow { color: #859900 } /* Operator.Word */
+.highlight .w { color: #444 } /* Text.Whitespace */
+.highlight .mf { color: #2AA198 } /* Literal.Number.Float */
+.highlight .mh { color: #2AA198 } /* Literal.Number.Hex */
+.highlight .mi { color: #2AA198 } /* Literal.Number.Integer */
+.highlight .mo { color: #2AA198 } /* Literal.Number.Oct */
+.highlight .sb { color: #586E75 } /* Literal.String.Backtick */
+.highlight .sc { color: #2AA198 } /* Literal.String.Char */
+.highlight .sd { color: #444 } /* Literal.String.Doc */
+.highlight .s2 { color: #2AA198 } /* Literal.String.Double */
+.highlight .se { color: #6666de } /* Literal.String.Escape */
+.highlight .sh { color: #93A1A1 } /* Literal.String.Heredoc */
+.highlight .si { color: #2AA198 } /* Literal.String.Interpol */
+.highlight .sx { color: #2AA198 } /* Literal.String.Other */
+.highlight .sr { color: #DC322F } /* Literal.String.Regex */
+.highlight .s1 { color: #2AA198 } /* Literal.String.Single */
+.highlight .ss { color: #2AA198 } /* Literal.String.Symbol */
+.highlight .bp { color: #268BD2 } /* Name.Builtin.Pseudo */
+.highlight .vc { color: #268BD2 } /* Name.Variable.Class */
+.highlight .vg { color: #268BD2 } /* Name.Variable.Global */
+.highlight .vi { color: #268BD2 } /* Name.Variable.Instance */
+.highlight .il { color: #2AA198 } /* Literal.Number.Integer.Long */
+
+.in .highlight pre:before {
+  color: #ccc;
+  content: '>>> ';
+}
+
+.highlight { background: transparent; }
+
+code pre { margin: 0; } 
+
+pre code{ 
+  display: block;
+  font-size: 13px;
+  background: #f6f6f6;
+  box-shadow: 0 -5px 5px 1px rgba(0, 0, 0, 0.04) inset;
+  border: solid 1px #ddd;
+  border-left: solid 5px #e2e2f2;
+  padding: 20px;
+}
+
+pre code .out { 
+  border-bottom: dashed 1px #ccc;
+  padding: 0 0 10px 31px;
+  margin-bottom: 10px;
+}
+
+pre code .out:last-child{
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.console-session{
+  h4 { 
+    margin: 15px 0 0 0; 
+    padding-left: 10px; 
+    color: #666; 
+    background: #fff;    
+    &.expandable { 
+      border-left: solid 5px #e2e2f2;
+      cursor: pointer;
+      padding: 4px 10px 6px 10px;
+      &:hover { 
+        color: #3B3B81;
+        background: #f5f5ff; 
+      }
+    }
+    &:before { content: '▲'; vertical-align: middle; font-size: 9px; padding-right: 8px; color: #3B3B81; }
+    &.snippet-closed:before { content: '▼'; vertical-align: middle; font-size: 9px; padding-right: 8px; color: #3B3B81; }
+  }
+  & > pre:last-child{ /* gets rid of gross whitespace on the first pre tag. weirdness */
+    white-space: normal;
+    background: yellow !important;
+  }
+}
