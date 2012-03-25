@@ -29,11 +29,15 @@ qqunit.Environment.jsdom.jQueryify window, jqueryPath, (window, jQuery) ->
     docs = glob.sync("#{__dirname}/**/*.percolate").map (doc) -> path.resolve(process.cwd(), doc)
 
     console.log "Running Batman doc suite."
-    percolate.generate __dirname, docs..., (error, stats, output) ->
-      throw error if error
-      fs.writeFileSync path.join(__dirname, 'batman.html'), output unless stats.failed > 0
-      console.log "Docs written."
-      process.exit stats.failed
+    if process.argv[2] == '--test-only'
+      percolate.test __dirname, docs..., (error, stats) ->
+        process.exit stats.failed
+    else
+      percolate.generate __dirname, docs..., (error, stats, output) ->
+        throw error if error
+        fs.writeFileSync path.join(__dirname, 'batman.html'), output unless stats.failed > 0
+        console.log "Docs written."
+        process.exit stats.failed
   catch e
     console.error e.stack
     process.exit(1)

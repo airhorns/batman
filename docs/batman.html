@@ -2738,7 +2738,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 </p>
 <h4 id="batman-app-run-starting-an-application-with-domevents">starting an application with DOMEvents</h4>
-<pre><code class="coffeescript"><div class="highlight"><pre><span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span> <span class="s">&#39;load&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
+<pre><code class="coffeescript"><div class="highlight"><pre><span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span> <span class="s1">&#39;load&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
   <span class="nx">MyApp</span><span class="p">.</span><span class="nx">run</span><span class="p">()</span>
 </pre></div></code></pre>
 <h4 id="batman-app-run-starting-an-application-with-jquery">starting an application with jQuery</h4>
@@ -3088,7 +3088,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 </p>
 <pre><code class="coffeescript"><div class="highlight"><pre><span class="k">class</span> <span class="nx">Alfred</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">App</span>
-  <span class="nx">@resources</span> <span class="s">&#39;todos&#39;</span>
+  <span class="nx">@resources</span> <span class="s1">&#39;todos&#39;</span>
 </pre></div></code></pre>
 <p>This means that routes like <code>/todos</code> and <code>/todos/:id</code> exist. To route to the collection action, use the plural name of the resource:
 
@@ -3109,8 +3109,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 
 </p>
 <pre><code class="coffeescript"><div class="highlight"><pre><span class="k">class</span> <span class="nx">Tracker</span> <span class="k">extends</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">App</span>
-  <span class="nx">@resources</span> <span class="s">&#39;villians&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
-    <span class="nx">@resources</span> <span class="s">&#39;crimes&#39;</span>
+  <span class="nx">@resources</span> <span class="s1">&#39;villians&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
+    <span class="nx">@resources</span> <span class="s1">&#39;crimes&#39;</span>
 </pre></div></code></pre>
 <p>Routes for collection and member crimes should look like <code>/villians/:villian_id/crimes</code> and <code>/villians/:villian_id/crimes/:id</code> respectively. Assuming the presence of a <code>villian</code> and a <code>crime</code> in the context, chained <code>get</code>s on <code>NamedRouteQuery</code>s achieve this:
 

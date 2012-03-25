@@ -41,14 +41,20 @@
         return path.resolve(process.cwd(), doc);
       });
       console.log("Running Batman doc suite.");
-      return percolate.generate.apply(percolate, [__dirname].concat(__slice.call(docs), [function(error, stats, output) {
-        if (error) throw error;
-        if (!(stats.failed > 0)) {
-          fs.writeFileSync(path.join(__dirname, 'batman.html'), output);
-        }
-        console.log("Docs written.");
-        return process.exit(stats.failed);
-      }]));
+      if (process.argv[2] === '--test-only') {
+        return percolate.test.apply(percolate, [__dirname].concat(__slice.call(docs), [function(error, stats) {
+          return process.exit(stats.failed);
+        }]));
+      } else {
+        return percolate.generate.apply(percolate, [__dirname].concat(__slice.call(docs), [function(error, stats, output) {
+          if (error) throw error;
+          if (!(stats.failed > 0)) {
+            fs.writeFileSync(path.join(__dirname, 'batman.html'), output);
+          }
+          console.log("Docs written.");
+          return process.exit(stats.failed);
+        }]));
+      }
     } catch (e) {
       console.error(e.stack);
       return process.exit(1);
