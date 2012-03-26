@@ -18,8 +18,8 @@
     "batman" : "./tools/batman"
   },
   "scripts": {
-    "test": "node tests/run.js",
-    "build": "cake build"
+    "test": "./node_modules/.bin/cake test",
+    "build": "./node_modules/.bin/cake build"
   },
   "dependencies": {
     "connect": "~1.8.5",
