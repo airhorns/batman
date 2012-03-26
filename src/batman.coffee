@@ -3983,6 +3983,17 @@ class Batman.View extends Batman.Object
         @observe 'node', (node) => @render(node)
 
   @store: new Batman.ViewStore()
+  @directiveArgument: (keys...) ->
+    keys.forEach (key) =>
+      @accessor @::_argumentBindingKey(key), (bindingKey) ->
+        return unless (node = @get 'node') && (context = @get 'context')
+        keyPath = node.getAttribute "data-#{key}".toLowerCase()
+        return unless keyPath?
+        @[bindingKey]?.die()
+        @[bindingKey] = new Batman.DOM.ViewArgumentBinding node, keyPath, context
+
+    @accessor keys..., (key) ->
+      @get(@_argumentBindingKey(key))?.get('filteredValue')
 
   # Set the source attribute to an html file to have that file loaded.
   source: ''
@@ -4032,6 +4043,8 @@ class Batman.View extends Batman.Object
     if node
       @_renderer = new Batman.Renderer(node, null, @context, @)
       @_renderer.on 'rendered', => @fire('ready', node)
+
+  _argumentBindingKey: (key) -> "_#{key}ArgumentBinding"
 
   @::on 'appear', -> @viewDidAppear? arguments...
   @::on 'disappear', -> @viewDidDisappear? arguments...
@@ -5446,10 +5459,12 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @nodeMap.set(item, newNode)
     newNode
 
+class Batman.DOM.ViewArgumentBinding extends Batman.DOM.AbstractBinding
+
 # Filters
 # -------
 #
-# `Batman.Filters` contains the simple, determininistic tranforms used in view bindings to
+# `Batman.Filters` contains the simple, deterministic transforms used in view bindings to
 # make life a little easier.
 buntUndefined = (f) ->
   (value) ->
