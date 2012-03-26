@@ -4010,7 +4010,7 @@ class Batman.View extends Batman.Object
       @get(@_argumentBindingKey(key))?.get('filteredValue')
 
   isView: true
-  rendered: false
+  _rendered: false
   # Set the source attribute to an html file to have that file loaded.
   source: ''
   # Set the html to a string of html to have that html parsed.
@@ -4047,15 +4047,15 @@ class Batman.View extends Batman.Object
           @forget('html', updateHTML)
       @observeAndFire 'html', updateHTML
 
-  class YieldStorage extends Batman.Hash
-    @accessor $mixin {}, Batman.Hash.defaultAccessor,
-      get: (k) ->
-        val = Batman.Hash.defaultAccessor.get.call(@, k)
+  class @YieldStorage extends Batman.Hash
+    @wrapAccessor (core) ->
+      get: (key) ->
+        val = core.get.call(@, key)
         if !val?
-          val = @set k, []
+          val = @set key, []
         val
 
-  @accessor 'yields', -> new YieldStorage
+  @accessor 'yields', -> new @constructor.YieldStorage
 
   constructor: (options = {}) ->
     context = options.context
@@ -4075,8 +4075,8 @@ class Batman.View extends Batman.Object
         @observe 'node', (node) => @render(node)
 
   render: (node) ->
-    return if @rendered
-    @rendered = true
+    return if @_rendered
+    @_rendered = true
     @event('ready').resetOneShot()
 
     # We use a renderer with the continuation style rendering engine to not
@@ -4095,6 +4095,9 @@ class Batman.View extends Batman.Object
   retractYields: ->
     @get('yields').forEach (name, nodes) ->
       node.parentNode?.removeChild(node) for {node} in nodes
+
+  pushYieldAction: (key, action, node) ->
+    @get("yields").get(key).push({node, action})
 
   _argumentBindingKey: (key) -> "_#{key}ArgumentBinding"
   _setNodeOwner: (node) -> Batman._data(node, 'view', @)
@@ -4362,12 +4365,12 @@ Batman.DOM = {
       false
 
     yield:      (node, key) ->
-      $onParseExit node, -> Batman.DOM.Yield.withName(key).set 'destinationNode', node
+      $onParseExit node, -> Batman.DOM.Yield.withName(key).set 'containerNode', node
       true
     contentfor: (node, key, context, renderer, action = 'append') ->
       $onParseExit node, ->
         node.parentNode?.removeChild(node)
-        renderer.view.get("yields.#{key}").push({node, action})
+        renderer.view.pushYieldAction(key, action, node)
       true
     replace:    (node, key, context, renderer) ->
       Batman.DOM.readers.contentfor(node, key, context, renderer, 'replace')
@@ -4486,23 +4489,23 @@ Batman.DOM = {
   Yield: class Yield extends Batman.Object
     @yields: {}
 
-    # Helper function for queueing any invocations until the destinationNode property is present
+    # Helper function for queueing any invocations until the containerNode property is present
     @queued: (fn) ->
       return (args...) ->
-        if @destinationNode?
+        if @containerNode?
           fn.apply(@, args)
         else
-          handler = @observe 'destinationNode', =>
+          handler = @observe 'containerNode', =>
             result = fn.apply(@, args)
-            @forget 'destinationNode', handler
+            @forget 'containerNode', handler
             result
     @clearAll: -> @yields = {}
     @withName: (name) ->
       @yields[name] ||= new @({name})
       @yields[name]
 
-    clear:   @queued -> $setInnerHTML @destinationNode, '', true
-    append:  @queued (node) -> $appendChild @destinationNode, node, true
+    clear:   @queued -> $setInnerHTML @containerNode, '', true
+    append:  @queued (node) -> $appendChild @containerNode, node, true
     replace: @queued (node) -> @clear(); @append(node)
 
   partial: (container, path, context, renderer) ->
