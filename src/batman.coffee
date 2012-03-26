@@ -1255,7 +1255,6 @@ class Batman.SimpleSet
       @fire('itemsWereRemoved', removedItems...)
     removedItems
   find: (f) ->
-    index = @_storage.indexOf(item)
     for item in @_storage
       return item if f(item)
     undefined
@@ -1303,10 +1302,10 @@ class Batman.Set extends Batman.Object
 
   $extendsEnumerable(@::)
 
-  for k in ['add', 'remove', 'find', 'clear', 'replace', 'indexedBy', 'indexedByUnique', 'sortedBy']
+  for k in ['add', 'remove', 'clear', 'replace', 'indexedBy', 'indexedByUnique', 'sortedBy']
     @::[k] = Batman.SimpleSet::[k]
 
-  for k in ['merge', 'forEach', 'toArray', 'isEmpty', 'has']
+  for k in ['find', 'merge', 'forEach', 'toArray', 'isEmpty', 'has']
     proto = @prototype
     do (k) ->
       proto[k] = ->

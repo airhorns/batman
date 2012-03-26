@@ -239,6 +239,21 @@ basicSetTestSuite = ->
     otherSet.add('baz')
     equal observer.callCount, 3
 
+  test "using .find() in an accessor registers the set as a source of the property", ->
+    obj = new Batman.Object
+    obj.accessor 'firstBiggerThan2', => @set.find (n) -> n > 2
+    obj.observe 'firstBiggerThan2', observer = createSpy()
+    @set.add(3)
+    equal observer.callCount, 1
+    strictEqual obj.get('firstBiggerThan2'), 3
+    @set.add(4)
+    equal observer.callCount, 1
+    strictEqual obj.get('firstBiggerThan2'), 3
+    @set.remove(3)
+    equal observer.callCount, 2
+    strictEqual obj.get('firstBiggerThan2'), 4
+
+
   test "using .toJSON() returns an array representation of the set", ->
     set = new Batman.Set
     set.add new Batman.Object foo: 'bar'
