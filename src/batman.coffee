@@ -535,11 +535,6 @@ class Batman.Property
   @popSourceTracker: -> Batman.Property._sourceTrackerStack.pop()
 
   constructor: (@base, @key) ->
-    developer.do =>
-      keyType = $typeOf(@key)
-      if keyType in ['Array', 'Object']
-        developer.log "Accessing a property with an #{keyType} key. This is okay, but could be a source of memory leaks if you aren't careful."
-
   _isolationCount: 0
   cached: no
   value: null
@@ -1923,15 +1918,6 @@ class Batman.RouteMap
 class Batman.NamedRouteQuery extends Batman.Object
   isNamedRouteQuery: true
 
-  developer.do =>
-    class NonWarningProperty extends Batman.Keypath
-      constructor: ->
-        developer.suppress()
-        super
-        developer.unsuppress()
-
-    @::propertyClass = NonWarningProperty
-
   constructor: (routeMap, args = []) ->
     super({routeMap, args})
 
@@ -2402,15 +2388,6 @@ class Batman.RenderCache extends Batman.Hash
   constructor: ->
     super
     @keyQueue = []
-
-  developer.do =>
-    class NonWarningProperty extends Batman.Keypath
-      constructor: ->
-        developer.suppress()
-        super
-        developer.unsuppress()
-
-    @::propertyClass = NonWarningProperty
 
   viewForOptions: (options) ->
     unless view = @get(options)
