@@ -2374,7 +2374,8 @@ class Batman.RenderCache extends Batman.Hash
   @wrapAccessor (core) ->
     cacheable: false
     get: (key) ->
-      result = core.get.apply(@, arguments)
+      key = $mixin {}, key
+      result = core.get.call(@, key)
       # Bubble the result up to the top of the queue
       if result
         for queuedKey, index in @keyQueue
@@ -4056,11 +4057,7 @@ class Batman.View extends Batman.Object
 
   @accessor 'yields', -> new YieldStorage
 
-  constructor: (options) ->
-    if !options
-      options = {}
-    else
-      options = $mixin {}, options
+  constructor: (options = {}) ->
     context = options.context
     if context
       unless context instanceof Batman.RenderContext
