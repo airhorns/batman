@@ -4019,6 +4019,17 @@ class Batman.ViewStore extends Batman.Object
 # or a root of a subclass hierarchy to create rich UI classes, like in Cocoa.
 class Batman.View extends Batman.Object
   @store: new Batman.ViewStore()
+  @directiveArgument: (keys...) ->
+    keys.forEach (key) =>
+      @accessor @::_argumentBindingKey(key), (bindingKey) ->
+        return unless (node = @get 'node') && (context = @get 'context')
+        keyPath = node.getAttribute "data-#{key}"
+        return unless keyPath?
+        @[bindingKey]?.die()
+        @[bindingKey] = new Batman.DOM.ViewArgumentBinding node, keyPath, context
+
+    @accessor keys..., (key) ->
+      @get(@_argumentBindingKey(key))?.get('filteredValue')
 
   isView: true
   _rendered: false
@@ -4111,6 +4122,8 @@ class Batman.View extends Batman.Object
     @get("yields").get(key).push({node, action})
 
   _setNodeOwner: (node) -> Batman._data(node, 'view', @)
+
+  _argumentBindingKey: (key) -> "_#{key}ArgumentBinding"
 
   @::on 'appear', -> @viewDidAppear? arguments...
   @::on 'disappear', -> @viewDidDisappear? arguments...
@@ -5522,10 +5535,12 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @nodeMap.set(item, newNode)
     newNode
 
+class Batman.DOM.ViewArgumentBinding extends Batman.DOM.AbstractBinding
+
 # Filters
 # -------
 #
-# `Batman.Filters` contains the simple, determininistic tranforms used in view bindings to
+# `Batman.Filters` contains the simple, deterministic transforms used in view bindings to
 # make life a little easier.
 buntUndefined = (f) ->
   (value) ->
