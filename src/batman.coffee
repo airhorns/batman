@@ -980,7 +980,7 @@ class BatmanObject extends Object
   @accessor: -> @classAccessor.apply @prototype, arguments
   # Support adding accessors to instances after creation
   accessor: @classAccessor
-  
+
   wrapSingleAccessor = (core, wrapper) ->
     wrapper = wrapper?(core) or wrapper
     for k, v of core
@@ -2390,40 +2390,39 @@ class Batman.RenderCache extends Batman.Hash
     @keyQueue = []
 
   viewForOptions: (options) ->
-    unless view = @get(options)
-      view = @_newViewFromOptions(options)
-      @set(options, view)
-    view
+    @getOrSet options, => @_newViewFromOptions(options)
 
   _newViewFromOptions: (options) -> new options.viewClass(options)
 
-  get: (key) ->
-    result = super
-    # Bubble the result up to the top of the queue
-    if result
-      for queuedKey, index in @keyQueue
-        if @equality(queuedKey, key)
-          @keyQueue.splice(index, 1)
-          @keyQueue.unshift key
-          break
-    result
+  @wrapAccessor (core) ->
+    cacheable: false
+    get: (key) ->
+      result = core.get.apply(@, arguments)
+      # Bubble the result up to the top of the queue
+      if result
+        for queuedKey, index in @keyQueue
+          if @equality(queuedKey, key)
+            @keyQueue.splice(index, 1)
+            @keyQueue.unshift key
+            break
+      result
 
-  set: (key, value) ->
-    val = super
-    val.set 'cached', true
-    @keyQueue.unshift key
-    if val? && @length > @maximumLength
-      @unset @keyQueue.pop()
-    val
+    set: (key, value) ->
+      result = core.set.apply(@, arguments)
+      result.set 'cached', true
+      @keyQueue.unshift key
+      if result? && @length > @maximumLength
+        @unset @keyQueue.pop()
+      result
 
-  unset: (key) ->
-    val = super
-    val.set 'cached', false
-    val
+    unset: (key) ->
+      result = core.unset.apply(@, arguments)
+      result.set 'cached', false
+      result
 
   equality: (incomingOptions, storageOptions) ->
     return false unless Object.keys(incomingOptions).length == Object.keys(storageOptions).length
-    for key of incomingOptions when !(key in ['view', 'into'])
+    for key of incomingOptions when !(key in ['view'])
       return false if incomingOptions[key] != storageOptions[key]
     return true
 
@@ -2529,8 +2528,7 @@ class Batman.Controller extends Batman.Object
 
     return if options is false
 
-    into = options.into || 'main'
-    options.into = null
+    options.into ||= 'main'
 
     if not options.view
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
@@ -2544,7 +2542,7 @@ class Batman.Controller extends Batman.Object
     if view
       Batman.currentApp?.prevent 'ready'
       view.on 'ready', =>
-        Batman.DOM.Yield.withName(into).replace view.get('node')
+        Batman.DOM.Yield.withName(options.into).replace view.get('node')
         Batman.currentApp?.allowAndFire 'ready'
     view
 
