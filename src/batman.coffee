@@ -4110,7 +4110,7 @@ class Batman.Renderer extends Batman.Object
         name = attribute.nodeName.match(bindingRegexp)?[1]
         continue if not name
         bindings.push if (names = name.split('-')).length > 1
-          [names[0], names[1], attribute.value]
+          [names[0], names[1..names.length].join('-'), attribute.value]
         else
           [name, undefined, attribute.value]
 
