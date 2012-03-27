@@ -14,6 +14,10 @@ test "safely gets controllers named app", ->
 test "safely gets nonexistant controllers", ->
   equal typeof @dispatcher.get('controllers.orders'), 'undefined'
 
+test "safely gets multiword controllers", ->
+  @App.SavedSearchesController = new Batman.Object({sharedController: @instance = {}})
+  equal @dispatcher.get('controllers.savedSearches'), @instance
+
 QUnit.module 'Batman.Dispatcher: inferring paths'
   setup: ->
     class @App extends Batman.App

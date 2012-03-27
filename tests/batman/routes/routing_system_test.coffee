@@ -117,6 +117,13 @@ asyncTest 'resources', ->
     show: (params) ->
       equal params.productId, '1', 'show product correct'
       equal params.id, '2', 'show image correct'
+      @redirect '/saved_searches/5'
+
+  class @App.SavedSearchesController extends Batman.Controller
+    index: ->
+
+    show: (params) ->
+      equal params.id, '5'
       @redirect '/products/1'
 
   @App.resources 'products', ->
@@ -124,6 +131,7 @@ asyncTest 'resources', ->
     @collection 'testCollection'
     @member 'test', 'testMember', {action: 'testMember'}
 
+  @App.resources 'saved_searches'
 
   @App.ProductsController::testCollection = -> @render false
   @App.ProductsController::testMember = -> @render false
@@ -132,6 +140,9 @@ asyncTest 'resources', ->
   equal typeof @App.test('/products/new'), 'undefined'
   equal @App.test('/products/1'), @App.ProductsController::show
   equal @App.test('/products/1/edit'), @App.ProductsController::edit
+
+  equal @App.test('/saved_searches'), @App.SavedSearchesController::index
+  equal @App.test('/saved_searches/10'), @App.SavedSearchesController::show
 
   equal @App.test('/products/testCollection'), @App.ProductsController::testCollection
   equal @App.test('/products/1/testMember'), @App.ProductsController::testMember

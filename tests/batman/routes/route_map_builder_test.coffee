@@ -96,6 +96,20 @@ test "can define resource routes", 13, ->
   ok expectedActions['edit'], 'edit route is created'
   equal Object.keys(expectedActions).length, 4, 'no more than the expected routes are created'
 
+test "can define resource routes to multi word controllers", 10, ->
+  @builder.resources 'saved_searches'
+
+  expectedActions = {}
+  for call in @routeMap.addRoute.calls
+    [name, route] = call.arguments
+
+    ok route instanceof Batman.ControllerActionRoute
+    equal route.get('controller'), 'savedSearches'
+    expectedActions[route.get('action')] = route
+
+  ok expectedActions['index'].test '/saved_searches'
+  ok expectedActions['show'].test '/saved_searches/10'
+
 test "will only define the resource routes specified by the only option", 3, ->
   @builder.resources 'products', {only: ['show', 'new']}
 

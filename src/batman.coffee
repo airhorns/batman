@@ -2020,7 +2020,8 @@ class Batman.RouteMapBuilder
       delete options.only
 
     for resourceName in resourceNames
-      controller = resourceRoot = helpers.pluralize(resourceName)
+      resourceRoot = helpers.pluralize(resourceName)
+      controller = helpers.camelize(resourceRoot, true)
       childBuilder = @_childBuilder({controller})
 
       # Call the callback so that routes defined within it are matched

@@ -77,12 +77,41 @@ test "routes should build paths with query parameters", 2, ->
   @route = new Batman.Route "/books/:page", {}
   equal @route.pathFromParams({id: 1, page: 3, limit: 10}), "/books/3?id=1&limit=10"
 
+test "controller action routes should match", ->
+  App =  Batman
+    dispatcher: Batman
+      controllers: Batman
+        products: Batman
+          dispatch: productSpy = createSpy()
+
+        savedSearches: Batman
+          dispatch: searchSpy = createSpy()
+
+  @route = new Batman.ControllerActionRoute "/products/:id/edit",
+    controller: 'products'
+    action: 'edit'
+    app: App
+
+  ok @route.test "/products/10/edit"
+  ok !@route.test "/products/10"
+
+  @route = new Batman.ControllerActionRoute "/saved_searches/:id/duplicate",
+    controller: 'savedSearches'
+    action: 'duplicate'
+    app: App
+
+  ok @route.test "/saved_searches/10/duplicate"
+  ok !@route.test "/saved_searches/10"
+
 test "controller/action routes should call the controller's dispatch function", ->
   App =  Batman
     dispatcher: Batman
       controllers: Batman
         products: Batman
-          dispatch: spy = createSpy()
+          dispatch: productSpy = createSpy()
+
+        savedSearches: Batman
+          dispatch: searchSpy = createSpy()
 
   @route = new Batman.ControllerActionRoute "/products/:id/edit",
     controller: 'products'
@@ -90,5 +119,14 @@ test "controller/action routes should call the controller's dispatch function", 
     app: App
 
   @route.dispatch "/products/10/edit"
-  equal spy.lastCallArguments[0], "edit"
-  equal spy.lastCallArguments[1].id, "10"
+  equal productSpy.lastCallArguments[0], "edit"
+  equal productSpy.lastCallArguments[1].id, "10"
+
+  @route = new Batman.ControllerActionRoute "/saved_searches/:id/duplicate",
+    controller: 'savedSearches'
+    action: 'duplicate'
+    app: App
+
+  @route.dispatch "/saved_searches/20/duplicate"
+  equal searchSpy.lastCallArguments[0], "duplicate"
+  equal searchSpy.lastCallArguments[1].id, "20"
