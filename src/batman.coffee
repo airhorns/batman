@@ -4179,6 +4179,8 @@ class Batman.RenderContext
 
   get: (key) -> @findKey(key)[0]
 
+  contextForKey: (key) -> @findKey(key)[1]
+
   # Below are the three primitives that all the `Batman.DOM` helpers are composed of.
   # `descend` takes an `object`, and optionally a `scopedKey`. It creates a new `RenderContext` leaf node
   # in the tree with either the object available on the stack or the object available at the `scopedKey`
@@ -4354,7 +4356,7 @@ Batman.DOM = {
       context.descendWithKey(key, localName)
 
     view: (node, bindKey, contextKey, context) ->
-      [_, parent] = context.findKey contextKey
+      parent = context.contextForKey(contextKey)
       view = null
       parent.observeAndFire contextKey, (newValue) ->
         view ||= Batman.data node, 'view'
@@ -4708,7 +4710,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
 
   # The `keyContext` accessor is
-  @accessor 'keyContext', -> @renderContext.findKey(@key)[1]
+  @accessor 'keyContext', -> @renderContext.contextForKey(@key)
 
   bindImmediately: true
   shouldSet: true
@@ -5116,8 +5118,7 @@ class Batman.DOM.StyleBinding extends Batman.DOM.AbstractCollectionBinding
       @reapplyOldStyles()
       for own key, keyValue of value
         # Check whether the value is an existing keypath, and if so bind this attribute to it
-        [keypathValue, keypathContext] = @renderContext.findKey(keyValue)
-        if keypathValue
+        if keypathValue = @renderContext.get(keyValue)
           @bindSingleAttribute key, keyValue
           @setStyle key, keypathValue
         else
@@ -5394,8 +5395,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             $insertBefore @parentNode(), node, @siblingNode
 
         if addItem = node.getAttribute 'data-additem'
-          [_, context] = @renderer.context.findKey addItem
-          context?[addItem]?(item, node)
+          @renderer.context.contextForKey(addItem)?[addItem]?(item, node)
 
       @actions[options.actionNumber].item = item
     @processActionQueue()
@@ -5547,7 +5547,7 @@ filters = Batman.Filters =
     return if not string
     values = {}
     for k, v of interpolationKeypaths
-      values[k] = @findKey(v)[0]
+      values[k] = @get(v)
       if !values[k]?
         Batman.developer.warn "Warning! Undefined interpolation key #{k} for interpolation", string
         values[k] = ''
