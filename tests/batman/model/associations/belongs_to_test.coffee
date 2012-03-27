@@ -43,9 +43,11 @@ QUnit.module "Batman.Model belongsTo Associations"
 
 asyncTest "belongsTo associations are loaded via ID", 1, ->
   @Product.find 1, (err, product) =>
-    store = product.get 'store'
-    equal store.get('id'), 1
-    QUnit.start()
+    throw err if err
+    product.get('store').load (err, store) ->
+      throw err if err
+      equal store.get('id'), 1
+      QUnit.start()
 
 asyncTest "belongsTo associations are not loaded when autoload is off", 1, ->
   class Product extends Batman.Model
@@ -170,7 +172,7 @@ QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasMany"
           id: 1
       'orders2':
         name: "Order Two"
-        id: 1
+        id: 2
         customer:
           name: "Customer One"
           id: 1
@@ -184,23 +186,25 @@ QUnit.module "Batman.Model belongsTo Associations with inverseOf to a hasMany"
         name: "Customer One"
         id: 1
 
-asyncTest "belongsTo sets the foreign key on itsself so the parent relation SetIndex adds it, if the parent hasn't been loaded", 1, ->
+asyncTest "belongsTo sets the foreign key on itself so the parent relation SetIndex adds it, if the parent hasn't been loaded", 1, ->
   @Order.find 1, (err, order) =>
     throw err if err
-    customer = order.get('customer')
-    delay ->
+    order.get('customer').load (err, customer) ->
+      throw err if err
       ok customer.get('orders').has(order)
+      QUnit.start()
 
 asyncTest "belongsTo sets the foreign key on itself so the parent relation SetIndex adds it, if the parent has already been loaded", 1, ->
   @Customer.find 1, (err, customer) =>
     throw err if err
     @Order.find 1, (err, order) =>
       throw err if err
-      customer = order.get('customer')
-      delay ->
+      customer = order.get('customer').load (err, customer) ->
+        throw err if err
         ok customer.get('orders').has(order)
+        QUnit.start()
 
-asyncTest "belongsTo sets the foreign key foreign key on itself such that many loads are picked up by the parent", 3, ->
+asyncTest "belongsTo sets the foreign key on itself such that many loads are picked up by the parent", 3, ->
   @Customer.find 1, (err, customer) =>
     throw err if err
     @Order.find 1, (err, order) =>

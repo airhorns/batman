@@ -20,9 +20,11 @@ asyncTest "instantiated instances can load their values", ->
     QUnit.start()
 
 asyncTest "instantiated instances error upon load if they don't exist", ->
-  product = new @Product(1110000) # Non existant primary key.
+  product = new @Product(1110000) # Non existent primary key.
+  equal @Product.get('loaded.length'), 0
   product.load (err, product) =>
     ok err
+    equal @Product.get('loaded.length'), 0
     QUnit.start()
 
 asyncTest "instantiated instances should accept options for load", 1, ->
