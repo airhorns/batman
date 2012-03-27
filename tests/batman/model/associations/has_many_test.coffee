@@ -308,6 +308,19 @@ asyncTest "unsaved hasMany models should reflect their associated children after
     equal variants.get('length'), 1
     QUnit.start()
 
+asyncTest "saved hasMany models who's related records have been removed should serialize the association as empty to notify the backend", ->
+  @Product.find 3, (err, product) =>
+    throw err if err
+    ok product.get('productVariants').length
+    product.get('productVariants').forEach (variant) ->
+      variant.set('product_id', 10)
+
+    equal product.get('productVariants').length, 0
+    product.save (err) =>
+      throw err if err
+      deepEqual @productAdapter.storage['products3'], {id: 3, name: "Product Three", store_id: 1, productVariants: []}
+      QUnit.start()
+
 asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>
     throw err if err
