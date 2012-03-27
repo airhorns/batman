@@ -226,3 +226,38 @@ asyncTest 'should redirect to named route queries when clicked', 1, ->
           deepEqual @redirect.lastCallArguments, ['/products/new']
 
   @App.run()
+
+
+asyncTest 'should allow you to nested elements with route declarations', 6, ->
+  @App.resources 'products', ->
+    @collection 'search'
+  @App.root ->
+
+  @App.on 'run', =>
+    source = '''
+      <div class="outer" data-route="routes.products.new">
+        <div class="middle" data-route="routes.products.search">
+          <a class="inner" data-route="routes.products">products index</a>
+        </div>
+      </div>
+    '''
+
+    helpers.render source, false, {}, (node, view) =>
+      $node = $(node)
+      $node.appendTo($('body'))
+
+      helpers.triggerClick($(".inner", node)[0])
+      delay =>
+        equal @redirect.callCount, 1
+        deepEqual @redirect.lastCallArguments, ['/products']
+        helpers.triggerClick($(".middle", node)[0])
+        delay =>
+          equal @redirect.callCount, 2
+          deepEqual @redirect.lastCallArguments, ['/products/search']
+          helpers.triggerClick($(".outer", node)[0])
+          delay =>
+            equal @redirect.callCount, 3
+            deepEqual @redirect.lastCallArguments, ['/products/new']
+            $node.remove()
+
+  @App.run()

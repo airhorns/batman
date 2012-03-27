@@ -81,10 +81,6 @@ Batman._functionName = $functionName = (f) ->
   return f.name if f.name
   f.toString().match(/\W*function\s+([\w\$]+)\(/)?[1]
 
-# `$preventDefault` checks for preventDefault, since it's not
-# always available across all browsers
-Batman._preventDefault = $preventDefault = (e) ->
-  if typeof e.preventDefault is "function" then e.preventDefault() else e.returnValue = false
 
 Batman._isChildOf = $isChildOf = (parentNode, childNode) ->
   node = childNode.parentNode
@@ -2152,7 +2148,7 @@ class Batman.Navigator
     @replaceState(null, '', path)
     path
   redirect: @::push
-  normalizePath: (segments...) -> 
+  normalizePath: (segments...) ->
     segments = for seg, i in segments
       "#{seg}".replace(/^(?!\/)/, '/').replace(/\/+$/,'')
     segments.join('') or '/'
@@ -4597,6 +4593,14 @@ Batman.DOM = {
 
   hasAddEventListener: $hasAddEventListener = !!window?.addEventListener
 
+  # `$preventDefault` checks for preventDefault, since it's not
+  # always available across all browsers
+  preventDefault: $preventDefault = (e) ->
+    if typeof e.preventDefault is "function" then e.preventDefault() else e.returnValue = false
+
+  stopPropagation: $stopPropagation = (e) ->
+    if e.stopPropagation then e.stopPropagation() else e.cancelBubble = true
+
   didRemoveNode: (node) ->
     view = Batman.data node, 'view'
     view?.fire 'beforeDisappear', node
@@ -5143,7 +5147,8 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
     if @node.nodeName.toUpperCase() is 'A'
       @onATag = true
     super
-    Batman.DOM.events.click @node, =>
+    Batman.DOM.events.click @node, (node, event) =>
+      Batman.DOM.stopPropagation(event)
       params = @pathFromValue(@get('filteredValue'))
       Batman.redirect params if params?
 
