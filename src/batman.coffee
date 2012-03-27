@@ -2890,7 +2890,7 @@ class Batman.Model extends Batman.Object
     do @destroying
     @_doStorageOperation 'destroy', options, (err, record) =>
       unless err
-        @constructor.get('all').remove(@)
+        @constructor.get('loaded').remove(@)
         do @destroyed
       callback?(err)
 
