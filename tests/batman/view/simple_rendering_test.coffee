@@ -190,13 +190,13 @@ asyncTest "it should ignore an inline style of 'display:none' on inline elements
         QUnit.start()
 
 asyncTest 'it should allow arbitrary attributes to be bound', 2, ->
-  source = '<div data-bind-foo="one" data-bind-bar="two" foo="before"></div>'
+  source = '<div data-bind-foo="one" data-bind-data-bar="two" foo="before"></div>'
   helpers.render source,
     one: "baz"
     two: "qux"
   , (node) ->
     equal $(node[0]).attr('foo'), "baz"
-    equal $(node[0]).attr('bar'), "qux"
+    equal $(node[0]).attr('data-bar'), "qux"
     QUnit.start()
 
 asyncTest 'it should bind undefined values as empty strings on attributes', 1, ->
