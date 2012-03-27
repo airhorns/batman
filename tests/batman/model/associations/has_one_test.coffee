@@ -55,6 +55,17 @@ asyncTest "hasOne associations can be reloaded", 4, ->
       QUnit.start()
 
 asyncTest "hasOne associations are loaded via JSON", 3, ->
+  productLoadSpy = spyOn @productAdapter, 'read'
+
+  # This store has a product inline in it's JSON
+  @Store.find 2, (err, store) =>
+    product = store.get 'product'
+    delay =>
+      equals productLoadSpy.callCount, 0
+      equal product.get('id'), 3
+      equal product.get('name'), "JSON Product"
+
+asyncTest "hasOne associations loaded via JSON should not do an implicit remote fetch", 3, ->
   @Store.find 2, (err, store) =>
     product = store.get 'product'
     ok product instanceof @Product

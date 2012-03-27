@@ -268,6 +268,16 @@ asyncTest "hasMany associations are loaded from inline json", 3, ->
     equal array[0].get('id'), 5
     QUnit.start()
 
+asyncTest "hasMany associations loaded from inline json should not trigger and implicit fetch", 2, ->
+
+  @Store.find 2, (err, store) =>
+    throw err if err
+    metafieldLoadSpy = spyOn @metafieldAdapter, 'readAll'
+    metafields = store.get('metafields')
+    delay =>
+      equal metafields.get('length'), 1
+      equal metafieldLoadSpy.callCount, 0
+
 asyncTest "hasMany associations are saved via the parent model", 7, ->
   store = new @Store name: 'Zellers'
   metafield1 = new @Metafield key: 'Gizmo'

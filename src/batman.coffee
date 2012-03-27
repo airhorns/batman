@@ -3397,7 +3397,6 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
       encode: (relationSet, _, __, record) ->
         return if association._beingEncoded
         association._beingEncoded = true
-
         return unless association.options.saveInline
         if relationSet?
           jsonArray = []
@@ -3427,6 +3426,7 @@ class Batman.HasManyAssociation extends Batman.PluralAssociation
 
             record = relatedModel._mapIdentity(record)
             existingRelations.add record
+          existingRelations.set 'loaded', true
         else
           developer.error "Can't decode model #{association.options.name} because it hasn't been loaded yet!"
         existingRelations

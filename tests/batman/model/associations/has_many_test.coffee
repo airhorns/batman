@@ -192,6 +192,17 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
     QUnit.start()
 
+asyncTest "hasMany associations loaded from JSON data should not do an implicit remote fetch", 3, ->
+  variantLoadSpy = spyOn @variantsAdapter, 'readAll'
+
+  @Product.find 3, (err, product) =>
+    throw err if err
+    variants = product.get('productVariants')
+    ok variants instanceof Batman.AssociationSet
+    delay =>
+      equal variants.length, 2
+      equal variantLoadSpy.callCount, 0
+
 asyncTest "hasMany associations loaded from JSON should be reloadable", 2, ->
   @Product.find 3, (err, product) =>
     throw err if err
@@ -296,6 +307,19 @@ asyncTest "unsaved hasMany models should reflect their associated children after
     ok product.get('productVariants').has(variant)
     equal variants.get('length'), 1
     QUnit.start()
+
+asyncTest "saved hasMany models who's related records have been removed should serialize the association as empty to notify the backend", ->
+  @Product.find 3, (err, product) =>
+    throw err if err
+    ok product.get('productVariants').length
+    product.get('productVariants').forEach (variant) ->
+      variant.set('product_id', 10)
+
+    equal product.get('productVariants').length, 0
+    product.save (err) =>
+      throw err if err
+      deepEqual @productAdapter.storage['products3'], {id: 3, name: "Product Three", store_id: 1, productVariants: []}
+      QUnit.start()
 
 asyncTest "hasMany associations render", 4, ->
   @Store.find 1, (err, store) =>
