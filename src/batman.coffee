@@ -721,15 +721,6 @@ class Batman.Keypath extends Batman.Property
       @segments = [key]
       @depth = 1
     super
-  slice: (begin, end=@depth) ->
-    return unless base = $getPath(@base, @segments.slice(0, begin))
-    remainingSegments = @segments.slice(begin, end)
-    remainingPath = remainingSegments.join('.')
-    propertyClass = base.propertyClass or Batman.Keypath
-    if propertyClass is Batman.Keypath or remainingSegments.length is 1
-      Batman.Keypath.forBaseAndKey(base, remainingPath)
-    else
-      new Batman.Keypath(base, remainingPath)
   terminalProperty: ->
     base = $getPath(@base, @segments.slice(0, -1))
     return unless base?

@@ -20,51 +20,12 @@ test "initializing sets segments and depth", ->
 
 
 ###
-# slice([begin] [, end])
-###
-test "slice(0, keypath.segments.length) returns a new equivalent keypath", ->
-  slice = @deepKeypath.slice(0, 4)
-  deepEqual slice, @deepKeypath
-  notStrictEqual slice, @deepKeypath
-
-test "slice(0) returns a new equivalent keypath", ->
-  slice = @deepKeypath.slice(0)
-  deepEqual slice, @deepKeypath
-  notStrictEqual slice, @deepKeypath
-
-test "slice(2, keypath.segments.length) returns a new keypath with the second segment's value as the base, and the remaining segments as the segments", ->
-  slice = @deepKeypath.slice(2, 4)
-  equal slice.base, @obj.foo.bar
-  deepEqual slice.key, 'baz.qux'
-
-test "slice(2) returns a new keypath with the second segment's value as the base, and the remaining segments as the segments", ->
-  slice = @deepKeypath.slice(2)
-  equal slice.base, @obj.foo.bar
-  deepEqual slice.key, 'baz.qux'
-
-test "slice(0, 2) returns a new keypath with the same base but only the first two segments", ->
-  slice = @deepKeypath.slice(0, 2)
-  equal slice.base, @obj
-  deepEqual slice.key, 'foo.bar'
-
-test "slice(1, 3) returns a new keypath with the first segment as the base, and only extending through the following two segments", ->
-  slice = @deepKeypath.slice(1, 3)
-  equal slice.base, @obj.foo
-  deepEqual slice.key, 'bar.baz'
-
-test "slice(1, -1) counts from the end of the segments", ->
-  slice = @deepKeypath.slice(1, -1)
-  equal slice.base, @obj.foo
-  deepEqual slice.key, 'bar.baz'
-
-
-###
 # terminalProperty()
 ###
 test "terminalProperty() returns the final one-segment keypath component", ->
-  slice = @deepKeypath.slice(-1)
-  equal slice.base, @obj.foo.bar.baz
-  deepEqual slice.segments, ['qux']
+  terminalProperty = @deepKeypath.terminalProperty()
+  equal terminalProperty.base, @obj.foo.bar.baz
+  deepEqual terminalProperty.segments, ['qux']
 
 
 ###
@@ -144,10 +105,6 @@ test "working with Hashes", ->
   ok property instanceof Batman.Keypath
   equal property.getValue(), 'nested value'
 
-  foobar = property.slice(-2)
-  ok foobar instanceof Batman.Keypath
-  equal foobar.getValue(), 'nested value'
-
   obj.observe 'hash.foo.bar', hashFooBarSpy = createSpy()
   obj.set 'hash.foo.bar', 'new value'
   equal hashFooBarSpy.callCount, 1
@@ -170,10 +127,6 @@ test "working with SimpleHashes", ->
   property = obj.property('hash.foo.bar')
   ok property instanceof Batman.Keypath
   equal property.getValue(), 'nested value'
-
-  foobar = property.slice(-2)
-  ok foobar instanceof Batman.Keypath
-  equal foobar.getValue(), 'nested value'
 
   obj.observe 'hash.foo.bar', hashFooBarSpy = createSpy()
   obj.set 'hash.foo.bar', 'new value'
