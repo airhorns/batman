@@ -5144,6 +5144,7 @@ class Batman.DOM.RouteBinding extends Batman.DOM.AbstractBinding
       @onATag = true
     super
     Batman.DOM.events.click @node, =>
+      event.stopPropagation()
       params = @pathFromValue(@get('filteredValue'))
       Batman.redirect params if params?
 
