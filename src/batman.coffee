@@ -183,6 +183,11 @@ Batman.get = $get = (base, key) ->
   else
     Batman.Property.forBaseAndKey(base, key).getValue()
 
+Batman.getPath = $getPath = (base, segments) ->
+  for segment in segments
+    return unless base? and (base = $get(base, segment))?
+  base
+
 Batman.escapeHTML = $escapeHTML = do ->
   replacements =
     "&": "&amp;"
@@ -717,19 +722,20 @@ class Batman.Keypath extends Batman.Property
       @depth = 1
     super
   slice: (begin, end=@depth) ->
-    base = @base
-    for segment in @segments.slice(0, begin)
-      return unless base? and base = $get(base, segment)
-    propertyClass = base.propertyClass or Batman.Keypath
+    return unless base = $getPath(@base, @segments.slice(0, begin))
     remainingSegments = @segments.slice(begin, end)
     remainingPath = remainingSegments.join('.')
+    propertyClass = base.propertyClass or Batman.Keypath
     if propertyClass is Batman.Keypath or remainingSegments.length is 1
       Batman.Keypath.forBaseAndKey(base, remainingPath)
     else
       new Batman.Keypath(base, remainingPath)
-  terminalProperty: -> @slice -1
+  terminalProperty: ->
+    base = $getPath(@base, @segments.slice(0, -1))
+    return unless base?
+    Batman.Keypath.forBaseAndKey(base, @segments[@depth-1])
   valueFromAccessor: ->
-    if @depth is 1 then super else @terminalProperty()?.getValue()
+    if @depth is 1 then super else $getPath(@base, @segments)
   setValue: (val) -> if @depth is 1 then super else @terminalProperty()?.setValue(val)
   unsetValue: -> if @depth is 1 then super else @terminalProperty()?.unsetValue()
 
