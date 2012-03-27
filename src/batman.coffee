@@ -4364,7 +4364,7 @@ Batman.DOM = {
       true
 
     defineview: (node, name, context, renderer) ->
-      $onParseExit(node, -> $removeNode(node))
+      $onParseExit(node, -> $destroyNode(node))
       Batman.View.store.set(Batman.Navigator.normalizePath(name), node.innerHTML)
       false
 
@@ -4519,7 +4519,7 @@ Batman.DOM = {
       @yields[name] ||= new @({name})
       @yields[name]
 
-    clear:   @queued -> $setInnerHTML @containerNode, '', true
+    clear:   @queued -> $removeOrDestroyNode(child) for child in Array::slice.call(@containerNode.childNodes)
     append:  @queued (node) -> $appendChild @containerNode, node, true
     replace: @queued (node) -> @clear(); @append(node)
 
@@ -4543,7 +4543,7 @@ Batman.DOM = {
   forgetParseExit: $forgetParseExit = (node, callback) -> Batman.removeData(node, 'onParseExit', true)
 
   # Memory-safe setting of a node's innerHTML property
-  setInnerHTML: $setInnerHTML = (node, html, args...) ->
+  setInnerHTML: $setInnerHTML = (node, html) ->
     childNodes = Array::slice.call(node.childNodes)
     Batman.DOM.willRemoveNode(child) for child in childNodes
     result = node.innerHTML = html
@@ -4562,10 +4562,21 @@ Batman.DOM = {
     node.parentNode?.removeChild node
     Batman.DOM.didRemoveNode(node)
 
-  appendChild: $appendChild = (parent, child, args...) ->
+  destroyNode: $destroyNode = (node) ->
+    Batman.DOM.willDestroyNode(node)
+    $removeNode(node)
+    Batman.DOM.didDestroyNode(node)
+
+  appendChild: $appendChild = (parent, child) ->
     Batman.DOM.willInsertNode(child)
     parent.appendChild(child)
     Batman.DOM.didInsertNode(child)
+
+  removeOrDestroyNode: $removeOrDestroyNode = (node) ->
+    if (view = Batman._data(node, 'view')) && view.get('cached')
+      Batman.DOM.removeNode(node)
+    else
+      Batman.DOM.destroyNode(node)
 
   insertBefore: $insertBefore = (parentNode, newNode, referenceNode = null) ->
     if !referenceNode or parentNode.childNodes.length <= 0
@@ -4656,27 +4667,39 @@ Batman.DOM = {
 
   didRemoveNode: (node) ->
     view = Batman._data node, 'view'
-    if view && view.get('cached')
+    if view
       view.retractYields()
       view.fire 'disappear', node
-    else
-      # break down all bindings
-      if bindings = Batman._data node, 'bindings'
-        bindings.forEach (binding) -> binding.die()
-
-      # remove all event listeners
-      if listeners = Batman._data node, 'listeners'
-        for eventName, eventListeners of listeners
-          eventListeners.forEach (listener) ->
-            $removeEventListener node, eventName, listener
-
-      # remove all bindings and other data associated with this node
-      Batman.removeData node                   # external data (Batman.data)
-      Batman.removeData node, undefined, true  # internal data (Batman._data)
-
-      Batman.DOM.didRemoveNode(child) for child in node.childNodes
+    Batman.DOM.didRemoveNode(child) for child in node.childNodes
     true
 
+  willDestroyNode: (node) ->
+    view = Batman._data node, 'view'
+    if view
+      view.fire 'beforeDestroy', node
+    Batman.DOM.willDestroyNode(child) for child in node.childNodes
+    true
+
+  didDestroyNode: (node) ->
+    view = Batman._data node, 'view'
+    if view
+      view.fire 'destroy', node
+    # break down all bindings
+    if bindings = Batman._data node, 'bindings'
+      bindings.forEach (binding) -> binding.die()
+
+    # remove all event listeners
+    if listeners = Batman._data node, 'listeners'
+      for eventName, eventListeners of listeners
+        eventListeners.forEach (listener) ->
+          $removeEventListener node, eventName, listener
+
+    # remove all bindings and other data associated with this node
+    Batman.removeData node                   # external data (Batman.data)
+    Batman.removeData node, undefined, true  # internal data (Batman._data)
+
+    Batman.DOM.didDestroyNode(child) for child in node.childNodes
+    true
 }
 
 $mixin Batman.DOM, Batman.EventEmitter, Batman.Observable
@@ -5249,9 +5272,7 @@ class Batman.DOM.ViewBinding extends Batman.DOM.AbstractBinding
         parentView: @renderer.view
 
     @view.on 'ready', =>
-      Batman.DOM.willInsertNode(@node)
       @renderer.allowAndFire 'rendered'
-      Batman.DOM.didInsertNode(@node)
 
     @die()
 
@@ -5321,7 +5342,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     @parentRenderer.on 'parsed', =>
       # Move any Batman._data from the sourceNode to the sibling; we need to
       # retain the bindings, and we want to dispose of the node.
-      $removeNode sourceNode
+      $destroyNode sourceNode
       # Attach observers.
       @bind()
 
@@ -5416,7 +5437,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     oldNode = @nodeMap.unset(item)
     @cancelExistingItem(item)
     if oldNode
-      $removeNode(oldNode)
+      $destroyNode(oldNode)
 
   removeAll: -> @nodeMap.forEach (item) => @removeItem(item)
 
@@ -5467,7 +5488,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
     oldRenderer = @rendererMap.get(item)
     if oldRenderer
       oldRenderer.stop()
-      $removeNode(oldRenderer.node)
+      $destroyNode(oldRenderer.node)
 
     @rendererMap.unset item
 
