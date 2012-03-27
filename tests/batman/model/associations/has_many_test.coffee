@@ -192,6 +192,17 @@ asyncTest "hasMany association can be loaded from JSON data", 14, ->
 
     QUnit.start()
 
+asyncTest "hasMany associations loaded from JSON data should not do an implicit remote fetch", 3, ->
+  variantLoadSpy = spyOn @variantsAdapter, 'readAll'
+
+  @Product.find 3, (err, product) =>
+    throw err if err
+    variants = product.get('productVariants')
+    ok variants instanceof Batman.AssociationSet
+    delay =>
+      equal variants.length, 2
+      equal variantLoadSpy.callCount, 0
+
 asyncTest "hasMany associations loaded from JSON should be reloadable", 2, ->
   @Product.find 3, (err, product) =>
     throw err if err
