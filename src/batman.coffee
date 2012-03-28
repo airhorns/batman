@@ -139,7 +139,7 @@ _implementImmediates = (container) ->
         script = null
       document.documentElement.appendChild(script)
       handle
-    $clearImmediate = (handle) -> tasks.unset(handle stops the calling of a handle)
+    $clearImmediate = (handle) -> tasks.unset(handle)
   else
     $setImmediate = (f) -> setTimeout(f, 0)
     $clearImmediate = (handle) -> clearTimeout(handle)
