@@ -4365,13 +4365,6 @@ Batman.DOM = {
     formfor: (node, localName, key, context) ->
       new Batman.DOM.FormBinding(arguments...)
       context.descendWithKey(key, localName)
-
-    view: (node, bindKey, contextKey, context) ->
-      parent = context.contextForKey(contextKey)
-      view = null
-      parent.observeAndFire contextKey, (newValue) ->
-        view ||= Batman.data node, 'view'
-        view?.set bindKey, newValue
   }
 
   # `Batman.DOM.events` contains the helpers used for binding to events. These aren't called by
