@@ -3983,7 +3983,7 @@ class Batman.View extends Batman.Object
         @observe 'node', (node) => @render(node)
 
   @store: new Batman.ViewStore()
-  @directiveArgument: (keys...) ->
+  @directiveAccessor: (keys...) ->
     keys.forEach (key) =>
       @accessor @::_argumentBindingKey(key), (bindingKey) ->
         return unless (node = @get 'node') && (context = @get 'context')
