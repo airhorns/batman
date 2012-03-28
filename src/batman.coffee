@@ -4690,9 +4690,7 @@ class Batman.DOM.AbstractBinding extends Batman.Object
       # If we're working with an `@key` and not an `@value`, find the context the key belongs to so we can
       # hold a reference to it for passing to the `dataChange` and `nodeChange` observers.
       if k = @get('key')
-        if keyContext = @get('keyContext')
-          prop = Batman.Property.forBaseAndKey(keyContext, k)
-          Batman.RenderContext.deProxy(prop.getValue())
+        Batman.RenderContext.deProxy($getPath(this, ['keyContext', k]))
       else
         @get('value')
     set: (_, value) ->
