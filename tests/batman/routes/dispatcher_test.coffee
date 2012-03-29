@@ -71,7 +71,7 @@ test "pathFromParams infers arguments before passing to the route to construct a
 
 mockRoute = ->
   return Batman
-    dispatch: createSpy()
+    dispatch: createSpy((path) -> return path)
     pathFromParams: createSpy()
     paramsFromPath: createSpy()
 
@@ -83,6 +83,8 @@ QUnit.module 'Batman.Dispatcher: dispatching routes'
       currentParams: Batman
         clear: @clearSpy = createSpy()
         replace: @replaceSpy = createSpy()
+      currentRoute: null
+      currentURL: null
 
     @routeMap = Batman
       routeForParams: ->
@@ -99,6 +101,20 @@ test "dispatch dispatches a matched route", ->
   @dispatcher.dispatch('/matched/route')
 
   ok route.dispatch.called
+
+test "dispatch updates the currentRoute on the app", ->
+  route = mockRoute()
+  @routeMap.routeForParams = -> route
+
+  @dispatcher.dispatch('/matched/route')
+  equal @App.get('currentRoute'), route
+
+test "dispatch updates the currentURL on the app", ->
+  route = mockRoute()
+  @routeMap.routeForParams = -> route
+
+  @dispatcher.dispatch('/matched/route')
+  equal @App.get('currentURL'), '/matched/route'
 
 test "dispatch redirects to 404 if no route is found", ->
   Batman.redirect = createSpy()
