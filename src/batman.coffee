@@ -2673,7 +2673,7 @@ class Batman.Model extends Batman.Object
 
   # ### Record API
 
-  # Add a universally accessible accessor for retrieving the primrary key, regardless of which key its stored under.
+  # Add a universally accessible accessor for retrieving the primary key, regardless of which key its stored under.
   @accessor 'id',
     get: ->
       pk = @constructor.primaryKey
