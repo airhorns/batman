@@ -3,6 +3,3 @@ node_modules
 examples/test*
 tests/batman/build/test_file.js
 tests/build
-.swm
-.swn
-.*.sw?
