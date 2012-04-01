@@ -2538,7 +2538,7 @@ class Batman.Model extends Batman.Object
           hash.set(key, encoder[operation])
         else
           hash.unset(key)
-    #true
+    return
 
   # Set up the unit functions as the default for both
   @defaultEncoder:
@@ -2550,14 +2550,6 @@ class Batman.Model extends Batman.Object
     @encode oldPrimaryKey, {encode: false, decode: false} # Remove encoding for the previous primary key
     @encode newPrimaryKey, {encode: false, decode: @defaultEncoder.decode}
 
-  # Validations allow a model to be marked as 'valid' or 'invalid' based on a set of programmatic rules.
-  # By validating our data before it gets to the server we can provide immediate feedback to the user about
-  # what they have entered and forgo waiting on a round trip to the server.
-  # `validate` allows the attachment of validations to the model on particular keys, where the validation is
-  # either a built in one (by use of options to pass to them) or a custom one (by use of a custom function as
-  # the second argument). Custom validators should have the signature `(errors, record, key, callback)`. They
-  # should add strings to the `errors` set based on the record (maybe depending on the `key` they were attached
-  # to) and then always call the callback. Again: the callback must always be called.
   @validate: (keys..., optionsOrFunction) ->
     Batman.initializeObject @prototype
     validators = @::_batman.validators ||= []

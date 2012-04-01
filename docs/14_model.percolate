@@ -1,1 +1,274 @@
 ## Batman.Model
+
+`Batman.Model` is responsible for representing data in your application, and for providing a fluid interface to moving in to and out of your backend.
+
+_Note_: This documentation uses the term _model_ to refer to the class level `Model` or `Model` subclass, and the term _record_ to refer to one instance of a `Model` or `Model` subclass.
+
+### The Identity Map
+
+Batman uses an identity map when fetching and storing records to do it's best to only ever represent a backend record with exactly one client side record. This means that if you use `Model.find` twice to fetch a record with the same ID, you will get back the same (`===`) instance in each callback. This is useful because it means that any state the instance might be in is available and preserved no matter which piece of code asked for it, and so that bindings to the instance update no matter which piece of code actually updates the model.
+
+Practically, the identity map is an implementation detail on Batman's end and developers shouldn't have to actually interact with it, but the knowledge that you have the "one true instance" is helpful when reasoning about code and bindings.
+
+### Subclassing
+
+Models in your applications should be subclasses of `Batman.Model`, or subclasses of subclasses, and so on. Extending `Batman.Model` will give your domain class all the functionality. You can also subclass your own subclasses and things like encoders, validations, and storage adapters will be inherited by sub-subclasses.
+
+
+### Storage Adapters
+
+`Batman.Model` alone only defines the logic surrounding loading and saving, but not the actual mechanism for doing so. This is left to a `Batman.StorageAdaper` subclass, 4 of which are included with Batman or in extras:
+
+ 1. `Batman.LocalStorage` for storing data in the browsers' `localStorage`, if available.
+ 2. `Batman.SessionStorage` for storing data in the browser's `sessionStorage`, if available.
+ 3. `Batman.RestStorage` for using HTTP GET, POST, PUT, and DELETE to store data in a backend.
+ 4. `Batman.RailsStorage` which extends `Batman.RestStorage` with some handy Rails specific functionality like parsing out validation errors.
+
+### @primaryKey : string
+
+`primaryKey` is a class level configuration option to change which key Batman uses as the primary key. Change the option using `set`, like so:
+
+!!!
+test 'primary key can be set using @set', ->
+  show(class Shop extends Batman.Model
+    @set 'primaryKey', 'shop_id'
+  )
+  equal Shop.get('primaryKey'), 'shop_id'
+!!!
+
+The `primaryKey` is what Batman uses to compare instances to see if they represent the same domain-level object: if two records have the same value at the key specified by `primaryKey`, only one will be in the identity map. The key specified by `primaryKey` is also used by the associations system when determining if a record is related to another record, and by the remote storage adapters to generate URLs for records.
+
+Note_: The default primaryKey is 'id'.
+
+### @storageKey : string
+
+`storageKey` is a class level option which gives the storage adapters something to interpolate into their specific key generation schemes. In the case of `LocalStorage` or `SessionStorage` adapters, the `storageKey` defines what namespace to store this record under in the `localStorage` or `sessionStorage` host objects, and with the case of the `RestStorage` family of adapters, the `storageKey` assists in URL generation. See the documentation for the storage adapter of your choice for more information.
+
+The default `storageKey` is `null`.
+
+### @persist(mechanism : StorageAdapter) : StorageAdapter
+
+`@persist` is how a `Model` subclass is told to persist itself by means of a `StorageAdapter`. `@persist` accepts either a `StorageAdapter` class or instance and will return either the instantiated class or the instance passed to it for further modification.
+
+!!!
+test 'models can be told to persist via a storage adapter', ->
+  show(class Shop extends Batman.Model
+    @persist Batman.LocalStorage
+  )
+  show record = new Shop
+  ok record.hasStorage()
+!!!
+
+!!!
+test '@persist returns the instantiated storage adapter', ->
+  show adapter = false
+  show(class Shop extends Batman.Model
+    adapter = @persist Batman.LocalStorage
+  )
+  ok adapter instanceof Batman.StorageAdapter
+!!!
+
+!!!
+test '@persist accepts already instantiated storage adapters', ->
+  show adapter = new Batman.StorageAdapter
+  show adapter.someHandyConfigurationOption = true
+  show(class Shop extends Batman.Model
+    @persist adapter
+  )
+  show record = new Shop
+  ok record.hasStorage()
+!!!
+
+### @encode(keys...[, encoderObject : [Object|Function]])
+
+`@encode` specifies a list of `keys` a model should expect from and send back to a storage adapter, and any transforms to apply to those attributes as they enter and exit the world of Batman in the optional `encoderObject`.
+
+The `encoderObject` should have an `encode` and/or a `decode` key which point to functions. The functions accept the "raw" data (the Batman land value in the case of `encode`, and the backend land value in the case of `decode`), and should return the data suitable for the other side of the link. The functions should have the following signatures:
+
+```coffeescript
+encoderObject = {
+  encode: (value, key, builtJSON, record) ->
+  decode: (value, key, incomingJSON, outgoingObject, record) ->
+}
+```
+By default these functions are the identity functions. They apply no transformation. The arguments for `encode` functions are as follows:
+
+ + `value` is the client side value of the `key` on the `record`
+ + `key` is the key which the `value` is stored under on the `record`. This is useful when passing the same `encoderObject` which needs to pivot on what key is being encoded to different calls to `encode`.
+ + `builtJSON` is the object which is modified by each encoder which will eventually be returned by `toJSON`. To send the server the encoded value under a different key than the `key`, modify this object by putting the value under the desired key, and return `undefined`.
+ + `record` is the record on which `toJSON` has been called.
+
+For `decode` functions:
+
+ + `value` is the server side value of the `key` which will end up on the `record`.
+ + `key` is the key which the `value` is stored under the incoming JSON.
+ + `incomingJSON` is the JSON which is being decoded into the `record`. This can be used to create compound key decoders.
+ + `outgoingObject` is the object which is built up by the decoders and then `mixin`'d to the record.
+ + `record` is the record on which `fromJSON` has been called.
+
+The `encode` and `decode` keys can also be false to avoid the default identity function encoder or decoder from being used.
+
+_Note_: `Batman.Model` subclasses have no encoders by default, except for one which automatically decodes the `primaryKey` of the model, which is usually `id`. To get any data into or out of your model, you must white-list the keys you expect from the server or storage attribute.
+
+!!!
+test '@encode accepts a list of keys which are used during decoding', ->
+  show(class Shop extends Batman.Model
+    @encode 'name', 'url', 'email', 'country'
+  )
+  show json = {name: "Snowdevil", url: "snowdevil.ca"}
+  show record = new Shop()
+  show record.fromJSON(json)
+  equal record.get('name'), "Snowdevil"
+!!!
+
+!!!
+test '@encode accepts a list of keys which are used during encoding', ->
+  show(class Shop extends Batman.Model
+    @encode 'name', 'url', 'email', 'country'
+  )
+  show record = new Shop(name: "Snowdevil", url: "snowdevil.ca")
+  deepEqual record.toJSON(), {name: "Snowdevil", url: "snowdevil.ca"}
+!!!
+
+!!!
+test '@encode accepts custom encoders', ->
+  show(class Shop extends Batman.Model
+    @encode 'name'
+      encode: (name) -> name.toUpperCase()
+  )
+  show record = new Shop(name: "Snowdevil")
+  deepEqual record.toJSON(), {name: "SNOWDEVIL"}
+!!!
+
+!!!
+test '@encode accepts custom decoders', ->
+  show(class Shop extends Batman.Model
+    @encode 'name'
+      decode: (name) -> name.replace('_', ' ')
+  )
+  show record = new Shop()
+  show record.fromJSON {name: "Snow_devil"}
+  equal record.get('name'), "Snow devil"
+!!!
+
+!!!
+test '@encode can be passed an encoderObject with false to prevent the default encoder or decoder', ->
+  show(class Shop extends Batman.Model
+    @encode 'name', {encode: false, decode: (x) -> x}
+    @encode 'url'
+  )
+  show record = new Shop()
+  show record.fromJSON {name: "Snowdevil", url: "snowdevil.ca"}
+  equal record.get('name'), 'Snowdevil'
+  equal record.get('url'), "snowdevil.ca"
+  deepEqual record.toJSON(), {url: "snowdevil.ca"}, 'The name key is absent because of encode: false'
+!!!
+
+Some more handy examples:
+
+!!!
+test '@encode can be used to turn comma separated values into arrays', ->
+  show(class Post extends Batman.Model
+    @encode 'tags',
+      decode: (string) -> string.split(', ')
+      encode: (array) -> array.join(', ')
+  )
+  show record = new Post()
+  show record.fromJSON({tags: 'new, hot, cool'})
+  deepEqual record.get('tags'), ['new', 'hot', 'cool']
+  deepEqual record.toJSON(), {tags: 'new, hot, cool'}
+!!!
+
+!!!
+test '@encode can be used to turn arrays into sets', ->
+  show(class Post extends Batman.Model
+    @encode 'tags',
+      decode: (array) -> new Batman.Set(array...)
+      encode: (set) -> set.toArray()
+  )
+  show record = new Post()
+  show record.fromJSON({tags: ['new', 'hot', 'cool']})
+  ok record.get('tags') instanceof Batman.Set
+  deepEqual record.toJSON(), {tags: ['new', 'hot', 'cool']}
+!!!
+
+### @validate(keys...[, options : [Object|Function]])
+
+Validations allow a model to be marked as `valid` or `invalid` based on a set of programmatic rules. By validating a model's data before it gets to the server we can provide immediate feedback to the user about what they have entered and forgo waiting on a round trip to the server. `validate` allows the attachment of validations to the model on particular keys, where the validation is either a built in one (invoked by use of options to pass to them) or a custom one (invoked by use of a custom function as the second argument).
+
+_Note_: Validation in Batman is always asynchronous, despite the fact that none of the validations may use an asynchronous operation to check for validity. This is so that the API is consistent regardless of the validations used.
+
+Built in validators are attached by calling `@validate` with options designating how to calculate the validity of the key:
+
+!!!
+test '@validate accepts options to check for validity', ->
+  show(class Post extends Batman.Model
+    @validate 'title', 'body', {presence: true}
+  )
+!!!
+
+The built in validation options are listed below:
+
+ + `presence : boolean`: Assert that the string value is existant (not undefined nor null) and has length greather than 0.
+ + `numeric : true`: Assert that the value can be is or can be coerced into a number using `parseFloat`.
+ + `minLength : number`: Assert that the value's `length` property is greater than the given number.
+ + `maxLength : number`: Assert that the value's `length` property is less than the given number.
+ + `length : number`: Assert that the value's `length` property is exactly the given number.
+ + `lengthWithin : [number, number]` or `lengthIn : [number, number]`: Assert that the value's `length` property is within the ranger specified by the given array of two numbers, where the first number is the lower bound and the second number is the upper bound.
+
+Custom validators should have the signature `(errors, record, key, callback)`. The arguments are as follows:
+
+ + `errors`: an `ErrorsSet` instance which expects to have `add` called on it to add errors to the model
+ + `record`: the record being validated
+ + `key`: the key to which the validation has been attached
+ + `callback`: a function to call once validation has been complete. Calling this function is ++mandatory++.
+
+### @all : Set
+
+### @loaded : Set
+
+### @clear() : Set
+
+### @find(id, callback : Function) : Model
+
+### @load(options = {}, callback)
+
+### @create(attributes = {}, callback) : Model
+
+### @findOrCreate(attributes = {}, callback) : Model
+
+### id : value
+
+### dirtyKeys : Set
+
+### errors : ErrorsSet
+
+### constructor(idOrAttributes = {}) : Model
+
+### isNew() : boolean
+
+### updateAttributes(attributes) : Model
+
+### toString() : string
+
+### toJSON() : Object
+
+### fromJSON() : Model
+
+### toParam() : value
+
+### state() : string
+
+### hasStorage() : boolean
+
+### load(options = {}, callback)
+
+### save(options = {}, callback)
+
+### destroy(options = {}, callback)
+
+### validate(callback)
+
+## Batman.ValidationError
+
+## Batman.ErrorsSet

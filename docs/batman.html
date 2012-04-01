@@ -287,6 +287,74 @@
   <li class="searchable"><a href="#batman-controller" class="class">Batman.Controller</a>
 </li>
   <li class="searchable"><a href="#batman-model" class="class">Batman.Model</a>
+<ul>
+  <li class="searchable"><a href="#batman-model-the-identity-map" class="class-function">The Identity Map</a>
+</li>
+  <li class="searchable"><a href="#batman-model-subclassing" class="class-function">Subclassing</a>
+</li>
+  <li class="searchable"><a href="#batman-model-storage-adapters" class="class-function">Storage Adapters</a>
+</li>
+  <li class="searchable"><a href="#batman-model-primarykey" class="class-function">@primaryKey</a>
+</li>
+  <li class="searchable"><a href="#batman-model-storagekey" class="class-function">@storageKey</a>
+</li>
+  <li class="searchable"><a href="#batman-model-persist" class="class-function">@persist(mechanism)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-encode" class="class-function">@encode(keys...[, encoderObject])</a>
+</li>
+  <li class="searchable"><a href="#batman-model-validate" class="class-function">@validate(keys...[, options])</a>
+</li>
+  <li class="searchable"><a href="#batman-model-all" class="class-function">@all</a>
+</li>
+  <li class="searchable"><a href="#batman-model-loaded" class="class-function">@loaded</a>
+</li>
+  <li class="searchable"><a href="#batman-model-clear" class="class-function">@clear()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-find" class="class-function">@find(id, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-load" class="class-function">@load(options = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-create" class="class-function">@create(attributes = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-findorcreate" class="class-function">@findOrCreate(attributes = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-id" class="class-function">id</a>
+</li>
+  <li class="searchable"><a href="#batman-model-dirtykeys" class="class-function">dirtyKeys</a>
+</li>
+  <li class="searchable"><a href="#batman-model-errors" class="class-function">errors</a>
+</li>
+  <li class="searchable"><a href="#batman-model-constructor" class="class-function">constructor(idOrAttributes = {})</a>
+</li>
+  <li class="searchable"><a href="#batman-model-isnew" class="class-function">isNew()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-updateattributes" class="class-function">updateAttributes(attributes)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-tostring" class="class-function">toString()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-tojson" class="class-function">toJSON()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-fromjson" class="class-function">fromJSON()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-toparam" class="class-function">toParam()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-state" class="class-function">state()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-hasstorage" class="class-function">hasStorage()</a>
+</li>
+  <li class="searchable"><a href="#batman-model-load" class="class-function">load(options = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-save" class="class-function">save(options = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-destroy" class="class-function">destroy(options = {}, callback)</a>
+</li>
+  <li class="searchable"><a href="#batman-model-validate" class="class-function">validate(callback)</a>
+</li>
+</ul>
+</li>
+  <li class="searchable"><a href="#batman-validationerror" class="class">Batman.ValidationError</a>
+</li>
+  <li class="searchable"><a href="#batman-errorsset" class="class">Batman.ErrorsSet</a>
 </li>
   <li class="searchable"><a href="#batman-view" class="class">Batman.View</a>
 </li>
@@ -415,6 +483,10 @@
 <h3 id="batman-js-its-got">It&#39;s got:</h3>
 <ul>
 <li>a stateful MVC architecture</li>
+<li>a powerful binding system</li>
+<li>routable controller actions</li>
+<li>pure HTML views</li>
+<li>toolchain support built on <a href="http://nodejs.org">node.js</a> and <a href="http://jashkenas.github.com/coffee-script/#cake">cake</a></li>
 </ul>
 <p>Batman&#39;s API is heavily inspired by <a href="http://rubyonrails.org/">Rails</a> and designed to make Rails devs feel right at home.
 
@@ -458,6 +530,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li>Models have validations, lifecycle events, a built-in identity map, and can be told how to persist themselves. (<code>Batman.LocalStorage</code>, <code>Batman.RestStorage</code>, and <code>Batman.RailsStorage</code> are included).</li>
+<li>Views are JavaScript classes which render templates written in pure HTML. The templates use <code>data-*</code> attributes to create bindings to model data and trigger event handlers.</li>
+<li>Controllers are persistent objects which mediate access to the model data, render the views, and handle events from the views.</li>
 </ul>
 <p>A batman.js application is served up in one page load, followed by asynchronous requests for various resources as the user interacts with the app. Navigation within the app can use <a href="https://developer.mozilla.org/en/DOM/Manipulating_the_browser_history#Adding_and_modifying_history_entries">pushState</a> where supported, or fall back on to <a href="http://www.w3.org/QA/2011/05/hash_uris.html">hash-bang fragment identifers</a>.
 </p>
@@ -511,6 +585,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ol>
 <li>If the <code>subject</code> has a <code>set</code> function, <code>subject.set(key, value)</code> will be used to apply keys instead of <code>subject[key] = value</code>. This means that if the subject is a <code>Batman.Object</code>, observers and thus bindings on the object will be notified when other (Batmanified or not) objects are mixed into it.</li>
+<li>If a mixed-in <code>object</code> has an <code>initialize</code> function defined, that function will be called and passed the <code>subject</code>. This is useful for custom extension logic, similar to <code>self.included</code> in Ruby. For this reason, the keys <code>initialize</code> and <code>uninitialize</code> are skipped by <code>mixin</code>.</li>
+<li><code>mixin</code> only iterates over keys for which the <code><a href="function hasOwnProperty() { [native code] }">hasOwnProperty</a></code> test passes.</li>
 </ol>
 <p><em>Note</em>: <code>mixin</code> is destructive to (only) the first argument. If you need a non-destructive version of <code>mixin</code>, just pass an empty object as the first object, and all keys from the successive arguments will be applied to the empty object.
 
@@ -627,6 +703,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ol>
 <li>something which has it&#39;s own <code>forEach</code>, in which case the <code>iterator</code> whill just be passed to <code>iterable.forEach</code>.</li>
+<li>an array like object, in which case a JavaScript <code>for(;;)</code> loop will be used to iterate over each entry</li>
+<li>or an object, in which case a JavaScript <code>for-in</code> loop will be used to iterate over each entry.</li>
 </ol>
 <p>The <code>forEach</code> helper is useful for iterating over objects when the type of those objects isn&#39;t guaranteed.
 
@@ -710,6 +788,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li>the result of <code>object.has(item)</code> if the <code>object</code> has a <code>has</code> function defined</li>
+<li>the result of <code>item in object</code> if the <code>object</code> is arraylike</li>
+<li>the result of the Batman.objectHasKey otherwise</li>
 </ul>
 <p><em>Note</em>: When passed an object without a <code>has</code> function, <code>contains</code> will return <code>true</code> if the <code>object</code> has <code>item</code> as a <em><code>key</code></em>, not as a value at any key.
 
@@ -723,6 +803,7 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li>if the <code>object</code> has a <code>get</code> function defined, return the result of <code>object.get(key)</code></li>
+<li>if the object does not have a <code>get</code> function defined, use an ephemeral <code>Batman.Property</code> to retrieve the key. This is equivalent to <code>object[key]</code> for single segment <code>key</code>s, but if the <code>key</code> is multi-segment (example: &#39;product.customer.name&#39;), <code>get</code> will do nested gets until the either <code>undefined</code> or the end of the keypath is reached.</li>
 </ul>
 <div class="console-session">
   <h4>get returns the value at a key on a POJO</h4>
@@ -1457,6 +1538,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li>zero: create a <code>defaultAccessor</code>, which will be called when no other properties or accessors on an object match a keypath. This is similar to <code>method_missing</code> in Ruby or <code>#doesNotUnderstand</code> in Smalltalk.</li>
+<li>one: create a <code>keyAccessor</code> at the given key, which will only be called when that key is gotten, set, or unset.</li>
+<li>many: create <code>keyAccessors</code> for each given key, which will then be called whenever each one of the listed keys is gotten, set, or unset.</li>
 </ul>
 <p><code>@accessor</code> accepts as the last argument either an object with any combination of the <code>get</code>, <code>set</code>, and <code>unset</code> keys defined. Functions which implement the behaviour for those particular actions on the property should reside at these keys. <code>@accessor</code> also accepts a function as the last argument, which is a shorthand for specifying the <code>get</code> implementation for the accessor.
 
@@ -2729,6 +2812,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ol>
 <li>Instantiate a <code>Dispatcher</code>, an internal object for mananging action dispatch to controllers.</li>
+<li>Instantiate a <code>Navigator</code>, an internal object for managing the URL via pushState or hashbangs.</li>
+<li>Instantiate the <code>layout</code> view according to the <code>layout</code> property on the <code>App</code>.</li>
+<li>Wait for the layout view to fire it&#39;s <code>ready</code> event.</li>
+<li>Start the first action dispatch by telling the <code>Navigator</code> to begin monitoring the URL.</li>
 </ol>
 <p><em>Note</em>: <code>@run</code> emits the <code>run</code> class event on the <code>App</code>, but not necessarily as soon as <code>@run</code> is called because the <code>layout</code> renders asynchronously and may need to fetch other components. If you need to execute code as soon as the <code>App</code> has started running, add a listener to the <code>run</code> event on the <code>App</code> class. If you need to execute code as soon as the layout has rendered, you can use the <code>ready</code> event on the <code>App</code> class.
 
@@ -2812,6 +2899,477 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 <h2 id="batman-controller">Batman.Controller</h2>
 
 <h2 id="batman-model">Batman.Model</h2>
+<p><code>Batman.Model</code> is responsible for representing data in your application, and for providing a fluid interface to moving in to and out of your backend.
+
+</p>
+<p><em>Note</em>: This documentation uses the term <em>model</em> to refer to the class level <code>Model</code> or <code>Model</code> subclass, and the term <em>record</em> to refer to one instance of a <code>Model</code> or <code>Model</code> subclass.
+
+</p>
+<h3 id="batman-model-the-identity-map">The Identity Map</h3>
+<p>Batman uses an identity map when fetching and storing records to do it&#39;s best to only ever represent a backend record with exactly one client side record. This means that if you use <code>Model.find</code> twice to fetch a record with the same ID, you will get back the same (<code>===</code>) instance in each callback. This is useful because it means that any state the instance might be in is available and preserved no matter which piece of code asked for it, and so that bindings to the instance update no matter which piece of code actually updates the model.
+
+</p>
+<p>Practically, the identity map is an implementation detail on Batman&#39;s end and developers shouldn&#39;t have to actually interact with it, but the knowledge that you have the &quot;one true instance&quot; is helpful when reasoning about code and bindings.
+
+</p>
+<h3 id="batman-model-subclassing">Subclassing</h3>
+<p>Models in your applications should be subclasses of <code>Batman.Model</code>, or subclasses of subclasses, and so on. Extending <code>Batman.Model</code> will give your domain class all the functionality. You can also subclass your own subclasses and things like encoders, validations, and storage adapters will be inherited by sub-subclasses.
+
+
+</p>
+<h3 id="batman-model-storage-adapters">Storage Adapters</h3>
+<p><code>Batman.Model</code> alone only defines the logic surrounding loading and saving, but not the actual mechanism for doing so. This is left to a <code>Batman.StorageAdaper</code> subclass, 4 of which are included with Batman or in extras:
+
+</p>
+<ol>
+<li><code>Batman.LocalStorage</code> for storing data in the browsers&#39; <code>localStorage</code>, if available.</li>
+<li><code>Batman.SessionStorage</code> for storing data in the browser&#39;s <code>sessionStorage</code>, if available.</li>
+<li><code>Batman.RestStorage</code> for using HTTP GET, POST, PUT, and DELETE to store data in a backend.</li>
+<li><code>Batman.RailsStorage</code> which extends <code>Batman.RestStorage</code> with some handy Rails specific functionality like parsing out validation errors.</li>
+</ol>
+<h3 id="batman-model-primarykey">@primaryKey : string</h3>
+<p><code>primaryKey</code> is a class level configuration option to change which key Batman uses as the primary key. Change the option using <code>set</code>, like so:
+
+</p>
+<div class="console-session">
+  <h4>primary key can be set using @set</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;primaryKey&#39;</span><span class="p">,</span> <span class="s1">&#39;shop_id&#39;</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Shop</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;primaryKey&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;shop_id&#39;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<p>The <code>primaryKey</code> is what Batman uses to compare instances to see if they represent the same domain-level object: if two records have the same value at the key specified by <code>primaryKey</code>, only one will be in the identity map. The key specified by <code>primaryKey</code> is also used by the associations system when determining if a record is related to another record, and by the remote storage adapters to generate URLs for records.
+
+</p>
+<p>Note_: The default primaryKey is &#39;id&#39;.
+
+</p>
+<h3 id="batman-model-storagekey">@storageKey : string</h3>
+<p><code>storageKey</code> is a class level option which gives the storage adapters something to interpolate into their specific key generation schemes. In the case of <code>LocalStorage</code> or <code>SessionStorage</code> adapters, the <code>storageKey</code> defines what namespace to store this record under in the <code>localStorage</code> or <code>sessionStorage</code> host objects, and with the case of the <code>RestStorage</code> family of adapters, the <code>storageKey</code> assists in URL generation. See the documentation for the storage adapter of your choice for more information.
+
+</p>
+<p>The default <code>storageKey</code> is <code>null</code>.
+
+</p>
+<h3 id="batman-model-persist">@persist(mechanism : StorageAdapter) : StorageAdapter</h3>
+<p><code>@persist</code> is how a <code>Model</code> subclass is told to persist itself by means of a <code>StorageAdapter</code>. <code>@persist</code> accepts either a <code>StorageAdapter</code> class or instance and will return either the instantiated class or the instance passed to it for further modification.
+
+</p>
+<div class="console-session">
+  <h4>models can be told to persist via a storage adapter</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">persist</span><span class="p">(</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">hasStorage</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@persist returns the instantiated storage adapter</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">adapter</span> <span class="o">=</span> <span class="kc">false</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">adapter</span> <span class="o">=</span> <span class="nx">Shop</span><span class="p">.</span><span class="nx">persist</span><span class="p">(</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">LocalStorage</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">adapter</span> <span class="k">instanceof</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">StorageAdapter</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@persist accepts already instantiated storage adapters</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">adapter</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">StorageAdapter</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">adapter</span><span class="p">.</span><span class="nx">someHandyConfigurationOption</span> <span class="o">=</span> <span class="kc">true</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">persist</span><span class="p">(</span><span class="nx">adapter</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">hasStorage</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-model-encode">@encode(keys...[, encoderObject : [Object|Function]])</h3>
+<p><code>@encode</code> specifies a list of <code>keys</code> a model should expect from and send back to a storage adapter, and any transforms to apply to those attributes as they enter and exit the world of Batman in the optional <code>encoderObject</code>.
+
+</p>
+<p>The <code>encoderObject</code> should have an <code>encode</code> and/or a <code>decode</code> key which point to functions. The functions accept the &quot;raw&quot; data (the Batman land value in the case of <code>encode</code>, and the backend land value in the case of <code>decode</code>), and should return the data suitable for the other side of the link. The functions should have the following signatures:
+
+</p>
+<pre><code class="coffeescript"><div class="highlight"><pre><span class="nv">encoderObject = </span><span class="p">{</span>
+  <span class="nv">encode: </span><span class="nf">(value, key, builtJSON, record) -&gt;</span>
+  <span class="nv">decode: </span><span class="nf">(value, key, incomingJSON, outgoingObject, record) -&gt;</span>
+<span class="p">}</span>
+</pre></div></code></pre>
+<p>By default these functions are the identity functions. They apply no transformation. The arguments for <code>encode</code> functions are as follows:
+
+</p>
+<ul>
+<li><code>value</code> is the client side value of the <code>key</code> on the <code>record</code></li>
+<li><code>key</code> is the key which the <code>value</code> is stored under on the <code>record</code>. This is useful when passing the same <code>encoderObject</code> which needs to pivot on what key is being encoded to different calls to <code>encode</code>.</li>
+<li><code>builtJSON</code> is the object which is modified by each encoder which will eventually be returned by <code>toJSON</code>. To send the server the encoded value under a different key than the <code>key</code>, modify this object by putting the value under the desired key, and return <code>undefined</code>.</li>
+<li><code>record</code> is the record on which <code>toJSON</code> has been called.</li>
+</ul>
+<p>For <code>decode</code> functions:
+
+</p>
+<ul>
+<li><code>value</code> is the server side value of the <code>key</code> which will end up on the <code>record</code>.</li>
+<li><code>key</code> is the key which the <code>value</code> is stored under the incoming JSON.</li>
+<li><code>incomingJSON</code> is the JSON which is being decoded into the <code>record</code>. This can be used to create compound key decoders.</li>
+<li><code>outgoingObject</code> is the object which is built up by the decoders and then <code>mixin</code>&#39;d to the record.</li>
+<li><code>record</code> is the record on which <code>fromJSON</code> has been called.</li>
+</ul>
+<p>The <code>encode</code> and <code>decode</code> keys can also be false to avoid the default identity function encoder or decoder from being used.
+
+</p>
+<p><em>Note</em>: <code>Batman.Model</code> subclasses have no encoders by default, except for one which automatically decodes the <code>primaryKey</code> of the model, which is usually <code>id</code>. To get any data into or out of your model, you must white-list the keys you expect from the server or storage attribute.
+
+</p>
+<div class="console-session">
+  <h4>@encode accepts a list of keys which are used during decoding</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="s1">&#39;country&#39;</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">json</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snowdevil&quot;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s2">&quot;snowdevil.ca&quot;</span>
+  <span class="p">}</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">(</span><span class="nx">json</span><span class="p">)</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Snowdevil&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@encode accepts a list of keys which are used during encoding</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="s1">&#39;country&#39;</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span><span class="p">({</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snowdevil&quot;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s2">&quot;snowdevil.ca&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snowdevil&quot;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s2">&quot;snowdevil.ca&quot;</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@encode accepts custom encoders</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">encode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">name</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">();</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span><span class="p">({</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snowdevil&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;SNOWDEVIL&quot;</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@encode accepts custom decoders</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">decode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">name</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">({</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snow_devil&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;Snow devil&quot;</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@encode can be passed an encoderObject with false to prevent the default encoder or decoder</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Shop</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Shop</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Shop</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Shop</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">encode</span><span class="o">:</span> <span class="kc">false</span><span class="p">,</span>
+      <span class="nx">decode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">x</span><span class="p">;</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="nx">Shop</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">);</span>
+
+    <span class="k">return</span> <span class="nx">Shop</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Shop</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">({</span>
+    <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Snowdevil&quot;</span><span class="p">,</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s2">&quot;snowdevil.ca&quot;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s1">&#39;Snowdevil&#39;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="s2">&quot;snowdevil.ca&quot;</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">url</span><span class="o">:</span> <span class="s2">&quot;snowdevil.ca&quot;</span>
+  <span class="p">}</span> <span class="c1">// The name key is absent because of encode: false</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<p>Some more handy examples:
+
+</p>
+<div class="console-session">
+  <h4>@encode can be used to turn comma separated values into arrays</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Post</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">decode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">string</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">string</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">);</span>
+      <span class="p">},</span>
+      <span class="nx">encode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">array</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">array</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">);</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">({</span>
+    <span class="nx">tags</span><span class="o">:</span> <span class="s1">&#39;new, hot, cool&#39;</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">)</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">[</span><span class="s1">&#39;new&#39;</span><span class="p">,</span> <span class="s1">&#39;hot&#39;</span><span class="p">,</span> <span class="s1">&#39;cool&#39;</span><span class="p">]</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">tags</span><span class="o">:</span> <span class="s1">&#39;new, hot, cool&#39;</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<div class="console-session">
+  <h4>@encode can be used to turn arrays into sets</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Post</span><span class="p">.</span><span class="nx">encode</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">decode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">array</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">func</span><span class="p">,</span> <span class="nx">args</span><span class="p">,</span> <span class="nx">ctor</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">ctor</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">func</span><span class="p">.</span><span class="nx">prototype</span><span class="p">;</span>
+          <span class="kd">var</span> <span class="nx">child</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ctor</span><span class="p">,</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">func</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="nx">child</span><span class="p">,</span> <span class="nx">args</span><span class="p">);</span>
+          <span class="k">return</span> <span class="k">typeof</span> <span class="nx">result</span> <span class="o">===</span> <span class="s2">&quot;object&quot;</span> <span class="o">?</span> <span class="nx">result</span> <span class="o">:</span> <span class="nx">child</span><span class="p">;</span>
+        <span class="p">})(</span><span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span><span class="p">,</span> <span class="nx">array</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{});</span>
+      <span class="p">},</span>
+      <span class="nx">encode</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">set</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="nx">set</span><span class="p">.</span><span class="nx">toArray</span><span class="p">();</span>
+      <span class="p">}</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Post</span><span class="p">()</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">fromJSON</span><span class="p">({</span>
+    <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;new&#39;</span><span class="p">,</span> <span class="s1">&#39;hot&#39;</span><span class="p">,</span> <span class="s1">&#39;cool&#39;</span><span class="p">]</span>
+  <span class="p">})</span>
+</pre></div></div><div class="out"></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">)</span> <span class="k">instanceof</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Set</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="kc">true</span>
+</pre></div></div><div class="in"><div class="highlight"><pre><span class="nx">record</span><span class="p">.</span><span class="nx">toJSON</span><span class="p">()</span>
+</pre></div></div><div class="out"><div class="highlight"><pre><span class="p">{</span>
+    <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;new&#39;</span><span class="p">,</span> <span class="s1">&#39;hot&#39;</span><span class="p">,</span> <span class="s1">&#39;cool&#39;</span><span class="p">]</span>
+  <span class="p">}</span>
+</pre></div></div></code>
+  </pre>
+</div>
+<h3 id="batman-model-validate">@validate(keys...[, options : [Object|Function]])</h3>
+<p>Validations allow a model to be marked as <code>valid</code> or <code>invalid</code> based on a set of programmatic rules. By validating a model&#39;s data before it gets to the server we can provide immediate feedback to the user about what they have entered and forgo waiting on a round trip to the server. <code>validate</code> allows the attachment of validations to the model on particular keys, where the validation is either a built in one (invoked by use of options to pass to them) or a custom one (invoked by use of a custom function as the second argument).
+
+</p>
+<p><em>Note</em>: Validation in Batman is always asynchronous, despite the fact that none of the validations may use an asynchronous operation to check for validity. This is so that the API is consistent regardless of the validations used.
+
+</p>
+<p>Built in validators are attached by calling <code>@validate</code> with options designating how to calculate the validity of the key:
+
+</p>
+<div class="console-session">
+  <h4>@validate accepts options to check for validity</h4>
+  <pre><code class="javascript"><div class="in"><div class="highlight"><pre><span class="nx">Post</span> <span class="o">=</span> <span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">__extends</span><span class="p">(</span><span class="nx">Post</span><span class="p">,</span> <span class="nx">Batman</span><span class="p">.</span><span class="nx">Model</span><span class="p">);</span>
+
+    <span class="kd">function</span> <span class="nx">Post</span><span class="p">()</span> <span class="p">{</span>
+      <span class="nx">Post</span><span class="p">.</span><span class="nx">__super__</span><span class="p">.</span><span class="nx">constructor</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">Post</span><span class="p">.</span><span class="nx">validate</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;body&#39;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">presence</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">});</span>
+
+    <span class="k">return</span> <span class="nx">Post</span><span class="p">;</span>
+
+  <span class="p">})()</span>
+</pre></div></div><div class="out"></div></code>
+  </pre>
+</div>
+<p>The built in validation options are listed below:
+
+</p>
+<ul>
+<li><code>presence : boolean</code>: Assert that the string value is existant (not undefined nor null) and has length greather than 0.</li>
+<li><code>numeric : true</code>: Assert that the value can be is or can be coerced into a number using <code>parseFloat</code>.</li>
+<li><code>minLength : number</code>: Assert that the value&#39;s <code>length</code> property is greater than the given number.</li>
+<li><code>maxLength : number</code>: Assert that the value&#39;s <code>length</code> property is less than the given number.</li>
+<li><code>length : number</code>: Assert that the value&#39;s <code>length</code> property is exactly the given number.</li>
+<li><code>lengthWithin : [number, number]</code> or <code>lengthIn : [number, number]</code>: Assert that the value&#39;s <code>length</code> property is within the ranger specified by the given array of two numbers, where the first number is the lower bound and the second number is the upper bound.</li>
+</ul>
+<p>Custom validators should have the signature <code>(errors, record, key, callback)</code>. The arguments are as follows:
+
+</p>
+<ul>
+<li><code>errors</code>: an <code>ErrorsSet</code> instance which expects to have <code>add</code> called on it to add errors to the model</li>
+<li><code>record</code>: the record being validated</li>
+<li><code>key</code>: the key to which the validation has been attached</li>
+<li><code>callback</code>: a function to call once validation has been complete. Calling this function is ++mandatory++.</li>
+</ul>
+<h3 id="batman-model-all">@all : Set</h3>
+<h3 id="batman-model-loaded">@loaded : Set</h3>
+<h3 id="batman-model-clear">@clear() : Set</h3>
+<h3 id="batman-model-find">@find(id, callback : Function) : Model</h3>
+<h3 id="batman-model-load">@load(options = {}, callback)</h3>
+<h3 id="batman-model-create">@create(attributes = {}, callback) : Model</h3>
+<h3 id="batman-model-findorcreate">@findOrCreate(attributes = {}, callback) : Model</h3>
+<h3 id="batman-model-id">id : value</h3>
+<h3 id="batman-model-dirtykeys">dirtyKeys : Set</h3>
+<h3 id="batman-model-errors">errors : ErrorsSet</h3>
+<h3 id="batman-model-constructor">constructor(idOrAttributes = {}) : Model</h3>
+<h3 id="batman-model-isnew">isNew() : boolean</h3>
+<h3 id="batman-model-updateattributes">updateAttributes(attributes) : Model</h3>
+<h3 id="batman-model-tostring">toString() : string</h3>
+<h3 id="batman-model-tojson">toJSON() : Object</h3>
+<h3 id="batman-model-fromjson">fromJSON() : Model</h3>
+<h3 id="batman-model-toparam">toParam() : value</h3>
+<h3 id="batman-model-state">state() : string</h3>
+<h3 id="batman-model-hasstorage">hasStorage() : boolean</h3>
+<h3 id="batman-model-load">load(options = {}, callback)</h3>
+<h3 id="batman-model-save">save(options = {}, callback)</h3>
+<h3 id="batman-model-destroy">destroy(options = {}, callback)</h3>
+<h3 id="batman-model-validate">validate(callback)</h3>
+<h2 id="batman-validationerror">Batman.ValidationError</h2>
+<h2 id="batman-errorsset">Batman.ErrorsSet</h2>
 
 
 
@@ -2859,6 +3417,8 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ol>
 <li>the order changes,</li>
+<li>the order&#39;s customer changes,</li>
+<li>or the order&#39;s customer&#39;s name changes.</li>
 </ol>
 <p>This is important because it means you can rely on a binding to &quot;just work&quot; when anything it depends on changes. If say you had a <code>&lt;select&gt;</code> on the page which changed the <code>order</code>&#39;s <code>customer</code> property, bindings which bind to <code>order.customer.name</code> will update each time you change that select to reflect the new customer&#39;s name.
 
@@ -2929,6 +3489,10 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li><code>&lt;input type=&quot;checkbox&quot;&gt;</code>: the binding will edit the <code>checked</code> property of the checkbox and populate the keypath with a boolean.</li>
+<li><code>&lt;input type=&quot;text&quot;&gt;</code> and similar, <code>&lt;textarea</code>&gt;: the binding will edit the <code>value</code> property of the input and populate the keypath with the string found at <code>value</code>.</li>
+<li><code>&lt;input type=&quot;file&quot;&gt;</code>: the binding will +not+ edit the <code>value</code> property of the input, but it will update the keypath with a host <code>File</code> object or objects if the node has the <code>multiple</code> attribute.</li>
+<li><code>&lt;select&gt;</code>: the binding will edit the <code>selected</code> property of each <code>&lt;option&gt;</code> tag within the <code>&lt;select&gt;</code> match the property at the keypath. If the <code>&lt;select&gt;</code> has the multiple attribute, the value at the keypath can be an array of selected <code>&lt;option&gt;</code> values. You can also use <code>data-bind-selected</code> bindings on the individual options to toggle option selectedness.</li>
+<li>All other tags: the binding will edit the <code>innerHTML</code> property of the tag and will not populate the keypath.</li>
 </ul>
 <p><code>data-bind</code> can also be used to bind an attribute of a node to a JavaScript property. Since attributes can&#39;t be observed for changes, this is a one way binding which will never update the JavaScript land property. Specify which attribute to bind using the &quot;double dash&quot; syntax like so: <code>data-bind-attribute=&quot;some.keypath&quot;</code>. For example, to bind the <code>placeholder</code> attribute of an input, use <code>data-bind-placeholder</code>.
 
@@ -3073,6 +3637,9 @@ batman server <span class="c"># (or just &quot;batman s&quot;)</span>
 </p>
 <ul>
 <li>click</li>
+<li>doubleclick</li>
+<li>change</li>
+<li>submit</li>
 </ul>
 <p>If the event name used doesn&#39;t match the above events, the event name used will just fall through and be passed to <code>window.addEventListener</code>.
 
