@@ -5,11 +5,13 @@ class MockView extends MockClass
   @chainedCallback 'ready'
   get: createSpy().whichReturns("view contents")
   set: ->
+  inUse: -> false
 
 QUnit.module 'Batman.Controller render'
   setup: ->
+    Batman.Controller::renderCache = new Batman.RenderCache
     @controller = new TestController
-    Batman.DOM.Yield.clearAll()
+    Batman.DOM.Yield.reset()
   teardown: ->
     delete Batman.currentApp
 
@@ -31,6 +33,46 @@ test 'it should cache the rendered Batman.View if `view` isn\'t given in the opt
 
     @controller.dispatch 'show'
     equal mockClass.lastInstance, view, "No new instance has been made"
+
+test 'it should clear yields which weren\'t rendered into after dispatch', ->
+  spyOnDuring Batman.DOM.Yield.withName('sidebar'), 'clear', (sidebarClearSpy) =>
+    spyOnDuring Batman.DOM.Yield.withName('main'), 'clear', (mainClearSpy) =>
+      mockClassDuring Batman ,'View', MockView, (mockClass) =>
+        @controller.show = ->
+          @render {into: 'main'}
+        @controller.index = ->
+          @render {into: 'sidebar'}
+
+        equal mainClearSpy.callCount, 0
+        equal sidebarClearSpy.callCount, 0
+        @controller.dispatch 'show'
+        equal mainClearSpy.callCount, 0
+        equal sidebarClearSpy.callCount, 1
+        @controller.dispatch 'index'
+        equal mainClearSpy.callCount, 1
+        equal sidebarClearSpy.callCount, 1
+
+test 'it should clear yields which weren\'t rendered into after dispatch if the implicit render takes place', ->
+  spyOnDuring Batman.DOM.Yield.withName('sidebar'), 'clear', (sidebarClearSpy) =>
+    spyOnDuring Batman.DOM.Yield.withName('main'), 'clear', (mainClearSpy) =>
+      mockClassDuring Batman ,'View', MockView, (mockClass) =>
+        @controller.dispatch 'show'
+        ok sidebarClearSpy.called
+        equal mainClearSpy.called, false
+
+test 'it should clear yields which weren\'t rendered into after dispatch if several named renders take place', ->
+  spyOnDuring Batman.DOM.Yield.withName('slider'), 'clear', (sliderClearSpy) =>
+    spyOnDuring Batman.DOM.Yield.withName('sidebar'), 'clear', (sidebarClearSpy) =>
+      spyOnDuring Batman.DOM.Yield.withName('main'), 'clear', (mainClearSpy) =>
+        mockClassDuring Batman ,'View', MockView, (mockClass) =>
+          @controller.show = ->
+            @render {source: 'list', into: 'main'}
+            @render {source: 'show', into: 'slider'}
+
+          @controller.dispatch 'show'
+          equal mainClearSpy.called, false
+          equal sliderClearSpy.called, false
+          ok sidebarClearSpy.called
 
 test 'it should render a Batman.View subclass with the ControllerAction name on the current app if it exists', ->
   Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base

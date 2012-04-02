@@ -69,7 +69,7 @@ QUnit.module 'Batman.View inUse'
 
     @view = new Batman.View(@options)
   teardown: ->
-
+    Batman.DOM.Yield.reset()
 
 test 'should report inUse correctly as false when without node', ->
   equal @view.inUse(), false

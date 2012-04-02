@@ -2,7 +2,7 @@ helpers = if typeof require is 'undefined' then window.viewHelpers else require 
 
 QUnit.module 'Batman.View yield, contentFor, and replace rendering'
   teardown: ->
-    Batman.DOM.Yield.clearAll()
+    Batman.DOM.Yield.reset()
 
 asyncTest 'it should insert content into yields when the content comes before the yield', 1, ->
   source = '''

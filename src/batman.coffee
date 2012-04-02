@@ -2470,6 +2470,7 @@ class Batman.Controller extends Batman.Object
 
     @_inAction = yes
     @_actedDuringAction = no
+    @_renderedYields = []
     @set 'action', action
     @set 'params', params
 
@@ -2482,6 +2483,9 @@ class Batman.Controller extends Batman.Object
       @render()
 
     @runFilters params, 'afterFilters'
+
+    for name, yield of Batman.DOM.Yield.yields when !~@_renderedYields.indexOf(name)
+      yield.clear()
 
     delete @_actedDuringAction
     delete @_inAction
@@ -2515,6 +2519,7 @@ class Batman.Controller extends Batman.Object
     return if options is false
 
     options.into ||= 'main'
+    @_renderedYields?.push options.into
 
     if not options.view
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
@@ -4382,7 +4387,7 @@ Batman.DOM = {
       new Batman.DOM.DeferredRenderingBinding(node, key, context, renderer)
       false
 
-    yield:      (node, key) ->
+    yield: (node, key) ->
       $onParseExit node, -> Batman.DOM.Yield.withName(key).set 'containerNode', node
       true
     contentfor: (node, key, context, renderer, action = 'append') ->
@@ -4390,7 +4395,7 @@ Batman.DOM = {
         node.parentNode?.removeChild(node)
         renderer.view.pushYieldAction(key, action, node)
       true
-    replace:    (node, key, context, renderer) ->
+    replace: (node, key, context, renderer) ->
       Batman.DOM.readers.contentfor(node, key, context, renderer, 'replace')
       true
   }
@@ -4517,7 +4522,10 @@ Batman.DOM = {
             result = fn.apply(@, args)
             @forget 'containerNode', handler
             result
-    @clearAll: -> @yields = {}
+    @reset: -> @yields = {}
+    @clearAll: ->
+      yield.clear() for name, yield of @yields
+      return
     @withName: (name) ->
       @yields[name] ||= new @({name})
       @yields[name]
