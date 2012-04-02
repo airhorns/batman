@@ -4120,10 +4120,12 @@ class Batman.View extends Batman.Object
       node.parentNode?.removeChild(node) for {node} in nodes
 
   pushYieldAction: (key, action, node) ->
+    @_setNodeYielder(node)
     @get("yields").get(key).push({node, action})
 
   _argumentBindingKey: (key) -> "_#{key}ArgumentBinding"
   _setNodeOwner: (node) -> Batman._data(node, 'view', @)
+  _setNodeYielder: (node) -> Batman._data(node, 'yielder', @)
 
   @::on 'appear', -> @viewDidAppear? arguments...
   @::on 'disappear', -> @viewDidDisappear? arguments...
@@ -4584,7 +4586,9 @@ Batman.DOM = {
     Batman.DOM.didInsertNode(child)
 
   removeOrDestroyNode: $removeOrDestroyNode = (node) ->
-    if (view = Batman._data(node, 'view')) && view.get('cached')
+    view = Batman._data(node, 'view')
+    view ||= Batman._data(node, 'yielder')
+    if view? && view.get('cached')
       Batman.DOM.removeNode(node)
     else
       Batman.DOM.destroyNode(node)
@@ -4696,6 +4700,9 @@ Batman.DOM = {
     view = Batman._data node, 'view'
     if view
       view.fire 'beforeDestroy', node
+      view.get('yields').forEach (name, actions) ->
+        for {node} in actions
+          Batman.DOM.didDestroyNode(node)
     Batman.DOM.willDestroyNode(child) for child in node.childNodes
     true
 
@@ -4703,6 +4710,10 @@ Batman.DOM = {
     view = Batman._data node, 'view'
     if view
       view.fire 'destroy', node
+      view.get('yields').forEach (name, actions) ->
+        for {node} in actions
+          Batman.DOM.didDestroyNode(node)
+
     # break down all bindings
     if bindings = Batman._data node, 'bindings'
       bindings.forEach (binding) -> binding.die()
