@@ -2526,8 +2526,8 @@ class Batman.Model extends Batman.Object
       when 'Function'
         encoder.encode = encoderOrLastKey
       else
-        encoder.encode = encoderOrLastKey.encode
-        encoder.decode = encoderOrLastKey.decode
+        encoder.encode = encoderOrLastKey.encode if encoderOrLastKey.encode?
+        encoder.decode = encoderOrLastKey.decode if encoderOrLastKey.decode?
 
     encoder = $mixin {}, @defaultEncoder, encoder
 
