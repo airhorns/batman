@@ -1,3 +1,66 @@
+## 0.9.0 (April 1, 2012)
+
+Really Major Release
+
+ - Add node v0.6.x support
+ - Add documentation.
+ - Benchmarking suite added
+ - Add `Batman.SessionStorage` storage adapter for using the `sessionStorage` host object
+ - Make `<select>` bindings populate JS land values if an option has the selected attribute.
+ - Add `data-view` bindings for instantiating custom `Batman.View` subclasses
+ - Add support for closure compiler
+ - Add AMD loader support
+ - Add JS implementation of ActiveSupport::Inflector for pluralization and ordinalization
+ - Pass the RenderContext to event handlers called by data-event bindings.
+ - Add support for string data in batman.solo and batman.node
+ - Make `view.set('node')` work like one might expect (deffering rendering until the node is present)
+ - Add `Model.clear` for busting the identity map.
+ - Add `Batman.Property.withoutTracking` helper for swallowing dependencies in accessor bodies
+ - Add `SetUnion` and `SetIntersection`
+ - Add `withArguments` filter for currying arguments to event handlers
+ - Add decoding of ISO-8601 dates to `RailsStorage`, optionally with timezones
+ - Add `FileBinding` for binding <input type="file">
+ - Swtich data-route bindings into real bindings and add a named route query syntax (routes)
+ - Ensure bindings with filters become simple one way JS -> DOM bindings, since we can't always unfilter
+ - Add `Enumerable.mapToProperty` for fetching a single property of a bunch of items in a collection
+ - Formalize data-formfor bindings to have handy functionality like adding error classes to inputs bound to invalid fields and adding a list of errors to the form if an element with a .errors class exists
+ - Major routing system refactor to support nested resources declarations and the named routes syntax
+ - Add `replace` filter
+ - Add `Set.find(f)` which returns the first item in the set for which `f(item)` is truthy
+ - Add binding content escaping, and thus the `escape` and `raw` filters
+ - Make `AssociationSets` fire a `loaded` event
+ - Refactor the `RenderContext` stack into a proper tree with one root node to limit memory usage
+ - Add ability to give false as the value of encode or decode when adding encoders to omit that half of the process
+ - Add polymorphic belongsTo and hasMany associations
+ - Add @promiseAccessor for easy wrapping of asynchronous operations into eventually defined accessors
+ - Add `Batman.View.event('appear')`, `beforeAppear`, `disappear`, and `beforeDisapper` which will fire as views enter and exit the dom
+ - Reimplement Hash storage mechanism for greater speed and less memory usage
+ - Reimplement Set storage mechanism for greater speed and less memory usage. Note: this changes set iteration order.
+ - Reimplement event storage mechanism for similar speed and less memory usage
+ - Add wrapAccessor macro for redefinining accessors in terms of their old implementations
+ - Add `urlNestsUnder` macro to `Model` for easy definiton of nested backend routes
+ - Add `EventEmitter::once` for attaching handlers which autoremove themselves
+ - Add `Batman.getPath` for doing recursive gets on properties without encoding the key seperator
+
+Bugfixes:
+
+ - Process bindings in a consistent order (#204)
+ - Ensure attribute bindings bind undefined as the empty string (#245)
+ - Ensure RestStorage passes the proper Content-type on POST and PUT operations.
+ - Make `data-target` bind immediately and populate the JS land value at that time
+ - Fix bugs surrounding replacing classes with spaces (#305, #361)
+ - Ensure encoding and decoding respect custom primary keys
+ - Fix a slew of bugs surrounding associations to custom primary keys
+ - Fix textarea bindings to set the value across all browsers
+ - Add proper bindings for HTML5 inputs like type=search, type=tel, and so on
+ - Ensure event handlers on yielded content are not destroyed during yielding
+ - Ensure showif bindings work regardless of the node's initial CSS (#261)
+ - Support controllers named AppController (#326)
+ - Ensure model classes don't inherit parent class state (#340)
+ - Ensure `SetSort` properly propagates length property (#355)
+ - Ensure non-existent models don't get added to the identity map (#366)
+ - Ensure data-route bindings stop event propagation (#369)
+
 ## 0.8.0 (November 22, 2011)
 
 Major Release
@@ -39,7 +102,7 @@ Bugfixes:
  - Fix memory leaks around SetIndex observing all items forever
  - Fix sets on POJOs from keypaths
  - Fix `batman.solo` to properly encode GET params
- - Fix `Model::toJSON` and `Model::fromJSON` to deal with falsey values like any other
+ - Fix `Model::toJSON` and `Model::fromJSON` to)deal with falsey values like any other
  - Remove ability for `View` instances to have either `context` or `contexts`, and unify on `context`.
  - Fix error thrown if the `main` yield didn't exist
  - Made the extras files requirable in node
