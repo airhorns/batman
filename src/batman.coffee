@@ -2377,20 +2377,14 @@ class Batman.RenderCache extends Batman.Hash
       key = $mixin {}, key
       result = core.get.call(@, key)
       # Bubble the result up to the top of the queue
-      if result
-        for queuedKey, index in @keyQueue
-          if @equality(queuedKey, key)
-            @keyQueue.splice(index, 1)
-            @keyQueue.unshift key
-            break
+      @_addOrBubbleKey(key) if result
       result
 
     set: (key, value) ->
       result = core.set.apply(@, arguments)
       result.set 'cached', true
-      @keyQueue.unshift key
-      if result? && @length > @maximumLength
-        @unset @keyQueue.pop()
+      @_addOrBubbleKey(key)
+      @_evictExpiredKeys()
       result
 
     unset: (key) ->
@@ -2403,6 +2397,20 @@ class Batman.RenderCache extends Batman.Hash
     for key of incomingOptions when !(key in ['view'])
       return false if incomingOptions[key] != storageOptions[key]
     return true
+
+  _addOrBubbleKey: (key) ->
+    for queuedKey, index in @keyQueue
+      if @equality(queuedKey, key)
+        @keyQueue.splice(index, 1)
+        break
+    @keyQueue.unshift key
+
+  _evictExpiredKeys: ->
+    if @length > @maximumLength
+      for i in [@maximumLength...@keyQueue.length]
+        key = @keyQueue[i]
+        @unset(key) if !@get(key).inUse()
+    return
 
 # Controllers
 # -----------

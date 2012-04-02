@@ -1,9 +1,17 @@
+{putInDOM, removeFromDOM} = do ->
+  dom = document.createElement 'div'
+  {
+    putInDOM:      (view) -> view.inUse = -> true
+    removeFromDOM: (view) -> view.inUse = -> false
+  }
+
 QUnit.module "Batman.RenderCache"
   setup: ->
     @cache = new Batman.RenderCache
     class @MockView extends MockClass
       get: ->
       set: ->
+      inUse: -> false
     @context = {}
     @exampleOptions = {source: "products/show", viewClass: @MockView, context: @context}
 
@@ -54,7 +62,38 @@ test "cache evicts old items as new items come in past the size limit", ->
 
   equal @cache.length, 2
   # This should cycle out show, -> now edit, new
-  notEqual @cache.viewForOptions(editOptions), editView, "The olded view has been evicted because a new one is returned instead of a cached one"
+  notEqual @cache.viewForOptions(editOptions), editView, "The oldest view has been evicted because a new one is returned instead of a cached one"
+
+  equal @cache.length, 2
+
+test "cache evicts only old items which are not in the DOM as new items come in past the size limit", ->
+  @cache.maximumLength = 2
+  editOptions = Batman.mixin {}, @exampleOptions, {source: "products/edit"}
+  newOptions = Batman.mixin {}, @exampleOptions, {source: "products/new"}
+  indexOptions = Batman.mixin {}, @exampleOptions, {source: "products/index"}
+  showOptions = Batman.mixin {}, @exampleOptions
+
+  editView = @cache.viewForOptions editOptions
+  putInDOM(editView)
+  newView = @cache.viewForOptions newOptions
+  putInDOM(newView)
+  # This does not cycle out edit or new because it's in use
+  showView = @cache.viewForOptions showOptions
+  equal @cache.length, 3
+
+  # This cycles show to the top -> now show, new, edit
+  equal @cache.viewForOptions(showOptions), showView, "The newly added view is cached"
+  # This cycles new to the top -> now new, show, edit
+  equal @cache.viewForOptions(newOptions), newView, "The unaffected view is still cached"
+  # This cycles new to the top -> now edit, new, show
+  equal @cache.viewForOptions(editOptions), editView, "The unaffected view is still cached"
+
+  equal @cache.length, 3
+
+  removeFromDOM(showView)
+  removeFromDOM(newView)
+  # This should cycle out show and new because they are no longer in use, -> now index, edit
+  index = @cache.viewForOptions(indexOptions)
 
   equal @cache.length, 2
 
@@ -75,3 +114,30 @@ test "cache reprioritizes MRU items to not be evicted", ->
   showView = @cache.viewForOptions showOptions
 
   notEqual newView, @cache.viewForOptions newOptions, "The new view was evicted because it was last on the stack because edit moved to the top"
+
+test "cache allows keys past the length threshold to be reprioritized", ->
+  @cache.maximumLength = 3
+  editOptions = Batman.mixin {}, @exampleOptions, {source: "products/edit"}
+  newOptions = Batman.mixin {}, @exampleOptions, {source: "products/new"}
+  indexOptions = Batman.mixin {}, @exampleOptions, {source: "products/index"}
+  showOptions = Batman.mixin {}, @exampleOptions
+  duplicateOptions = Batman.mixin {}, @exampleOptions, {source: "products/duplicate"}
+
+  editView = @cache.viewForOptions editOptions
+  newView = @cache.viewForOptions newOptions
+  indexView = @cache.viewForOptions indexOptions # Stack is now index, new, edit
+
+  equal editView, @cache.viewForOptions editOptions # Stack is now edit, index, new
+
+  putInDOM(newView)
+  # This should not cycle out the new view even though it is past the threshold
+  # Stack is now show, edit, index, new
+  showView = @cache.viewForOptions showOptions
+
+  # Stack is now new, show, edit, index
+  equal newView, @cache.viewForOptions newOptions, "The new view was not evicted because it was last on the stack because edit moved to the top"
+
+  # This should cycle out index and edit because they are past the threshold
+  duplicateView = @cache.viewForOptions duplicateOptions
+
+  equal @cache.length, 3
