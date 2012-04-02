@@ -61,3 +61,62 @@ asyncTest 'should allow prefetching of view sources', 2, ->
     MockRequest.lastInstance.fireSuccess('prefetched contents')
     view = new Batman.View({source: 'view'})
     equal view.get('html'), 'prefetched contents'
+
+QUnit.module 'Batman.View inUse'
+  setup: ->
+    @options =
+      html: "predetermined contents"
+
+    @view = new Batman.View(@options)
+  teardown: ->
+
+
+test 'should report inUse correctly as false when without node', ->
+  equal @view.inUse(), false
+
+asyncTest 'should report inUse correctly as false when with node but not in the dom', ->
+  node = document.createElement('div')
+  @view.set('node', node)
+  equal @view.inUse(), false
+  delay =>
+    equal @view.inUse(), false
+
+asyncTest 'should report inUse correctly as true when it\'s node is in the dom', ->
+  node = $('<div/>')
+  @view.set('node', node[0])
+  @view.on 'ready', =>
+    node.appendTo($('body'))
+    ok @view.inUse()
+    node.remove()
+    equal @view.inUse(), false
+    QUnit.start()
+
+asyncTest 'should report inUse correctly as true when a yielded node is in the dom', ->
+  source = '''
+  <div data-contentfor="baz">chunky bacon</div>
+  <div data-yield="baz" id="test">erased</div>
+  '''
+  node = helpers.render source, {}, (node, view) ->
+    ok view.inUse()
+    QUnit.start()
+
+asyncTest 'should report inUse correctly as true when only one of many yielded nodes is in the dom', ->
+  source = '''
+  <div data-contentfor="bar">chunky bacon</div>
+  <div data-yield="bar">erased</div>
+  <div data-contentfor="baz">chunky bacon</div>
+  <div data-contentfor="qux">chunky bacon</div>
+  '''
+  node = helpers.render source, {}, (node, view) ->
+    ok view.inUse()
+    QUnit.start()
+
+asyncTest 'should report inUse correctly as false when none of many yielded nodes is in the dom', ->
+  source = '''
+  <div data-contentfor="bar">chunky bacon</div>
+  <div data-contentfor="baz">chunky bacon</div>
+  <div data-contentfor="qux">chunky bacon</div>
+  '''
+  node = helpers.render source, {}, (node, view) ->
+    equal view.inUse(), false
+    QUnit.start()

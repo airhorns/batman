@@ -4086,6 +4086,16 @@ class Batman.View extends Batman.Object
       @_renderer.on 'rendered', =>
         @fire('ready', node)
 
+  inUse: ->
+    if (node = @get('node'))
+      node.parentNode? ||
+        @get('yields').some (name, nodes) ->
+          for {node} in nodes
+            return true if node.parentNode?
+          return false
+    else
+      false
+
   applyYields: ->
     @get('yields').forEach (name, nodes) ->
       yield = Batman.DOM.Yield.withName(name)
