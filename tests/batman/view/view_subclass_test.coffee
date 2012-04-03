@@ -6,7 +6,7 @@ test "should allow class level declaration of arguments", ->
   class TestView extends Batman.View
     @directiveAccessor 'keyA', 'keyB', "notgiven"
 
-  node = $('<div data-keyA="one" data-keyB="two"/>')[0]
+  node = $('<div data-view-keyA="one" data-view-keyB="two"/>')[0]
   context = Batman one: "foo", two: "bar"
   view = new TestView({node, context})
   equal view.get('keyA'), "foo"
@@ -17,7 +17,7 @@ test "should allow keypaths as argument definitions", ->
   class TestView extends Batman.View
     @directiveAccessor 'test'
 
-  node = $('<div data-test="foo.bar.baz" />')[0]
+  node = $('<div data-view-test="foo.bar.baz" />')[0]
   context = Batman
     foo: Batman
       bar: Batman
@@ -30,7 +30,7 @@ test "should track keypath argument changes and update the property on the view"
   class TestView extends Batman.View
     @directiveAccessor 'keyA', 'keyB'
 
-  node = $('<div data-keyA="one" data-keyB="two"/>')[0]
+  node = $('<div data-view-keyA="one" data-view-keyB="two"/>')[0]
   context = Batman one: "foo", two: "bar"
   view = new TestView({node, context})
   equal view.get('keyA'), "foo"
@@ -43,7 +43,7 @@ asyncTest "should make the arguments available in the context of the view", ->
   class TestView extends Batman.View
     @directiveAccessor 'viewKey'
 
-  source = '<div data-view="TestView" data-viewKey="test"><p data-bind="viewKey"></p></div>'
+  source = '<div data-view="TestView" data-view-viewKey="test"><p data-bind="viewKey"></p></div>'
   context = Batman({TestView})
 
   helpers.render source, context, (node) =>
@@ -58,8 +58,8 @@ test "should recreate argument bindings if the view's node changes", ->
   class TestView extends Batman.View
     @directiveAccessor 'keyA', 'keyB'
 
-  initalNode = $('<div data-keyA="one" data-keyB="two"/>')[0]
-  newNode    = $('<div data-keyA="two" data-keyB="one"/>')[0]
+  initalNode = $('<div data-view-keyA="one" data-view-keyB="two"/>')[0]
+  newNode    = $('<div data-view-keyA="two" data-view-keyB="one"/>')[0]
 
   context = Batman one: "foo", two: "bar"
   view = new TestView({node: initalNode, context})

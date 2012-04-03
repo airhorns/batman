@@ -3987,7 +3987,7 @@ class Batman.View extends Batman.Object
     keys.forEach (key) =>
       @accessor @::_argumentBindingKey(key), (bindingKey) ->
         return unless (node = @get 'node') && (context = @get 'context')
-        keyPath = node.getAttribute "data-#{key}".toLowerCase()
+        keyPath = node.getAttribute "data-view-#{key}".toLowerCase()
         return unless keyPath?
         @[bindingKey]?.die()
         @[bindingKey] = new Batman.DOM.ViewArgumentBinding node, keyPath, context
