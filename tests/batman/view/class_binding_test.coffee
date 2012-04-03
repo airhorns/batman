@@ -65,8 +65,6 @@ asyncTest 'it should allow an already present class to be removed', 6, ->
     ok node.hasClass('zero')
     ok !node.hasClass('two')
     ok node.hasClass('three')
-    ok node.hasClass('zero')
-    ok !node.hasClass('two')
 
     QUnit.start()
 

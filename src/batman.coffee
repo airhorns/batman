@@ -2390,6 +2390,7 @@ class Batman.RenderCache extends Batman.Hash
     unset: (key) ->
       result = core.unset.apply(@, arguments)
       result.set 'cached', false
+      @_removeKeyFromQueue(key)
       result
 
   equality: (incomingOptions, storageOptions) ->
@@ -2399,17 +2400,23 @@ class Batman.RenderCache extends Batman.Hash
     return true
 
   _addOrBubbleKey: (key) ->
+    @_removeKeyFromQueue(key)
+    @keyQueue.unshift key
+
+  _removeKeyFromQueue: (key) ->
     for queuedKey, index in @keyQueue
       if @equality(queuedKey, key)
         @keyQueue.splice(index, 1)
         break
-    @keyQueue.unshift key
+    key
 
   _evictExpiredKeys: ->
     if @length > @maximumLength
-      for i in [@maximumLength...@keyQueue.length]
-        key = @keyQueue[i]
-        @unset(key) if !@get(key).inUse()
+      currentKeys = @keyQueue.slice(0)
+      for i in [@maximumLength...currentKeys.length]
+        key = currentKeys[i]
+        if !@get(key).inUse()
+          @unset(key)
     return
 
 # Controllers
@@ -2446,6 +2453,10 @@ class Batman.Controller extends Batman.Object
     filters = @_batman.afterFilters ||= new Batman.Hash
     filters.set(nameOrFunction, options)
 
+  contstructor: ->
+    super
+    @_renderedYields = {}
+
   renderCache: new Batman.RenderCache
 
   runFilters: (params, filters) ->
@@ -2470,7 +2481,7 @@ class Batman.Controller extends Batman.Object
 
     @_inAction = yes
     @_actedDuringAction = no
-    @_renderedYields = []
+    @_renderedYields = {}
     @set 'action', action
     @set 'params', params
 
@@ -2484,7 +2495,7 @@ class Batman.Controller extends Batman.Object
 
     @runFilters params, 'afterFilters'
 
-    for name, yield of Batman.DOM.Yield.yields when !~@_renderedYields.indexOf(name)
+    for name, yield of Batman.DOM.Yield.yields when !@_renderedYields[name]
       yield.clear()
 
     delete @_actedDuringAction
@@ -2511,15 +2522,17 @@ class Batman.Controller extends Batman.Object
       $redirect url
 
   render: (options = {}) ->
-    if @_actedDuringAction && @_inAction
-      developer.warn "Warning! Trying to render but an action has already be taken during #{@get('controllerName')}.#{@get('action')}"
+    if options
+      options.into ||= 'main'
+
+    if @_actedDuringAction && @_inAction && @_renderedYields[options.into]
+      developer.warn "Warning! Trying to render but an action has already be taken during #{@get('controllerName')}.#{@get('action')} on yield #{options.into}"
 
     @_actedDuringAction = yes
 
     return if options is false
 
-    options.into ||= 'main'
-    @_renderedYields?.push options.into
+    @_renderedYields?[options.into] = true
 
     if not options.view
       options.viewClass ||= Batman.currentApp?[helpers.camelize("#{@get('controllerName')}_#{@get('action')}_view")] || Batman.View
