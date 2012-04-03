@@ -34,7 +34,7 @@ asyncTest "should parse one segment keypaths as arguments anywhere in the list o
     deepEqual @spy.lastCallArguments, [1, "a", 2, "b", 3, "c"]
     QUnit.start()
 
-asyncTest "should parse one segment keypaths as arguments anywhere in the list of arguments", ->
+asyncTest "should parse many segment keypaths as arguments anywhere in the list of arguments", ->
   helpers.render '<div data-bind="1 | test qux.foo, 2, qux.bar, 3, qux.baz"></div>', Batman(qux: Batman(foo: "a", bar: "b", baz: "c")), (node) =>
     equals node.html(), "testValue"
     ok @spy.lastCallArguments.pop() instanceof Batman.DOM.AbstractBinding
@@ -77,6 +77,27 @@ asyncTest "should not parse true or false as a keypath", ->
       ok @spy.lastCallArguments.pop() instanceof Batman.DOM.AbstractBinding
       deepEqual @spy.lastCallArguments, [1, false]
       QUnit.start()
+
+asyncTest "should parse single quoted strings as arguments", ->
+  helpers.render '<div data-bind="1 | test \'foo\'"></div>', Batman(), (node) =>
+    equals node.html(), "testValue"
+    ok @spy.lastCallArguments.pop() instanceof Batman.DOM.AbstractBinding
+    deepEqual @spy.lastCallArguments, [1, "foo"]
+    QUnit.start()
+
+asyncTest "should parse double quoted strings as arguments", ->
+  helpers.render '<div data-bind=\'1 | test "foo"\'></div>', Batman(), (node) =>
+    equals node.html(), "testValue"
+    ok @spy.lastCallArguments.pop() instanceof Batman.DOM.AbstractBinding
+    deepEqual @spy.lastCallArguments, [1, "foo"]
+    QUnit.start()
+
+asyncTest "should parse strings with more than 3 commas as arguments", ->
+  helpers.render '<div data-bind="1 | test \'a,b,c,d,e,f\'"></div>', Batman(), (node) =>
+    equals node.html(), "testValue"
+    ok @spy.lastCallArguments.pop() instanceof Batman.DOM.AbstractBinding
+    deepEqual @spy.lastCallArguments, [1, "a,b,c,d,e,f"]
+    QUnit.start()
 
 asyncTest 'should render chained filters', 1, ->
   node = helpers.render '<div data-bind="foo | upcase | downcase"></div>',

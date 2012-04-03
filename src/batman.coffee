@@ -4619,28 +4619,25 @@ Batman.DOM.event('bindingAdded')
 # objects is traversed and any observers are properly attached.
 class Batman.DOM.AbstractBinding extends Batman.Object
   # A beastly regular expression for pulling keypaths out of the JSON arguments to a filter.
-  # It makes the following matches:
-  #
-  # + `foo` and `baz.qux` in `foo, "bar", baz.qux`
-  # + `foo.bar.baz` in `true, false, "true", "false", foo.bar.baz`
-  # + `true.bar` in `2, true.bar`
-  # + `truesay` in truesay
-  # + no matches in `"bar", 2, {"x":"y", "Z": foo.bar.baz}, "baz"`
+  # Match either strings, object literals, or keypaths.
   keypath_rx = ///
     (^|,)             # Match either the start of an arguments list or the start of a space inbetween commas.
     \s*               # Be insensitive to whitespace between the comma and the actual arguments.
-    (?!               # Use a lookahead to ensure we aren't matching true or false:
-      (?:true|false)  # Match either true or false ...
-      \s*             # and make sure that there's nothing else that comes after the true or false ...
-      (?:$|,)         # before the end of this argument in the list.
+    (?:
+      (true|false)
+      |
+      ("[^"]*")         # Match string literals
+      |
+      (\{[^\}]*\})      # Match object literals
+      |
+      (
+        [a-zA-Z][\w\-\.]*   # Now that true and false can't be matched, match a dot delimited list of keys.
+        [\?\!]?             # Allow ? and ! at the end of a keypath to support Ruby's methods
+      )
     )
-    (
-      [a-zA-Z][\w-\.]* # Now that true and false can't be matched, match a dot delimited list of keys.
-      [\?\!]?         # Allow ? and ! at the end of a keypath to support Ruby's methods
-    )
-    \s*               # Be insensitive to whitespace before the next comma or end of the filter arguments list.
+    \s*                 # Be insensitive to whitespace before the next comma or end of the filter arguments list.
     (?=$|,)             # Match either the next comma or the end of the filter arguments list.
-    ///g
+  ///g
 
   # A less beastly pair of regular expressions for pulling out the [] syntax `get`s in a binding string, and
   # dotted names that follow them.
@@ -4799,7 +4796,13 @@ class Batman.DOM.AbstractBinding extends Batman.Object
   #  + wrapping the `,` delimited list in square brackets
   #  + and `JSON.parse`ing them as an array.
   parseSegment: (segment) ->
-    JSON.parse( "[" + segment.replace(keypath_rx, "$1{\"_keypath\": \"$2\"}") + "]" )
+    segment = segment.replace keypath_rx, (match, start = '', bool, string, object, keypath, offset) ->
+      replacement = if keypath
+        '{"_keypath": "' + keypath + '"}'
+      else
+        bool || string || object
+      start + replacement
+    JSON.parse("[#{segment}]")
 
 class Batman.DOM.AbstractAttributeBinding extends Batman.DOM.AbstractBinding
   constructor: (node, @attributeName, args...) -> super(node, args...)
