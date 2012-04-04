@@ -40,4 +40,5 @@ test "returns undefined if the base is null-ish", ->
 
 test "returns falsy values", ->
   strictEqual Batman.getPath(num: 0, ['num']), 0
+  strictEqual Batman.getPath(thing: null, ['thing']), null
 

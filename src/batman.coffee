@@ -185,7 +185,11 @@ Batman.get = $get = (base, key) ->
 
 Batman.getPath = $getPath = (base, segments) ->
   for segment in segments
-    return unless base? and (base = $get(base, segment))?
+    if base?
+      base = $get(base, segment)
+      return base unless base?
+    else
+      return undefined
   base
 
 Batman.escapeHTML = $escapeHTML = do ->
