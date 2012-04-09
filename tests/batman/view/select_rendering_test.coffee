@@ -1,23 +1,43 @@
 helpers = if typeof require is 'undefined' then window.viewHelpers else require './view_helper'
 
+oldDeferEvery = Batman.DOM.IteratorBinding::deferEvery
+
 QUnit.module 'Batman.View select bindings'
+  setup: ->
+    Batman.DOM.IteratorBinding.deferEvery = false
+  teardown: ->
+    Batman.DOM.IteratorBinding::deferEvery = oldDeferEvery
 
 asyncTest 'it should bind the value of a select box and update when the javascript land value changes', 2, ->
   context = Batman
     heros: new Batman.Set('mario', 'crono', 'link')
     selected: new Batman.Object(name: 'crono')
   helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
-    equals node[0].value, 'crono'
+    equal node[0].value, 'crono'
     context.set 'selected.name', 'link'
     equal node[0].value, 'link'
     QUnit.start()
+
+asyncTest 'it should bind the value of a select box and update when options change', 5, ->
+  context = Batman
+    heros: new Batman.Set()
+    selected: new Batman.Object(name: 'crono')
+  helpers.render '<select data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
+    equal node[0].value, ''
+    equal context.get('selected.name'), 'crono'
+    context.get('heros').add('mario', 'link', 'crono')
+    delay ->
+      equal node[0].value, 'crono'
+      equal context.get('selected.name'), 'crono'
+      context.set('selected.name', 'mario')
+      equal node[0].value, 'mario'
 
 asyncTest 'it should bind the value of a select box and update the javascript land value with the selected option', 3, ->
   context = Batman
     heros: new Batman.SimpleSet('mario', 'crono', 'link')
     selected: 'crono'
   helpers.render '<select data-bind="selected"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
-    equals node[0].value, 'crono'
+    equal node[0].value, 'crono'
     context.set 'selected', 'link'
     equal node[0].value, 'link'
     context.set 'selected', 'mario'
@@ -46,12 +66,37 @@ asyncTest 'it binds the value of a multi-select box and updates the options when
     heros: new Batman.Set('mario', 'crono', 'link', 'kirby')
     selected: new Batman.Object(name: ['crono', 'link'])
   helpers.render '<select multiple="multiple" size="2" data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
-    selections = (c.selected for c in node[0].children when c.nodeType is 1)
+    selections = (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
     deepEqual selections, [no, yes, yes, no]
     context.set 'selected.name', ['mario', 'kirby']
-    selections = (c.selected for c in node[0].children when c.nodeType is 1)
+    selections = (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
     deepEqual selections, [yes, no, no, yes]
     QUnit.start()
+
+asyncTest 'it binds the value of a multi-select box and updates the options when the options changes', ->
+  context = new Batman.Object
+    heros: new Batman.Set()
+    selected: new Batman.Object(names: ['crono', 'link'])
+
+  source = '''
+    <select multiple="multiple" size="2" data-bind="selected.names">
+      <option data-foreach-hero="heros" data-bind-value="hero"></option>
+    </select>
+  '''
+
+  helpers.render source, context, (node) ->
+    getSelections = -> (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
+
+    deepEqual context.get('selected.names'), ['crono', 'link']
+    deepEqual getSelections(), []
+    context.get('heros').add 'mario', 'crono', 'link', 'kirby'
+    delay ->
+      deepEqual getSelections(), [no, yes, yes, no]
+      context.set 'selected.names', ['mario', 'kirby']
+      deepEqual getSelections(), [yes, no, no, yes]
+      context.get('heros').clear()
+      delay ->
+        deepEqual context.get('selected.names'), ['mario', 'kirby']
 
 asyncTest 'it binds the value of a multi-select box and updates the value when the selected options change', ->
   context = new Batman.Object
