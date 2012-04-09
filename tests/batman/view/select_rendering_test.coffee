@@ -66,10 +66,10 @@ asyncTest 'it binds the value of a multi-select box and updates the options when
     heros: new Batman.Set('mario', 'crono', 'link', 'kirby')
     selected: new Batman.Object(name: ['crono', 'link'])
   helpers.render '<select multiple="multiple" size="2" data-bind="selected.name"><option data-foreach-hero="heros" data-bind-value="hero"></option></select>', context, (node) ->
-    selections = (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
+    selections = (c.selected for c in node[0].children when c.nodeType is window.Node.ELEMENT_NODE)
     deepEqual selections, [no, yes, yes, no]
     context.set 'selected.name', ['mario', 'kirby']
-    selections = (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
+    selections = (c.selected for c in node[0].children when c.nodeType is window.Node.ELEMENT_NODE)
     deepEqual selections, [yes, no, no, yes]
     QUnit.start()
 
@@ -85,7 +85,7 @@ asyncTest 'it binds the value of a multi-select box and updates the options when
   '''
 
   helpers.render source, context, (node) ->
-    getSelections = -> (c.selected for c in node[0].children when c.nodeType is Node.ELEMENT_NODE)
+    getSelections = -> (c.selected for c in node[0].children when c.nodeType is window.Node.ELEMENT_NODE)
 
     deepEqual context.get('selected.names'), ['crono', 'link']
     deepEqual getSelections(), []
