@@ -5055,7 +5055,7 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
   dataChange: (newValue) =>
     # For multi-select boxes, the `value` property only holds the first
     # selection, so go through the child options and update as necessary.
-    if newValue.forEach
+    if newValue? && newValue.forEach
       # Use a hash to map values to their nodes to avoid O(n^2).
       valueToChild = {}
       for child in @node.children
@@ -5074,10 +5074,10 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     # For a regular select box, update the value.
     else
       if typeof newValue is 'undefined' && @firstBind
-        @firstBind = false
         @set('unfilteredValue', @node.value)
       else
         Batman.DOM.valueForNode(@node, newValue, @escapeValue)
+      @firstBind = false
 
     # Finally, update the options' `selected` bindings
     @updateOptionBindings()
