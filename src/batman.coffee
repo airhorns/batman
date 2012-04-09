@@ -4483,6 +4483,21 @@ Batman.DOM = {
       $appendChild(container, child) for child in children
       renderer.allowAndFire 'rendered'
 
+  propagateBindingEvent: $propagateBindingEvent = (binding, node) ->
+    while (current = (current || node).parentNode)
+      parentBindings = Batman._data current, 'bindings'
+      if parentBindings?
+        for parentBinding in parentBindings
+          parentBinding.childBindingAdded?(binding)
+    return
+
+  propagateBindingEvents: $propagateBindingEvents = (newNode) ->
+    $propagateBindingEvents(child) for child in newNode.childNodes
+    if bindings = Batman._data newNode, 'bindings'
+      for binding in bindings
+        $propagateBindingEvent(binding, newNode)
+    return
+
   # Adds a binding or binding-like object to the `bindings` set in a node's
   # data, so that upon node removal we can unset the binding and any other objects
   # it retains. Also notify any parent bindings of the appearance of new bindings underneath
@@ -4493,12 +4508,7 @@ Batman.DOM = {
       Batman._data node, 'bindings', [binding]
 
     Batman.DOM.fire('bindingAdded', binding)
-
-    while (current = (current || node).parentNode)
-      parentBindings = Batman._data current, 'bindings'
-      if parentBindings?
-        for parentBinding in parentBindings
-          parentBinding.childBindingAdded?(binding)
+    $propagateBindingEvent(binding, node)
     true
 
   # Removes listeners and bindings tied to `node`, allowing it to be cleared
@@ -4747,12 +4757,15 @@ class Batman.DOM.AbstractBinding extends Batman.Object
 
   _fireNodeChange: =>
     @shouldSet = false
-    @nodeChange?(@node, @value || @get('keyContext'))
+    val = @value || @get('keyContext')
+    @nodeChange?(@node, val)
+    @fire 'nodeChange', @node, val
     @shouldSet = true
 
   _fireDataChange: (value) =>
     if @shouldSet
       @dataChange?(value, @node)
+      @fire 'dataChange', value, @node
 
   die: ->
     @forget()
@@ -5031,38 +5044,41 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     super
 
   childBindingAdded: (binding) =>
-    console.warn binding
     @selectedBindings.add binding
-    binding.on 'die', => @selectedBindings.remove(binding)
+    dataChangeHandler = => @nodeChange()
+    binding.on 'dataChange', dataChangeHandler
+    binding.on 'die', =>
+      binding.forget 'dataChange', dataChangeHandler
+      @selectedBindings.remove(binding)
     @_fireDataChange(@get('filteredValue'))
 
   dataChange: (newValue) =>
     # For multi-select boxes, the `value` property only holds the first
     # selection, so go through the child options and update as necessary.
-    if newValue instanceof Array
+    if newValue.forEach
       # Use a hash to map values to their nodes to avoid O(n^2).
       valueToChild = {}
       for child in @node.children
         # Clear all options.
         child.selected = false
+
         # Avoid collisions among options with same values.
-        matches = valueToChild[child.value]
-        if matches then matches.push child else matches = [child]
-        valueToChild[child.value] = matches
+        matches = valueToChild[child.value] ||= []
+        matches.push child
+
       # Select options corresponding to the new values
-      for value in newValue
-        for match in valueToChild[value]
-          match.selected = yes
+      newValue.forEach (value) =>
+        if children = valueToChild[value]
+          node.selected = true for node in children
+
     # For a regular select box, update the value.
     else
-      was = @node.value
       if typeof newValue is 'undefined' && @firstBind
         @firstBind = false
         @set('unfilteredValue', @node.value)
       else
         Batman.DOM.valueForNode(@node, newValue, @escapeValue)
 
-      console.log "setting to #{newValue}, was #{was} now #{@node.value}"
     # Finally, update the options' `selected` bindings
     @updateOptionBindings()
     return
@@ -5387,6 +5403,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             @fragment.appendChild node
           else
             $insertBefore @parentNode(), node, @siblingNode
+            $propagateBindingEvents node
 
         if addItem = node.getAttribute 'data-additem'
           @renderer.context.contextForKey(addItem)?[addItem]?(item, node)
@@ -5433,7 +5450,10 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
             return @processActionQueue()
 
         if @fragment && @rendererMap.length is 0 && @fragment.hasChildNodes()
+          addedNodes = Array::slice.call(@fragment.childNodes)
           $insertBefore @parentNode(), @fragment, @siblingNode
+          $propagateBindingEvents(node) for node in addedNodes
+
           @fragment = document.createDocumentFragment()
 
         if @currentActionNumber == @queuedActionNumber

@@ -102,3 +102,43 @@ asyncTest "listeners are kept in Batman.data and destroyed when the node is remo
       deepEqual Batman._data(n), {}
 
     QUnit.start()
+
+asyncTest "bindings added underneath other bindings notify their parents", ->
+  context = Batman
+    foo: "foo"
+    bar: "bar"
+
+  class TestBinding extends Batman.DOM.AbstractBinding
+    @instances = []
+    constructor: ->
+      @childBindingAdded = createSpy()
+      super
+      @constructor.instances.push @
+
+  Batman.DOM.readers.test = -> new TestBinding(arguments...)
+  source = '''
+    <div data-test="true">
+      <div data-test="true">
+        <p data-bind="foo"></p>
+        <p data-bind="bar"></p>
+      </div>
+    </div>
+  '''
+
+  helpers.render source, context, (node, view) ->
+    equal TestBinding.instances.length, 2
+    equal TestBinding.instances[0].childBindingAdded.callCount, 3
+    calls = TestBinding.instances[0].childBindingAdded.calls
+    ok calls[0].arguments[0] instanceof TestBinding
+    ok calls[1].arguments[0] instanceof Batman.DOM.AbstractBinding
+    ok calls[1].arguments[0].get('filteredValue'), 'foo'
+    ok calls[2].arguments[0] instanceof Batman.DOM.AbstractBinding
+    ok calls[2].arguments[0].get('filteredValue'), 'bar'
+
+    equal TestBinding.instances[1].childBindingAdded.callCount, 2
+    calls = TestBinding.instances[1].childBindingAdded.calls
+    ok calls[0].arguments[0] instanceof Batman.DOM.AbstractBinding
+    ok calls[0].arguments[0].get('filteredValue'), 'foo'
+    ok calls[1].arguments[0] instanceof Batman.DOM.AbstractBinding
+    ok calls[1].arguments[0].get('filteredValue'), 'bar'
+    QUnit.start()
