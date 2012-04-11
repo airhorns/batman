@@ -10,28 +10,6 @@ QUnit.module 'Batman.View select bindings'
   teardown: ->
     Batman.DOM.IteratorBinding::deferEvery = oldDeferEvery
 
-asyncTest 'it should still render the select boxes properly even after the binded data has been reset', 3, ->
-  leo = new Batman.Object ({name: 'leo', id: 1})
-  mikey = new Batman.Object ({name: 'mikey', id: 2})
-
-  context = Batman
-    heroes: new Batman.Set(leo, mikey)
-    selected: mikey
-    showBox: false
-
-  helpers.render  '<select data-bind="selected.id">' +
-                    '<option data-foreach-hero="heroes" data-bind-value="hero.id" data-bind="hero.name" />' +
-                  '</selected>', context, (node) ->
-    equal node[0].childNodes[0].innerHTML, 'leo'
-    equal node[0].childNodes[1].innerHTML, 'mikey'
-    context.set 'heroes', new Batman.Set(leo, mikey)
-    try
-      equal node[0].childNodes[1].innerHTML, 'mikey'
-    catch error
-      ok false, "Unable to test value of option because HTML was not formed as expected"
-
-    QUnit.start()
-
 asyncTest 'it should bind the value of a select box and update when the javascript land value changes', 2, ->
   context = Batman
     heros: new Batman.Set('mario', 'crono', 'link')
@@ -89,6 +67,25 @@ asyncTest 'it binds the options of a select box and updates when the select\'s v
     deepEqual getContents(node), ['Mario', 'Crono']
 
     QUnit.start()
+
+asyncTest 'it binds options created by a foreach and remains consistent when the set instance iterated over swaps', 4, ->
+  leo = new Batman.Object ({name: 'leo', id: 1})
+  mikey = new Batman.Object ({name: 'mikey', id: 2})
+
+  context = Batman
+    heroes: new Batman.Set(leo, mikey).sortedBy('id')
+    selected: mikey
+    showBox: false
+
+  helpers.render  '<select data-bind="selected.id">' +
+                    '<option data-foreach-hero="heroes" data-bind-value="hero.id" data-bind="hero.name" />' +
+                  '</selected>', context, (node) ->
+    equal node[0].childNodes[0].innerHTML, 'leo'
+    equal node[0].childNodes[1].innerHTML, 'mikey'
+    context.set 'heroes', new Batman.Set(leo, mikey).sortedBy('id')
+    delay ->
+      equal node[0].childNodes[0].innerHTML, 'leo'
+      equal node[0].childNodes[1].innerHTML, 'mikey'
 
 asyncTest 'it binds the value of a multi-select box and updates the options when the bound value changes', ->
   context = new Batman.Object

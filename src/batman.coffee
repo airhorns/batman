@@ -5044,18 +5044,28 @@ class Batman.DOM.SelectBinding extends Batman.DOM.AbstractBinding
     super
 
   childBindingAdded: (binding) =>
-    @selectedBindings.add binding
-    dataChangeHandler = => @nodeChange()
-    binding.on 'dataChange', dataChangeHandler
-    binding.on 'die', =>
-      binding.forget 'dataChange', dataChangeHandler
-      @selectedBindings.remove(binding)
+    if binding instanceof Batman.DOM.CheckedBinding
+      binding.on 'dataChange', dataChangeHandler = => @nodeChange()
+      binding.on 'die', =>
+        binding.forget 'dataChange', dataChangeHandler
+        @selectedBindings.remove(binding)
+
+      @selectedBindings.add(binding)
+    else if binding instanceof Batman.DOM.IteratorBinding
+      binding.on 'nodeAdded', dataChangeHandler = => @_fireDataChange(@get('filteredValue'))
+      binding.on 'nodeRemoved', dataChangeHandler
+      binding.on 'die', =>
+        binding.forget 'nodeAdded', dataChangeHandler
+        binding.forget 'nodeRemoved', dataChangeHandler
+    else
+      return
+
     @_fireDataChange(@get('filteredValue'))
 
   dataChange: (newValue) =>
     # For multi-select boxes, the `value` property only holds the first
     # selection, so go through the child options and update as necessary.
-    if newValue? && newValue.forEach
+    if newValue?.forEach
       # Use a hash to map values to their nodes to avoid O(n^2).
       valueToChild = {}
       for child in @node.children
@@ -5373,6 +5383,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
         hideFunction.call(oldNode)
       else
         $removeNode(oldNode)
+    @fire 'nodeRemoved', oldNode, item if oldNode
 
   removeAll: -> @nodeMap.forEach (item) => @removeItem(item)
 
@@ -5407,6 +5418,7 @@ class Batman.DOM.IteratorBinding extends Batman.DOM.AbstractCollectionBinding
 
         if addItem = node.getAttribute 'data-additem'
           @renderer.context.contextForKey(addItem)?[addItem]?(item, node)
+        @fire 'nodeAdded', node, item
 
       @actions[options.actionNumber].item = item
     @processActionQueue()
