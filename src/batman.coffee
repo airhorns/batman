@@ -2415,7 +2415,7 @@ class Batman.RenderCache extends Batman.Hash
       currentKeys = @keyQueue.slice(0)
       for i in [@maximumLength...currentKeys.length]
         key = currentKeys[i]
-        if !@get(key).inUse()
+        if !@get(key).isInDOM()
           @unset(key)
     return
 
@@ -4112,7 +4112,7 @@ class Batman.View extends Batman.Object
       @_renderer.on 'rendered', =>
         @fire('ready', node)
 
-  inUse: ->
+  isInDOM: ->
     if (node = @get('node'))
       node.parentNode? ||
         @get('yields').some (name, nodes) ->

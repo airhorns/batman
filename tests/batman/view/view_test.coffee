@@ -62,7 +62,7 @@ asyncTest 'should allow prefetching of view sources', 2, ->
     view = new Batman.View({source: 'view'})
     equal view.get('html'), 'prefetched contents'
 
-QUnit.module 'Batman.View inUse'
+QUnit.module 'Batman.View isInDOM'
   setup: ->
     @options =
       html: "predetermined contents"
@@ -71,36 +71,36 @@ QUnit.module 'Batman.View inUse'
   teardown: ->
     Batman.DOM.Yield.reset()
 
-test 'should report inUse correctly as false when without node', ->
-  equal @view.inUse(), false
+test 'should report isInDOM correctly as false when without node', ->
+  equal @view.isInDOM(), false
 
-asyncTest 'should report inUse correctly as false when with node but not in the dom', ->
+asyncTest 'should report isInDOM correctly as false when with node but not in the dom', ->
   node = document.createElement('div')
   @view.set('node', node)
-  equal @view.inUse(), false
+  equal @view.isInDOM(), false
   delay =>
-    equal @view.inUse(), false
+    equal @view.isInDOM(), false
 
-asyncTest 'should report inUse correctly as true when it\'s node is in the dom', ->
+asyncTest 'should report isInDOM correctly as true when it\'s node is in the dom', ->
   node = $('<div/>')
   @view.set('node', node[0])
   @view.on 'ready', =>
     node.appendTo($('body'))
-    ok @view.inUse()
+    ok @view.isInDOM()
     node.remove()
-    equal @view.inUse(), false
+    equal @view.isInDOM(), false
     QUnit.start()
 
-asyncTest 'should report inUse correctly as true when a yielded node is in the dom', ->
+asyncTest 'should report isInDOM correctly as true when a yielded node is in the dom', ->
   source = '''
   <div data-contentfor="baz">chunky bacon</div>
   <div data-yield="baz" id="test">erased</div>
   '''
   node = helpers.render source, {}, (node, view) ->
-    ok view.inUse()
+    ok view.isInDOM()
     QUnit.start()
 
-asyncTest 'should report inUse correctly as true when only one of many yielded nodes is in the dom', ->
+asyncTest 'should report isInDOM correctly as true when only one of many yielded nodes is in the dom', ->
   source = '''
   <div data-contentfor="bar">chunky bacon</div>
   <div data-yield="bar">erased</div>
@@ -108,15 +108,15 @@ asyncTest 'should report inUse correctly as true when only one of many yielded n
   <div data-contentfor="qux">chunky bacon</div>
   '''
   node = helpers.render source, {}, (node, view) ->
-    ok view.inUse()
+    ok view.isInDOM()
     QUnit.start()
 
-asyncTest 'should report inUse correctly as false when none of many yielded nodes is in the dom', ->
+asyncTest 'should report isInDOM correctly as false when none of many yielded nodes is in the dom', ->
   source = '''
   <div data-contentfor="bar">chunky bacon</div>
   <div data-contentfor="baz">chunky bacon</div>
   <div data-contentfor="qux">chunky bacon</div>
   '''
   node = helpers.render source, {}, (node, view) ->
-    equal view.inUse(), false
+    equal view.isInDOM(), false
     QUnit.start()
