@@ -4715,7 +4715,7 @@ Batman.DOM = {
       view.fire 'beforeDestroy', node
       view.get('yields').forEach (name, actions) ->
         for {node} in actions
-          Batman.DOM.didDestroyNode(node)
+          Batman.DOM.willDestroyNode(node)
     Batman.DOM.willDestroyNode(child) for child in node.childNodes
     true
 
