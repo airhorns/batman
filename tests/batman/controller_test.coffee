@@ -89,6 +89,19 @@ test 'it should render a Batman.View subclass with the ControllerAction name on 
 
 test 'it should cache the rendered Batman.View subclass with the ControllerAction name on the current app if it exists', ->
   Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base
+  @controller.actionA = ->
+    @render viewClass: MockView, source: 'foo'
+  @controller.actionB = ->
+    @render viewClass: MockView, source: 'foo'
+
+  @controller.dispatch 'actionA'
+  view = MockView.lastInstance
+
+  @controller.dispatch 'actionB'
+  equal MockView.lastInstance, view, "No new instance has been made"
+
+test 'it should cache the rendered Batman.Views if rendered from different actions', ->
+  Batman.currentApp = mockApp = Batman _renderContext: Batman.RenderContext.base
   mockApp.TestShowView = MockView
 
   @controller.dispatch 'show'
